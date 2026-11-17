@@ -1,4 +1,4 @@
-import { canUseItem, config, findInteraction, reloadTicks } from '@stuffed/sim';
+import { ANIMAL_RARITY, canUseItem, config, findInteraction, reloadTicks } from '@stuffed/sim';
 import type { Animal, GameState, PartSlot, Player, Vec2 } from '@stuffed/sim';
 import * as THREE from 'three';
 import type { KeyboardMouseInput } from '../input/keyboard-mouse.ts';
@@ -152,7 +152,8 @@ export class Hud {
       this.stash.hidden = v === '';
       if (stash) this.stashArt.innerHTML = partIcon(stash.slot, stash.animal);
     });
-    // Parts have no rarity: the stash slot has a plain ring.
+    // The stash slot is ringed in its animal's rarity color (as the part's ring was on the ground).
+    this.set('stc', stash ? config.rarity[ANIMAL_RARITY[stash.animal]].color : 'transparent', (v) => this.stash.style.setProperty('--rarity', v));
 
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
@@ -183,7 +184,8 @@ export class Hud {
     } else if (interaction?.kind === 'part') {
       const p = interaction.part;
       art = `part:${p.slot}:${p.animal}`;
-      color = '#ffffff';
+      // The animal's rarity, like a weapon's.
+      color = config.rarity[ANIMAL_RARITY[p.animal]].color;
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;

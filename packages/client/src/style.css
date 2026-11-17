@@ -536,7 +536,7 @@ button {
 }
 
 .gallery-card.tier-4 {
-  background: radial-gradient(circle at 50% 40%, #fff0fa, #f5b0dc);
+  background: radial-gradient(circle at 50% 40%, #fff6c8, #ffd36a);
 }
 
 .gallery-tier {
@@ -565,9 +565,38 @@ button {
   color: #ffd23a;
 }
 
+/* A finished set: a rainbow ring shining round the card (its tint stays the animal's rarity). */
 .gallery-card.complete {
-  background: radial-gradient(circle at 50% 40%, #fff6c8, #ffd36a);
-  box-shadow: 0 0 0.8rem rgba(255, 210, 90, 0.9);
+  border: 5px solid transparent;
+  background:
+    var(--tint, radial-gradient(circle at 50% 40%, #e3f6d8, #b8e2a6)) padding-box,
+    conic-gradient(from var(--spin, 0deg), #ff6b8a, #ffd23a, #5bd16a, #29c8ff, #b58bff, #ff6b8a) border-box;
+  box-shadow: 0 0 0.9rem rgba(255, 255, 255, 0.9);
+  animation: rainbow-spin 3s linear infinite;
+}
+
+.gallery-card.complete.tier-2 {
+  --tint: radial-gradient(circle at 50% 40%, #e2f0ff, #a9cdf5);
+}
+
+.gallery-card.complete.tier-3 {
+  --tint: radial-gradient(circle at 50% 40%, #f1e6ff, #cfa9f2);
+}
+
+.gallery-card.complete.tier-4 {
+  --tint: radial-gradient(circle at 50% 40%, #fff6c8, #ffd36a);
+}
+
+@property --spin {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rainbow-spin {
+  to {
+    --spin: 360deg;
+  }
 }
 
 .gallery-card img {
