@@ -379,7 +379,7 @@ export class GameRenderer {
     const following = opts.followId === opts.localPlayerId;
     // During the Toss the camera pulls back so you can pick a landing spot.
     const dropping = !!viewer?.drop;
-    this.rig.update(this.followPos, following && !dropping ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround, dropping ? 2.2 : 1);
+    this.rig.update(this.followPos, following && !dropping ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround, dropping ? 2.6 : 1);
     this.toss.update(curr, curr.tick - 1 + alpha, opts.time);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);

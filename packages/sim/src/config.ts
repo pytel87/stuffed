@@ -305,15 +305,15 @@ export const config = {
    */
   toss: {
     /** Blimp height and speed (units/s). */
-    height: 9,
-    speed: 13,
+    height: 14,
+    speed: 8,
     /** Half the length of its flight line, centered near the middle of the map. */
     reach: 72,
     /** The line passes this close to the map's center, at most. */
     centerOffset: 16,
     /** Gliding: steering speed and how fast you sink (units/s). */
     glideSpeed: 9,
-    fallSpeed: 2.4,
+    fallSpeed: 3,
   },
 
   parts: {
