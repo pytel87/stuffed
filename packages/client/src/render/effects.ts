@@ -154,12 +154,6 @@ export class Effects {
     else this.burst(this.cotton, x, 0.2, z, 0, 0, 6, 2, 0.08, 0.4, 0);
   }
 
-  /** A Bouncy Ball dash: a puff behind and a little ring. */
-  dash(x: number, z: number): void {
-    this.burst(this.cotton, x, 0.2, z, 0, 0, 8, 2.5, 0.09, 0.45, 0);
-    this.shockwave(x, 0.06, z, 1.2, '#5bd16a');
-  }
-
   /**
    * A plush wearing a set (3+ parts of one animal) leaves a trail as it walks: paw prints, frog
    * splashes, shark ripples or chicken feathers.

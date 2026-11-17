@@ -1,7 +1,6 @@
 // Using items (keys 3-5): healing and armor, a Juice Box buff, a Bouncy Ball dash and a
 // Cardboard Wall.
 import { config, secondsToTicks } from '../config.ts';
-import { clampLength1 } from '../math.ts';
 import type { GameState, Input, ItemKind, PlacedWall, Player } from '../types.ts';
 
 /**
@@ -59,20 +58,7 @@ function applyItem(state: GameState, player: Player, kind: ItemKind, input: Inpu
   }
   if (item.buttons > 0) player.buttons = Math.min(config.player.maxButtons, player.buttons + item.buttons);
   if (item.effect === 'juice') player.juiceUntil = state.tick + secondsToTicks(config.itemEffects.juice.seconds);
-  if (item.effect === 'dash') dash(state, player, input);
   if (item.effect === 'wall') placeWall(state, player);
-}
-
-/** Bouncy Ball: a burst of speed where you're moving (or aiming, standing still), with a hop. */
-function dash(state: GameState, player: Player, input: Input | null): void {
-  const move = input ? clampLength1(input.moveX, input.moveY) : { x: 0, y: 0 };
-  const len = Math.hypot(move.x, move.y);
-  const dir = len > 0.2 ? { x: move.x / len, y: move.y / len } : player.aim;
-  const { speed, hop } = config.itemEffects.dash;
-  player.knockback.x += dir.x * speed;
-  player.knockback.y += dir.y * speed;
-  if (player.vz === 0) player.vz = hop;
-  state.events.push({ type: 'dash', playerId: player.id });
 }
 
 /**

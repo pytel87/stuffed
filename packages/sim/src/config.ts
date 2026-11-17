@@ -184,24 +184,25 @@ export interface ItemStats {
   readonly useTime: number;
   readonly stuffing: number;
   readonly buttons: number;
-  /** Heals stop at this much stuffing (a Cotton Puff only patches you up to 75). */
+  /** Heals stop at this much stuffing. */
   readonly stuffingCap: number;
   readonly maxStack: number;
   /** How many a chest drops in one stack. */
   readonly chestCount: number;
   /** Ground glow color tier; items' effects do not scale with rarity. */
   readonly rarity: Rarity;
-  /** Special effects: a Juice Box buff, a Bouncy Ball dash, a Cardboard Wall. */
-  readonly effect?: 'juice' | 'dash' | 'wall';
+  /** Special effects: a Juice Box buff, a Cardboard Wall. */
+  readonly effect?: 'juice' | 'wall';
 }
 
 const items: Record<ItemKind, ItemStats> = {
-  cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, buttons: 0, stuffingCap: 75, maxStack: 5, chestCount: 2, rarity: 0 },
+  cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, buttons: 0, stuffingCap: 100, maxStack: 5, chestCount: 2, rarity: 0 },
   sewing_kit: { name: 'Sewing Kit', useTime: 4, stuffing: 50, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 2 },
   button_pack: { name: 'Button Pack', useTime: 2, stuffing: 0, buttons: 25, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 1 },
   big_stuffing_bag: { name: 'Big Stuffing Bag', useTime: 8, stuffing: 100, buttons: 0, stuffingCap: 100, maxStack: 1, chestCount: 1, rarity: 3 },
   juice_box: { name: 'Juice Box', useTime: 2, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2, effect: 'juice' },
-  bouncy_ball: { name: 'Bouncy Ball', useTime: 0, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 2, rarity: 1, effect: 'dash' },
+  // The big armor: like the Sewing Kit is to the Cotton Puff.
+  button_jar: { name: 'Button Jar', useTime: 4, stuffing: 0, buttons: 50, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2 },
   cardboard_wall: { name: 'Cardboard Wall', useTime: 1, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 1, effect: 'wall' },
 };
 
@@ -209,8 +210,6 @@ const items: Record<ItemKind, ItemStats> = {
 const itemEffects = {
   /** Juice Box: stuffing per second while it lasts, for this long, and a speed boost meanwhile. */
   juice: { regenPerSecond: 5, seconds: 10, speedMultiplier: 1.15 },
-  /** Bouncy Ball: dash speed (units/s, fading like knockback) and a little hop. */
-  dash: { speed: 18, hop: 5 },
   /** Cardboard Wall: size, how far in front it stands, how long, how many hits' worth of damage. */
   wall: { length: 3, thickness: 0.5, height: 1.4, distance: 1.6, seconds: 20, health: 60, perPlayer: 3 },
 } as const;
@@ -362,7 +361,7 @@ export const config = {
       button_pack: 3,
       big_stuffing_bag: 0.6,
       juice_box: 1.5,
-      bouncy_ball: 1.8,
+      button_jar: 1.2,
       cardboard_wall: 1.6,
     } satisfies Record<ItemKind, number>,
     /** Food crates (picnic) favor healing. */
@@ -372,7 +371,7 @@ export const config = {
       button_pack: 1,
       big_stuffing_bag: 2,
       juice_box: 3,
-      bouncy_ball: 0.5,
+      button_jar: 0.5,
       cardboard_wall: 0.5,
     } satisfies Record<ItemKind, number>,
   },

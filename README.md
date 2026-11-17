@@ -214,10 +214,10 @@ URL, for example
 
 | Item | What it does |
 | --- | --- |
-| Cotton Puff / Sewing Kit / Big Stuffing Bag | +15 (up to 75) / +50 / full stuffing |
+| Cotton Puff / Sewing Kit / Big Stuffing Bag | +15 / +50 / full stuffing (all up to full) |
 | Button Pack | +25 buttons |
 | Juice Box | +5 stuffing per second for 10 s, and a little faster |
-| Bouncy Ball | an instant dash where you're moving |
+| Button Jar | +50 buttons (4 s; the big armor) |
 | Cardboard Wall | a wall in front of you for 20 s, until it's shot down |
 
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current

@@ -16,7 +16,7 @@ export type Rarity = 0 | 1 | 2 | 3 | 4;
 export type WeaponKind =
   | 'cork_popper' | 'foam_dart_smg' | 'super_soaker'
   | 'rubber_band_rifle' | 'marble_launcher' | 'pillow_hammer' | 'glitter_bomb' | 'bubble_wand';
-export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'bouncy_ball' | 'cardboard_wall';
+export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'button_jar' | 'cardboard_wall';
 
 /** Held-button bitfield carried in Input.buttons. */
 export const Btn = {
@@ -276,7 +276,6 @@ export type GameEvent =
   /** Dropped something on purpose. */
   | { type: 'dropped'; playerId: EntityId; lootId: EntityId }
   /** A Bouncy Ball dash. */
-  | { type: 'dash'; playerId: EntityId }
   /** A Cardboard Wall went up, or was shot down. */
   | { type: 'wallPlaced'; wallId: EntityId; playerId: EntityId }
   | { type: 'wallBroken'; wallId: EntityId; pos: Vec2 }

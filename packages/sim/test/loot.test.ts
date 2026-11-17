@@ -127,18 +127,18 @@ describe('items', () => {
     expect(itemsOnGround(state)).toHaveLength(1);
   });
 
-  it('Cotton Puff heals 15 but never above 75, and takes its use time', () => {
+  it('Cotton Puff heals 15 up to full, and takes its use time', () => {
     const { world, state, p } = solo(OPEN_MAP);
     p.items[0] = { kind: 'cotton_puff', count: 2 };
-    p.stuffing = 70;
+    p.stuffing = 90;
     run(world, state, 1, () => input({ useItemSlot: 0 }));
     run(world, state, secondsToTicks(config.items.cotton_puff.useTime) - 1, () => idle);
-    expect(p.stuffing).toBe(70);
+    expect(p.stuffing).toBe(90);
     run(world, state, 1, () => idle);
-    expect(p.stuffing).toBe(75);
+    expect(p.stuffing).toBe(100);
     expect(p.items[0]).toEqual({ kind: 'cotton_puff', count: 1 });
     run(world, state, 1, () => input({ useItemSlot: 0 }));
-    expect(p.action).toBeNull(); // already at the cap: nothing to do
+    expect(p.action).toBeNull(); // already full: nothing to do
   });
 
   it('Sewing Kit heals 50 up to 100; Button Pack adds 25 armor up to 100', () => {

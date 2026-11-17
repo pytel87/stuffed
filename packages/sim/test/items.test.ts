@@ -59,18 +59,13 @@ describe('Juice Box', () => {
   });
 });
 
-describe('Bouncy Ball', () => {
-  it('dashes you where you move, right away, with a hop', () => {
-    const g = holding('bouncy_ball', 2);
-    g.play(1, { ...use, moveX: 1 });
-    expect(g.events.some((e) => e.type === 'dash')).toBe(true);
-    expect(g.you.vz).toBeGreaterThan(0);
-    g.play(10, { moveX: 1 });
-    const dashed = g.you.pos.x - 20;
-    const plain = holding('cotton_puff');
-    plain.play(11, { moveX: 1 });
-    expect(dashed).toBeGreaterThan((plain.you.pos.x - 20) * 1.5);
-    expect(g.you.items[0]).toEqual({ kind: 'bouncy_ball', count: 1 });
+describe('Button Jar', () => {
+  it('adds a big stack of buttons after a longer use', () => {
+    const g = holding('button_jar');
+    g.you.buttons = 10;
+    g.play(1, use);
+    g.play(secondsToTicks(config.items.button_jar.useTime), {});
+    expect(g.you.buttons).toBe(10 + config.items.button_jar.buttons);
   });
 });
 

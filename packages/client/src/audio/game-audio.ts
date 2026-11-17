@@ -115,13 +115,8 @@ export class GameAudio {
         case 'itemUsed': {
           const p = byId.get(e.playerId);
           const sound: SoundName | null =
-            e.item === 'button_pack' ? 'armor_up' : e.item === 'juice_box' ? 'juice_slurp' : e.item === 'bouncy_ball' || e.item === 'cardboard_wall' ? null : 'heal';
+            e.item === 'button_pack' || e.item === 'button_jar' ? 'armor_up' : e.item === 'juice_box' ? 'juice_slurp' : e.item === 'cardboard_wall' ? null : 'heal';
           if (p && sound) s.play(sound, { at: p.pos, volume: 0.8 });
-          break;
-        }
-        case 'dash': {
-          const p = byId.get(e.playerId);
-          if (p) s.play('ball_boing', { at: p.pos, volume: 0.8 });
           break;
         }
         case 'wallPlaced': {

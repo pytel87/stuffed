@@ -314,16 +314,28 @@ export function buildItem(kind: ItemKind): THREE.Group {
       g.add(straw);
       break;
     }
-    case 'bouncy_ball': {
-      // A shiny bouncy ball with a stripe round it.
-      const ball = toonMesh(new THREE.SphereGeometry(0.22, 20, 14), '#5bd16a', { outline: 0.06 });
-      g.add(ball);
-      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 28), toonMaterial('#ffd23a', { map: null }));
-      stripe.rotation.x = 0.4;
-      g.add(stripe);
-      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), toonMaterial('#ffffff', { map: null }));
-      shine.position.set(-0.08, 0.12, 0.15);
-      g.add(shine);
+    case 'button_jar': {
+      // A glass jar full of colorful buttons, with a red lid.
+      const glass = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.22, 0.4, 20),
+        new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.35, depthWrite: false }),
+      );
+      glass.position.y = 0.2;
+      g.add(glass);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.235, 0.42, 20), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
+      rim.position.y = 0.2;
+      g.add(rim);
+      const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf'];
+      for (let i = 0; i < 12; i++) {
+        const button = toonMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.025, 12), colors[i % colors.length]!, { outline: false });
+        const a = i * 2.4;
+        button.position.set(Math.cos(a) * 0.11 * ((i % 3) / 2), 0.05 + Math.floor(i / 3) * 0.075, Math.sin(a) * 0.11 * ((i % 3) / 2));
+        button.rotation.set(i * 0.7, 0, i * 0.4);
+        g.add(button);
+      }
+      const lid = toonMesh(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 20), '#e2433f', { outline: 0.06 });
+      lid.position.y = 0.44;
+      g.add(lid);
       break;
     }
     case 'cardboard_wall': {
