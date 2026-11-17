@@ -113,9 +113,13 @@ export class GameRenderer {
     window.addEventListener('resize', () => this.resize());
   }
 
+  /** The canvas size the drawing buffer and camera were last set up for. */
+  private sizedFor = '';
+
   resize(): void {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
+    this.sizedFor = `${w}x${h}`;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
@@ -312,6 +316,9 @@ export class GameRenderer {
   }
 
   render(frame: RenderFrame, opts: RenderOptions): void {
+    // Phones report a rotation's new size a moment after the resize event: check every frame,
+    // or the picture stays stretched to the old shape.
+    if (`${this.canvas.clientWidth}x${this.canvas.clientHeight}` !== this.sizedFor) this.resize();
     const { prev, curr, alpha } = frame;
     const prevById = new Map<EntityId, Player>(prev.players.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();

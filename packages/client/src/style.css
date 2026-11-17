@@ -632,6 +632,16 @@ body.touch-mode .help-touch {
   animation: pop 220ms ease-out;
 }
 
+/* Short screens (phones in landscape): the options open in a row left of the gear, so they
+   don't run down into the touch buttons. */
+@media (max-height: 500px) {
+  .sheet {
+    top: calc(var(--safe-t) + var(--edge));
+    right: calc(var(--safe-r) + var(--edge) + 3.2rem + 0.6rem);
+    grid-auto-flow: column;
+  }
+}
+
 /* ---------- HUD ---------- */
 
 #hud {
