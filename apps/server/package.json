@@ -1,0 +1,7 @@
+{
+  "name": "@stuffed/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Colyseus authoritative server. Placeholder until roadmap step 2 (Online brawl)."
+}

@@ -1,0 +1,17 @@
+{
+  "name": "stuffed",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.26.1",
+  "scripts": {
+    "dev": "pnpm --filter @stuffed/client dev",
+    "build": "pnpm --filter @stuffed/client build",
+    "test": "pnpm --filter @stuffed/sim test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}

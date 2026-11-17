@@ -1,0 +1,181 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #8ccdee;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  user-select: none;
+}
+
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hint {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(36, 27, 44, 0.55);
+  color: #fff;
+  font-size: 13px;
+}
+
+#debug {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(20, 14, 26, 0.75);
+  color: #c8f7c5;
+  font: 12px/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+  pointer-events: none;
+}
+
+#floaters {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floater {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 800 22px/1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 4px #2a1f2d;
+  paint-order: stroke fill;
+  will-change: transform, opacity;
+}
+
+.floater.armor {
+  color: #8fc3ff;
+}
+
+.vitals {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  width: min(360px, 60vw);
+}
+
+.bar {
+  position: relative;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(36, 27, 44, 0.6);
+  border: 2px solid #2a1f2d;
+  overflow: hidden;
+}
+
+.bar.buttons {
+  height: 12px;
+}
+
+.bar .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  transition: width 120ms ease-out;
+}
+
+.bar.stuffing .fill {
+  background: #fdfbf7;
+}
+
+.bar.buttons .fill {
+  background: #5d9cf5;
+}
+
+.bar .label {
+  position: relative;
+  display: block;
+  padding-left: 10px;
+  font: 700 12px/20px system-ui, sans-serif;
+  color: #2a1f2d;
+}
+
+.bar.buttons .label {
+  font-size: 10px;
+  line-height: 12px;
+  color: #fff;
+}
+
+.weapons {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.slot {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  min-width: 190px;
+  padding: 8px 12px 10px;
+  border-radius: 10px;
+  background: rgba(36, 27, 44, 0.6);
+  border: 2px solid transparent;
+  border-left: 6px solid var(--rarity, transparent);
+  color: #fff;
+  opacity: 0.65;
+  overflow: hidden;
+}
+
+.slot.active {
+  opacity: 1;
+  border-color: #fff;
+  border-left-color: var(--rarity, #fff);
+}
+
+.slot .key {
+  grid-row: span 2;
+  align-self: center;
+  font: 700 18px/1 ui-monospace, Menlo, monospace;
+}
+
+.slot .name {
+  font: 700 14px/1.2 system-ui, sans-serif;
+}
+
+.slot .ammo {
+  font: 12px/1.3 ui-monospace, Menlo, monospace;
+  opacity: 0.85;
+}
+
+.slot .reload {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #fff;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+[hidden] {
+  display: none !important;
+}
