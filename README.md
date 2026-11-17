@@ -24,7 +24,8 @@ This starts the game client (Vite, usually http://localhost:5173) and the game s
 - **Other computers at home:** run `pnpm dev:lan` and open the client from the other machine
   with this computer's local IP (e.g. http://192.168.1.20:5173/?room=CODE).
 
-`pnpm dev:solo` runs only the client.
+`pnpm dev:solo` runs only the client. Add `&lag=150` to an online URL to fake 150 ms of
+network round trip on localhost.
 
 | Command | What it does |
 | --- | --- |
@@ -106,6 +107,11 @@ apps/server       Authoritative game server: Cloudflare Worker + one Durable Obj
   with everyone's inputs and the bots, and sends each player a snapshot of what their plush
   can see 15 times a second. Messages are in
   [packages/sim/src/net/protocol.ts](packages/sim/src/net/protocol.ts).
+- **Prediction**: online, your own plush moves the instant you press a key. The client applies
+  each input with the sim's `predictPlayer()` (the same movement code the server runs), and on
+  every snapshot re-applies the inputs the server hasn't confirmed yet on top of the confirmed
+  state, smoothing away small differences. Everyone else is drawn slightly in the past,
+  interpolated between snapshots.
 - **Plush rig**: each player is one rig with 5 part sockets (head, body, legs, tail,
   accessory). Placeholder parts are built in code in
   [placeholder-parts.ts](packages/client/src/render/placeholder-parts.ts); real models replace

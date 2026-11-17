@@ -91,7 +91,8 @@ function playAgain(): void {
 /** Online: connect to a room, show its lobby, and switch to each match the host starts. */
 function joinRoom(code: string): void {
   hudEl.classList.add('idle');
-  room = new RoomClient(code, playerName(), input);
+  // ?lag=150 fakes 150 ms of network round trip (to try prediction on localhost).
+  room = new RoomClient(code, playerName(), input, Number(params.get('lag')) || 0);
   lobbyScreen = new LobbyScreen(document.body, room);
   lobbyScreen.show();
   room.onLobby = () => {

@@ -50,10 +50,15 @@ export class RoomClient {
   onMatch: (match: NetworkMatch) => void = () => {};
   private readonly socket: PartySocket;
 
+  /**
+   * `lagMs` fakes a round trip of that many milliseconds (half each way), to try prediction
+   * and interpolation on localhost.
+   */
   constructor(
     readonly code: string,
     private readonly name: string,
     private readonly input: InputSource,
+    private readonly lagMs = 0,
   ) {
     this.socket = new PartySocket({
       host: serverHost(),
@@ -71,7 +76,11 @@ export class RoomClient {
       this.status = 'closed';
       this.onLobby();
     });
-    this.socket.addEventListener('message', (e: MessageEvent) => this.receive(JSON.parse(String(e.data)) as ServerMessage));
+    this.socket.addEventListener('message', (e: MessageEvent) => {
+      const msg = JSON.parse(String(e.data)) as ServerMessage;
+      if (this.lagMs > 0) setTimeout(() => this.receive(msg), this.lagMs / 2);
+      else this.receive(msg);
+    });
   }
 
   get isHost(): boolean {
@@ -108,6 +117,11 @@ export class RoomClient {
   }
 
   private send(msg: ClientMessage): void {
-    if (this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(msg));
+    const data = JSON.stringify(msg);
+    const go = () => {
+      if (this.socket.readyState === WebSocket.OPEN) this.socket.send(data);
+    };
+    if (this.lagMs > 0) setTimeout(go, this.lagMs / 2);
+    else go();
   }
 }

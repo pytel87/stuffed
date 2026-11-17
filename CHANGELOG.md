@@ -2,6 +2,20 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 2.2: Client prediction (2026-11-17)
+
+- Sim: `predictPlayer()` moves one plush by one input exactly as `step()` would (aim,
+  movement, collisions, jumps, bushes, roofs). A test replays unconfirmed inputs from a
+  confirmed state and lands exactly where the server does.
+- Client: your plush is predicted. Each input is applied locally the moment it's sent; each
+  snapshot's confirmed state (the last input the server applied) is taken and the inputs
+  still in flight are re-applied on top. Differences under 3 units fade out smoothly; bigger
+  ones snap. Your plush is drawn at the predicted present, everyone else ~130 ms in the past.
+- `?lag=MS` fakes network round trip on localhost. With 300 ms of lag, movement now tracks the
+  keys like a local game (measured: same position curve as with no lag).
+- Shots and hits are still confirmed by the server, so your own shots appear after the round
+  trip.
+
 ## Step 2.1: Online rooms on Cloudflare (2026-11-17)
 
 - Game server in `apps/server`: a Cloudflare Worker with one Durable Object per room

@@ -6,7 +6,7 @@ import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from '.
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
 import { updateZone } from './systems/zone.ts';
-import type { EntityId, GameState, Input } from './types.ts';
+import type { EntityId, GameState, Input, Player } from './types.ts';
 import type { World } from './world.ts';
 
 /**
@@ -51,4 +51,20 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   }
   checkWinner(state);
   return state;
+}
+
+/**
+ * Moves one plush by one input exactly as step() would, without touching anything else (no
+ * shots, pickups, damage or other plushies). Clients use it to predict their own plush between
+ * server updates: apply each input as it is sent, and on every update re-apply the inputs the
+ * server hasn't confirmed yet on top of the confirmed state.
+ */
+export function predictPlayer(world: World, state: GameState, player: Player, raw: Input): void {
+  const input = sanitizeInput(raw);
+  player.lastInputSeq = input.seq;
+  applyAim(player, input);
+  movePlayer(world, state, player, input);
+  player.inBush = insideBush(world, player.pos, player.z);
+  player.building = buildingAt(world, player.pos, player.z);
+  player.heldButtons = input.buttons;
 }

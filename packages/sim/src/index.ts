@@ -1,7 +1,7 @@
 export * from './types.ts';
 export { config, DT, secondsToTicks } from './config.ts';
 export { createGame, type CreateGameOptions } from './create.ts';
-export { step } from './step.ts';
+export { predictPlayer, step } from './step.ts';
 export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee } from './systems/visibility.ts';
 export { groundHeight } from './systems/movement.ts';
