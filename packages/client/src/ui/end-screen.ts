@@ -78,7 +78,7 @@ export class EndScreen {
     this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
-    this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `${icon('play')}<span>Again</span><kbd>Enter</kbd>`;
+    this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `<span>Again</span><kbd>Enter</kbd>`;
     this.el.hidden = false;
   }
 
