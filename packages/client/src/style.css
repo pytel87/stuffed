@@ -111,6 +111,7 @@ button {
 
 .big {
   flex: 1;
+  min-width: 0;
   min-height: 3.4rem;
   padding: 0 1.1rem;
   border-radius: 1.1rem;
@@ -118,6 +119,8 @@ button {
 }
 
 .round {
+  /* Always a circle: in a crowded row the wide buttons give way, never these. */
+  flex: none;
   width: 3.2rem;
   height: 3.2rem;
   border-radius: 50%;
