@@ -43,7 +43,7 @@ describe('skin parts', () => {
     const state = createGame({
       seed: 1,
       map: OPEN_MAP,
-      roster: [{ name: 'a', isBot: false, parts: { head: { animal: 'shark', rarity: 3 }, body: { animal: 'unicorn' as never, rarity: 4 } } }],
+      roster: [{ name: 'a', isBot: false, parts: { head: { animal: 'shark', rarity: 3 }, body: { animal: 'dragon' as never, rarity: 4 } } }],
     });
     const p = state.players[0]!;
     expect(p.parts.head).toEqual({ animal: 'shark', rarity: 3, found: false });

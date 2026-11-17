@@ -1242,9 +1242,14 @@ body.touch-mode .prompt .icon.tap {
   display: none;
 }
 
-/* On touch the stuffing bar is at the top, so the bottom middle is free. */
+/* On touch: just a round jump button at the bottom middle (no pill, no key). */
 body.touch-mode #toss-hint {
   bottom: calc(var(--safe-b) + var(--edge));
+  width: 4.6rem;
+  height: 4.6rem;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 #spectating .spec-label {
