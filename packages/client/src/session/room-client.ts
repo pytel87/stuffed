@@ -2,7 +2,7 @@
 // current NetworkMatch with snapshots. Reconnects by itself; a per-room token gets your seat back.
 import PartySocket from 'partysocket';
 import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from '@stuffed/sim/net';
-import type { Input } from '@stuffed/sim';
+import type { Input, Part } from '@stuffed/sim';
 import { NetworkMatch } from './network-match.ts';
 import type { InputSource } from './session.ts';
 
@@ -53,6 +53,8 @@ export class RoomClient {
   error: string | null = null;
   onLobby: () => void = () => {};
   onMatch: (match: NetworkMatch) => void = () => {};
+  /** After a match: the parts that went into your collection. */
+  onKept: (parts: Part[]) => void = () => {};
   private readonly socket: PartySocket;
 
   /**
@@ -64,6 +66,8 @@ export class RoomClient {
     private name: string,
     private readonly input: InputSource,
     private readonly lagMs = 0,
+    /** Your profile token, so the room starts you in your look and saves the parts you keep. */
+    private readonly profileToken: string | null = null,
   ) {
     this.socket = new PartySocket({
       host: serverHost(),
@@ -75,7 +79,7 @@ export class RoomClient {
     });
     this.socket.addEventListener('open', () => {
       this.status = 'open';
-      this.send({ t: 'hello', v: PROTOCOL_VERSION, name: this.name, token: seatToken(code) });
+      this.send({ t: 'hello', v: PROTOCOL_VERSION, name: this.name, token: seatToken(code), ...(this.profileToken ? { profile: this.profileToken } : {}) });
     });
     this.socket.addEventListener('close', () => {
       this.status = 'closed';
@@ -105,6 +109,7 @@ export class RoomClient {
   close(): void {
     this.onLobby = () => {};
     this.onMatch = () => {};
+    this.onKept = () => {};
     this.socket.close();
   }
 
@@ -127,6 +132,9 @@ export class RoomClient {
       case 'error':
         this.error = msg.code;
         this.onLobby();
+        break;
+      case 'kept':
+        this.onKept(msg.parts);
         break;
       case 'pong':
         break;

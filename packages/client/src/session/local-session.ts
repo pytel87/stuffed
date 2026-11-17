@@ -1,7 +1,7 @@
 import { BotController, createGame, createWorld, DT, step, TEST_MAP } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
 
-/** Your plush's own look in solo play (bots get random ones), until the Wardrobe exists. */
+/** Your plush's look in solo play without a profile (bots get random ones). */
 const YOUR_LOOK: RosterEntry['parts'] = { head: 'bear', body: 'bear', legs: 'chicken', tail: 'bear', accessory: 'frog' };
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
@@ -18,6 +18,8 @@ export interface LocalSessionOptions {
   zoneTimeScale?: number;
   /** Bots only, nobody to control (the match behind the title menu). */
   watchOnly?: boolean;
+  /** Your starting look (from your profile). */
+  look?: RosterEntry['parts'];
 }
 
 export class LocalSession implements GameSession {
@@ -35,12 +37,12 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false }: LocalSessionOptions,
+    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
     const roster: RosterEntry[] = [
-      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: YOUR_LOOK, ...(loadout ? { loadout } : {}) }]),
+      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: look, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale });

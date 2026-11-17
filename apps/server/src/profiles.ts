@@ -2,21 +2,10 @@
 // stored), plus a recovery code that adds another device to the same profile. A profile owns
 // parts (its collection) and picks the look it starts every match in from them.
 import { ANIMALS, PART_SLOTS } from '@stuffed/sim';
-import type { Animal, OwnedPart, Part, PartSlot, Rarity } from '@stuffed/sim';
+import type { Animal, Part, PartSlot, Rarity } from '@stuffed/sim';
+import type { Look, OwnedEntry, Profile } from '@stuffed/sim/net';
 
-export type Look = Record<PartSlot, OwnedPart>;
-
-/** A part in the collection, and how many times it was kept (duplicates become Thread later). */
-export interface OwnedEntry extends Part {
-  count: number;
-}
-
-export interface Profile {
-  id: string;
-  recovery: string;
-  look: Look;
-  parts: OwnedEntry[];
-}
+export type { Look, OwnedEntry, Profile };
 
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, recovery TEXT NOT NULL UNIQUE, look TEXT NOT NULL, created_at INTEGER NOT NULL)',

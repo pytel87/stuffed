@@ -1,13 +1,14 @@
 import './style.css';
-import { canSee, config, createWorld, muzzlePosition, TEST_MAP, zoneSecondsLeft } from '@stuffed/sim';
+import { canSee, carriedParts, config, createWorld, muzzlePosition, TEST_MAP, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
-import type { EntityId, GameState, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { TouchControls } from './input/touch-controls.ts';
 import { GameRenderer } from './render/game-renderer.ts';
 import { LocalSession } from './session/local-session.ts';
+import { ProfileStore } from './session/profile.ts';
 import { createRoom, RoomClient } from './session/room-client.ts';
 import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
@@ -20,6 +21,7 @@ import { icon } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
 import { MenuScreen } from './ui/menu-screen.ts';
 import { Options } from './ui/options.ts';
+import { Wardrobe } from './ui/wardrobe.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -37,7 +39,10 @@ const zoneTimeScale = Number(params.get('zonescale')) || 1;
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs (first match only).
 let seed = Number(params.get('seed')) || Date.now() >>> 0;
 
-const newSolo = () => new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}) });
+/** This device's profile: your collection and the look you start in. */
+const profiles = new ProfileStore();
+const newSolo = () =>
+  new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
 /** Bots only, behind the title menu and the lobby. */
 const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true });
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
@@ -72,7 +77,11 @@ const menu = new MenuScreen(document.body, playerName(), {
     saveName(name);
     joinRoom(code);
   },
+  wardrobe: () => wardrobe.show(),
 });
+const wardrobe = new Wardrobe(profiles);
+profiles.onChange = () => menu.setWardrobe(!!profiles.profile);
+void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
 const help = new Help();
@@ -89,6 +98,8 @@ let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
 let followId: EntityId = -1;
 /** Who knocked you out and with what, captured when it happened. */
 let knockedOutBy = '';
+/** Solo: the match result went to the server already (which parts you keep). */
+let soloReported = false;
 
 let last = performance.now();
 const aimOffset = { x: 0, y: 0 };
@@ -121,6 +132,8 @@ function beginMatch(next: GameSession): void {
   endScreen.hide();
   lobbyScreen?.hide();
   knockedOutBy = '';
+  soloReported = false;
+  endScreen.setKept(null);
   me = undefined;
   hudEl.classList.remove('out');
   const watching = next.localPlayerId === -1;
@@ -163,7 +176,11 @@ function joinRoom(code: string): void {
   if (!isBackdrop(session)) beginMatch(newBackdrop());
   hudEl.classList.add('idle');
   // ?lag=150 fakes 150 ms of network round trip (to try prediction on localhost).
-  room = new RoomClient(code, playerName(), input, Number(params.get('lag')) || 0);
+  room = new RoomClient(code, playerName(), input, Number(params.get('lag')) || 0, profiles.roomToken);
+  room.onKept = (parts) => {
+    endScreen.setKept(parts);
+    void profiles.refresh();
+  };
   lobbyScreen = new LobbyScreen(document.body, room, showMenu, (name) => {
     saveName(name);
     room?.rename(name);
@@ -249,6 +266,8 @@ function frame(now: number): void {
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(state, e.byId);
+    // Solo: what you carried when knocked out decides what you can keep.
+    if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.parts, false);
   }
 
   const localId = session.localPlayerId;
@@ -338,6 +357,7 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     renderer.celebrate(me.id, state);
     sound.play('win', { pitchSpread: 0 });
+    reportSolo(carriedParts(me), true);
     endScreen.show({ ...resultView(state, me, 'win', 'Winner!', `${icon('crown')}<span>${escapeHtml(me.name)}</span>`, false), waitingForHost: !!room && !room.isHost });
     return;
   }
@@ -441,6 +461,17 @@ function aimByTouch(state: GameState, me: Player): void {
   // The camera leans toward where the stick points, like it does toward the cursor.
   aimOffset.x = stick ? dir.x * distance : 0;
   aimOffset.y = stick ? dir.y * distance : 0;
+}
+
+/**
+ * Solo matches run in the browser, so the result goes to the server from here: it rolls which
+ * carried parts you keep (all of them if you won). Online, the room does this.
+ */
+function reportSolo(parts: Part[], won: boolean): void {
+  if (mode !== 'solo' || soloReported) return;
+  soloReported = true;
+  if (parts.length === 0) return;
+  void profiles.soloResult(parts, won).then((kept) => endScreen.setKept(kept));
 }
 
 function isAlive(state: GameState, id: EntityId): boolean {

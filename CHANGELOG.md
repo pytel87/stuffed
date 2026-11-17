@@ -2,6 +2,21 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 3.2: Keeping parts: profiles and the Wardrobe (2026-11-17)
+
+- A profile per device, created on the first visit: a random token in the browser (the server
+  stores only its hash) and a random Hand-me-down look, which is also its first five parts.
+  Profiles and collections live in Cloudflare D1; the tables are created on first use.
+- After a match you keep the parts you carried: all of them if you won, otherwise each by its
+  rarity's chance (100/60/35/15/5%). Online the room rolls and saves this and tells you; solo
+  matches report from the browser. The results card shows the kept parts.
+- The Wardrobe (hanger on the title menu): a turning preview of your plush, one row per slot to
+  flip through owned parts, and the recovery code; entering a code on another device puts the
+  same profile there. Rooms start you in your look.
+- Head icons show each animal (ears, eye bumps, fin, comb and beak).
+- API: `POST/GET /api/profile`, `PUT /api/profile/look`, `POST /api/profile/recover`,
+  `POST /api/profile/solo`.
+
 ## Gentler bots and full-set glow (2026-11-17)
 
 - Bots spend the first 20 seconds looting and only fight back if hurt. After that they react

@@ -1,7 +1,7 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
-import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Part, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
+import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
 
 export const PROTOCOL_VERSION = 2;
 /** Plushies per match, humans and bots together. */
@@ -59,6 +59,24 @@ export type ServerMessage =
   /** After a match: the parts that went into your collection. */
   | { t: 'kept'; parts: Part[] }
   | { t: 'error'; code: 'version' | 'full' | 'not_host' | 'bad_message' };
+
+// ---------- profiles (HTTP API, see apps/server) ----------
+
+/** The look a profile starts every match in: one owned part per slot. */
+export type Look = Record<PartSlot, OwnedPart>;
+
+/** A part in a collection, and how many times it was kept. */
+export interface OwnedEntry extends Part {
+  count: number;
+}
+
+export interface Profile {
+  id: string;
+  /** Typed on another device to play the same profile there. */
+  recovery: string;
+  look: Look;
+  parts: OwnedEntry[];
+}
 
 /** Rounds floats so snapshots stay small (millimeter precision is plenty). */
 export function compactJson(value: unknown): string {

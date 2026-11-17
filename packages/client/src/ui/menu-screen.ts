@@ -5,6 +5,7 @@ export interface MenuActions {
   solo: (name: string) => void;
   create: (name: string) => void;
   join: (name: string, code: string) => void;
+  wardrobe: () => void;
 }
 
 /** Title menu: your name, Solo, Room (create), and a code field to join. */
@@ -21,7 +22,10 @@ export class MenuScreen {
       `<div class="overlay menu" hidden>
          <div class="card">
            <h1 class="logo">STUFFED</h1>
-           <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
+           <div class="row">
+             <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
+             <button type="button" class="round menu-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
+           </div>
            <div class="row">
              <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
              <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
@@ -44,6 +48,7 @@ export class MenuScreen {
     const name = () => this.name.value.trim().slice(0, 16) || 'Plush';
     this.el.querySelector('.menu-solo')!.addEventListener('click', () => actions.solo(name()));
     this.el.querySelector('.menu-create')!.addEventListener('click', () => actions.create(name()));
+    this.el.querySelector('.menu-wardrobe')!.addEventListener('click', () => actions.wardrobe());
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {
       e.preventDefault();
       const code = parseRoomCode(this.code.value);
@@ -65,6 +70,11 @@ export class MenuScreen {
   hide(): void {
     this.el.hidden = true;
     this.showError('');
+  }
+
+  /** The Wardrobe needs a profile (a reachable server). */
+  setWardrobe(available: boolean): void {
+    this.el.querySelector<HTMLElement>('.menu-wardrobe')!.hidden = !available;
   }
 
   setBusy(busy: boolean): void {

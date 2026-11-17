@@ -119,6 +119,19 @@ When you're knocked out, the parts you found and your stash drop for others to t
 starting look never drops. Bots put on any part rarer than what they wear. A plush wearing all
 five parts of one animal glows in that animal's color. Parts never change stats or hitboxes.
 
+### Keeping parts: profiles and the Wardrobe
+
+Each device gets a profile on its first visit (no sign-up): a random token in the browser, and
+a random Hand-me-down look that is also its first five parts. After a match you keep the parts
+you carried (found and still worn, or stashed): the winner keeps all of them, everyone else
+each part by chance: Hand-me-down 100%, Store-bought 60%, Collector 35%, Limited Edition 15%,
+One-of-a-Kind 5%. The results card shows what you kept. Online, the room rolls and saves this;
+solo matches report their result to the server from the browser.
+
+The hanger next to your name on the title menu opens the Wardrobe: flip through the parts you
+own for each slot to choose the look you start every match in. It also shows the profile's
+recovery code: typing it into the Wardrobe on another device puts the same profile there too.
+
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the
 URL, for example
@@ -138,6 +151,15 @@ there is one address and nothing else to host.
 npx wrangler login   # once, with your Cloudflare account (wrangler whoami to check)
 pnpm run deploy      # builds the client, then deploys the Worker with the client as its assets
 ```
+
+Profiles live in a D1 database. Create it once and put its id in
+[apps/server/wrangler.jsonc](apps/server/wrangler.jsonc) (`d1_databases`, replacing the zeros):
+
+```sh
+cd apps/server && npx wrangler d1 create stuffed
+```
+
+The tables are created on first use. `pnpm dev` uses a local copy of the database.
 
 Wrangler prints the address; the current deployment is
 https://stuffed-rooms.partyhub-vs.workers.dev. (Use `pnpm run deploy`: plain `pnpm deploy` is

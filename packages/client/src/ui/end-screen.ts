@@ -1,4 +1,6 @@
-import { icon } from './icons.ts';
+import { config } from '@stuffed/sim';
+import type { Part } from '@stuffed/sim';
+import { icon, partIcon } from './icons.ts';
 
 export interface EndView {
   tone: 'win' | 'lose';
@@ -23,6 +25,7 @@ export class EndScreen {
   private readonly subtitle: HTMLElement;
   private readonly placement: HTMLElement;
   private readonly stats: HTMLElement;
+  private readonly kept: HTMLElement;
   private readonly again: HTMLButtonElement;
   private readonly spectate: HTMLButtonElement;
 
@@ -35,6 +38,7 @@ export class EndScreen {
            <h1 id="end-title"></h1>
            <p class="sub"></p>
            <div class="stats"></div>
+           <div class="kept" hidden></div>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
              <button type="button" class="round end-spectate" aria-label="Spectate">${icon('eye')}</button>
@@ -48,6 +52,7 @@ export class EndScreen {
     this.subtitle = this.el.querySelector('.sub')!;
     this.placement = this.el.querySelector('.place')!;
     this.stats = this.el.querySelector('.stats')!;
+    this.kept = this.el.querySelector('.kept')!;
     this.again = this.el.querySelector('.end-again')!;
     this.spectate = this.el.querySelector('.end-spectate')!;
     this.again.addEventListener('click', onPlayAgain);
@@ -64,6 +69,8 @@ export class EndScreen {
     this.title.textContent = view.title;
     this.subtitle.innerHTML = view.subtitleHtml;
     this.placement.textContent = view.placement;
+    // Kept parts arrive separately (after the server rolls them); keep showing them for this match.
+    if (!this.keptShown) this.kept.hidden = true;
     this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
@@ -74,5 +81,16 @@ export class EndScreen {
 
   hide(): void {
     this.el.hidden = true;
+  }
+
+  private keptShown = false;
+
+  /** The parts that went into your collection this match (null: a new match, clear them). */
+  setKept(parts: Part[] | null): void {
+    this.keptShown = !!parts && parts.length > 0;
+    this.kept.hidden = !this.keptShown;
+    this.kept.innerHTML = this.keptShown
+      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part" style="--rarity:${config.rarity[p.rarity].color}">${partIcon(p.slot, p.animal)}</span>`).join('')}`
+      : '';
   }
 }

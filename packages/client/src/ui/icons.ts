@@ -53,23 +53,41 @@ const paths: Record<string, string> = {
   rotate: `<rect x="3" y="7" width="12" height="16" rx="2" fill="#fff" transform="rotate(-90 9 15)"/><path d="M17 3a5 5 0 0 1 4 5M21 4v4h-4"/>`,
   key: `<rect x="3" y="5" width="18" height="14" rx="3" fill="#fff"/>`,
   mouse: `<rect x="6" y="3" width="12" height="18" rx="6" fill="#fff"/><path d="M12 3v6"/>`,
+  // a house key: the recovery code
+  code: `<circle cx="8" cy="12" r="4.5" fill="#f7c331"/><circle cx="8" cy="12" r="1.5" fill="#fff"/><path d="M12.5 12H21M18 12v3M21 12v2.5"/>`,
+  // a clothes hanger: the Wardrobe
+  hanger: `<path d="M12 8.5V7.2a2.2 2.2 0 1 0-2.2-2.2"/><path d="M12 8.5 3.5 15.5a1.2 1.2 0 0 0 .8 2h15.4a1.2 1.2 0 0 0 .8-2Z" fill="#fff"/>`,
   // a little sack with a drawstring: the part stash
   stash: `<path d="M8 8h8l3 5.5a6 6 0 0 1-5.4 7.5h-3.2A6 6 0 0 1 5 13.5Z" fill="#d9a066"/><path d="M8 8l-1-3.5h10L16 8"/><path d="M9.5 8.5h5"/>`,
 };
 
 /** Slot shapes for skin parts, drawn in the animal's colors (main `M`, belly `B`). */
 const PART_SHAPES: Record<PartSlot, string> = {
-  head: `<circle cx="6.5" cy="7" r="3" fill="M"/><circle cx="17.5" cy="7" r="3" fill="M"/><circle cx="12" cy="13" r="7.5" fill="M"/><ellipse cx="12" cy="15.5" rx="3.2" ry="2.4" fill="B"/><circle cx="9" cy="11.5" r="1.1" fill="${INK}" stroke="none"/><circle cx="15" cy="11.5" r="1.1" fill="${INK}" stroke="none"/>`,
+  head: `<circle cx="12" cy="13" r="7.5" fill="M"/><ellipse cx="12" cy="15.5" rx="3.2" ry="2.4" fill="B"/><circle cx="9" cy="11.5" r="1.1" fill="${INK}" stroke="none"/><circle cx="15" cy="11.5" r="1.1" fill="${INK}" stroke="none"/>`,
   body: `<ellipse cx="12" cy="12.5" rx="7.5" ry="8.5" fill="M"/><ellipse cx="12" cy="14" rx="4" ry="4.8" fill="B"/>`,
   legs: `<rect x="6.5" y="3.5" width="4" height="12" rx="2" fill="M"/><rect x="13.5" y="3.5" width="4" height="12" rx="2" fill="M"/><ellipse cx="7.5" cy="18.5" rx="3.5" ry="2" fill="B"/><ellipse cx="16.5" cy="18.5" rx="3.5" ry="2" fill="B"/>`,
   tail: `<path d="M5 19c0-8 5-14 14-14-1.5 3-1.2 6 .5 8.5C14 13 9 15 5 19Z" fill="M"/><path d="M15.5 6.5c2 .2 3.5-.6 3.5-1.5" stroke-width="1.5"/>`,
   accessory: `<path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.4l-5.1 2.8 1.1-5.7-4.3-4 5.8-.7Z" fill="M"/><circle cx="12" cy="12" r="2" fill="B"/>`,
 };
 
+/** What tells the heads apart, drawn behind the head shape. */
+const HEAD_EXTRAS: Record<Animal, string> = {
+  bear: `<circle cx="6.5" cy="7" r="3" fill="M"/><circle cx="17.5" cy="7" r="3" fill="M"/>`,
+  frog: `<circle cx="8" cy="7" r="3.2" fill="M"/><circle cx="16" cy="7" r="3.2" fill="M"/>`,
+  shark: `<path d="M12 1.5l3 5h-6Z" fill="M"/>`,
+  chicken: `<circle cx="9.5" cy="5.5" r="2" fill="#e2574c"/><circle cx="12.5" cy="4.5" r="2.4" fill="#e2574c"/><circle cx="15.5" cy="5.8" r="1.8" fill="#e2574c"/>`,
+};
+/** ...and in front of it. */
+const HEAD_FRONT: Partial<Record<Animal, string>> = {
+  chicken: `<path d="M10.5 14.5h3L12 17.5Z" fill="#f0a93b" stroke-width="1.5"/>`,
+  shark: `<path d="M8.5 16.5l1 1 1-1 1 1 1-1 1 1 1-1 1 1" stroke-width="1.3"/>`,
+};
+
 /** A skin part as a slot shape in its animal's colors. */
 export function partIcon(slot: PartSlot, animal: Animal, className = 'icon'): string {
   const c = ANIMAL_COLORS[animal];
-  const body = PART_SHAPES[slot].replaceAll('fill="M"', `fill="${c.main}"`).replaceAll('fill="B"', `fill="${c.belly}"`);
+  const shape = slot === 'head' ? HEAD_EXTRAS[animal] + PART_SHAPES.head + (HEAD_FRONT[animal] ?? '') : PART_SHAPES[slot];
+  const body = shape.replaceAll('fill="M"', `fill="${c.main}"`).replaceAll('fill="B"', `fill="${c.belly}"`);
   return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
