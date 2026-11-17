@@ -20,8 +20,12 @@ import { addParts, loadProfile, profileIdForToken, type Look } from './profiles.
 const TICK_MS = 1000 / config.tickRate;
 /** Never run more than this many ticks to catch up after a stall. */
 const MAX_CATCH_UP = 5;
-/** Inputs queued beyond this are dropped (the client is running ahead). */
-const MAX_QUEUED_INPUTS = 4;
+/**
+ * Inputs queued beyond this are dropped (the client is running ahead). Generous: a phone that
+ * hiccups sends a burst at once, and every dropped input is a move the player already saw on
+ * their screen that the server never makes (they'd be snapped back).
+ */
+const MAX_QUEUED_INPUTS = 15;
 /** Without input for this many ticks (e.g. a background tab), a player stands still. */
 const INPUT_TIMEOUT_TICKS = 15;
 /** Seconds after a match ends before the loop stops (final snapshots, effects). */
@@ -54,6 +58,8 @@ interface Match {
   endedAtTick: number | null;
   /** Parts each plush dropped when it was knocked out (what it can keep). */
   dropped: Map<EntityId, Part[]>;
+  /** Seats whose kept parts were already rolled and saved this match. */
+  kept: Set<number>;
 }
 
 interface ConnState {
@@ -221,6 +227,7 @@ export class Room extends Server<Env> {
       events: [],
       endedAtTick: null,
       dropped: new Map(),
+      kept: new Set(),
     };
     this.phase = 'playing';
     this.sent.clear();
@@ -298,37 +305,49 @@ export class Room extends Server<Env> {
     step(m.world, m.state, inputs);
     m.events.push(...m.state.events);
     for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.parts);
+    // A player knocked out finds out right away which parts they keep.
+    for (const e of m.state.events) {
+      if (e.type !== 'eliminated') continue;
+      const seat = this.seats.find((s) => m.plushOf.get(s.seat) === e.playerId);
+      if (seat) void this.saveKeeps(m, seat);
+    }
+    // Every real player is out: no point watching the bots finish, end it so the host can go again.
+    const humans = [...m.plushOf.values()].map((id) => m.state.players.find((p) => p.id === id));
+    if (m.state.status === 'playing' && humans.length > 0 && humans.every((p) => !p?.alive)) {
+      m.state.status = 'ended';
+      m.state.winnerId = null;
+    }
 
     const ended = hasEnded(m.state);
     if (ended) {
       this.phase = 'ended';
       this.broadcastLobby();
-      void this.saveKeeps(m);
+      for (const seat of this.seats) void this.saveKeeps(m, seat);
     }
     if (m.state.tick % SNAPSHOT_EVERY === 0 || ended) this.sendSnapshots(m);
   }
 
   /**
-   * After a match: each player with a profile keeps the parts they carried (the winner all of
-   * them, the others by chance per rarity). Saved to their collection and sent to them.
+   * When a player is knocked out (or the match ends for them), they keep the parts they carried:
+   * the winner all of them, everyone else by chance per rarity. Saved to their collection and
+   * sent to them; once per player per match.
    */
-  private async saveKeeps(m: Match): Promise<void> {
-    for (const seat of this.seats) {
-      const id = m.plushOf.get(seat.seat);
-      const plush = m.state.players.find((p) => p.id === id);
-      if (!seat.profileId || !plush) continue;
-      const won = m.state.winnerId === plush.id;
-      const carried = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
-      const kept = rollKeeps(carried, won, Math.random);
-      try {
-        await addParts(this.env.DB, seat.profileId, kept);
-      } catch (err) {
-        console.error('saving kept parts failed', err);
-        continue;
-      }
-      const conn = seat.connId ? this.getConnection<ConnState>(seat.connId) : undefined;
-      if (conn) this.send(conn, { t: 'kept', parts: kept });
+  private async saveKeeps(m: Match, seat: Seat): Promise<void> {
+    const id = m.plushOf.get(seat.seat);
+    const plush = m.state.players.find((p) => p.id === id);
+    if (!seat.profileId || !plush || m.kept.has(seat.seat)) return;
+    m.kept.add(seat.seat);
+    const won = m.state.winnerId === plush.id;
+    const carried = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
+    const kept = rollKeeps(carried, won, Math.random);
+    try {
+      await addParts(this.env.DB, seat.profileId, kept);
+    } catch (err) {
+      console.error('saving kept parts failed', err);
+      return;
     }
+    const conn = seat.connId ? this.getConnection<ConnState>(seat.connId) : undefined;
+    if (conn) this.send(conn, { t: 'kept', parts: kept });
   }
 
   private sendSnapshots(m: Match): void {

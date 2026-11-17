@@ -22,7 +22,7 @@ const KEEP_SNAPSHOTS = 20;
 /** Inputs remembered for replay; more than this unconfirmed means something is badly wrong. */
 const MAX_PENDING = 90;
 /** Prediction errors smaller than this are smoothed out; bigger ones snap. */
-const SMOOTH_LIMIT = 3;
+const SMOOTH_LIMIT = 6;
 /** How fast a smoothed correction fades (1/s). */
 const CORRECTION_RATE = 12;
 
