@@ -3,14 +3,13 @@
 // will be, so a real part replaces its placeholder without touching the rig. Rarity doesn't
 // change a part's look; it shows on the ground and in the HUD.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Animal, PartSlot } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
+import { BODIES } from './animal-bodies.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
-const BODY_RADIUS = 0.4;
 
 const COMB = '#e2574c';
 const BEAK = '#f0a93b';
@@ -43,14 +42,8 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
 
     ...MORE_PARTS.head,
   },
-  body: {
-    bear: (o) => body(ANIMAL_COLORS.bear, o),
-    frog: (o) => body(ANIMAL_COLORS.frog, o),
-    shark: (o) => body(ANIMAL_COLORS.shark, o),
-    chicken: (o) => body(ANIMAL_COLORS.chicken, o, '#e0d4c2'),
-
-    ...MORE_PARTS.body,
-  },
+  // Each animal's body has its own shape (animal-bodies.ts); all fit any head, legs and arms.
+  body: BODIES,
   legs: {
     bear: (o) => stubbyLegs(o),
     frog: (o) => flipperLegs(o),
@@ -68,7 +61,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...MORE_PARTS.tail,
   },
   accessory: {
-    bear: (o) => bigButton(o),
+    bear: (o) => bow(o),
     frog: () => crown(),
     shark: (o) => bandage(o),
     chicken: (o) => eggShell(o),
@@ -83,32 +76,6 @@ function missingPart(): PartObject {
   return g;
 }
 
-// ---- body ----
-function body(colors: { main: string; belly: string }, outline: string, stitch?: string): PartObject {
-  const color = colors.main;
-  const g = new THREE.Group();
-  const ball = toonMesh(sphere(BODY_RADIUS, 32, 24), color, { outlineColor: outline });
-  ball.scale.set(1, 0.95, 0.9);
-  g.add(ball);
-  const belly = toonMesh(sphere(0.22), colors.belly, { outline: false });
-  belly.scale.set(1, 1.05, 0.45);
-  belly.position.set(0, -0.02, 0.33);
-  ball.add(belly);
-  // running stitch around the belly patch, merged into one mesh (one draw call, not 16)
-  const pieces: THREE.BufferGeometry[] = [];
-  const place = new THREE.Matrix4();
-  const turn = new THREE.Quaternion();
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    const x = Math.cos(a) * 0.25;
-    const y = Math.sin(a) * 0.25 * 1.05 - 0.02;
-    const z = Math.sqrt(Math.max(0, BODY_RADIUS ** 2 - x * x - y * y)) + 0.006;
-    turn.setFromAxisAngle(new THREE.Vector3(0, 0, 1), a + Math.PI / 2);
-    pieces.push(new THREE.BoxGeometry(0.05, 0.014, 0.014).applyMatrix4(place.compose(new THREE.Vector3(x, y, z), turn, new THREE.Vector3(1, 1, 1))));
-  }
-  ball.add(new THREE.Mesh(mergeGeometries(pieces), toonMaterial(stitch ?? darken(color, 0.25), { map: null })));
-  return g;
-}
 
 // ---- heads (the head part carries its own face) ----
 function headBall(color: string, outline: string): THREE.Group {
@@ -239,7 +206,7 @@ function pairOfLegs(hipX: number, hipY: number, build: (hip: THREE.Group) => voi
 
 function chickenLegs(outline: string): PartObject {
   return pairOfLegs(0.15, 0.36, (hip) => {
-    const leg = toonMesh(new THREE.CapsuleGeometry(0.05, 0.2, 4, 8), BEAK, { outline: 0.12, outlineColor: outline });
+    const leg = toonMesh(new THREE.CapsuleGeometry(0.065, 0.2, 4, 8), BEAK, { outline: 0.12, outlineColor: outline });
     leg.position.y = -0.17;
     hip.add(leg);
     const foot = toonMesh(sphere(0.1, 14, 10), BEAK, { outlineColor: outline });
@@ -266,7 +233,7 @@ function stubbyLegs(outline: string): PartObject {
 function flipperLegs(outline: string): PartObject {
   const c = ANIMAL_COLORS.frog.main;
   return pairOfLegs(0.17, 0.32, (hip) => {
-    const leg = toonMesh(new THREE.CapsuleGeometry(0.07, 0.16, 4, 10), c, { outline: 0.1, outlineColor: outline });
+    const leg = toonMesh(new THREE.CapsuleGeometry(0.09, 0.16, 4, 10), c, { outline: 0.1, outlineColor: outline });
     leg.position.y = -0.14;
     hip.add(leg);
     const foot = toonMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 3), lighten(c, 0.15), { outline: 0.08, outlineColor: outline });
@@ -384,22 +351,6 @@ function bandage(outline: string): PartObject {
   return g;
 }
 
-function bigButton(outline: string): PartObject {
-  const g = new THREE.Group();
-  const spot = onHead(new THREE.Vector3(0.35, 0.2, 0.1));
-  const button = toonMesh(new THREE.CylinderGeometry(0.11, 0.11, 0.04, 20), '#e2574c', { outline: 0.1, outlineColor: outline });
-  button.rotation.x = Math.PI / 2;
-  spot.add(button);
-  const holeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.05, 8);
-  for (const [x, y] of [[-0.035, -0.035], [0.035, -0.035], [-0.035, 0.035], [0.035, 0.035]] as const) {
-    const hole = toonMesh(holeGeo, '#2a1f2d', { outline: false });
-    hole.rotation.x = Math.PI / 2;
-    hole.position.set(x, y, 0.005);
-    spot.add(hole);
-  }
-  g.add(spot);
-  return g;
-}
 
 function crown(): PartObject {
   const g = new THREE.Group();
@@ -436,5 +387,23 @@ function eggShell(outline: string): PartObject {
     tooth.position.set(Math.cos(a) * 0.235, -0.03, Math.sin(a) * 0.235);
     shell.add(tooth);
   }
+  return g;
+}
+
+/** A big felt bow on one ear (the bear's accessory). */
+function bow(outline: string): PartObject {
+  const g = new THREE.Group();
+  const spot = onHead(new THREE.Vector3(0.3, 0.38, 0.15));
+  for (const s of [-1, 1]) {
+    const loop = toonMesh(new THREE.SphereGeometry(0.1, 14, 10), '#e2574c', { outline: 0.08, outlineColor: outline });
+    loop.scale.set(1.2, 0.8, 0.45);
+    loop.position.set(s * 0.1, 0, 0.02);
+    loop.rotation.z = s * 0.3;
+    spot.add(loop);
+  }
+  const knot = toonMesh(new THREE.SphereGeometry(0.05, 10, 8), '#c43e36', { outline: 0.1, outlineColor: outline });
+  knot.position.z = 0.04;
+  spot.add(knot);
+  g.add(spot);
   return g;
 }

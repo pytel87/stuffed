@@ -50,19 +50,6 @@ function pairOfLegs(hipX: number, hipY: number, build: (hip: THREE.Group, side: 
   return g;
 }
 
-/** A body ball with a belly patch (the rig dyes the arms in the main color). */
-function body(main: string, belly: string, outline: string, extra?: (ball: THREE.Mesh) => void): PartObject {
-  const g = new THREE.Group();
-  const ball = toonMesh(sphere(0.4, 32, 24), main, { outlineColor: outline });
-  ball.scale.set(1, 0.95, 0.9);
-  g.add(ball);
-  const patch = toonMesh(sphere(0.24), belly, { outline: false });
-  patch.scale.set(1, 1.1, 0.45);
-  patch.position.set(0, -0.03, 0.31);
-  ball.add(patch);
-  extra?.(ball);
-  return g;
-}
 
 /** Placed on the head's surface, facing outward along `dir` (for accessories). */
 function onHead(dir: THREE.Vector3): THREE.Group {
@@ -109,14 +96,6 @@ function dinoPlates(parent: THREE.Object3D, count: number, startZ: number, y: nu
   }
 }
 
-function dinoBody(outline: string): PartObject {
-  return body(DINO.main, DINO.belly, outline, (ball) => {
-    const back = new THREE.Group();
-    back.rotation.x = -0.9;
-    dinoPlates(back, 3, 0.0, 0.42, 0.09, outline);
-    ball.add(back);
-  });
-}
 
 function dinoLegs(outline: string): PartObject {
   return pairOfLegs(0.19, 0.3, (hip) => {
@@ -186,21 +165,10 @@ function owlHead(outline: string): PartObject {
   return g;
 }
 
-function owlBody(outline: string): PartObject {
-  return body(OWL.main, OWL.belly, outline, (ball) => {
-    // Little V marks on the belly, like feathers.
-    for (const [x, y] of [[-0.08, 0.05], [0.08, 0.05], [0, -0.07], [-0.08, -0.19], [0.08, -0.19]] as const) {
-      const v = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 4, 8, Math.PI), flat(lighten(OWL.main, 0.1).getStyle()));
-      v.rotation.z = Math.PI;
-      v.position.set(x, y, 0.4);
-      ball.add(v);
-    }
-  });
-}
 
 function owlLegs(outline: string): PartObject {
   return pairOfLegs(0.14, 0.34, (hip) => {
-    const leg = toonMesh(new THREE.CapsuleGeometry(0.05, 0.16, 4, 8), OWL.belly, { outline: 0.12, outlineColor: outline });
+    const leg = toonMesh(new THREE.CapsuleGeometry(0.07, 0.16, 4, 8), OWL.belly, { outline: 0.12, outlineColor: outline });
     leg.position.y = -0.16;
     hip.add(leg);
     for (const a of [-0.5, 0, 0.5]) {
@@ -269,20 +237,10 @@ function axolotlHead(outline: string): PartObject {
   return g;
 }
 
-function axolotlBody(outline: string): PartObject {
-  return body(AXO.main, AXO.belly, outline, (ball) => {
-    for (const [x, y] of [[-0.25, 0.18], [0.27, 0.05], [-0.2, -0.2]] as const) {
-      const spot = toonMesh(sphere(0.05, 10, 8), darken(AXO.main, 0.15).getStyle(), { outline: false });
-      spot.scale.set(1, 1, 0.3);
-      spot.position.set(x, y, 0.3);
-      ball.add(spot);
-    }
-  });
-}
 
 function axolotlLegs(outline: string): PartObject {
   return pairOfLegs(0.2, 0.28, (hip) => {
-    const leg = toonMesh(new THREE.CapsuleGeometry(0.07, 0.12, 4, 8), AXO.main, { outline: 0.1, outlineColor: outline });
+    const leg = toonMesh(new THREE.CapsuleGeometry(0.085, 0.12, 4, 8), AXO.main, { outline: 0.1, outlineColor: outline });
     leg.position.y = -0.12;
     hip.add(leg);
     for (const a of [-0.4, 0, 0.4]) {
@@ -346,19 +304,6 @@ function penguinHead(outline: string): PartObject {
   return g;
 }
 
-function penguinBody(outline: string): PartObject {
-  return body(PEN.main, PEN.belly, outline, (ball) => {
-    // A bigger white tummy than the others.
-    const tummy = toonMesh(sphere(0.32), PEN.belly, { outline: false });
-    tummy.scale.set(0.95, 1.05, 0.5);
-    tummy.position.set(0, -0.03, 0.2);
-    ball.add(tummy);
-    const bow = toonMesh(sphere(0.06, 10, 8), '#e2574c', { outline: 0.12, outlineColor: outline });
-    bow.scale.set(1.8, 1, 1);
-    bow.position.set(0, 0.27, 0.32);
-    ball.add(bow);
-  });
-}
 
 function penguinLegs(outline: string): PartObject {
   return pairOfLegs(0.16, 0.34, (hip) => {
@@ -402,9 +347,9 @@ function beanie(outline: string): PartObject {
   return g;
 }
 
-export const MORE_PARTS: Record<PartSlot, Record<'dino' | 'owl' | 'axolotl' | 'penguin', Builder>> = {
+/** Bodies live in animal-bodies.ts (each with its own shape). */
+export const MORE_PARTS: Record<Exclude<PartSlot, 'body'>, Record<'dino' | 'owl' | 'axolotl' | 'penguin', Builder>> = {
   head: { dino: dinoHead, owl: owlHead, axolotl: axolotlHead, penguin: penguinHead },
-  body: { dino: dinoBody, owl: owlBody, axolotl: axolotlBody, penguin: penguinBody },
   legs: { dino: dinoLegs, owl: owlLegs, axolotl: axolotlLegs, penguin: penguinLegs },
   tail: { dino: dinoTail, owl: owlWings, axolotl: axolotlTail, penguin: penguinTail },
   accessory: { dino: dinoCrest, owl: owlGlasses, axolotl: starClip, penguin: beanie },
