@@ -3,7 +3,7 @@ import { segmentBoxT } from '../collision/geometry.ts';
 import type { Ball, Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
 import { poseAt, raycastWalls, wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
-import { applyDamage } from './damage.ts';
+import { applyDamage, teammates } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
 
@@ -40,8 +40,9 @@ export function updateProjectiles(world: World, state: GameState): void {
 
     let hit: Player | null = null;
     let hitT = Infinity;
+    const owner = state.players.find((p) => p.id === proj.ownerId);
     for (const p of state.players) {
-      if (!p.alive || p.id === proj.ownerId || p.drop) continue;
+      if (!p.alive || p.id === proj.ownerId || p.drop || teammates(owner, p)) continue;
       // Online, where the target was when the shooter saw it (lag compensation).
       const at = proj.rewind ? (poseAt(world, p.id, state.tick - proj.rewind) ?? { x: p.pos.x, y: p.pos.y, z: p.z }) : { x: p.pos.x, y: p.pos.y, z: p.z };
       const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, at.x, at.y, p.radius + r);
@@ -199,6 +200,7 @@ function bounceOff(proj: Projectile, at: Vec2, hit: { box: Box } | { chest: Vec2
 function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: number): void {
   const s: WeaponStats = config.weapons[proj.weapon];
   const radius = s.blastRadius ?? 0;
+  const owner = state.players.find((p) => p.id === proj.ownerId);
   for (const p of state.players) {
     if (!p.alive || p.drop) continue;
     const d = Math.hypot(p.pos.x - at.x, p.pos.y - at.y);
@@ -206,6 +208,8 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
     if (p.z > z + radius || p.z + config.player.height < z - radius) continue;
     if (raycastWalls(world, at, p.pos, 0, z + 0.05) !== null) continue;
     const share = Math.min(1, d / radius);
+    // Teammates are spared (the thrower still gets glitter in the eyes).
+    if (p.id !== proj.ownerId && teammates(owner, p)) continue;
     if (s.effect === 'glitter' && s.effectTime) p.blindedUntil = Math.max(p.blindedUntil, state.tick + secondsToTicks(s.effectTime));
     if (p.id === proj.ownerId) continue;
     const push = proj.knockback * (1 - share);

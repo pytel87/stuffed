@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, Btn, config, makeWeapon, muzzlePosition, reloadTicks, secondsToTicks, sweepCircle } from '../src/index.ts';
+import { applyDamage, Btn, canSee, config, createGame, createWorld, makeWeapon, muzzlePosition, reloadTicks, secondsToTicks, sweepCircle } from '../src/index.ts';
 import type { GameState, Player, WeaponKind } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -265,5 +265,59 @@ describe('beach balls', () => {
     run(world, state, 1, (id) => (id === a.id ? fire : idle));
     run(world, state, 15, () => idle);
     expect(state.balls[0]!.pos.x).toBeGreaterThan(30);
+  });
+});
+
+describe('team mode', () => {
+  function teamGame() {
+    const world = createWorld(OPEN_MAP);
+    const state = createGame({
+      seed: 1,
+      map: OPEN_MAP,
+      roster: [
+        { name: 'mum', isBot: false, team: 1 },
+        { name: 'kid', isBot: false, team: 1 },
+        { name: 'bot', isBot: true },
+      ],
+    });
+    const [a, b, c] = state.players as [Player, Player, Player];
+    a.pos = { x: 20, y: 40 };
+    b.pos = { x: 25, y: 40 };
+    c.pos = { x: 20, y: 60 };
+    a.weapons = [makeWeapon('cork_popper', 0), null];
+    return { world, state, a, b, c };
+  }
+
+  it('shots pass through teammates without hurting them', () => {
+    const { world, state, a, b } = teamGame();
+    run(world, state, 1, (id) => (id === a.id ? fire : idle));
+    run(world, state, 20, () => idle);
+    expect(b.stuffing).toBe(config.player.maxStuffing);
+    expect(state.events.some((e) => e.type === 'hit')).toBe(false);
+  });
+
+  it('still hurt everyone else', () => {
+    const { world, state, a, c } = teamGame();
+    c.pos = { x: 25, y: 40 };
+    run(world, state, 1, (id) => (id === a.id ? fire : idle));
+    run(world, state, 20, () => idle);
+    expect(c.stuffing).toBeLessThan(config.player.maxStuffing);
+  });
+
+  it('teammates always see each other', () => {
+    const { state, a, b, world } = teamGame();
+    b.pos = { x: 20 + config.vision.range + 10, y: 40 };
+    expect(canSee(world, state, a, b)).toBe(true);
+  });
+
+  it('the match ends when only one team is left, and the whole team wins', () => {
+    const { world, state, a, b, c } = teamGame();
+    applyDamage(state, c, 1000, a.id);
+    run(world, state, 1, () => idle);
+    expect(state.status).toBe('ended');
+    expect(state.winnerTeam).toBe(1);
+    expect(state.winnerId).toBeNull();
+    expect(a.placement).toBe(1);
+    expect(b.placement).toBe(1);
   });
 });

@@ -34,7 +34,7 @@ export type ClientMessage =
   /** One per client tick (30 per second) while playing. */
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
-  | { t: 'start'; bots: number }
+  | { t: 'start'; bots: number; teams?: boolean }
   /** Change your name in the lobby. */
   | { t: 'rename'; name: string }
   /** Your look changed in the Wardrobe: the room re-reads your profile for the next match. */
@@ -52,7 +52,7 @@ export type RoomPhase = 'lobby' | 'playing' | 'ended';
 
 export type ServerMessage =
   | { t: 'welcome'; code: string; seat: number | null }
-  | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number }
+  | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number; teams?: boolean }
   /** A match started; `you` is your plush, or null when you only watch. */
   | { t: 'start'; mapId: string; you: EntityId | null }
   /** The match as you can see it (see CompactSnapshot below). */
@@ -99,10 +99,11 @@ export interface RosterEntry {
   isBot: boolean;
   parts: Player['parts'];
   radius: number;
+  team: number;
 }
 
 /** Your own living plush, sent in full every update (prediction needs it all). */
-export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius'>;
+export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius' | 'team'>;
 
 /** Someone else's living plush: only what drawing it needs. */
 export interface SeenPlayer extends Pick<
@@ -124,6 +125,7 @@ export interface CompactSnapshot {
   tick: number;
   status: GameState['status'];
   winnerId: EntityId | null;
+  winnerTeam?: number | null;
   mapId: string;
   nextId: number;
   me?: MovingPlayer;
@@ -154,7 +156,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
   for (const p of visible) {
     if (!p.alive) continue;
     if (p.id === you) {
-      const { name: _n, isBot: _b, parts: _p, radius: _r, ...moving } = p;
+      const { name: _n, isBot: _b, parts: _p, radius: _r, team: _t, ...moving } = p;
       me = moving;
       continue;
     }
@@ -171,6 +173,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     tick: state.tick,
     status: state.status,
     winnerId: state.winnerId,
+    winnerTeam: state.winnerTeam,
     mapId: state.mapId,
     nextId: state.nextId,
     ...(me ? { me } : {}),
@@ -185,7 +188,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     walls: state.placedWalls,
     toss: state.toss,
     zone: zonePlan,
-    roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius })),
+    roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius, team: p.team })),
     fallen: state.players.filter((p) => !p.alive),
     balls: state.balls,
   };
@@ -232,7 +235,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   const fallenIds = new Set(parts.fallen.map((p) => p.id));
   const identity = (id: EntityId) => {
     const r = parts.roster.get(id);
-    return { name: r?.name ?? '', isBot: r?.isBot ?? true, parts: r?.parts ?? DEFAULT_PARTS, radius: r?.radius ?? 0.5 };
+    return { name: r?.name ?? '', isBot: r?.isBot ?? true, parts: r?.parts ?? DEFAULT_PARTS, radius: r?.radius ?? 0.5, team: r?.team ?? 0 };
   };
   const living: Player[] = msg.others.map((p) => ({
     ...identity(p.id),
@@ -260,6 +263,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     nextId: msg.nextId,
     status: msg.status,
     winnerId: msg.winnerId,
+    winnerTeam: msg.winnerTeam ?? null,
     players: players.filter((p) => !(p.alive && fallenIds.has(p.id))),
     projectiles: msg.projectiles.map((q) => ({ ...q, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
     chests: parts.chests,

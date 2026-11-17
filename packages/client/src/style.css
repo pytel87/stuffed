@@ -331,6 +331,20 @@ button {
   gap: 0.7rem;
 }
 
+/* Team mode toggle: blue when on, faded when off. */
+.bots .lobby-team {
+  margin-left: 0.6rem;
+}
+
+.bots .lobby-team[aria-pressed='false'] {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.bots .lobby-team[aria-pressed='true'] {
+  background: #dbe9ff;
+}
+
 .bots b {
   min-width: 2ch;
   font: 900 1.6rem/1 var(--font);

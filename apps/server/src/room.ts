@@ -74,6 +74,8 @@ export class Room extends Server<Env> {
   private phase: RoomPhase = 'lobby';
   private seats: Seat[] = [];
   private bots = DEFAULT_BOTS;
+  /** Team mode: every real player on one team against the bots. */
+  private teams = false;
   private match: Match | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTime = 0;
@@ -106,7 +108,7 @@ export class Room extends Server<Env> {
       case 'input':
         return this.input(conn, msg.i);
       case 'start':
-        return this.startRequest(conn, msg.bots);
+        return this.startRequest(conn, msg.bots, msg.teams === true);
       case 'rename':
         return this.rename(conn, msg.name);
       case 'look': {
@@ -192,26 +194,27 @@ export class Room extends Server<Env> {
   private lobbyMessage(): ServerMessage {
     const host = this.host();
     const seats: LobbySeat[] = this.seats.map((s) => ({ seat: s.seat, name: s.name, connected: s.connId !== null, host: s === host }));
-    return { t: 'lobby', phase: this.phase, seats, bots: this.bots };
+    return { t: 'lobby', phase: this.phase, seats, bots: this.bots, teams: this.teams };
   }
 
   private broadcastLobby(): void {
     this.broadcast(JSON.stringify(this.lobbyMessage()));
   }
 
-  private startRequest(conn: Connection<ConnState>, bots: number): void {
+  private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean): void {
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase === 'playing') return;
     const humans = this.seats.filter((s) => s.connId !== null);
     this.bots = Math.max(0, Math.min(MAX_PLAYERS - humans.length, Math.trunc(Number(bots) || 0)));
+    this.teams = teams;
     this.startMatch(humans);
   }
 
   private startMatch(humans: Seat[]): void {
     const seed = (Math.random() * 2 ** 32) >>> 0;
     const roster = [
-      ...humans.map((s) => ({ name: s.name, isBot: false, ...(s.look ? { parts: s.look } : {}) })),
+      ...humans.map((s) => ({ name: s.name, isBot: false, team: this.teams ? 1 : 0, ...(s.look ? { parts: s.look } : {}) })),
       ...Array.from({ length: this.bots }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     const state = createGame({ seed, map: BACKYARD, roster, toss: true });

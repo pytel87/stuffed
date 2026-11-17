@@ -108,6 +108,8 @@ export interface Player {
   id: EntityId;
   name: string;
   isBot: boolean;
+  /** Team mode: plushies on the same team (not 0) can't hurt each other and always see each other. */
+  team: number;
   pos: Vec2;
   vel: Vec2;
   /** Height of the plush's feet above the ground (0 on the lawn, more on top of things). */
@@ -280,6 +282,8 @@ export interface GameState {
   nextId: EntityId;
   status: 'playing' | 'ended';
   winnerId: EntityId | null;
+  /** Team mode: the team left standing at the end (winnerId is then null). */
+  winnerTeam: number | null;
   /** Arrays stay sorted by id so iteration order is deterministic. */
   players: Player[];
   projectiles: Projectile[];
@@ -390,6 +394,8 @@ export interface MapData {
 export interface RosterEntry {
   name: string;
   isBot: boolean;
+  /** Team mode: a team number (0 or omitted: on your own). */
+  team?: number;
   /** The plush's own look (Hand-me-down when only an animal is given); omitted slots get a random animal. Own parts never drop. */
   parts?: Partial<Record<PartSlot, Animal | OwnedPart>>;
   /** Up to 2 weapons to start with; defaults to config.player.startingLoadout. */

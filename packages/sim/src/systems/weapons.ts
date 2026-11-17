@@ -3,7 +3,7 @@ import { nextRange } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
-import { applyDamage } from './damage.ts';
+import { applyDamage, teammates } from './damage.ts';
 import { buildingAt, groundHeight } from './movement.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
@@ -116,7 +116,7 @@ function swing(world: World, state: GameState, player: Player, weapon: WeaponIns
   const reach = s.reach ?? 1.8;
   const halfArc = ((s.arcDegrees ?? 90) * DEG) / 2;
   for (const p of state.players) {
-    if (!p.alive || p.id === player.id || p.drop) continue;
+    if (!p.alive || p.id === player.id || p.drop || teammates(player, p)) continue;
     const dx = p.pos.x - player.pos.x;
     const dy = p.pos.y - player.pos.y;
     const d = Math.hypot(dx, dy);

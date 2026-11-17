@@ -86,6 +86,14 @@ low obstacles, and fight what they can see (with reaction time, imperfect aim an
 [packages/sim/src/bots/brain.ts](packages/sim/src/bots/brain.ts); tuning knobs are in `BOT`
 at its top. Bots only produce `Input`s, the same as a player, so the server can run them too.
 
+## Team mode
+
+In an online room the host's lobby has a team button (two plushies, on by default): every real
+player is on one team against the bots. Teammates can't hurt each other (shots, bursts and
+pillow swings pass through), always see each other (through bushes and roofs, with a blue ring
+on the ground under them), and win together when only the team is left: "Team wins!" for
+everyone on it, even those already knocked out. Knocked out, you watch a teammate first.
+
 ## Controls
 
 | Action | Key |

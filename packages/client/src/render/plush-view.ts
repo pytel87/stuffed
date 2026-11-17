@@ -115,6 +115,8 @@ export class PlushView {
   private landSquash = 0;
   /** While the plush wears a full set: a ring of light underfoot and a pulsing tint in the set's color. */
   private readonly glowRing: THREE.Mesh;
+  /** Team mode: a blue ring on the ground under a teammate. */
+  private readonly teamRing: THREE.Mesh;
   private glowColor: THREE.Color | null = null;
   /** A soap bubble around the plush while it's trapped. */
   private readonly bubble: THREE.Mesh;
@@ -164,6 +166,13 @@ export class PlushView {
     this.glowRing.position.y = 0.01;
     this.glowRing.visible = false;
     this.blob.add(this.glowRing);
+    this.teamRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.66, 0.8, 40).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: '#5d9cf5', transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }),
+    );
+    this.teamRing.position.y = 0.015;
+    this.teamRing.visible = false;
+    this.blob.add(this.teamRing);
 
     this.bubble = new THREE.Mesh(
       new THREE.SphereGeometry(1.05, 24, 16),
@@ -256,6 +265,11 @@ export class PlushView {
     this.arms.setGrip(kind);
     this.collectMaterials();
     this.trimShadows();
+  }
+
+  /** Marks this plush as your teammate (team mode). */
+  setTeammate(on: boolean): void {
+    this.teamRing.visible = on;
   }
 
   /** Kick the weapon back after a shot. */

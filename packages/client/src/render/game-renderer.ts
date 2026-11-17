@@ -378,6 +378,7 @@ export class GameRenderer {
       // Riders are on board the blimp, out of sight (your own plush too).
       view.root.visible = p.drop !== 'riding' && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding');
+      view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
       if (p.soggy && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
         if (t <= 0) this.effects.drip(pos.x, pos.y);

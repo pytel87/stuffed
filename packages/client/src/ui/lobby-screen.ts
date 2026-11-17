@@ -15,6 +15,9 @@ export class LobbyScreen {
   private readonly status: HTMLElement;
   private readonly nameInput: HTMLInputElement;
   private wantedBots = 7;
+  /** Team mode: all of us against the bots (on by default; families play together). */
+  private wantedTeams = true;
+  private readonly teamToggle: HTMLButtonElement;
 
   constructor(
     root: HTMLElement,
@@ -37,6 +40,7 @@ export class LobbyScreen {
              <button type="button" class="round small lobby-less" aria-label="Fewer bots">−</button>
              <b class="bot-count"></b>
              <button type="button" class="round small lobby-more" aria-label="More bots">+</button>
+             <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
            <p class="status"></p>
            <div class="row">
@@ -57,7 +61,23 @@ export class LobbyScreen {
     this.status = q('.status');
     this.nameInput = q('#lobby-name-input');
 
-    this.start.addEventListener('click', () => this.client.start(this.wantedBots));
+    this.teamToggle = q('.lobby-team');
+    try {
+      this.wantedTeams = localStorage.getItem('stuffed.teams') !== '0';
+    } catch {
+      // storage blocked: keep the default
+    }
+    this.teamToggle.setAttribute('aria-pressed', String(this.wantedTeams));
+    this.teamToggle.addEventListener('click', () => {
+      this.wantedTeams = !this.wantedTeams;
+      this.teamToggle.setAttribute('aria-pressed', String(this.wantedTeams));
+      try {
+        localStorage.setItem('stuffed.teams', this.wantedTeams ? '1' : '0');
+      } catch {
+        // not remembered; fine
+      }
+    });
+    this.start.addEventListener('click', () => this.client.start(this.wantedBots, this.wantedTeams));
     q('.lobby-less').addEventListener('click', () => this.setBots(this.wantedBots - 1));
     q('.lobby-more').addEventListener('click', () => this.setBots(this.wantedBots + 1));
     q('.lobby-leave').addEventListener('click', onLeave);
@@ -82,6 +102,11 @@ export class LobbyScreen {
   /** Bots the host picked for the next match. */
   get bots(): number {
     return this.wantedBots;
+  }
+
+  /** Whether the host wants team mode for the next match. */
+  get teams(): boolean {
+    return this.wantedTeams;
   }
 
   show(): void {

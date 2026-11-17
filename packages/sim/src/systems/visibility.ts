@@ -14,6 +14,8 @@ import type { World } from '../world.ts';
 export function canSee(_world: World, state: GameState, viewer: Player, target: Player): boolean {
   if (viewer.id === target.id) return true;
   if (!target.alive || target.drop === 'riding') return false;
+  // Teammates always see each other (through bushes, roofs and glitter).
+  if (viewer.team !== 0 && viewer.team === target.team) return true;
   const d = Math.hypot(target.pos.x - viewer.pos.x, target.pos.y - viewer.pos.y);
   // Glitter in the eyes: only what's very close.
   const range = state.tick < viewer.blindedUntil ? config.combat.blindVision : config.vision.range;

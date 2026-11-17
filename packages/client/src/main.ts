@@ -165,7 +165,7 @@ window.addEventListener('keydown', (e) => {
   }
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
-  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots);
+  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams);
   else if (phase !== 'playing') playAgain();
 });
 
@@ -213,7 +213,7 @@ function showMenu(): void {
 function playAgain(): void {
   sound.play('click', { pitchSpread: 0 });
   if (room) {
-    if (room.isHost) room.start(lobbyScreen?.bots ?? 7);
+    if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true);
     return;
   }
   seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -340,9 +340,11 @@ function frame(now: number): void {
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
-    // Someone firing nearby (seen or not): a softer arc toward them.
+    // Someone firing nearby (seen or not, not a teammate): a softer arc toward them.
     const mine = state.players.find((p) => p.id === localId);
-    if (e.type === 'shot' && mine?.alive && !mine.drop && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
+    const shooterTeam = e.type === 'shot' ? (state.players.find((p) => p.id === e.playerId)?.team ?? 0) : 0;
+    const mate = !!mine && mine.team !== 0 && shooterTeam === mine.team;
+    if (e.type === 'shot' && mine?.alive && !mine.drop && !mate && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
       hitDirection.addShot(e.pos, e.playerId);
     }
     // Solo: the parts you kept when knocked out (already rolled by the game) go to your collection.
@@ -423,11 +425,10 @@ function updatePhase(state: GameState): void {
     if (phase !== 'over' && state.status === 'ended') {
       phase = 'over';
       spectateEl.hidden = true;
-      const winner = state.players.find((p) => p.id === state.winnerId);
       endScreen.show({
         tone: 'lose',
         title: 'Over',
-        subtitleHtml: winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water'),
+        subtitleHtml: winnerLine(state),
         placement: `${total}`,
         stats: [],
         canSpectate: false,
@@ -437,12 +438,13 @@ function updatePhase(state: GameState): void {
     return;
   }
 
-  if (phase === 'playing' && state.status === 'ended' && state.winnerId === me.id) {
+  const teamWon = state.winnerTeam !== null && state.winnerTeam === me.team;
+  if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
     renderer.celebrate(me.id, state);
     sound.play('win', { pitchSpread: 0 });
     reportSolo(carriedParts(me), true);
-    endScreen.show({ ...resultView(state, me, 'win', 'Winner!', `${icon('crown')}<span>${escapeHtml(me.name)}</span>`, false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, 'win', teamWon ? 'Team wins!' : 'Winner!', winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -450,7 +452,9 @@ function updatePhase(state: GameState): void {
     phase = 'out';
     hudEl.classList.add('out');
     sound.play('lose', { volume: 0.8, pitchSpread: 0 });
-    followId = me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
+    // Watch a teammate still in it; otherwise whoever got you.
+    const mate = nextAlive(state, me.pos, me.team);
+    followId = me.team !== 0 && state.players.find((p) => p.id === mate)?.team === me.team ? mate : me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
     endScreen.show(resultView(state, me, 'lose', 'Unstitched!', knockedOutBy, state.status === 'playing'));
     return;
   }
@@ -458,16 +462,22 @@ function updatePhase(state: GameState): void {
   if ((phase === 'out' || phase === 'spectating') && state.status === 'ended') {
     phase = 'over';
     spectateEl.hidden = true;
-    const winner = state.players.find((p) => p.id === state.winnerId);
-    const subtitle = winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water');
-    endScreen.show({ ...resultView(state, me, 'lose', 'Over', subtitle, false), waitingForHost: !!room && !room.isHost });
+    // Out, but your team won: a win for you too.
+    if (teamWon) sound.play('win', { pitchSpread: 0 });
+    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', teamWon ? 'Team wins!' : 'Over', winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
   // Spectating: if the plush we watch goes down, follow whoever got them, else the nearest one left.
   if (phase !== 'playing' && !isAlive(state, followId)) {
     const watched = state.players.find((p) => p.id === followId);
-    followId = watched?.eliminatedBy != null && isAlive(state, watched.eliminatedBy) ? watched.eliminatedBy : nextAlive(state, watched?.pos ?? me.pos);
+    const mate = nextAlive(state, watched?.pos ?? me.pos, me.team);
+    followId =
+      me.team !== 0 && state.players.find((p) => p.id === mate)?.team === me.team
+        ? mate
+        : watched?.eliminatedBy != null && isAlive(state, watched.eliminatedBy)
+          ? watched.eliminatedBy
+          : nextAlive(state, watched?.pos ?? me.pos);
   }
   if (phase === 'spectating') {
     const watched = state.players.find((p) => p.id === followId);
@@ -533,7 +543,7 @@ function aimByTouch(state: GameState, me: Player): void {
   if (stick) {
     let best = ASSIST_ANGLE;
     for (const p of state.players) {
-      if (p.id === me.id || !p.alive || !canSee(world, state, me, p)) continue;
+      if (p.id === me.id || !p.alive || (me.team !== 0 && p.team === me.team) || !canSee(world, state, me, p)) continue;
       const dx = p.pos.x - me.pos.x;
       const dy = p.pos.y - me.pos.y;
       const d = Math.hypot(dx, dy);
@@ -567,11 +577,13 @@ function isAlive(state: GameState, id: EntityId): boolean {
   return state.players.some((p) => p.id === id && p.alive);
 }
 
-function nextAlive(state: GameState, near: { x: number; y: number }): EntityId {
+/** The nearest plush still in the match; with `team`, a teammate if any is left. */
+function nextAlive(state: GameState, near: { x: number; y: number }, team = 0): EntityId {
   let best: Player | undefined;
   let bestD = Infinity;
+  const mates = team !== 0 && state.players.some((p) => p.alive && p.team === team);
   for (const p of state.players) {
-    if (!p.alive) continue;
+    if (!p.alive || (mates && p.team !== team)) continue;
     const d = Math.hypot(p.pos.x - near.x, p.pos.y - near.y);
     if (d < bestD) {
       best = p;
@@ -579,6 +591,16 @@ function nextAlive(state: GameState, near: { x: number; y: number }): EntityId {
     }
   }
   return best?.id ?? -1;
+}
+
+/** Who won, for the results card: a crown and the winner's name (or the whole team's), or the water. */
+function winnerLine(state: GameState): string {
+  if (state.winnerTeam !== null) {
+    const names = state.players.filter((p) => p.team === state.winnerTeam).map((p) => escapeHtml(p.name));
+    return `${icon('crown')}<span>${names.join(', ')}</span>`;
+  }
+  const winner = state.players.find((p) => p.id === state.winnerId);
+  return winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water');
 }
 
 function clock(seconds: number): string {

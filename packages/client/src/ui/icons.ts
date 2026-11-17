@@ -43,6 +43,8 @@ const paths: Record<string, string> = {
   bot: `<rect x="5" y="8" width="14" height="11" rx="3" fill="#fff"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.5" cy="13" r="1.3" fill="${INK}" stroke="none"/><circle cx="14.5" cy="13" r="1.3" fill="${INK}" stroke="none"/>`,
   crown: `<path d="M4 18l1-10 4.5 4L12 6l2.5 6L19 8l1 10Z" fill="#f7c331"/>`,
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
+  // two plushies side by side: team mode
+  team: `<circle cx="8" cy="9" r="3.2" fill="#5d9cf5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/><circle cx="16" cy="9" r="3.2" fill="#5d9cf5"/><path d="M10.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/>`,
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0Z" fill="#f7c331"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7l-.8-3h-5.4Z"/>`,
   knockout: `<path d="M12 3l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2Z" fill="#fdfbf7"/>`,
   damage: `<path d="M13 3L6 13h5l-1 8 8-11h-5Z" fill="#f7c331"/>`,

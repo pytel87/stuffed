@@ -49,9 +49,22 @@ export function countAlive(state: GameState): number {
 export function checkWinner(state: GameState): void {
   if (state.status !== 'playing' || state.players.length < 2) return;
   const alive = state.players.filter((p) => p.alive);
-  if (alive.length > 1) return;
+  const team = alive[0]?.team ?? 0;
+  // Team mode: it's over when everyone left is on one team; they all win.
+  if (alive.length > 1 && (team === 0 || alive.some((p) => p.team !== team))) return;
   state.status = 'ended';
+  if (team !== 0) {
+    state.winnerTeam = team;
+    state.winnerId = null;
+    for (const p of alive) p.placement = 1;
+    return;
+  }
   const winner = alive[0];
   state.winnerId = winner ? winner.id : null;
   if (winner) winner.placement = 1;
+}
+
+/** On the same team (team mode): they can't hurt each other. */
+export function teammates(a: { team: number } | undefined, b: { team: number }): boolean {
+  return !!a && a.team !== 0 && a.team === b.team;
 }

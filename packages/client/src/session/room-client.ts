@@ -96,8 +96,8 @@ export class RoomClient {
     return !!this.lobby?.seats.some((s) => s.seat === this.seat && s.host);
   }
 
-  start(bots: number): void {
-    this.send({ t: 'start', bots });
+  start(bots: number, teams = false): void {
+    this.send({ t: 'start', bots, teams });
   }
 
   /** Your look changed in the Wardrobe: the next match starts you in it. */

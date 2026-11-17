@@ -210,8 +210,14 @@ export class NetworkMatch implements GameSession {
       shot.pos = { x: shot.pos.x + shot.vel.x * DT, y: shot.pos.y + shot.vel.y * DT };
       if (this.predTick >= shot.expire) return false;
       if (raycastWalls(this.world, shot.prev, shot.pos, shot.radius, shot.z - shot.radius) !== null) return false;
+      const team = state.players.find((p) => p.id === this.localPlayerId)?.team ?? 0;
       return !state.players.some(
-        (p) => p.alive && p.id !== this.localPlayerId && !p.drop && Math.hypot(p.pos.x - shot.pos.x, p.pos.y - shot.pos.y) < p.radius + shot.radius,
+        (p) =>
+          p.alive &&
+          p.id !== this.localPlayerId &&
+          !p.drop &&
+          (team === 0 || p.team !== team) &&
+          Math.hypot(p.pos.x - shot.pos.x, p.pos.y - shot.pos.y) < p.radius + shot.radius,
       );
     });
   }

@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Team mode (2026-11-17)
+
+- Online rooms: a team button in the lobby (on by default) puts every real player on one team
+  against the bots. No friendly fire (shots, bursts and pillow swings pass through teammates),
+  teammates always visible with a blue ring under them, and the team wins together ("Team
+  wins!", also for teammates already out). Knocked out, you watch a teammate first. Shot hints
+  and touch aim assist ignore teammates. Player.team, GameState.winnerTeam; protocol v4.
+
 ## Players-left count fixed online; HUD fits phones (2026-11-17)
 
 - Online, the players-left count counted only the plushies in sight; it now counts everyone
