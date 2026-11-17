@@ -102,6 +102,9 @@ export class Effects {
   private readonly frogDrops: ParticlePool;
   private readonly feathers: ParticlePool;
   private readonly juiceDrops: ParticlePool;
+  private readonly leaves: ParticlePool;
+  private readonly mud: ParticlePool;
+  private readonly mudDrops: ParticlePool;
   private readonly waves: Shockwave[] = [];
   private readonly emitters: Emitter[] = [];
   private readonly ringGeo = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2);
@@ -139,6 +142,9 @@ export class Effects {
     this.feathers = new ParticlePool(scene, feather, toonMaterial('#fdfbf7', { map: null }));
     this.cardboardBits = new ParticlePool(scene, new THREE.BoxGeometry(1, 0.25, 1), toonMaterial('#c9a27e', { map: null }));
     this.juiceDrops = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }));
+    this.leaves = new ParticlePool(scene, feather, toonMaterial('#7cc95a', { map: null }));
+    this.mud = new ParticlePool(scene, new THREE.CylinderGeometry(1, 1, 0.1, 10).scale(1, 1, 0.75), toonMaterial('#8a5a3c', { map: null }), true);
+    this.mudDrops = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), toonMaterial('#8a5a3c', { map: null }));
     this.scene = scene;
   }
 
@@ -189,6 +195,25 @@ export class Effects {
       }
       case 'fox':
         this.burst(this.feathers, x, y + 0.5, z, 0, 0, 1, 0.5, 0.07, 1.0, 0.8);
+        break;
+      case 'panda':
+        // Bamboo leaves drifting down.
+        if (step % 2 === 0) this.burst(this.leaves, x, y + 0.7, z, 0, 0, 1, 0.5, 0.08, 1.2, 0.4);
+        break;
+      case 'pig':
+        // Muddy splats.
+        if (step % 2 === 0) {
+          this.tmpPos.set(x, y + 0.05, z);
+          this.tmpVel.set(0, 0, 0);
+          this.mud.spawn(this.tmpPos, this.tmpVel, 0.1 + Math.random() * 0.05, 1.4, 0);
+        }
+        break;
+      case 'lion':
+        if (step % 2 === 0) this.burst(this.glitter[1]!, x, y + 0.3, z, 0, 0, 2, 0.7, 0.06, 0.7, -0.5);
+        break;
+      case 'elephant':
+        // A spray from the trunk now and then.
+        if (step % 3 === 0) this.burst(this.water, x + dirX * 0.4, y + 1.1, z + dirZ * 0.4, dirX * 0.4, dirZ * 0.4, 4, 1, 0.05, 0.6, 6);
         break;
       case 'penguin':
         // Little snowflakes swirling up behind.
@@ -243,6 +268,20 @@ export class Effects {
       case 'fox':
         this.burst(this.feathers, x, 1, z, 0, 0, 16, 4, 0.12, 1.5, 1.5);
         break;
+      case 'panda':
+        this.burst(this.leaves, x, 1, z, 0, 0, 18, 4, 0.12, 1.6, 1.5);
+        break;
+      case 'pig':
+        this.burst(this.mudDrops, x, 0.8, z, 0, 0, 20, 4, 0.08, 1, 8);
+        break;
+      case 'lion':
+        this.burst(this.stars, x, 1.2, z, 0, 0, 8, 3, 0.12, 1, 4);
+        this.burst(this.glitter[1]!, x, 1, z, 0, 0, 14, 4, 0.07, 1.2, 1);
+        break;
+      case 'elephant':
+        this.burst(this.water, x, 1, z, 0, 0, 26, 4, 0.08, 1, 8);
+        this.shockwave(x, 0.05, z, 1.6, '#9ccfff');
+        break;
       case 'bear':
         this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.12, 1.2, 9);
         break;
@@ -288,7 +327,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
-    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox']) this.setKnockout(a, -500, -500);
+    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant']) this.setKnockout(a, -500, -500);
   }
 
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */

@@ -442,6 +442,45 @@ button {
   background: radial-gradient(circle at 50% 40%, #e3f6d8, #b8e2a6);
 }
 
+/* Tinted by how rare the animal is (the ground-ring colors). */
+.gallery-card.tier-2 {
+  background: radial-gradient(circle at 50% 40%, #e2f0ff, #a9cdf5);
+}
+
+.gallery-card.tier-3 {
+  background: radial-gradient(circle at 50% 40%, #f1e6ff, #cfa9f2);
+}
+
+.gallery-card.tier-4 {
+  background: radial-gradient(circle at 50% 40%, #fff0fa, #f5b0dc);
+}
+
+.gallery-tier {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.45rem;
+  font: 900 0.95rem/1 var(--font);
+  letter-spacing: -0.05em;
+  -webkit-text-stroke: 1.5px var(--ink);
+  paint-order: stroke fill;
+}
+
+.tier-1 .gallery-tier {
+  color: #39ff7a;
+}
+
+.tier-2 .gallery-tier {
+  color: #29c8ff;
+}
+
+.tier-3 .gallery-tier {
+  color: #d070ff;
+}
+
+.tier-4 .gallery-tier {
+  color: #ffd23a;
+}
+
 .gallery-card.complete {
   background: radial-gradient(circle at 50% 40%, #fff6c8, #ffd36a);
   box-shadow: 0 0 0.8rem rgba(255, 210, 90, 0.9);

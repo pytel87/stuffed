@@ -1,5 +1,5 @@
 import { config } from './config.ts';
-import { ANIMALS, PART_SLOTS } from './parts.ts';
+import { ANIMALS, PART_SLOTS, pickAnimal } from './parts.ts';
 import { nextFloat, pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
 import { initialZone } from './systems/zone.ts';
@@ -108,7 +108,7 @@ function rollParts(rng: RngState, fixed: RosterEntry['parts'] = {}): PartLoadout
     const own = fixed[slot];
     const owned = typeof own === 'string' ? { animal: own, rarity: 0 as const } : own;
     // A real animal only (the look may come from outside, e.g. a saved profile).
-    const animal = owned && ANIMALS.includes(owned.animal) ? owned.animal : pick(rng, ANIMALS);
+    const animal = owned && ANIMALS.includes(owned.animal) ? owned.animal : pickAnimal(rng);
     const rarity = owned && animal === owned.animal && owned.rarity >= 0 && owned.rarity <= 4 ? owned.rarity : 0;
     parts[slot] = { animal, rarity, found: false };
   }

@@ -8,6 +8,7 @@ import { ANIMAL_COLORS } from './animal-colors.ts';
 import { BODIES } from './animal-bodies.ts';
 import { EVEN_MORE_PARTS } from './even-more-animals.ts';
 import { MORE_PARTS } from './more-animals.ts';
+import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
@@ -43,6 +44,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
 
     ...MORE_PARTS.head,
     ...EVEN_MORE_PARTS.head,
+    ...YET_MORE_PARTS.head,
   },
   // Each animal's body has its own shape (animal-bodies.ts); all fit any head, legs and arms.
   body: BODIES,
@@ -54,6 +56,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
 
     ...MORE_PARTS.legs,
     ...EVEN_MORE_PARTS.legs,
+    ...YET_MORE_PARTS.legs,
   },
   tail: {
     bear: (o) => pomTail(o),
@@ -63,6 +66,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
 
     ...MORE_PARTS.tail,
     ...EVEN_MORE_PARTS.tail,
+    ...YET_MORE_PARTS.tail,
   },
   accessory: {
     bear: (o) => bow(o),
@@ -72,6 +76,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
 
     ...MORE_PARTS.accessory,
     ...EVEN_MORE_PARTS.accessory,
+    ...YET_MORE_PARTS.accessory,
   },
 };
 

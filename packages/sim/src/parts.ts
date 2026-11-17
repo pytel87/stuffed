@@ -1,8 +1,34 @@
-// Skin parts: twelve animals, each with a part for every slot. Parts are cosmetic only.
+// Skin parts: sixteen animals, each with a part for every slot. Parts are cosmetic only.
 import { config } from './config.ts';
-import type { Animal, Part, PartLoadout, PartSlot, Player } from './types.ts';
+import { pickWeighted } from './rng.ts';
+import type { Animal, Part, PartLoadout, PartSlot, Player, Rarity, RngState } from './types.ts';
 
-export const ANIMALS: readonly Animal[] = ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox'];
+export const ANIMALS: readonly Animal[] = [
+  'bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin',
+  'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant',
+];
+
+/**
+ * How rare each animal's parts are, on the rarity scale (its colors light the ring under a part
+ * on the ground): 1 common, 2 rare, 3 epic, 4 legendary. Chests roll animals by
+ * `config.parts.animalWeights`.
+ */
+export const ANIMAL_RARITY: Record<Animal, Rarity> = {
+  bear: 1, frog: 1, chicken: 1, bunny: 1, cat: 1, pig: 1,
+  shark: 2, owl: 2, penguin: 2, fox: 2, panda: 2,
+  dino: 3, axolotl: 3, lion: 3, elephant: 3,
+  unicorn: 4,
+};
+
+const ANIMAL_WEIGHTS = Object.fromEntries(ANIMALS.map((a) => [a, config.parts.animalWeights[ANIMAL_RARITY[a]]])) as Record<Animal, number>;
+
+/** A random animal, rarer ones less often. */
+export function pickAnimal(rng: RngState): Animal {
+  return pickWeighted(rng, ANIMAL_WEIGHTS);
+}
+
+/** The common animals (a new profile's first look comes from these). */
+export const COMMON_ANIMALS: readonly Animal[] = ANIMALS.filter((a) => ANIMAL_RARITY[a] === 1);
 
 export const PART_SLOTS: readonly PartSlot[] = ['head', 'body', 'legs', 'tail', 'accessory'];
 

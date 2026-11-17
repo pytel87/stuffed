@@ -1,7 +1,7 @@
 // Chests, ground loot and pickups.
 import { config, secondsToTicks } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
-import { ANIMALS, PART_SLOTS } from '../parts.ts';
+import { ANIMAL_RARITY, ANIMALS, PART_SLOTS, pickAnimal } from '../parts.ts';
 import { nextFloat, pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
@@ -141,7 +141,7 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   const item = pickWeighted(state.rng, chest.loot === 'food' ? config.chest.foodItemWeights : config.chest.itemWeights);
   const part: Part = {
     slot: pick(state.rng, PART_SLOTS),
-    animal: pick(state.rng, ANIMALS),
+    animal: pickAnimal(state.rng),
     rarity: 0, // parts have no rarity
   };
 
@@ -169,7 +169,7 @@ export function spawnLoot(world: World, state: GameState, at: Vec2, content: Loo
   pushOutOfWalls(world, pos, config.loot.radius, groundHeight(world, state, pos, fromZ));
   const z = groundHeight(world, state, pos, fromZ);
   const rarity =
-    content.type === 'weapon' ? content.weapon.rarity : content.type === 'part' ? content.part.rarity : config.items[content.item.kind].rarity;
+    content.type === 'weapon' ? content.weapon.rarity : content.type === 'part' ? ANIMAL_RARITY[content.part.animal] : config.items[content.item.kind].rarity;
   const loot: GroundLoot = { id: state.nextId++, pos, z, rarity, content };
   state.loot.push(loot);
   return loot;

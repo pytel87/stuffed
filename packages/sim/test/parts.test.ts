@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ANIMALS, applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
+import { ANIMAL_RARITY, ANIMALS, applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, secondsToTicks, spawnLoot, step, pickAnimal, rng, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -147,6 +147,20 @@ describe('skin parts', () => {
     p.parts.head = { animal: 'shark', rarity: 3, found: true };
     p.stash = shark('tail', 1);
     expect(carriedParts(p)).toEqual([shark('head', 3), shark('tail', 1)]);
+  });
+
+  it('rarer animals come up less often', () => {
+    const s = rng.seedRng(7);
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 20000; i++) {
+      const a = pickAnimal(s);
+      counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+    for (const a of ANIMALS) expect(counts.get(a) ?? 0).toBeGreaterThan(0);
+    const byTier = (t: number) => ANIMALS.filter((a) => ANIMAL_RARITY[a] === t).map((a) => counts.get(a)!);
+    expect(Math.min(...byTier(1))).toBeGreaterThan(Math.max(...byTier(2)));
+    expect(Math.min(...byTier(2))).toBeGreaterThan(Math.max(...byTier(3)));
+    expect(Math.min(...byTier(3))).toBeGreaterThan(Math.max(...byTier(4)));
   });
 
   it('three parts of one animal make a set', () => {

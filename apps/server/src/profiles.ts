@@ -1,7 +1,7 @@
 // Player profiles in D1: one per device (a random token kept in the browser; only its hash is
 // stored), plus a recovery code that adds another device to the same profile. A profile owns
 // parts (its collection) and picks the look it starts every match in from them.
-import { ANIMALS, PART_SLOTS } from '@stuffed/sim';
+import { ANIMALS, COMMON_ANIMALS, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, Part, PartSlot, Rarity } from '@stuffed/sim';
 import type { Look, OwnedEntry, Profile } from '@stuffed/sim/net';
 
@@ -92,13 +92,13 @@ export function parseLook(value: unknown): Look | null {
 
 // ---------- profiles ----------
 
-/** A new profile: a random Hand-me-down look, which is also its first five parts. */
+/** A new profile: a random look of common animals, which is also its first five parts. */
 export async function createProfile(db: D1Database): Promise<{ token: string; profile: Profile }> {
   await ensureSchema(db);
   const id = crypto.randomUUID();
   const now = Date.now();
   const look = {} as Look;
-  for (const slot of PART_SLOTS) look[slot] = { animal: ANIMALS[Math.floor(Math.random() * ANIMALS.length)]!, rarity: 0 };
+  for (const slot of PART_SLOTS) look[slot] = { animal: COMMON_ANIMALS[Math.floor(Math.random() * COMMON_ANIMALS.length)]!, rarity: 0 };
   const token = randomToken();
   // A clash on the recovery code is very unlikely; just try another.
   for (let attempt = 0; ; attempt++) {

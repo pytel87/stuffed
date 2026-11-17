@@ -139,9 +139,17 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### Parts (Patchwork)
 
-Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of twelve
-animals: Bear, Frog, Shark, Chicken, Dino, Owl, Axolotl, Penguin, Bunny, Unicorn, Cat and Fox.
-Each chest also pops a part, floating over a ring. E puts it on. Q puts it in your one stash slot instead (it shows next to your
+Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of sixteen
+animals, in four rarities (the ring under a part on the ground shows which, as do the stars in
+the gallery):
+
+- Common (green): Bear, Frog, Chicken, Bunny, Cat, Pig
+- Rare (blue): Shark, Owl, Penguin, Fox, Panda
+- Epic (purple): Dino, Axolotl, Lion, Elephant
+- Legendary (gold): Unicorn
+
+Each chest also pops a part; its animal is rolled by rarity (odds 8 : 4 : 2 : 1 per animal, so
+a part is a Unicorn about 1 time in 80). New profiles start in common animals. E puts it on. Q puts it in your one stash slot instead (it shows next to your
 stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
 When you're knocked out, only your weapons and items drop; the parts you found and your stash
 go home with you. Bots drop their parts for others to take, and put on parts that build toward
@@ -157,7 +165,7 @@ room saves this; solo matches report it to the server from the browser.
 
 The hanger next to your name on the title menu opens the Wardrobe: flip through the parts you
 own for each slot to choose the look you start every match in. The gallery button in its corner
-shows all twelve animals in full, with the parts you own lit up. It also shows the profile's
+shows all sixteen animals in full, commonest first, with the parts you own lit up. It also shows the profile's
 recovery code: typing it into the Wardrobe on another device puts the same profile there too.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy

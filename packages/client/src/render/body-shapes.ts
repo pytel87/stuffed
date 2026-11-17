@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { darken, toonMaterial, toonMesh } from './toon.ts';
 
-export type BodyShape = 'round' | 'pear' | 'tapered' | 'egg' | 'chunky' | 'barrel' | 'plump' | 'pin';
+export type BodyShape = 'round' | 'pear' | 'tapered' | 'egg' | 'chunky' | 'barrel' | 'plump' | 'pin' | 'broad' | 'bell';
 
 /** [radius, height] from bottom to top. */
 const PROFILES: Record<BodyShape, [number, number][]> = {
@@ -19,6 +19,10 @@ const PROFILES: Record<BodyShape, [number, number][]> = {
   barrel: [[0, -0.37], [0.31, -0.35], [0.41, -0.24], [0.42, 0], [0.41, 0.21], [0.31, 0.34], [0, 0.38]],
   plump: [[0, -0.36], [0.3, -0.33], [0.45, -0.13], [0.44, 0.06], [0.36, 0.24], [0.22, 0.35], [0, 0.39]],
   pin: [[0, -0.37], [0.3, -0.34], [0.43, -0.18], [0.4, 0.0], [0.33, 0.16], [0.3, 0.3], [0.2, 0.4], [0, 0.43]],
+  // Wider at the chest than the hips.
+  broad: [[0, -0.37], [0.24, -0.35], [0.34, -0.22], [0.39, -0.02], [0.43, 0.14], [0.36, 0.29], [0, 0.39]],
+  // Flaring out wide at the bottom.
+  bell: [[0, -0.37], [0.4, -0.36], [0.48, -0.27], [0.44, -0.1], [0.38, 0.1], [0.3, 0.29], [0, 0.4]],
 };
 
 const DEPTH = 0.9;

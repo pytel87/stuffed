@@ -2,6 +2,16 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Panda, Pig, Lion, Elephant; animal rarity (2026-11-17)
+
+- Four more animals (16 in all): Panda (eye patches, shoulder band, bamboo sprig), Pig (snout,
+  floppy ears, curly tail, coin slot, apple), Lion (mane, tufted tail, chest fluff, crown) and
+  Elephant (big ears, trunk, tusks, circus blanket, fez). Two new body shapes (broad, bell);
+  set glows, trails (bamboo leaves, mud splats, gold sparkles, trunk spray) and knockout bursts.
+- Animals have a rarity: common, rare, epic, legendary (Unicorn). Chest parts roll animals by
+  it (8 : 4 : 2 : 1), the ring under a part on the ground shows it, and the gallery sorts by it
+  with stars and tinted cards. New profiles start in common animals.
+
 ## Keep every part (2026-11-17)
 
 - Knocked out, you keep every part you carried (worn finds and the stash); only weapons and

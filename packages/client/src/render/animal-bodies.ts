@@ -182,6 +182,67 @@ function foxBody(outline: string): THREE.Object3D {
   return b.group;
 }
 
+function pandaBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.panda;
+  const b = shapedBody({ shape: 'round', main: c.main, belly: c.belly, outline, bellyW: 0.22, bellyH: 0.2, bellyY: -0.1, stitch: '#c9c6bf' });
+  // The black band over the shoulders.
+  const y = 0.2;
+  const band = toonMesh(new THREE.TorusGeometry(b.radiusAt(y) - 0.02, 0.085, 10, 32), '#2f2d38', { outline: 0.06, outlineColor: outline });
+  band.rotation.x = Math.PI / 2;
+  band.scale.set(1, 0.9, 1);
+  band.position.y = y;
+  b.group.add(band);
+  return b.group;
+}
+
+function pigBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.pig;
+  const b = shapedBody({ shape: 'plump', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.24, bellyY: -0.08, stitch: '#e07f96' });
+  // A piggy-bank coin slot on the back, and a couple of spots.
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.04), flat('#7a3a4e'));
+  slot.position.copy(b.surface(0, 0.24, -0.01, true));
+  slot.rotation.x = 0.5;
+  b.group.add(slot);
+  for (const [x, y, r] of [[-0.26, 0.12, 0.06], [0.28, -0.12, 0.07]] as const) {
+    const spot = toonMesh(new THREE.SphereGeometry(r, 10, 8), darken(c.main, 0.12).getStyle(), { outline: false });
+    spot.scale.z = 0.3;
+    spot.position.copy(b.surface(x, y, -0.005));
+    b.group.add(spot);
+  }
+  return b.group;
+}
+
+function lionBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.lion;
+  const b = shapedBody({ shape: 'broad', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.24, bellyY: -0.06 });
+  // A fluffy cream chest tuft.
+  for (const [x, y] of [[-0.09, 0.27], [0.09, 0.27], [0, 0.24], [0, 0.31]] as const) {
+    const tuft = toonMesh(new THREE.SphereGeometry(0.075, 10, 8), c.belly, { outline: 0.1, outlineColor: outline });
+    tuft.scale.set(0.9, 1.1, 0.55);
+    tuft.position.copy(b.surface(x, y, 0.01));
+    b.group.add(tuft);
+  }
+  return b.group;
+}
+
+function elephantBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.elephant;
+  const b = shapedBody({ shape: 'bell', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.22, bellyY: -0.1 });
+  // A circus blanket on the back with gold trim.
+  const blanket = toonMesh(new THREE.SphereGeometry(1, 20, 14), '#e2433f', { outline: false });
+  blanket.scale.set(0.28, 0.24, 0.1);
+  blanket.position.copy(b.surface(0, 0.0, -0.07, true));
+  b.group.add(blanket);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const dot = toonMesh(new THREE.SphereGeometry(0.022, 8, 6), '#f7c331', { outline: false });
+    const p = b.surface(Math.cos(a) * 0.3, Math.sin(a) * 0.26, 0.005, true);
+    dot.position.copy(p);
+    b.group.add(dot);
+  }
+  return b.group;
+}
+
 export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   bear: bearBody,
   frog: frogBody,
@@ -195,4 +256,8 @@ export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   unicorn: unicornBody,
   cat: catBody,
   fox: foxBody,
+  panda: pandaBody,
+  pig: pigBody,
+  lion: lionBody,
+  elephant: elephantBody,
 };

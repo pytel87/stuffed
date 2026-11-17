@@ -322,6 +322,11 @@ export const config = {
     fallSpeed: 3,
   },
 
+  parts: {
+    /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
+    animalWeights: [0, 8, 4, 2, 1],
+  },
+
   chest: {
     /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,

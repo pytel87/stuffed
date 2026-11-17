@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, PART_SLOTS } from '@stuffed/sim';
+import { ANIMAL_RARITY, ANIMALS, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot } from '@stuffed/sim';
 import type { Look, OwnedEntry } from '@stuffed/sim/net';
 import { PlushView } from '../render/plush-view.ts';
@@ -119,12 +119,16 @@ export class Wardrobe {
     const pictures = renderPlushPictures();
     const owned = this.store.profile?.parts ?? [];
     const has = (slot: PartSlot, animal: Animal) => owned.some((p) => p.slot === slot && p.animal === animal);
-    this.gallery.innerHTML = ANIMALS.map((animal) => {
+    // Common animals first, the legendary last; stars tell how rare each one is.
+    const byRarity = [...ANIMALS].sort((a, b) => ANIMAL_RARITY[a] - ANIMAL_RARITY[b]);
+    this.gallery.innerHTML = byRarity.map((animal) => {
       const count = PART_SLOTS.filter((slot) => has(slot, animal)).length;
+      const tier = ANIMAL_RARITY[animal];
       const parts = PART_SLOTS.map((slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}">${partIcon(slot, animal)}</span>`).join('');
       const picture = pictures.get(animal);
-      return `<div class="gallery-card${count === PART_SLOTS.length ? ' complete' : ''}">
+      return `<div class="gallery-card tier-${tier}${count === PART_SLOTS.length ? ' complete' : ''}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
+        <b class="gallery-tier">${'★'.repeat(tier)}</b>
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
         <div class="gallery-parts">${parts}</div>
       </div>`;
