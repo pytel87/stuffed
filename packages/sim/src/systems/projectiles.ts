@@ -3,6 +3,7 @@ import { segmentBoxT } from '../collision/geometry.ts';
 import type { Ball, Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
 import { poseAt, raycastWalls, wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
+import { TRAIN, trainCircles } from './train.ts';
 import { applyDamage, teammates } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
@@ -83,6 +84,17 @@ export function updateProjectiles(world: World, state: GameState): void {
         wallT = t;
         wallHit = { chest: ball.pos };
         ballHit = ball;
+      }
+    }
+    // The toy train's cars stop shots too.
+    if (world.map.track && lowest < TRAIN.height) {
+      for (const c of trainCircles(world.map.track, state.tick)) {
+        const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, c.x, c.y, c.r + r);
+        if (t !== null && t < wallT && proj.z + dz * t - r < TRAIN.height) {
+          wallT = t;
+          wallHit = { chest: { x: c.x, y: c.y } };
+          ballHit = null;
+        }
       }
     }
     if (lowest < config.chest.height) {

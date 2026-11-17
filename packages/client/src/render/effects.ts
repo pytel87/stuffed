@@ -407,6 +407,11 @@ export class Effects {
   }
 
   /** A toy box pops open: confetti buttons and a puff of fluff. */
+  /** A puff of steam from the toy train's chimney. */
+  steam(x: number, y: number, z: number): void {
+    this.burst(this.cotton, x, y, z, 0, 0, 1, 0.3, 0.14, 1.1, -1.2);
+  }
+
   /** A goal! Confetti in every color and a ring on the ground. */
   goal(x: number, z: number): void {
     for (const pool of this.glitter) this.burst(pool, x, 1.2, z, 0, 0, 14, 5, 0.1, 1.6, 2);

@@ -5,6 +5,7 @@ import { Btn } from '../types.ts';
 import type { Ball, GameState, Input, Player, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
+import { TRAIN, trainCircles } from './train.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -141,6 +142,9 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
     }
+    if (world.map.track && player.z < TRAIN.height) {
+      for (const c of trainCircles(world.map.track, state.tick)) moved = trainBump(state, player, c) || moved;
+    }
     if (!moved) return;
   }
 }
@@ -169,6 +173,28 @@ function kickBall(state: GameState, player: Player, ball: Ball): boolean {
     state.events.push({ type: 'ballBounce', playerId: player.id, ballId: ball.id, pos: { x: ball.pos.x, y: ball.pos.y } });
   } else if (impact > 0) {
     pushBall(ball, -nx, -ny, impact * 1.1);
+  }
+  return true;
+}
+
+/** A train car in the way: pushed out, and shoved hard if it's heading into you (a toot). */
+function trainBump(state: GameState, player: Player, c: { x: number; y: number; r: number; dir: Vec2 }): boolean {
+  const dx = player.pos.x - c.x;
+  const dy = player.pos.y - c.y;
+  const min = player.radius + c.r;
+  const d2 = dx * dx + dy * dy;
+  if (d2 >= min * min) return false;
+  const d = Math.sqrt(d2);
+  const nx = d < 1e-9 ? -c.dir.y : dx / d;
+  const ny = d < 1e-9 ? c.dir.x : dy / d;
+  pushOut(player, nx, ny, min - d);
+  const ahead = nx * c.dir.x + ny * c.dir.y;
+  const shoved = Math.hypot(player.knockback.x, player.knockback.y) > TRAIN.shove * 0.6;
+  if (ahead > 0.2 && !shoved) {
+    // Off to the side and forward, like a cow catcher.
+    player.knockback.x = (nx + c.dir.x) * 0.5 * TRAIN.shove * 1.4;
+    player.knockback.y = (ny + c.dir.y) * 0.5 * TRAIN.shove * 1.4;
+    state.events.push({ type: 'trainBump', playerId: player.id, pos: { x: player.pos.x, y: player.pos.y } });
   }
   return true;
 }

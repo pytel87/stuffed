@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BACKYARD, BEDROOM, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, wading } from '../src/index.ts';
+import { applyDamage, BACKYARD, BEDROOM, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, trainCars, wading } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { openChest } from '../src/systems/loot.ts';
 import { input, roster, run } from './helpers.ts';
@@ -173,5 +173,47 @@ describe('the Bedroom', () => {
     for (let t = 0; t < 30 * 60 * 4 && state.status === 'playing'; t++) step(world, state, bots.inputs(world, state));
     expect(state.status).toBe('ended');
     expect(state.chests.some((c) => c.opened)).toBe(true);
+  });
+});
+
+describe('the toy train', () => {
+  const map = BEDROOM;
+  const track = map.track!;
+
+  it('runs round the track at its speed, the same at the same tick', () => {
+    const a = trainCars(track, 300);
+    const b = trainCars(track, 300);
+    expect(a).toEqual(b);
+    expect(a).toHaveLength(track.cars);
+    const later = trainCars(track, 330);
+    const moved = Math.hypot(later[0]!.pos.x - a[0]!.pos.x, later[0]!.pos.y - a[0]!.pos.y);
+    expect(moved).toBeCloseTo(track.speed, 0);
+  });
+
+  it('shoves a plush standing on the rails out of the way', () => {
+    const engine = trainCars(track, 100)[0]!;
+    // Just ahead of the engine, on the rails, when it gets there.
+    const at = { x: engine.pos.x + engine.dir.x * 3, y: engine.pos.y + engine.dir.y * 3 };
+    const { world, state, p } = solo(map, at);
+    state.tick = 100;
+    let bumped = false;
+    for (let i = 0; i < 40 && !bumped; i++) {
+      run(world, state, 1, () => input());
+      bumped = state.events.some((e) => e.type === 'trainBump' && e.playerId === p.id);
+    }
+    expect(bumped).toBe(true);
+    for (const car of trainCars(track, state.tick)) expect(Math.hypot(p.pos.x - car.pos.x, p.pos.y - car.pos.y)).toBeGreaterThan(0.9);
+  });
+
+  it('stops shots', () => {
+    const car = trainCars(track, 200)[1]!;
+    // Beside the car, shooting straight at it.
+    const side = { x: -car.dir.y, y: car.dir.x };
+    const { world, state, p } = solo(map, { x: car.pos.x + side.x * 4, y: car.pos.y + side.y * 4 });
+    state.tick = 200;
+    p.weapons = [makeWeapon('cork_popper', 0), null];
+    run(world, state, 1, (id) => (id === p.id ? input({ aimX: -side.x * 4, aimY: -side.y * 4, buttons: Btn.Fire }) : input()));
+    run(world, state, 8, () => input());
+    expect(state.projectiles).toHaveLength(0);
   });
 });

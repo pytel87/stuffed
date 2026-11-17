@@ -16,6 +16,10 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   blocks, books, drums and boxes across the floor; plus clutter just for looks (crayons,
   drawings, socks, puzzle pieces, marbles, toy cars).
 - Solo, Room and Start are plain words (no icons).
+- The toy train drives: a four-car train (an engine puffing steam and wagons of blocks) runs
+  round a big oval track across the whole Bedroom all match. The cars are solid: they shove
+  plushies off the rails (with a toot), stop shots and knock beach balls along. Where it is
+  comes from the match clock alone, so it needs no network data.
 
 ## Beach ball goals (2026-11-17)
 

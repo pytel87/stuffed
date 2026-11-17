@@ -15,6 +15,7 @@ export { ANIMAL_RARITY, ANIMALS, COMMON_ANIMALS, PART_SLOTS, pickAnimal, DEFAULT
 export { applyDamage } from './systems/damage.ts';
 export { chargeAmount, makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems/weapons.ts';
 export { sweepCircle } from './systems/projectiles.ts';
+export { TRAIN, distanceToTrack, trainCars, type TrainCar } from './systems/train.ts';
 export type { WeaponStats, RarityStats, ItemStats } from './config.ts';
 export { TEST_MAP } from './maps/test-map.ts';
 export { BACKYARD } from './maps/backyard.ts';

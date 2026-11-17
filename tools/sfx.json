@@ -153,6 +153,10 @@
     "bag_rustle": {
       "prompt": "a big soft bag of cotton stuffing being rustled and squeezed",
       "seconds": 1.0
+    },
+    "train_toot": {
+      "prompt": "a small wooden toy train whistle: a cheerful short toot toot",
+      "seconds": 0.8
     }
   }
 }

@@ -7,7 +7,7 @@
 //   Bookshelf (SW)     long shelves and book piles; low loot
 //   Block Castle (C)   alphabet-block walls with doorways and a keep in the middle
 // Coordinates: x to the right, y down the screen.
-import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, TrainTrack, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 112;
 const C = SIZE / 2;
@@ -73,19 +73,20 @@ const shelf: Wall[] = [
   book(11, 82, 2, 1.6), book(12, 94, 1.6, 2, 1.6), book(21.5, 86, 2, 1.6), book(22, 100, 3, 1.6, 0.8), book(32, 84, 1.6, 3),
 ];
 
-// ---------- The Train (N, between the bed and the desk) ----------
-// A track loop with a little train of three cars parked on its west side.
-const TRACK = { x: 56, y: 19, rx: 12, ry: 7 };
-const train = w('train', 1.3);
-const trains: Wall[] = [train(43.2, 13.5, 1.6, 2.6, 1.6), train(43.2, 16.6, 1.6, 2.6), train(43.2, 19.7, 1.6, 2.6)];
+// ---------- The Train ----------
+// A big oval track round the castle, through every area; a four-car train runs round it all
+// match (see systems/train.ts). Anything that would sit on the rails is moved off below.
+const TRACK: TrainTrack = { center: { x: C, y: C }, rx: 34, ry: 31, speed: 4.5, cars: 4 };
+/** How close to the rails things may stand. */
+const TRACK_CLEAR = 2.4;
 
 // ---------- The Dollhouse (E) ----------
 // A little house with a door on the west side; its roof is a lookout (climb from the drum).
-const DOLLHOUSE: Building = { x: 92, y: 50, w: 11, h: 9, height: 2.6, kind: 'house' };
+const DOLLHOUSE: Building = { x: 93.5, y: 50, w: 11, h: 9, height: 2.6, kind: 'house' };
 const dollhouse: Wall[] = [
-  w('brick', 2.6)(92, 50, 11, 0.6), w('brick', 2.6)(92, 58.4, 11, 0.6), w('brick', 2.6)(102.4, 50, 0.6, 9),
-  w('brick', 2.6)(92, 50, 0.6, 2.8), w('brick', 2.6)(92, 56.2, 0.6, 2.8),
-  bucket(89.5, 60.5, 1.6, 1.6, 1.3), // a toy drum to climb onto the roof from
+  w('brick', 2.6)(93.5, 50, 11, 0.6), w('brick', 2.6)(93.5, 58.4, 11, 0.6), w('brick', 2.6)(103.9, 50, 0.6, 9),
+  w('brick', 2.6)(93.5, 50, 0.6, 2.8), w('brick', 2.6)(93.5, 56.2, 0.6, 2.8),
+  bucket(105, 60, 1.6, 1.6, 1.3), // a toy drum to climb onto the roof from
 ];
 
 // ---------- Toys all over the floor (cover between the areas) ----------
@@ -102,18 +103,46 @@ const scattered: Wall[] = [
 const RUG = { x: 38, y: 74, w: 26, h: 22 };
 const rugToys: Wall[] = [ball(44, 80, 1.6, 1.6), ball(56, 88, 1.6, 1.6)];
 
-const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...rugToys, ...trains, ...dollhouse, ...scattered];
+/** Distance from a box to the track's oval (sampled). */
+function boxToTrack(b: { x: number; y: number; w: number; h: number }): number {
+  let best = Infinity;
+  for (let i = 0; i < 180; i++) {
+    const a = (i / 180) * Math.PI * 2;
+    const px = TRACK.center.x + Math.cos(a) * TRACK.rx;
+    const py = TRACK.center.y + Math.sin(a) * TRACK.ry;
+    const dx = Math.max(b.x - px, 0, px - (b.x + b.w));
+    const dy = Math.max(b.y - py, 0, py - (b.y + b.h));
+    best = Math.min(best, Math.hypot(dx, dy));
+  }
+  return best;
+}
+const clearOfTrack = (b: { x: number; y: number; w: number; h: number }) => boxToTrack(b) >= TRACK_CLEAR;
+/** Nudges a point straight out from (or in toward) the oval until it's clear of the rails. */
+function offTrack<P extends Vec2>(p: P, margin: number): P {
+  const k = Math.hypot((p.x - TRACK.center.x) / TRACK.rx, (p.y - TRACK.center.y) / TRACK.ry) || 1;
+  const box = (q: Vec2) => ({ x: q.x - margin, y: q.y - margin, w: margin * 2, h: margin * 2 });
+  if (clearOfTrack(box(p))) return p;
+  for (let step = 0.5; step < 12; step += 0.5) {
+    const s = k >= 1 ? 1 + step / Math.min(TRACK.rx, TRACK.ry) : 1 - step / Math.min(TRACK.rx, TRACK.ry);
+    const q = { ...p, x: TRACK.center.x + (p.x - TRACK.center.x) * (s / 1), y: TRACK.center.y + (p.y - TRACK.center.y) * (s / 1) };
+    if (clearOfTrack(box(q))) return q;
+  }
+  return p;
+}
+
+// Small toys that would sit on the rails are left out; the big furniture is placed clear.
+const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...[...rugToys, ...scattered].filter(clearOfTrack)];
 const buildings: Building[] = [BED, DESK, KEEP, TOYBOX, DOLLHOUSE];
 
-const bushes: Circle[] = [
+const bushes: Circle[] = ([
   // laundry piles: hide in them
   pile(42, 88, 2.2), pile(60, 80, 2.2), pile(30, 58, 2.2), pile(82, 58, 2.4), pile(70, 34, 2.2), pile(40, 36, 2),
   pile(88, 44, 2.2), pile(68, 102, 2.4), pile(22, 42, 2.2), pile(104, 62, 2.2), pile(14, 64, 2), pile(50, 104, 2),
-];
+] as Circle[]).map((c) => ({ ...c, center: offTrack(c.center, c.radius) }));
 
-const chestSpawns: ChestSpawn[] = [
+const chestSpawns: ChestSpawn[] = ([
   // under the bed and the desk, in the castle keep and the toy box
-  chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'), chest(97.5, 54.5, 'high'),
+  chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'), chest(99, 54.5, 'high'),
   // castle yard
   chest(49.5, 60.5), chest(61.5, 49.5),
   // bookshelf
@@ -122,11 +151,11 @@ const chestSpawns: ChestSpawn[] = [
   chest(50, 84), chest(86, 86), chest(104, 100, 'low'),
   // the floor
   chest(56, 30), chest(30, 56, 'low'), chest(82, 56), chest(56, 70), chest(36, 30, 'low'), chest(76, 34), chest(34, 76),
-  chest(78, 76, 'low'), chest(8, 56, 'low'), chest(104, 50, 'low'), chest(56, 8, 'low'), chest(56, 106, 'low'), chest(104, 106, 'low'), chest(8, 106, 'low'),
-];
+  chest(78, 76, 'low'), chest(8, 56, 'low'), chest(107.5, 45, 'low'), chest(56, 8, 'low'), chest(56, 106, 'low'), chest(104, 106, 'low'), chest(8, 106, 'low'),
+] as ChestSpawn[]).map((c) => offTrack(c, 0.9));
 
 // Floor clutter, just for looks.
-const decor: Decor[] = [{ kind: 'track', x: TRACK.x, y: TRACK.y, rx: TRACK.rx, ry: TRACK.ry }];
+const decor: Decor[] = [{ kind: 'track', x: TRACK.center.x, y: TRACK.center.y, rx: TRACK.rx, ry: TRACK.ry }];
 {
   // Spread with a fixed pattern (the same every match), kept off furniture.
   const kinds: Decor['kind'][] = ['crayon', 'paper', 'sock', 'puzzle', 'marbles', 'car', 'crayon', 'crayon'];
@@ -137,7 +166,7 @@ const decor: Decor[] = [{ kind: 'track', x: TRACK.x, y: TRACK.y, rx: TRACK.rx, r
     const turn = rand() * Math.PI * 2;
     const kind = kinds[i % kinds.length]!;
     const clear = [...walls, ...buildings].every((b) => p.x < b.x - 1.2 || p.x > b.x + b.w + 1.2 || p.y < b.y - 1.2 || p.y > b.y + b.h + 1.2);
-    const onTrack = Math.abs(Math.hypot((p.x - TRACK.x) / TRACK.rx, (p.y - TRACK.y) / TRACK.ry) - 1) < 0.25;
+    const onTrack = !clearOfTrack({ x: p.x - 0.8, y: p.y - 0.8, w: 1.6, h: 1.6 });
     if (clear && !onTrack) decor.push({ kind, x: p.x, y: p.y, turn });
   }
 }
@@ -151,15 +180,14 @@ const zones: MapZone[] = [
   { name: 'The Rug', center: { x: 51, y: 85 }, radius: 13 },
   { name: 'Bookshelf', center: { x: 18, y: 90 }, radius: 14 },
   { name: 'Block Castle', center: { x: C, y: C }, radius: 12 },
-  { name: 'Train Set', center: { x: TRACK.x, y: TRACK.y }, radius: 11 },
-  { name: 'Dollhouse', center: { x: 97, y: 54 }, radius: 9 },
+  { name: 'Dollhouse', center: { x: 99, y: 54 }, radius: 9 },
 ];
 
 /** True if a plush could stand here: inside the map and clear of walls and roofs (with a margin). */
 function clearSpot(p: Vec2, margin: number): boolean {
   if (p.x < 3 || p.y < 3 || p.x > SIZE - 3 || p.y > SIZE - 3) return false;
   const off = (b: { x: number; y: number; w: number; h: number }) => p.x < b.x - margin || p.x > b.x + b.w + margin || p.y < b.y - margin || p.y > b.y + b.h + margin;
-  return walls.every(off) && buildings.every(off);
+  return walls.every(off) && buildings.every(off) && clearOfTrack({ x: p.x - margin, y: p.y - margin, w: margin * 2, h: margin * 2 });
 }
 
 /** `count` spawns on a ring; any that land on something slide along the ring until clear. */
@@ -193,4 +221,5 @@ export const BEDROOM: MapData = {
   grounds,
   zones,
   decor,
+  track: TRACK,
 };

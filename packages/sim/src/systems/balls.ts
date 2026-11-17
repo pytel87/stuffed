@@ -4,6 +4,7 @@ import { config, DT } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import type { Ball, GameState, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
+import { trainCircles } from './train.ts';
 
 const B = config.beachBall;
 const KEEP = Math.exp(-B.friction * DT);
@@ -67,6 +68,13 @@ function collide(world: World, state: GameState, ball: Ball): void {
     if (push) reflect(ball, push.nx, push.ny, push.depth, B.restitution);
   }
   for (const chest of state.chests) bounceOffCircle(ball, chest.pos, config.chest.radius, B.restitution);
+  // The train knocks balls along when it runs into them.
+  if (world.map.track) {
+    for (const c of trainCircles(world.map.track, state.tick)) {
+      const n = bounceOffCircle(ball, { x: c.x, y: c.y }, c.r, B.restitution);
+      if (n && n.x * c.dir.x + n.y * c.dir.y > 0) pushBall(ball, n.x, n.y, world.map.track.speed * 1.5);
+    }
+  }
   // Rolling into a plush: the ball bounces off and gives them a little shove.
   for (const p of state.players) {
     if (!p.alive || p.drop || p.z >= r * 2) continue;

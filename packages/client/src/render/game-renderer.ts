@@ -6,6 +6,7 @@ import { CAMERA, CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { BallViews } from './ball-views.ts';
 import { GoalViews } from './goal-views.ts';
+import { TrainView } from './train-view.ts';
 import { ReviveMarkers } from './revive-markers.ts';
 import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
@@ -66,6 +67,8 @@ export class GameRenderer {
   private readonly balls = new BallViews(this.scene);
   /** Beach ball goals: nets and scoreboards. */
   private goals!: GoalViews;
+  /** The toy train (maps with a track). */
+  private train!: TrainView;
   /** Team mode: where knocked-out teammates can be re-stitched. */
   private readonly reviveMarkers = new ReviveMarkers(this.scene);
   private readonly loot = new LootViews(this.scene);
@@ -137,6 +140,7 @@ export class GameRenderer {
     const obstacles = buildObstacles(map);
     this.mapLayer.add(obstacles.root);
     this.goals = new GoalViews(this.mapLayer, map);
+    this.train = new TrainView(this.mapLayer, map);
     this.bushes = obstacles.bushes;
     this.roofs = obstacles.roofs;
     this.rinse = new RinseView(map);
@@ -218,6 +222,11 @@ export class GameRenderer {
         case 'ballBounce':
           this.balls.bounce(e.ballId);
           break;
+        case 'trainBump': {
+          this.plushes.get(e.playerId)?.flash();
+          this.effects.pickup(e.pos.x, e.pos.y);
+          break;
+        }
         case 'goal':
           this.effects.goal(e.pos.x, e.pos.y);
           break;
@@ -461,6 +470,7 @@ export class GameRenderer {
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
     this.goals.update(curr, opts.dt);
+    this.train.update(curr.tick - 1 + alpha, opts.dt, (x, y, z) => this.effects.steam(x, y, z));
     this.reviveMarkers.update(curr, viewer, opts.time);
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));

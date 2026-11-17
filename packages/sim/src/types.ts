@@ -264,6 +264,8 @@ export type GameEvent =
   | { type: 'burst'; pos: Vec2; z: number; weapon: WeaponKind; radius: number }
   /** A marble bounced off a wall. */
   | { type: 'bounce'; pos: Vec2 }
+  /** The toy train shoved a plush out of its way. */
+  | { type: 'trainBump'; playerId: EntityId; pos: Vec2 }
   /** A beach ball rolled into goal `goal` (index in map.goals). */
   | { type: 'goal'; goal: number; ballId: number; pos: Vec2 }
   /** A plush ran into a beach ball and got bounced back (`pos`: the ball's center). */
@@ -412,6 +414,18 @@ export interface MapData {
   zones?: MapZone[];
   /** Things lying on the floor just for looks (no effect on play). */
   decor?: Decor[];
+  /** A toy train running round an oval track (see systems/train.ts). */
+  track?: TrainTrack;
+}
+
+/** An oval train track and the train on it. */
+export interface TrainTrack {
+  center: Vec2;
+  rx: number;
+  ry: number;
+  /** Units per second. */
+  speed: number;
+  cars: number;
 }
 
 /** A bit of floor clutter, drawn only: crayons, drawings, socks, a train track... */
