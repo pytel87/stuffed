@@ -158,7 +158,27 @@ Everyone starts with a Hand-me-down Cork Popper; better weapons and items come f
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the
 URL, for example
 `?loadout=foam_dart_smg:2,super_soaker:4`. Kinds: `cork_popper`, `foam_dart_smg`,
-`super_soaker`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
+`super_soaker`, `rubber_band_rifle`, `marble_launcher`, `pillow_hammer`, `glitter_bomb`,
+`bubble_wand`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
+
+| Weapon | How it works |
+| --- | --- |
+| Cork Popper | reliable starter pistol |
+| Foam Dart SMG | fast, low damage, sprays |
+| Super Soaker | wide cone with knockback |
+| Rubber Band Rifle | hold to draw (a red line shows the aim), let go to fire; stronger the longer you held |
+| Marble Launcher | marbles bounce off walls twice, then burst for area damage |
+| Pillow Hammer | swing to bonk everyone in front and knock them away |
+| Glitter Bomb | lob it where you aim; the burst blinds everyone in it for 3 s (2 per pickup) |
+| Bubble Wand | traps whoever it hits in a bubble for 1.5 s |
+
+| Item | What it does |
+| --- | --- |
+| Cotton Puff / Sewing Kit / Big Stuffing Bag | +15 (up to 75) / +50 / full stuffing |
+| Button Pack | +25 buttons |
+| Juice Box | +5 stuffing per second for 10 s, and a little faster |
+| Bouncy Ball | an instant dash where you're moving |
+| Cardboard Wall | a wall in front of you for 20 s, until it's shot down |
 
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current
 seed), and `?zonescale=0.1` to run the Rinse 10x faster. Parameters combine:
