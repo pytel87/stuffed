@@ -15,6 +15,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Wardrobe: the part picker is only as big as the parts you own (no empty box), and the
   recovery code hides behind a key button in the corner.
 - The knockout card shows just a picture of the weapon that got you (no rarity underline).
+- Opening a chest shows just the progress bar over it (no chest picture next to it).
 - Spectating: a ✕ next to the switcher goes back to your results card (Again); when only
   watching, to the menu.
 - Shots fired indoors no longer climb toward the roof overhead (aiming took the roof as the

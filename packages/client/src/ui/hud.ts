@@ -159,7 +159,11 @@ export class Hud {
     this.progressChest = chest?.pos ?? null;
     if (action) {
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
-      this.set('pa', action.kind === 'openChest' ? `chest:${chest?.loot ?? 'medium'}` : action.item, (v) => (this.progressArt.innerHTML = icon(v)));
+      // Opening a chest: just the bar over it (the chest is right there). Using an item: its picture too.
+      this.set('pa', action.kind === 'openChest' ? '' : action.item, (v) => {
+        this.progressArt.innerHTML = v ? icon(v) : '';
+        this.progressArt.hidden = !v;
+      });
       this.progressFill.style.transform = `scaleX(${t.toFixed(3)})`;
     }
     this.set('ps', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
