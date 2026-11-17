@@ -993,9 +993,11 @@ body.touch-mode .help-touch {
 /* Short screens (phones in landscape): the options open in a row left of the gear, so they
    don't run down into the touch buttons. */
 @media (max-height: 500px) {
+  /* Short screens (phones in landscape): the options open in a row just under the top bar,
+     right-aligned under the gear, so they cover neither the top HUD nor the touch buttons. */
   .sheet {
-    top: calc(var(--safe-t) + var(--edge));
-    right: calc(var(--safe-r) + var(--edge) + 3.2rem + 0.6rem);
+    top: calc(var(--safe-t) + var(--edge) + 3.4rem + 0.5rem);
+    right: calc(var(--safe-r) + var(--edge));
     grid-auto-flow: column;
   }
 }
@@ -2046,4 +2048,42 @@ body.touch-mode .gear {
   background:
     linear-gradient(135deg, transparent 47%, var(--ink) 47%, var(--ink) 53%, transparent 53%),
     var(--cream);
+}
+
+/* Phones in landscape: the Wardrobe fills most of the screen's height (it was a small card in
+   the middle). Bigger preview, slot buttons and part picker. */
+@media (max-height: 480px) {
+  .overlay.wardrobe {
+    padding-block: calc(var(--safe-t) + 0.6rem) calc(var(--safe-b) + 0.6rem);
+  }
+  .wardrobe .card {
+    padding: 0.9rem 1.2rem;
+  }
+  .wardrobe-body {
+    gap: 1rem;
+  }
+  .wardrobe-preview {
+    width: min(21rem, 38vw);
+    height: calc(100dvh - var(--safe-t) - var(--safe-b) - 4.6rem);
+  }
+  .wardrobe-slots {
+    gap: 0.35rem;
+  }
+  .wardrobe-slot {
+    --s: min(3.3rem, calc((100dvh - var(--safe-t) - var(--safe-b) - 6.6rem) / 5));
+    width: var(--s);
+    height: var(--s);
+  }
+  .wardrobe-slot .icon {
+    width: calc(var(--s) * 0.62);
+    height: calc(var(--s) * 0.62);
+  }
+  .wardrobe-picker {
+    grid-template-columns: repeat(var(--cols, 1), 3.6rem);
+    max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 4.6rem);
+  }
+  .wardrobe-picker .pick .icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
