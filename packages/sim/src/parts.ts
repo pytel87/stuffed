@@ -43,12 +43,3 @@ export function carriedParts(player: Pick<Player, 'parts' | 'stash'>): Part[] {
   if (player.stash) parts.push({ ...player.stash });
   return parts;
 }
-
-/**
- * Which carried parts go into the collection after a match: all of them for the winner, each
- * with its rarity's keep chance otherwise. `random` returns [0, 1) (outside the sim's RNG: it's
- * rolled once, by whoever records the result).
- */
-export function rollKeeps(parts: readonly Part[], won: boolean, random: () => number): Part[] {
-  return parts.filter(() => won || random() < config.parts.keepChance);
-}

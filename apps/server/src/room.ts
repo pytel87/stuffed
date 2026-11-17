@@ -1,7 +1,7 @@
 // One Durable Object per room. It holds the lobby (seats for up to MAX_PLAYERS people) and,
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
-import { BACKYARD, BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, rollKeeps, step } from '@stuffed/sim';
+import { BACKYARD, BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -328,20 +328,16 @@ export class Room extends Server<Env> {
   }
 
   /**
-   * When a player is knocked out (or the match ends for them), they keep the parts they carried:
-   * the winner all of them, everyone else by chance per rarity. Saved to their collection and
-   * sent to them; once per player per match.
+   * When a player is knocked out (or the match ends for them), they keep every part they carried.
+   * Saved to their collection and sent to them; once per player per match.
    */
   private async saveKeeps(m: Match, seat: Seat): Promise<void> {
     const id = m.plushOf.get(seat.seat);
     const plush = m.state.players.find((p) => p.id === id);
     if (!seat.profileId || !plush || m.kept.has(seat.seat)) return;
     m.kept.add(seat.seat);
-    // Knocked out: the sim already rolled what they keep (the rest dropped in the match).
-    // Still standing at the end: the winner keeps everything; anyone else (a match ended early)
-    // rolls now.
-    const won = m.state.winnerId === plush.id;
-    const kept = plush.alive ? rollKeeps(carriedParts(plush), won, Math.random) : (m.dropped.get(plush.id) ?? []);
+    // Knocked out: the sim already took their parts off them (see the partsDropped event).
+    const kept = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
     try {
       await addParts(this.env.DB, seat.profileId, kept);
     } catch (err) {

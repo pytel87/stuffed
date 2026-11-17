@@ -322,14 +322,6 @@ export const config = {
     fallSpeed: 3,
   },
 
-  parts: {
-    /**
-     * Chance to keep each part you carried (found and worn, or stashed) when you're knocked out;
-     * the rest drop for others. The winner keeps everything. Parts have no rarity.
-     */
-    keepChance: 0.5,
-  },
-
   chest: {
     /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,

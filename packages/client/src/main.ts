@@ -535,8 +535,8 @@ function aimByTouch(state: GameState, me: Player): void {
 }
 
 /**
- * Solo matches run in the browser, so the result goes to the server from here: it rolls which
- * carried parts you keep (all of them if you won). Online, the room does this.
+ * Solo matches run in the browser, so the parts you carried home go to the server from here.
+ * Online, the room does this.
  */
 function reportSolo(parts: Part[], won: boolean): void {
   if (mode !== 'solo' || soloReported) return;

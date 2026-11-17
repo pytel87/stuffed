@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Keep every part (2026-11-17)
+
+- Knocked out, you keep every part you carried (worn finds and the stash); only weapons and
+  items drop. No more keep rolls, win or lose. Bots still drop their parts for others to take.
+- Wardrobe: a gallery of all 12 animals in full, with the parts you own lit up and a count;
+  a finished set turns gold.
+
 ## Twelve animals, no part rarity, smoother online (2026-11-17)
 
 - Bunny, Unicorn, Cat and Fox join (12 animals). Every body has its own shape now (round, pear,

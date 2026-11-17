@@ -272,10 +272,10 @@ export function hasDrops(player: Player): boolean {
 }
 
 /**
- * Unstitched plushies burst and drop what they carried in a ring around them: weapons, items,
- * and the parts they found this match (and their stash) that they don't keep. Each part is
- * rolled once by its rarity's keep chance: kept parts go home with the player, the rest drop for
- * others to take. A part is never both kept and dropped. Their own starting look stays theirs.
+ * Unstitched plushies burst and drop their weapons and items in a ring around them. Players keep
+ * every part they found this match (and their stash): those go home with them, not to the
+ * ground. Bots have no collection, so their parts drop for others to take. Their own starting
+ * look stays theirs.
  */
 export function dropEverything(world: World, state: GameState, player: Player): void {
   const drops: LootContent[] = [];
@@ -291,11 +291,7 @@ export function dropEverything(world: World, state: GameState, player: Player): 
   if (player.stash) carried.push(player.stash);
   const kept: Part[] = [];
   const dropped: Part[] = [];
-  for (const part of carried) {
-    // Bots have no collection: everything they carried drops.
-    const keep = !player.isBot && nextFloat(state.rng) < config.parts.keepChance;
-    (keep ? kept : dropped).push(part);
-  }
+  (player.isBot ? dropped : kept).push(...carried);
   for (const part of dropped) drops.push({ type: 'part', part });
   if (carried.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, kept, dropped });
   player.weapons = [null, null];

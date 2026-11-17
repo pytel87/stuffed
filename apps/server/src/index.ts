@@ -1,6 +1,5 @@
 // Worker entry: creates rooms, routes game sockets to the room's Durable Object, and serves
 // the profile API (/api/profile...).
-import { rollKeeps } from '@stuffed/sim';
 import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
 import { addParts, createProfile, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
@@ -48,7 +47,7 @@ const MAX_CARRIED = 6;
  * Profiles (all JSON; the device's token goes in `authorization: Bearer ...`):
  * POST /api/profile → new profile and its token · GET /api/profile → yours ·
  * PUT /api/profile/look {look} · POST /api/profile/recover {code} → a token for this device ·
- * POST /api/profile/solo {parts, won} → keep rolls for a solo match, saved; returns what was kept.
+ * POST /api/profile/solo {parts, won} → the parts carried home from a solo match, saved; returns them.
  */
 async function profileApi(req: Request, env: Env, path: string): Promise<Response> {
   const json = (body: unknown, status = 200) => Response.json(body, { status });
@@ -81,9 +80,8 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
     const b = await body();
     const parts = parseParts(b.parts, MAX_CARRIED);
     if (!parts) return json({ error: 'bad_parts' }, 400);
-    const kept = rollKeeps(parts, b.won === true, Math.random);
-    await addParts(env.DB, id, kept);
-    return json({ kept, profile: await loadProfile(env.DB, id) });
+    await addParts(env.DB, id, parts);
+    return json({ kept: parts, profile: await loadProfile(env.DB, id) });
   }
   return json({ error: 'not_found' }, 404);
 }

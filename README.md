@@ -139,26 +139,25 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### Parts (Patchwork)
 
-Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of four
-animals: Bear, Frog, Shark, Chicken, Dino, Owl, Axolotl and Penguin. Each chest also pops a part, floating over a ring in its
-rarity color. E puts it on. Q puts it in your one stash slot instead (it shows next to your
+Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of twelve
+animals: Bear, Frog, Shark, Chicken, Dino, Owl, Axolotl, Penguin, Bunny, Unicorn, Cat and Fox.
+Each chest also pops a part, floating over a ring. E puts it on. Q puts it in your one stash slot instead (it shows next to your
 stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
-When you're knocked out, the parts you found and your stash drop for others to take; your own
-starting look never drops. Bots put on any part rarer than what they wear. A plush wearing all
+When you're knocked out, only your weapons and items drop; the parts you found and your stash
+go home with you. Bots drop their parts for others to take, and put on parts that build toward
+a set. A plush wearing all
 five parts of one animal glows in that animal's color. Parts never change stats or hitboxes.
 
 ### Keeping parts: profiles and the Wardrobe
 
 Each device gets a profile on its first visit (no sign-up): a random token in the browser, and
-a random Hand-me-down look that is also its first five parts. The winner keeps every
-part they carried (found and still worn, or stashed). When you're knocked out, each part you
-carried is rolled once: kept by chance (Hand-me-down 100%, Store-bought 60%, Collector 35%,
-Limited Edition 15%, One-of-a-Kind 5%), and if not kept, it drops on the ground for others to
-grab. A part is never both kept and dropped. The results card shows what you kept. Online, the
+a random look that is also its first five parts. Everyone keeps every part they carried
+(found and still worn, or stashed), win or lose; the results card shows them. Online, the
 room saves this; solo matches report it to the server from the browser.
 
 The hanger next to your name on the title menu opens the Wardrobe: flip through the parts you
-own for each slot to choose the look you start every match in. It also shows the profile's
+own for each slot to choose the look you start every match in. The gallery button in its corner
+shows all twelve animals in full, with the parts you own lit up. It also shows the profile's
 recovery code: typing it into the Wardrobe on another device puts the same profile there too.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
