@@ -35,6 +35,8 @@ export class EndScreen {
       'beforeend',
       `<div class="overlay end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
          <div class="card">
+           <button type="button" class="round end-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
+           <button type="button" class="round end-menu" aria-label="Menu">${icon('home')}</button>
            <div class="place"></div>
            <h1 id="end-title"></h1>
            <p class="sub"></p>
@@ -42,9 +44,7 @@ export class EndScreen {
            <div class="kept" hidden></div>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
-             <button type="button" class="round end-spectate" aria-label="Spectate">${icon('eye')}</button>
-             <button type="button" class="round end-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
-             <button type="button" class="round end-menu" aria-label="Menu">${icon('home')}</button>
+             <button type="button" class="big end-spectate" aria-label="Spectate">${icon('eye')}</button>
            </div>
          </div>
        </div>`,
@@ -80,7 +80,6 @@ export class EndScreen {
     this.again.disabled = !!view.waitingForHost;
     this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `${icon('play')}<span>Again</span><kbd>Enter</kbd>`;
     this.el.hidden = false;
-    (view.waitingForHost ? this.spectate : this.again).focus();
   }
 
   hide(): void {
@@ -90,7 +89,6 @@ export class EndScreen {
   /** Shows the card again as it was (back from spectating). */
   reopen(): void {
     this.el.hidden = false;
-    this.again.focus();
   }
 
   /** The Wardrobe button needs a profile. */

@@ -1896,3 +1896,29 @@ body.touch-mode .gear {
 .mate-arrow.down .head .icon {
   filter: grayscale(0.7);
 }
+
+/* Results card: Wardrobe and Menu in the top corners (as on the other cards); Again across the
+   bottom, sharing it equally with Spectate when watching is possible. */
+.end .end-wardrobe,
+.end .end-menu {
+  position: absolute;
+  top: -1rem;
+  z-index: 1;
+}
+
+.end .end-wardrobe {
+  left: -1rem;
+}
+
+.end .end-menu {
+  right: -1rem;
+}
+
+.end .row .big {
+  flex: 1 1 0;
+}
+
+.end .end-spectate .icon {
+  width: 1.8rem;
+  height: 1.8rem;
+}
