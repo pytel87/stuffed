@@ -2,6 +2,17 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Music, smoother start, smarter bots (2026-11-17)
+
+- Background music: a music-box tune on the menu and in the lobby, a bouncier toy-band tune in
+  matches, with its own on/off (the note) in the options. Made with Web Audio; generated tracks
+  in public/music are used instead when present (`pnpm music`, ElevenLabs music permission).
+- The train toots as it's about to reach you, so you see it coming. Bots step off the rails in
+  time (train bumps in a bots-only match went from 42 to 1 in two minutes).
+- The menu shows sooner: the hundred part pictures are drawn in idle moments after it's up
+  (about 2.6 s to 1.8 s on a slowed-down CPU). Switching maps frees the old map's GPU memory.
+- Online: loot goes out as changes (new, moved, gone) instead of the whole list.
+
 ## Twenty animals (2026-11-17)
 
 - Turtle (common: shell with hexagon plates, red bandana), Hedgehog (rare: spikes, a toadstool

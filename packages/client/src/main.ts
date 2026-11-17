@@ -1,5 +1,5 @@
 import './style.css';
-import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
+import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -415,6 +415,7 @@ function frame(now: number): void {
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
   tossHint.hidden = me?.drop !== 'riding' || isBackdrop(session);
   hitDirection.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos, me?.z ?? 0);
+  tootIfTrainComing(state, dt);
   mateArrows.update(isBackdrop(session) ? null : state, state.players.find((p) => p.id === followId), renderer.camera, canvas.clientWidth, canvas.clientHeight);
 
   hud.update(state, me, f.alpha);
@@ -650,6 +651,26 @@ function nextAlive(state: GameState, near: { x: number; y: number }, team = 0): 
     }
   }
   return best?.id ?? -1;
+}
+
+/** Seconds until the train may toot at you again. */
+let tootWait = 0;
+
+/** The toy train toots when it's about to run into you, so you see it coming. */
+function tootIfTrainComing(state: GameState, dt: number): void {
+  tootWait = Math.max(0, tootWait - dt);
+  const track = session?.map.track;
+  if (!track || !me?.alive || me.drop || tootWait > 0 || me.z >= TRAIN.deckHeight - 0.05) return;
+  const pos = renderer.localPlayerPos;
+  for (const ahead of [0.6, 1.2, 1.8]) {
+    const engine = trainCars(track, state.tick + ahead * config.tickRate)[0]!;
+    if (Math.hypot(pos.x - engine.pos.x, pos.y - engine.pos.y) < TRAIN.carWidth / 2 + 0.9) {
+      const now = trainCars(track, state.tick)[0]!;
+      sound.play('train_toot', { at: now.pos, volume: 0.9, pitchSpread: 0 });
+      tootWait = 4;
+      return;
+    }
+  }
 }
 
 /** Who won, for the results card: a crown and the winner's name (or the whole team's), or the water. */
