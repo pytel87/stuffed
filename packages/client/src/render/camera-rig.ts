@@ -11,7 +11,11 @@ export const CAMERA = {
   maxLean: 3,
   /** Follow smoothing (1/s); higher = tighter. */
   followRate: 8,
+  /** Phones and tablets: closer in, since the screen is small. */
+  handheldZoom: 0.8,
 };
+
+const handheld = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 /** Top-down follow camera that leans toward where the player is aiming. */
 export class CameraRig {
@@ -53,7 +57,8 @@ export class CameraRig {
 
     const pitch = THREE.MathUtils.degToRad(CAMERA.pitchDegrees);
     // Narrower than 16:9 (tablets, portrait): back off so you see as far to the sides.
-    const distance = CAMERA.distance * Math.max(1, Math.sqrt(16 / 9 / this.camera.aspect)) * this.zoom;
+    const distance =
+      CAMERA.distance * Math.max(1, Math.sqrt(16 / 9 / this.camera.aspect)) * this.zoom * (handheld ? CAMERA.handheldZoom : 1);
     this.camera.position.set(
       this.target.x,
       this.target.y + Math.sin(pitch) * distance,
