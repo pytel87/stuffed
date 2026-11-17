@@ -7,6 +7,7 @@ import { nextFloat, nextRange, seedRng } from '../rng.ts';
 import { findInteraction } from '../systems/loot.ts';
 import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
+import { TRAIN, trainCars } from '../systems/train.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
 import type { Box, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
@@ -313,6 +314,13 @@ export class BotController {
       }
     }
 
+    // The toy train coming: step off the rails, out to the side.
+    const dodge = this.dodgeTrain(world, state, bot);
+    if (dodge) {
+      input.moveX = dodge.x;
+      input.moveY = dodge.y;
+    }
+
     // Jump is a press: release in between so the next press counts.
     if (wantJump && !m.jumpHeld) {
       input.buttons |= Btn.Jump;
@@ -321,6 +329,24 @@ export class BotController {
       m.jumpHeld = false;
     }
     return input;
+  }
+
+  /** Which way to step if a train car will be here within a second or so (null: safe). */
+  private dodgeTrain(world: World, state: GameState, bot: Player): Vec2 | null {
+    const track = world.map.track;
+    if (!track || bot.z >= TRAIN.deckHeight - 0.05) return null;
+    // Where the cars will be over the next second and a half.
+    for (const ahead of [0.2, 0.5, 0.8, 1.1, 1.5]) for (const car of trainCars(track, state.tick + Math.round(ahead * T))) {
+      const dx = bot.pos.x - car.pos.x;
+      const dy = bot.pos.y - car.pos.y;
+      const along = dx * car.dir.x + dy * car.dir.y;
+      const side = dx * -car.dir.y + dy * car.dir.x;
+      if (Math.abs(along) > TRAIN.carLength * 1.5 || Math.abs(side) > TRAIN.carWidth / 2 + bot.radius + 0.4) continue;
+      // Out the side it's already nearer.
+      const s = side >= 0 ? 1 : -1;
+      return { x: -car.dir.y * s, y: car.dir.x * s };
+    }
+    return null;
   }
 
   // ---------- the Toss ----------
