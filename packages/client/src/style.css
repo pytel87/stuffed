@@ -1198,7 +1198,6 @@ body.touch-mode .prompt .icon.tap {
   pointer-events: auto;
   touch-action: none;
   cursor: pointer;
-  animation: bob 1s ease-in-out infinite;
   z-index: 7;
 }
 
@@ -1206,9 +1205,9 @@ body.touch-mode .prompt .icon.tap {
   display: none;
 }
 
+/* On touch the stuffing bar is at the top, so the bottom middle is free. */
 body.touch-mode #toss-hint {
-  bottom: auto;
-  top: calc(var(--safe-t) + var(--edge) + 4.5rem);
+  bottom: calc(var(--safe-b) + var(--edge));
 }
 
 #spectating {
