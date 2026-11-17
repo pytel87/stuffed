@@ -318,10 +318,10 @@ export const config = {
 
   parts: {
     /**
-     * Chance to keep each part you carried (found and worn, or stashed) when you're knocked out,
-     * by rarity (Hand-me-down .. One-of-a-Kind). The winner keeps everything.
+     * Chance to keep each part you carried (found and worn, or stashed) when you're knocked out;
+     * the rest drop for others. The winner keeps everything. Parts have no rarity.
      */
-    keepChance: [1, 0.6, 0.35, 0.15, 0.05] as readonly number[],
+    keepChance: 0.5,
   },
 
   chest: {

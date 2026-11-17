@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, config, PART_SLOTS } from '@stuffed/sim';
+import { ANIMALS, PART_SLOTS } from '@stuffed/sim';
 import type { PartLoadout, PartSlot } from '@stuffed/sim';
 import type { Look, OwnedEntry } from '@stuffed/sim/net';
 import { PlushView } from '../render/plush-view.ts';
@@ -102,7 +102,9 @@ export class Wardrobe {
   /** Owned parts for a slot, in a stable order: by animal, then rarity. */
   private owned(slot: PartSlot): OwnedEntry[] {
     const parts = this.store.profile?.parts.filter((p) => p.slot === slot) ?? [];
-    return parts.sort((a, b) => ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal) || a.rarity - b.rarity);
+    // One entry per animal (older collections may hold the same part at several rarities).
+    const unique = parts.filter((p, i) => parts.findIndex((q) => q.animal === p.animal) === i);
+    return unique.sort((a, b) => ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal));
   }
 
   private flip(slot: PartSlot, step: 1 | -1): void {
@@ -110,7 +112,7 @@ export class Wardrobe {
     if (!look) return;
     const options = this.owned(slot);
     if (options.length < 2) return;
-    const at = options.findIndex((p) => p.animal === look[slot].animal && p.rarity === look[slot].rarity);
+    const at = options.findIndex((p) => p.animal === look[slot].animal);
     const next = options[(at + step + options.length) % options.length]!;
     look[slot] = { animal: next.animal, rarity: next.rarity };
     this.render();
@@ -127,9 +129,8 @@ export class Wardrobe {
       const row = this.rows[slot];
       const part = look[slot];
       const options = this.owned(slot);
-      const entry = options.find((p) => p.animal === part.animal && p.rarity === part.rarity);
+      const entry = options.find((p) => p.animal === part.animal);
       row.art.innerHTML = partIcon(slot, part.animal);
-      row.art.parentElement!.style.setProperty('--rarity', config.rarity[part.rarity].color);
       row.count.textContent = `${options.findIndex((p) => p === entry) + 1}/${options.length}`;
       row.prev.disabled = row.next.disabled = options.length < 2;
     }

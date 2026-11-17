@@ -130,11 +130,9 @@ describe('skin parts', () => {
       const onGround = partsOnGround(state).map((l) => (l.content.type === 'part' ? l.content.part : null));
       expect(onGround).toEqual(event.dropped);
       expect(event.kept.length + event.dropped.length).toBe(3);
-      // Hand-me-down parts are always kept.
-      expect(event.kept).toContainEqual({ slot: 'legs', animal: 'frog', rarity: 0 });
       expect(p.stash).toBeNull();
       expect(p.parts.body).toEqual(look);
-      sawKept ||= event.kept.some((k) => k.rarity > 0);
+      sawKept ||= event.kept.length > 0;
       sawDropped ||= event.dropped.length > 0;
       // Nothing more drops on later ticks.
       run(world, state, 3, () => idle);
@@ -160,12 +158,11 @@ describe('skin parts', () => {
     expect(carriedParts(p)).toEqual([shark('head', 3), shark('tail', 1)]);
   });
 
-  it('keep rolls: the winner keeps everything; otherwise each part by its rarity', () => {
-    const parts = [0, 1, 2, 3, 4].map((r) => shark('head', r as Part['rarity']));
-    expect(rollKeeps(parts, true, () => 0.999)).toHaveLength(5);
-    expect(rollKeeps(parts, false, () => 0.999)).toEqual([parts[0]]); // Hand-me-down always
-    expect(rollKeeps(parts, false, () => 0.5)).toEqual(parts.slice(0, 2)); // 100% and 60%
-    expect(rollKeeps(parts, false, () => 0)).toHaveLength(5);
+  it('keep rolls: the winner keeps everything; otherwise each part by a flat chance', () => {
+    const parts = [0, 1, 2, 3].map(() => shark('head', 0));
+    expect(rollKeeps(parts, true, () => 0.999)).toHaveLength(4);
+    expect(rollKeeps(parts, false, () => 0.999)).toHaveLength(0);
+    expect(rollKeeps(parts, false, () => config.parts.keepChance - 0.01)).toHaveLength(4);
   });
 
   it('three parts of one animal make a set', () => {
@@ -186,20 +183,24 @@ describe('skin parts', () => {
     expect(fullSet(p.parts)).toBeNull();
   });
 
-  it('bots put on parts rarer than what they wear', () => {
+  it('bots put on parts that build toward a set', () => {
     const { world, state } = newGame(5, 2);
     const [you, bot] = state.players as [Player, Player];
     you.isBot = false;
     bot.isBot = true;
     you.pos = { x: 70, y: 70 }; // far away and out of sight range
     bot.pos = { x: 20, y: 40 };
-    spawnLoot(world, state, { x: 23, y: 40 }, { type: 'part', part: shark('accessory', 3) });
+    // Wearing sharks on head and body already: a shark accessory builds the set.
+    bot.parts.head = { animal: 'shark', rarity: 0, found: false };
+    bot.parts.body = { animal: 'shark', rarity: 0, found: false };
+    bot.parts.accessory = { animal: 'bear', rarity: 0, found: false };
+    spawnLoot(world, state, { x: 23, y: 40 }, { type: 'part', part: shark('accessory', 0) });
     const bots = new BotController(5);
-    for (let t = 0; t < 150 && bot.parts.accessory.rarity !== 3; t++) {
+    for (let t = 0; t < 150 && bot.parts.accessory.animal !== 'shark'; t++) {
       const inputs = bots.inputs(world, state);
       inputs.set(you.id, idle);
       step(world, state, inputs);
     }
-    expect(bot.parts.accessory).toEqual({ animal: 'shark', rarity: 3, found: true });
+    expect(bot.parts.accessory).toEqual({ animal: 'shark', rarity: 0, found: true });
   });
 });

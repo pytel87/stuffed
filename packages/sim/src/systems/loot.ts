@@ -142,7 +142,7 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   const part: Part = {
     slot: pick(state.rng, PART_SLOTS),
     animal: pick(state.rng, ANIMALS),
-    rarity: pickIndexWeighted(state.rng, config.chest.rarityWeights[chest.loot]) as Rarity,
+    rarity: 0, // parts have no rarity
   };
 
   // Drops land to either side of the opener (60 degrees off their direction), not under them.
@@ -293,7 +293,7 @@ export function dropEverything(world: World, state: GameState, player: Player): 
   const dropped: Part[] = [];
   for (const part of carried) {
     // Bots have no collection: everything they carried drops.
-    const keep = !player.isBot && nextFloat(state.rng) < (config.parts.keepChance[part.rarity] ?? 0);
+    const keep = !player.isBot && nextFloat(state.rng) < config.parts.keepChance;
     (keep ? kept : dropped).push(part);
   }
   for (const part of dropped) drops.push({ type: 'part', part });

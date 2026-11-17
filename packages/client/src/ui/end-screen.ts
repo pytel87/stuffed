@@ -1,4 +1,3 @@
-import { config } from '@stuffed/sim';
 import type { Part } from '@stuffed/sim';
 import { icon, partIcon } from './icons.ts';
 
@@ -100,7 +99,7 @@ export class EndScreen {
     this.keptShown = !!parts && parts.length > 0;
     this.kept.hidden = !this.keptShown;
     this.kept.innerHTML = this.keptShown
-      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part" style="--rarity:${config.rarity[p.rarity].color}">${partIcon(p.slot, p.animal)}</span>`).join('')}`
+      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part">${partIcon(p.slot, p.animal)}</span>`).join('')}`
       : '';
   }
 }

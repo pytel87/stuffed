@@ -50,5 +50,5 @@ export function carriedParts(player: Pick<Player, 'parts' | 'stash'>): Part[] {
  * rolled once, by whoever records the result).
  */
 export function rollKeeps(parts: readonly Part[], won: boolean, random: () => number): Part[] {
-  return parts.filter((p) => won || random() < (config.parts.keepChance[p.rarity] ?? 0));
+  return parts.filter(() => won || random() < config.parts.keepChance);
 }

@@ -2,6 +2,7 @@
 // a player would press. Runs in the sim package so the Colyseus server can run bots unchanged.
 // Each bot has its own seeded RNG, so a match with bots is still fully deterministic.
 import { config } from '../config.ts';
+import { PART_SLOTS } from '../parts.ts';
 import { nextFloat, nextRange, seedRng } from '../rng.ts';
 import { findInteraction } from '../systems/loot.ts';
 import { chargeAmount } from '../systems/weapons.ts';
@@ -589,9 +590,15 @@ function unit(x: number, y: number): Vec2 {
   return len > 1e-9 ? { x: x / len, y: y / len } : { x: 0, y: 0 };
 }
 
-/** Bots dress up: they put on any part rarer than the one they wear in that slot. */
+/**
+ * Bots dress toward a set: they put on a part when its animal matches more of what they wear
+ * than the part it would replace does.
+ */
 function wantsPart(bot: Player, part: Part): boolean {
-  return part.rarity > bot.parts[part.slot].rarity;
+  const current = bot.parts[part.slot].animal;
+  if (part.animal === current) return false;
+  const count = (animal: string) => PART_SLOTS.filter((s) => s !== part.slot && bot.parts[s].animal === animal).length;
+  return count(part.animal) > count(current);
 }
 
 /** Inside a roofed building's area (a house, the shed, under the treehouse or the table). */

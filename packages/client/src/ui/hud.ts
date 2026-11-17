@@ -152,7 +152,7 @@ export class Hud {
       this.stash.hidden = v === '';
       if (stash) this.stashArt.innerHTML = partIcon(stash.slot, stash.animal);
     });
-    this.set('stc', stash ? config.rarity[stash.rarity].color : 'transparent', (v) => this.stash.style.setProperty('--rarity', v));
+    // Parts have no rarity: the stash slot has a plain ring.
 
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
@@ -177,7 +177,7 @@ export class Hud {
     } else if (interaction?.kind === 'part') {
       const p = interaction.part;
       art = `part:${p.slot}:${p.animal}`;
-      color = config.rarity[p.rarity].color;
+      color = '#ffffff';
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
