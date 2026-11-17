@@ -162,7 +162,7 @@ const weapons: Record<WeaponKind, WeaponStats> = {
   },
   bubble_wand: {
     name: 'Bubble Wand',
-    damage: 4,
+    damage: 12,
     fireInterval: 0.7,
     magazine: 3,
     reloadTime: 2,
