@@ -9,6 +9,7 @@ import { ChestViews, LootViews } from './loot-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
+import { RinseView } from './rinse-view.ts';
 
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
@@ -41,6 +42,9 @@ export class GameRenderer {
   private readonly world: World;
   private readonly bushes: BushView[];
   private readonly roofs: RoofView[];
+  private readonly rinse: RinseView;
+  /** Seconds until each soggy plush drips again. */
+  private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
   /** Interpolated position of the local player in the last rendered frame. */
   readonly localPlayerPos: Vec2 = { x: 0, y: 0 };
@@ -65,6 +69,8 @@ export class GameRenderer {
     this.scene.add(obstacles.root);
     this.bushes = obstacles.bushes;
     this.roofs = obstacles.roofs;
+    this.rinse = new RinseView(map);
+    this.scene.add(this.rinse.mesh);
     this.world = createWorld(map);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -177,6 +183,11 @@ export class GameRenderer {
       view.update(pos, vel, aim, opts.dt, opts.time);
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       view.root.visible = this.debug || !me || canSee(this.world, curr, me, p);
+      if (p.soggy && view.root.visible) {
+        const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
+        if (t <= 0) this.effects.drip(pos.x, pos.y);
+        this.dripTimers.set(p.id, t <= 0 ? 0.3 : t);
+      }
 
       if (p.id === opts.localPlayerId) {
         this.localPlayerPos.x = pos.x;
@@ -195,6 +206,7 @@ export class GameRenderer {
     this.chests.update(curr, opts.dt, opts.time);
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
+    this.rinse.update(curr.zone, opts.time);
     updateBushes(this.bushes, this.localPlayerPos.x, this.localPlayerPos.y);
     updateRoofs(this.roofs, me?.building ?? -1, this.debug, opts.dt);
 

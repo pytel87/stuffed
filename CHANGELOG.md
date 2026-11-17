@@ -2,6 +2,24 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.5: The Rinse (2026-11-17)
+
+- Sim: the safe circle shrinks in 5 phases (wait/shrink 120/90, 90/60, 60/45, 45/30,
+  30/30 s; 10 minutes in total) to radii of 42/28/17/8/0% of the map's shorter side. Each
+  next circle is random but always inside the current one and shown during the wait.
+  Outside it you are soggy: 1/2/5/8/10 stuffing per second by phase (applied once a second,
+  buttons don't protect) and 20% slower. When the last circle closes the water finishes
+  everyone off, so the match always ends. All numbers in `config.zone`.
+- `zone` events for each stage change; `createGame({ zoneTimeScale })` and `?zonescale=`
+  for faster test runs.
+- Client: soapy water shader outside the circle (wobbling foam edge, ripples, bubbles;
+  plushies wade in it), dashed ring for the next circle, water dripping off soggy
+  plushies, a top-center timer ("The Rinse moves in 1:23"), a soggy warning with an arrow
+  toward safety, and pop-in announcements when the water starts moving.
+- Tests: phase order and total time, next circle shown and reached exactly, nesting across
+  25 seeds, countdown, damage per second ignoring buttons, soggy slowdown, time scale, and
+  the closed Rinse deciding the winner.
+
 ## Step 1.4: Chests and loot (2026-11-17)
 
 - Sim: 30 toy chests on the test map; they are solid. Hold E for 1 s within range to open

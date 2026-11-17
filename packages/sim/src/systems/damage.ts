@@ -1,12 +1,18 @@
 import type { EntityId, GameState, Player } from '../types.ts';
 
 /**
- * Buttons (armor) absorb damage first; the rest comes out of stuffing.
- * A plush at 0 stuffing is Unstitched (eliminated).
+ * Buttons (armor) absorb damage first; the rest comes out of stuffing. `ignoreArmor` skips
+ * the buttons (the Rinse). A plush at 0 stuffing is Unstitched (eliminated).
  */
-export function applyDamage(state: GameState, target: Player, amount: number, sourceId: EntityId | null): void {
+export function applyDamage(
+  state: GameState,
+  target: Player,
+  amount: number,
+  sourceId: EntityId | null,
+  { ignoreArmor = false }: { ignoreArmor?: boolean } = {},
+): void {
   if (!target.alive || amount <= 0) return;
-  const armorDamage = Math.min(target.buttons, amount);
+  const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
   target.buttons -= armorDamage;
   const damage = amount - armorDamage;
   target.stuffing -= damage;

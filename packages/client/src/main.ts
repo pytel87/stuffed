@@ -1,5 +1,5 @@
 import './style.css';
-import { config, muzzlePosition } from '@stuffed/sim';
+import { config, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
 import type { Player, Rarity, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { GameRenderer } from './render/game-renderer.ts';
@@ -7,6 +7,7 @@ import { LocalSession } from './session/local-session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Hud } from './ui/hud.ts';
+import { ZoneHud } from './ui/zone-hud.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const debugEl = document.querySelector<HTMLElement>('#debug')!;
@@ -16,11 +17,14 @@ const params = new URLSearchParams(location.search);
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs.
 const seed = Number(params.get('seed')) || Date.now() >>> 0;
 const loadout = loadoutFromUrl();
-const session = new LocalSession(input, { seed, ...(loadout ? { loadout } : {}) });
+// ?zonescale=0.1 runs the Rinse 10x faster for testing.
+const zoneTimeScale = Number(params.get('zonescale')) || 1;
+const session = new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}) });
 const renderer = new GameRenderer(canvas, session.map);
 const debug = new DebugOverlay(debugEl, (on) => renderer.setDebug(on));
 const hud = new Hud(document.querySelector<HTMLElement>('#hud')!);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
+const zoneHud = new ZoneHud(document.querySelector<HTMLElement>('#hud')!);
 
 let last = performance.now();
 const aimOffset = { x: 0, y: 0 };
@@ -52,6 +56,7 @@ function frame(now: number): void {
   const f = session.frame();
   const events = session.takeEvents();
   renderer.playEvents(events, f.curr);
+  zoneHud.events(events);
   for (const e of events) {
     if (e.type !== 'hit' || e.sourceId !== session.localPlayerId) continue;
     const target = f.curr.players.find((p) => p.id === e.targetId);
@@ -71,6 +76,7 @@ function frame(now: number): void {
 
   me = f.curr.players.find((p) => p.id === session.localPlayerId);
   hud.update(f.curr, me, f.alpha);
+  zoneHud.update(f.curr, me, renderer.localPlayerPos, dt);
   debug.update(dt, {
     seed,
     tick: f.curr.tick,
@@ -81,7 +87,8 @@ function frame(now: number): void {
     roof: me && me.building !== -1 ? `building ${me.building}` : '-',
     proj: f.curr.projectiles.length,
     loot: `${f.curr.loot.length} on ground, ${f.curr.chests.filter((c) => !c.opened).length} chests closed`,
-    zone: 'not started',
+    zone: `phase ${f.curr.zone.phase + 1} ${f.curr.zone.stage} ${zoneSecondsLeft(f.curr.zone, f.curr.tick).toFixed(1)}s r=${f.curr.zone.current.radius.toFixed(1)}`,
+    soggy: me?.soggy ? 'yes' : '-',
   });
 
   requestAnimationFrame(frame);

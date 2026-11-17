@@ -85,6 +85,8 @@ export interface Player {
   items: [ItemStack | null, ItemStack | null, ItemStack | null];
   action: PlayerAction | null;
   inBush: boolean;
+  /** Outside the safe circle: slower and losing stuffing every second. */
+  soggy: boolean;
   /** Index into MapData.buildings of the roofed building this plush stands in, or -1. */
   building: number;
   /** Visible to others until this tick even inside a bush (set by shooting). */
@@ -131,10 +133,14 @@ export interface Circle {
 }
 
 export interface Zone {
-  /** Index into config.zone.phases; -1 before the first phase starts. */
+  /** Index into config.zone.phases (0 = phase 1). */
   phase: number;
+  /** 'final' = the last circle has closed; nothing changes any more. */
   stage: 'wait' | 'shrink' | 'final';
+  stageStartTick: Tick;
   stageEndTick: Tick;
+  /** Multiplies every wait and shrink duration (1 = as configured; tests and playtests use less). */
+  timeScale: number;
   current: Circle;
   /** Circle at the start of the current shrink; `current` lerps from `from` to `next`. */
   from: Circle;
@@ -149,6 +155,8 @@ export type GameEvent =
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
+  /** The Rinse started waiting or shrinking for a phase, or closed for good. */
+  | { type: 'zone'; phase: number; stage: Zone['stage'] }
   /** A projectile stopped against a wall. */
   | { type: 'impact'; pos: Vec2; weapon: WeaponKind };
 

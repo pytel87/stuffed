@@ -18,7 +18,10 @@ export function applyAim(player: Player, input: Input): void {
 
 export function movePlayer(world: World, state: GameState, player: Player, input: Input): void {
   const move = clampLength1(input.moveX, input.moveY);
-  const speed = config.player.moveSpeed * (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1);
+  const speed =
+    config.player.moveSpeed *
+    (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1) *
+    (player.soggy ? config.player.soggySpeedMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
   player.vel.y += (move.y * speed - player.vel.y) * ACCEL_BLEND;
 

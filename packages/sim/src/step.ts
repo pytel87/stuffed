@@ -5,6 +5,7 @@ import { autoPickupItems, dropEverything, updateInteraction } from './systems/lo
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
+import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input } from './types.ts';
 import type { World } from './world.ts';
 
@@ -43,6 +44,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   }
 
   updateProjectiles(world, state);
+  updateZone(world, state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {
     if (!player.alive && (player.weapons.some(Boolean) || player.items.some(Boolean))) dropEverything(world, state, player);

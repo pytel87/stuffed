@@ -124,6 +124,11 @@ export class Effects {
     else this.burst(this.cotton, x, 0.4, z, 0, 0, 10, 1.5, 0.07, 0.8, -3);
   }
 
+  /** A soggy plush drips water. */
+  drip(x: number, z: number): void {
+    this.burst(this.water, x, 1.1, z, 0, 0, 2, 0.6, 0.04, 0.45, 9);
+  }
+
   /** A plush bursts into a pile of fluff when Unstitched. */
   knockout(x: number, z: number): void {
     this.burst(this.cotton, x, 0.7, z, 0, 0, 36, 5, 0.14, 1.4, 6);

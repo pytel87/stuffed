@@ -2,15 +2,18 @@ import { config } from './config.ts';
 import { PART_CATALOG, PART_SLOTS } from './parts.ts';
 import { pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
-import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, WeaponInstance, WeaponSpec, Zone } from './types.ts';
+import { initialZone } from './systems/zone.ts';
+import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, WeaponInstance, WeaponSpec } from './types.ts';
 
 export interface CreateGameOptions {
   seed: number;
   map: MapData;
   roster: RosterEntry[];
+  /** Scales every zone duration; 1 = as configured. */
+  zoneTimeScale?: number;
 }
 
-export function createGame({ seed, map, roster }: CreateGameOptions): GameState {
+export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameOptions): GameState {
   if (roster.length > map.spawns.length) {
     throw new Error(`Map ${map.id} has ${map.spawns.length} spawns for ${roster.length} players`);
   }
@@ -41,6 +44,7 @@ export function createGame({ seed, map, roster }: CreateGameOptions): GameState 
       items: [null, null, null],
       action: null,
       inBush: false,
+      soggy: false,
       building: -1,
       revealedUntilTick: 0,
       parts: rollParts(rng, entry.parts),
@@ -61,7 +65,7 @@ export function createGame({ seed, map, roster }: CreateGameOptions): GameState 
     projectiles: [],
     chests,
     loot: [],
-    zone: initialZone(map),
+    zone: initialZone(map, rng, zoneTimeScale),
     events: [],
     mapId: map.id,
   };
@@ -78,11 +82,4 @@ function rollParts(rng: RngState, fixed: Partial<PartLoadout> = {}): PartLoadout
   return parts;
 }
 
-/** Whole map is safe until the zone system (prototype step 5) starts phase 1. */
-function initialZone(map: MapData): Zone {
-  const circle = () => ({
-    center: { x: map.width / 2, y: map.height / 2 },
-    radius: Math.hypot(map.width, map.height) / 2,
-  });
-  return { phase: -1, stage: 'wait', stageEndTick: 0, current: circle(), from: circle(), next: circle() };
-}
+

@@ -11,6 +11,8 @@ export interface LocalSessionOptions {
   botCount?: number;
   /** The local player's starting weapons (defaults to the sim's starting loadout). */
   loadout?: WeaponSpec[];
+  /** Scales the Rinse's timings; 1 = as configured. */
+  zoneTimeScale?: number;
 }
 
 export class LocalSession implements GameSession {
@@ -24,7 +26,7 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = TEST_MAP, botCount = 15, loadout }: LocalSessionOptions,
+    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1 }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
@@ -32,7 +34,7 @@ export class LocalSession implements GameSession {
       { name: 'You', isBot: false, parts: DEFAULT_PARTS, ...(loadout ? { loadout } : {}) },
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
-    this.state = createGame({ seed, map, roster });
+    this.state = createGame({ seed, map, roster, zoneTimeScale });
     this.prev = structuredClone(this.state);
     this.localPlayerId = this.state.players[0]!.id;
   }

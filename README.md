@@ -44,7 +44,8 @@ URL, for example
 `super_soaker`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
 
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current
-seed). Parameters combine: `?seed=7&loadout=foam_dart_smg:3`.
+seed), and `?zonescale=0.1` to run the Rinse 10x faster. Parameters combine:
+`?seed=7&zonescale=0.1&loadout=foam_dart_smg:3`.
 
 ## Layout
 

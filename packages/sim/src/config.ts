@@ -169,6 +169,23 @@ export const config = {
     radius: 0.4,
   },
 
+  /**
+   * The Rinse: the safe circle shrinks in phases. Each phase waits (the next circle is shown),
+   * then shrinks to it. Outside the circle you take damage every second (stuffing only, buttons
+   * don't help) and move at player.soggySpeedMultiplier. 10 minutes in total.
+   */
+  zone: {
+    phases: [
+      { wait: 120, shrink: 90, damagePerSecond: 1 },
+      { wait: 90, shrink: 60, damagePerSecond: 2 },
+      { wait: 60, shrink: 45, damagePerSecond: 5 },
+      { wait: 45, shrink: 30, damagePerSecond: 8 },
+      { wait: 30, shrink: 30, damagePerSecond: 10 },
+    ],
+    /** Radius each phase shrinks to, as a share of the map's shorter side. The last closes completely. */
+    radiusFractions: [0.42, 0.28, 0.17, 0.08, 0],
+  },
+
   /** Movement speed multiplier while using an item. */
   itemUseMoveMultiplier: 0.5,
 
