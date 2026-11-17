@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wornSet } from '@stuffed/sim';
+import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
@@ -57,6 +57,10 @@ export class GameRenderer {
   /** Set trails: distance walked since the last print, and how many prints so far. */
   private readonly trailWalked = new Map<EntityId, number>();
   private readonly trailSteps = new Map<EntityId, number>();
+  /** Distance walked in water since the last splash, per plush. */
+  private readonly splashWalked = new Map<EntityId, number>();
+  /** A plush splashed through water (for the sound). */
+  onWaterStep: ((at: Vec2, id: EntityId) => void) | null = null;
   /** Beach balls rolling around. */
   private readonly balls = new BallViews(this.scene);
   /** Team mode: where knocked-out teammates can be re-stitched. */
@@ -381,6 +385,18 @@ export class GameRenderer {
           this.trailWalked.set(p.id, 0);
         } else {
           this.trailWalked.set(p.id, walked);
+        }
+      }
+      // Walking through water (the pool, or the Rinse): a splash every step or so.
+      const speedNow = Math.hypot(vel.x, vel.y);
+      if (view.root.visible && !p.drop && z - groundY < 0.05 && speedNow > 1.5 && (p.soggy || wading(this.world, { pos, z }))) {
+        const walked = (this.splashWalked.get(p.id) ?? 0) + speedNow * opts.dt;
+        if (walked >= 0.9) {
+          this.effects.waterStep(pos.x, groundY, pos.y, vel.x / speedNow, vel.y / speedNow);
+          this.onWaterStep?.(pos, p.id);
+          this.splashWalked.set(p.id, 0);
+        } else {
+          this.splashWalked.set(p.id, walked);
         }
       }
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.

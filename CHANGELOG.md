@@ -10,6 +10,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - One card at a time: opening the Wardrobe from the menu, lobby or results card hides that card
   until the Wardrobe closes (no more stacked cards).
 - Leaving from the options (home) asks first: a home and a question mark, ✓ leaves, ✕ stays.
+- Splashes when walking through water (the pool or the Rinse): white spray, a ripple and a soft
+  splash sound with every step or so.
 
 ## Teammate arrows and re-stitching (2026-11-17)
 

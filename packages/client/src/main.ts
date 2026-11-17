@@ -114,6 +114,8 @@ wardrobe.onLookChanged = () => room?.lookChanged();
 void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
+// Splashing through water: soft for your own steps, softer for others nearby.
+renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.22 : 0.1, pitchSpread: 0.3 });
 const help = new Help();
 const options = new Options({
   toggleSound: () => sound.toggleMute(),

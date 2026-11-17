@@ -429,6 +429,14 @@ export class Effects {
   }
 
   /** A soggy plush drips water. */
+  /** A step through water (the pool, the Rinse): droplets kicked up and a little ripple. */
+  waterStep(x: number, y: number, z: number, dirX: number, dirZ: number): void {
+    // White spray reads on the blue water; a couple of drops and a ripple.
+    this.burst(this.cotton, x, y + 0.15, z, -dirX * 0.4, -dirZ * 0.4, 6, 1.9, 0.07, 0.45, 9);
+    this.burst(this.water, x, y + 0.15, z, -dirX * 0.4, -dirZ * 0.4, 2, 1.6, 0.045, 0.35, 9);
+    this.shockwave(x, y + 0.14, z, 0.7, '#9fdcf5');
+  }
+
   drip(x: number, z: number): void {
     this.burst(this.water, x, 1.1, z, 0, 0, 2, 0.6, 0.04, 0.45, 9);
   }
