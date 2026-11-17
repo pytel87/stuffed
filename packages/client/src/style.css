@@ -730,26 +730,25 @@ button {
   color: #6b5d73;
 }
 
-/* Your code, big, in a ticket-like box, with a copy button. */
+/* Your code, big, in a ticket-like box; the copy button outside it, mirroring the code entry
+   row below (a box and a round button, the same widths). */
+.code-row,
+.wardrobe-code .restore {
+  width: 100%;
+}
+
 .code-box {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.4rem 0.4rem 0.4rem 1.2rem;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 3.2rem;
   border-radius: 1.1rem;
   border: 3px dashed var(--ink);
   background: #fff3c4;
-}
-
-.code-box .code {
-  font: 900 1.8rem/1 var(--mono);
+  font: 900 1.6rem/1 var(--mono);
   letter-spacing: 0.12em;
   color: var(--ink);
   user-select: all;
-}
-
-.wardrobe-code .restore {
-  width: 100%;
 }
 
 .wardrobe-code .restore .field {

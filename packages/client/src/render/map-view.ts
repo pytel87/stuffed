@@ -306,7 +306,8 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
     case 'puzzle': {
       for (let i = 0; i < 3; i++) {
         const piece = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.55), flat(CRAYONS[(i * 2 + Math.floor(rand() * 7)) % CRAYONS.length]!));
-        piece.position.set((rand() - 0.5) * 1.4, 0.03, (rand() - 0.5) * 1.4);
+        // Each a little higher than the last, so overlapping pieces don't flicker.
+        piece.position.set((rand() - 0.5) * 1.4, 0.03 + i * 0.015, (rand() - 0.5) * 1.4);
         piece.rotation.y = rand() * Math.PI;
         piece.receiveShadow = true;
         g.add(piece);

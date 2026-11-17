@@ -52,8 +52,8 @@ export class Wardrobe {
            <div class="wardrobe-code" hidden>
              <h2>${icon('code', 'icon large')}</h2>
              <p class="code-hint">Your code: type it on another phone or tablet to play with the same plush and parts.</p>
-             <div class="code-box">
-               <b class="code"></b>
+             <div class="row code-row">
+               <b class="code-box code"></b>
                <button type="button" class="round code-copy" aria-label="Copy code">${icon('copy')}</button>
              </div>
              <p class="code-hint">Got a code from another device?</p>
