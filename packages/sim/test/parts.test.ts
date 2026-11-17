@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, rollKeeps, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
+import { ANIMALS, applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, rollKeeps, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -47,7 +47,7 @@ describe('skin parts', () => {
     });
     const p = state.players[0]!;
     expect(p.parts.head).toEqual({ animal: 'shark', rarity: 3, found: false });
-    expect(['bear', 'frog', 'shark', 'chicken']).toContain(p.parts.body.animal);
+    expect(ANIMALS).toContain(p.parts.body.animal);
     expect(p.parts.body.rarity).toBe(0);
   });
 

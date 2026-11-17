@@ -140,7 +140,7 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 ### Parts (Patchwork)
 
 Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of four
-animals: Bear, Frog, Shark and Chicken. Each chest also pops a part, floating over a ring in its
+animals: Bear, Frog, Shark, Chicken, Dino, Owl, Axolotl and Penguin. Each chest also pops a part, floating over a ring in its
 rarity color. E puts it on. Q puts it in your one stash slot instead (it shows next to your
 stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
 When you're knocked out, the parts you found and your stash drop for others to take; your own

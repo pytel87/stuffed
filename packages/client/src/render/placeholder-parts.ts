@@ -1,4 +1,4 @@
-// Code-built placeholder parts: four animals, one part per slot each. Each part is authored
+// Code-built placeholder parts: eight animals (the second four in more-animals.ts), one part per slot each. Each part is authored
 // relative to its slot's socket on the plush rig (see PlushView), exactly like the real models
 // will be, so a real part replaces its placeholder without touching the rig. Rarity doesn't
 // change a part's look; it shows on the ground and in the HUD.
@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Animal, PartSlot } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
+import { MORE_PARTS } from './more-animals.ts';
 import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
@@ -39,30 +40,40 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     frog: (o) => frogHead(o),
     shark: (o) => sharkHead(o),
     chicken: (o) => chickenHead(o),
+
+    ...MORE_PARTS.head,
   },
   body: {
     bear: (o) => body(ANIMAL_COLORS.bear, o),
     frog: (o) => body(ANIMAL_COLORS.frog, o),
     shark: (o) => body(ANIMAL_COLORS.shark, o),
     chicken: (o) => body(ANIMAL_COLORS.chicken, o, '#e0d4c2'),
+
+    ...MORE_PARTS.body,
   },
   legs: {
     bear: (o) => stubbyLegs(o),
     frog: (o) => flipperLegs(o),
     shark: (o) => finLegs(o),
     chicken: (o) => chickenLegs(o),
+
+    ...MORE_PARTS.legs,
   },
   tail: {
     bear: (o) => pomTail(o),
     frog: (o) => lilyPad(o),
     shark: (o) => sharkTail(o),
     chicken: (o) => featherFan(o),
+
+    ...MORE_PARTS.tail,
   },
   accessory: {
     bear: (o) => bigButton(o),
     frog: () => crown(),
     shark: (o) => bandage(o),
     chicken: (o) => eggShell(o),
+
+    ...MORE_PARTS.accessory,
   },
 };
 

@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Four more animals (2026-11-17)
+
+- Dino (crest, toothy snout, back plates, stompy clawed feet, spiky tail), Owl (ear tufts, big
+  eyes, round glasses, talons, folded wings), Axolotl (frilly gills, smile, spots, finned tail,
+  starfish clip) and Penguin (white face and tummy, bow tie, orange feet, beanie). 40 parts in
+  all. Each has its own set glow, walking trail (dust stomps, feathers, bubbles, snowflakes) and
+  knockout burst. New profiles and bots can get any of the eight.
+
 ## Keep or drop, never both; dropping things; bots that don't spin (2026-11-17)
 
 - Knocked out: each part you carried is rolled once by its keep chance; kept ones go to your

@@ -50,7 +50,16 @@ function shadowMap(): THREE.CanvasTexture {
 }
 
 /** Glow color for a plush wearing a full set of one animal. */
-const SET_GLOW: Record<Animal, string> = { bear: '#ffb347', frog: '#7dff6a', shark: '#4fd2ff', chicken: '#fff27a' };
+const SET_GLOW: Record<Animal, string> = {
+  bear: '#ffb347',
+  frog: '#7dff6a',
+  shark: '#4fd2ff',
+  chicken: '#fff27a',
+  dino: '#5dffc8',
+  owl: '#ffd27a',
+  axolotl: '#ff8ad0',
+  penguin: '#a8e4ff',
+};
 
 let glowTexture: THREE.CanvasTexture | null = null;
 function glowMap(): THREE.CanvasTexture {

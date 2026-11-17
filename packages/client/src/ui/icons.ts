@@ -77,11 +77,17 @@ const HEAD_EXTRAS: Record<Animal, string> = {
   frog: `<circle cx="8" cy="7" r="3.2" fill="M"/><circle cx="16" cy="7" r="3.2" fill="M"/>`,
   shark: `<path d="M12 1.5l3 5h-6Z" fill="M"/>`,
   chicken: `<circle cx="9.5" cy="5.5" r="2" fill="#e2574c"/><circle cx="12.5" cy="4.5" r="2.4" fill="#e2574c"/><circle cx="15.5" cy="5.8" r="1.8" fill="#e2574c"/>`,
+  dino: `<path d="M9 6l1.5-3.5L12 6M12 5.5l1.5-3.5L15 5.5" fill="#f0a93b"/>`,
+  owl: `<path d="M5.5 8L5 2.5l4 3.5M18.5 8l.5-5.5-4 3.5" fill="M"/>`,
+  axolotl: `<path d="M4.5 10l-3-2.5M4.5 13H1M4.5 16l-3 2.5M19.5 10l3-2.5M19.5 13H23M19.5 16l3 2.5" stroke="#ff5f97" stroke-width="2.2"/>`,
+  penguin: ``,
 };
 /** ...and in front of it. */
 const HEAD_FRONT: Partial<Record<Animal, string>> = {
   chicken: `<path d="M10.5 14.5h3L12 17.5Z" fill="#f0a93b" stroke-width="1.5"/>`,
   shark: `<path d="M8.5 16.5l1 1 1-1 1 1 1-1 1 1 1-1 1 1" stroke-width="1.3"/>`,
+  owl: `<path d="M11 14h2l-1 2.5Z" fill="#f0a93b" stroke-width="1.3"/>`,
+  penguin: `<path d="M10.5 14.5h3L12 17Z" fill="#f7a531" stroke-width="1.3"/>`,
 };
 
 /** A skin part as a slot shape in its animal's colors. */

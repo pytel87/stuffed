@@ -160,6 +160,21 @@ export class Effects {
    */
   setTrail(animal: string, x: number, y: number, z: number, step: number, dirX = 0, dirZ = 1): void {
     switch (animal) {
+      case 'dino':
+        // Big stomps: a ring of dust every step.
+        this.shockwave(x, y + 0.04, z, 0.9, '#f0a93b');
+        this.burst(this.cotton, x, y + 0.1, z, 0, 0, 3, 1.2, 0.07, 0.4, 2);
+        break;
+      case 'owl':
+        this.burst(this.feathers, x, y + 0.9, z, 0, 0, 1, 0.5, 0.08, 1.1, 0.5);
+        break;
+      case 'axolotl':
+        this.burst(this.soap, x, y + 0.4, z, 0, 0, 2, 0.6, 0.06, 0.8, -1.5);
+        break;
+      case 'penguin':
+        // Little snowflakes swirling up behind.
+        this.burst(this.glitter[3]!, x, y + 0.2, z, -dirX * 0.5, -dirZ * 0.5, 3, 1, 0.05, 0.7, 0.5);
+        break;
       case 'bear': {
         // Prints point the way the bear walks, alternating left and right of its path.
         const side = step % 2 ? 0.18 : -0.18;
@@ -184,6 +199,19 @@ export class Effects {
   /** A set-wearing plush bursts in its animal's style when knocked out. */
   setKnockout(animal: string, x: number, z: number): void {
     switch (animal) {
+      case 'dino':
+        this.shockwave(x, 0.05, z, 3, '#f0a93b');
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 16, 4, 0.12, 1, 6);
+        break;
+      case 'owl':
+        this.burst(this.feathers, x, 1, z, 0, 0, 18, 4, 0.12, 1.6, 1.5);
+        break;
+      case 'axolotl':
+        this.burst(this.soap, x, 0.8, z, 0, 0, 24, 4, 0.09, 1.1, -1);
+        break;
+      case 'penguin':
+        this.burst(this.glitter[3]!, x, 1, z, 0, 0, 30, 4, 0.07, 1.4, 1);
+        break;
       case 'bear':
         this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.12, 1.2, 9);
         break;
@@ -229,7 +257,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
-    for (const a of ['bear', 'frog', 'shark', 'chicken']) this.setKnockout(a, -500, -500);
+    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin']) this.setKnockout(a, -500, -500);
   }
 
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */
