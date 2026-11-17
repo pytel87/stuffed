@@ -56,7 +56,7 @@ export class RoomClient {
    */
   constructor(
     readonly code: string,
-    private readonly name: string,
+    private name: string,
     private readonly input: InputSource,
     private readonly lagMs = 0,
   ) {
@@ -89,6 +89,18 @@ export class RoomClient {
 
   start(bots: number): void {
     this.send({ t: 'start', bots });
+  }
+
+  rename(name: string): void {
+    this.name = name;
+    this.send({ t: 'rename', name });
+  }
+
+  /** Leave the room for good (no reconnect). */
+  close(): void {
+    this.onLobby = () => {};
+    this.onMatch = () => {};
+    this.socket.close();
   }
 
   private receive(msg: ServerMessage): void {

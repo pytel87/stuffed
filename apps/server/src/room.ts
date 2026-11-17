@@ -90,6 +90,8 @@ export class Room extends Server<Env> {
         return this.input(conn, msg.i);
       case 'start':
         return this.startRequest(conn, msg.bots);
+      case 'rename':
+        return this.rename(conn, msg.name);
       case 'ping':
         return this.send(conn, { t: 'pong', c: Number(msg.c) || 0, s: Date.now() });
       default:
@@ -133,6 +135,14 @@ export class Room extends Server<Env> {
       this.sendSnapshot(conn, this.match);
     }
     if (this.match && this.phase === 'playing') this.startLoop();
+  }
+
+  private rename(conn: Connection<ConnState>, name: string): void {
+    const seat = this.seats.find((s) => s.connId === conn.id);
+    const clean = String(name).trim().slice(0, NAME_MAX);
+    if (!seat || !clean) return;
+    seat.name = clean;
+    this.broadcastLobby();
   }
 
   private host(): Seat | undefined {

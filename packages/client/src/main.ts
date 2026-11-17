@@ -14,6 +14,7 @@ import { EndScreen, type EndView } from './ui/end-screen.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Hud } from './ui/hud.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
+import { MenuScreen } from './ui/menu-screen.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -29,7 +30,11 @@ const zoneTimeScale = Number(params.get('zonescale')) || 1;
 let seed = Number(params.get('seed')) || Date.now() >>> 0;
 
 const newSolo = () => new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}) });
-/** The match being shown: solo (in the browser) or online (from the server). */
+/** Bots only, behind the title menu and the lobby. */
+const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true });
+/** What the player is doing: at the title menu, a solo match, or in an online room. */
+let mode: 'menu' | 'solo' | 'online' = 'menu';
+/** The match being shown: solo (in the browser), online (from the server) or the menu backdrop. */
 let session: GameSession | null = null;
 /** Set when playing online. */
 let room: RoomClient | null = null;
@@ -39,7 +44,26 @@ const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (
 const hud = new Hud(hudEl);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
-const endScreen = new EndScreen(document.body, playAgain, spectate);
+const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu);
+const menu = new MenuScreen(document.body, playerName(), {
+  solo: (name) => {
+    saveName(name);
+    mode = 'solo';
+    menu.hide();
+    beginMatch(newSolo());
+  },
+  create: (name) => {
+    saveName(name);
+    menu.setBusy(true);
+    createRoom()
+      .then((code) => joinRoom(code))
+      .catch((err: unknown) => menu.showError(`Couldn't reach the game server. ${err instanceof Error ? err.message : ''}`));
+  },
+  join: (name, code) => {
+    saveName(name);
+    joinRoom(code);
+  },
+});
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
 
@@ -54,17 +78,25 @@ const aimOffset = { x: 0, y: 0 };
 let me: Player | undefined;
 
 window.addEventListener('keydown', (e) => {
+  // Typing a name or code: no hotkeys.
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement) return;
   if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
   // A focused button (Play again / Spectate / Start) handles its own Enter.
-  if (e.code !== 'Enter' || document.activeElement instanceof HTMLButtonElement) return;
+  if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
   if (lobbyScreen?.visible) room?.start(lobbyScreen.bots);
   else if (phase !== 'playing') playAgain();
 });
 
-/** Shows a new match, solo or online. */
+/** The bots-only match behind the menu and lobby: no HUD, no result cards, loops forever. */
+function isBackdrop(s: GameSession | null): boolean {
+  return s instanceof LocalSession && s.localPlayerId === -1;
+}
+
+/** Shows a new match: solo, online, or the bots-only backdrop. */
 function beginMatch(next: GameSession): void {
   session = next;
-  hudEl.classList.remove('idle');
+  hudEl.classList.toggle('idle', isBackdrop(next));
   audio.reset();
   renderer.reset();
   endScreen.hide();
@@ -75,7 +107,20 @@ function beginMatch(next: GameSession): void {
   const watching = next.localPlayerId === -1;
   phase = watching ? 'spectating' : 'playing';
   followId = next.localPlayerId;
-  spectateEl.hidden = !watching;
+  spectateEl.hidden = !watching || isBackdrop(next);
+}
+
+/** Back to the title menu: leave any room, watch bots in the background. */
+function showMenu(): void {
+  sound.play('click', { pitchSpread: 0 });
+  room?.close();
+  room = null;
+  lobbyScreen?.remove();
+  lobbyScreen = null;
+  history.replaceState(null, '', location.pathname);
+  mode = 'menu';
+  beginMatch(newBackdrop());
+  menu.show();
 }
 
 function playAgain(): void {
@@ -90,10 +135,18 @@ function playAgain(): void {
 
 /** Online: connect to a room, show its lobby, and switch to each match the host starts. */
 function joinRoom(code: string): void {
+  mode = 'online';
+  menu.hide();
+  history.replaceState(null, '', `?room=${code}`);
+  // Bots play in the background until the host starts.
+  if (!isBackdrop(session)) beginMatch(newBackdrop());
   hudEl.classList.add('idle');
   // ?lag=150 fakes 150 ms of network round trip (to try prediction on localhost).
   room = new RoomClient(code, playerName(), input, Number(params.get('lag')) || 0);
-  lobbyScreen = new LobbyScreen(document.body, room);
+  lobbyScreen = new LobbyScreen(document.body, room, showMenu, (name) => {
+    saveName(name);
+    room?.rename(name);
+  });
   lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;
@@ -106,11 +159,17 @@ function joinRoom(code: string): void {
 function playerName(): string {
   const fromUrl = params.get('name');
   try {
-    const name = fromUrl ?? localStorage.getItem('stuffed.name') ?? `Plush ${100 + Math.floor(Math.random() * 900)}`;
-    localStorage.setItem('stuffed.name', name);
-    return name;
+    return fromUrl ?? localStorage.getItem('stuffed.name') ?? `Plush ${100 + Math.floor(Math.random() * 900)}`;
   } catch {
     return fromUrl ?? 'Plush';
+  }
+}
+
+function saveName(name: string): void {
+  try {
+    localStorage.setItem('stuffed.name', name);
+  } catch {
+    // not remembered; fine
   }
 }
 
@@ -208,6 +267,11 @@ function frame(now: number): void {
 /** Moves between playing, knocked out, spectating and the end of the match. */
 function updatePhase(state: GameState): void {
   const total = state.players.length;
+  if (isBackdrop(session)) {
+    if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
+    if (state.status === 'ended') beginMatch(newBackdrop());
+    return;
+  }
   if (!me) {
     // Watching a match you're not in: keep following someone; show the result at the end.
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
@@ -333,22 +397,23 @@ function loadoutFromUrl(): WeaponSpec[] | undefined {
     }));
 }
 
-// ?room=CODE joins an online room; ?online creates one; otherwise play solo against bots.
+// An invite link (?room=CODE) goes straight to that room's lobby; ?online creates a room;
+// ?solo starts a solo match; otherwise the title menu.
 const roomCode = parseRoomCode(params.get('room') ?? '');
 if (roomCode) {
   joinRoom(roomCode);
 } else if (params.has('online')) {
   createRoom()
-    .then((code) => {
-      history.replaceState(null, '', `?room=${code}`);
-      joinRoom(code);
-    })
+    .then((code) => joinRoom(code))
     .catch((err: unknown) => {
-      spectateEl.hidden = false;
-      spectateEl.textContent = `Couldn't reach the game server: ${err instanceof Error ? err.message : String(err)}`;
+      showMenu();
+      menu.showError(`Couldn't reach the game server. ${err instanceof Error ? err.message : ''}`);
     });
-} else {
+} else if (params.has('solo') || params.has('seed') || params.has('loadout')) {
+  mode = 'solo';
   beginMatch(newSolo());
+} else {
+  showMenu();
 }
 
 requestAnimationFrame(frame);

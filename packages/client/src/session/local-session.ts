@@ -13,10 +13,13 @@ export interface LocalSessionOptions {
   loadout?: WeaponSpec[];
   /** Scales the Rinse's timings; 1 = as configured. */
   zoneTimeScale?: number;
+  /** Bots only, nobody to control (the match behind the title menu). */
+  watchOnly?: boolean;
 }
 
 export class LocalSession implements GameSession {
   readonly map: MapData;
+  /** -1 when watching only. */
   readonly localPlayerId: EntityId;
   readonly ready = true;
   private readonly world: World;
@@ -29,18 +32,18 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1 }: LocalSessionOptions,
+    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
     const roster: RosterEntry[] = [
-      { name: 'You', isBot: false, parts: DEFAULT_PARTS, ...(loadout ? { loadout } : {}) },
+      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: DEFAULT_PARTS, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale });
     this.bots = new BotController(seed);
     this.prev = structuredClone(this.state);
-    this.localPlayerId = this.state.players[0]!.id;
+    this.localPlayerId = watchOnly ? -1 : this.state.players[0]!.id;
   }
 
   advance(dtSeconds: number): void {
@@ -48,7 +51,7 @@ export class LocalSession implements GameSession {
     while (this.accumulator >= DT) {
       this.prev = structuredClone(this.state);
       const inputs = this.bots.inputs(this.world, this.state);
-      inputs.set(this.localPlayerId, this.input.sample());
+      if (this.localPlayerId !== -1) inputs.set(this.localPlayerId, this.input.sample());
       step(this.world, this.state, inputs);
       this.events.push(...this.state.events);
       this.accumulator -= DT;

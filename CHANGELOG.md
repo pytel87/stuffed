@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 2.3: Title menu and lobby (2026-11-17)
+
+- Title menu: your name (remembered), Play solo, Create a room, Join with a 4-letter code.
+  A bots-only match plays behind the menu and the lobby and restarts by itself.
+- Lobby: editable name (server `rename` message), invite link, Leave. The end card has a
+  Menu button. Invite links still go straight to the lobby; `?solo` skips the menu.
+- Hotkeys are ignored while typing in a text field.
+
 ## Step 2.2: Client prediction (2026-11-17)
 
 - Sim: `predictPlayer()` moves one plush by one input exactly as `step()` would (aim,

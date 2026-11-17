@@ -20,7 +20,7 @@ export class EndScreen {
   private readonly stats: HTMLElement;
   private readonly spectate: HTMLButtonElement;
 
-  constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void) {
+  constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void, onMenu: () => void) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
@@ -32,6 +32,7 @@ export class EndScreen {
            <div class="end-actions">
              <button type="button" class="end-again">Play again <kbd>Enter</kbd></button>
              <button type="button" class="end-spectate">Spectate</button>
+             <button type="button" class="end-menu">Menu</button>
            </div>
          </div>
        </div>`,
@@ -44,6 +45,7 @@ export class EndScreen {
     this.spectate = this.el.querySelector('.end-spectate')!;
     this.el.querySelector('.end-again')!.addEventListener('click', onPlayAgain);
     this.spectate.addEventListener('click', onSpectate);
+    this.el.querySelector('.end-menu')!.addEventListener('click', onMenu);
   }
 
   get visible(): boolean {

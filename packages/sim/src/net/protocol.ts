@@ -32,6 +32,8 @@ export type ClientMessage =
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
   | { t: 'start'; bots: number }
+  /** Change your name in the lobby. */
+  | { t: 'rename'; name: string }
   | { t: 'ping'; c: number };
 
 export interface LobbySeat {

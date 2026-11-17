@@ -341,7 +341,7 @@ body {
   .banner.pop { animation: none; }
 }
 
-#hud.idle > :not(.hint),
+#hud.idle > *,
 #hud.out .vitals,
 #hud.out .weapons,
 #hud.out .items,
@@ -563,6 +563,123 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .end, .end-card { animation: none; }
+}
+
+.menu {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: linear-gradient(rgba(27, 16, 48, 0.25), rgba(27, 16, 48, 0.55));
+}
+
+.menu-card {
+  width: min(380px, 100%);
+  padding: 28px 28px 22px;
+  border-radius: 24px;
+  background: #fffaf3;
+  border: 4px solid #2a1f2d;
+  box-shadow: 0 10px 0 #2a1f2d;
+  color: #2a1f2d;
+  outline: 2px dashed #d2436c;
+  outline-offset: -12px;
+  text-align: center;
+}
+
+.menu-title {
+  margin: 0;
+  font: 900 54px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: #d2436c;
+  -webkit-text-stroke: 3px #2a1f2d;
+  paint-order: stroke fill;
+}
+
+.menu-tag {
+  margin: 4px 0 18px;
+  font: 700 14px/1.2 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6c80;
+}
+
+.menu-label,
+.lobby-name label {
+  display: block;
+  margin: 0 0 4px;
+  text-align: left;
+  font: 700 12px/1.2 system-ui, sans-serif;
+  color: #5a4c60;
+}
+
+.menu-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 3px solid #2a1f2d;
+  border-radius: 12px;
+  background: #fff;
+  color: #2a1f2d;
+  font: 800 17px/1.2 system-ui, sans-serif;
+}
+
+.menu-input:focus-visible,
+.lobby-link:focus-visible {
+  outline: 3px solid #3d8bfd;
+  outline-offset: 1px;
+}
+
+.menu-actions {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 18px;
+}
+
+.menu-actions button,
+.menu-join button {
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 3px solid #2a1f2d;
+  background: #fff;
+  color: #2a1f2d;
+  font: 900 17px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.menu-actions .menu-solo {
+  background: #d2436c;
+  color: #fff;
+}
+
+.menu-actions button:disabled,
+.menu-join button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.menu-join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-code {
+  flex: 1;
+  min-width: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.menu-error {
+  min-height: 1.3em;
+  margin: 10px 0 0;
+  color: #c0392b;
+  font: 700 13px/1.3 system-ui, sans-serif;
+}
+
+.lobby-name {
+  margin: 6px 0 10px;
 }
 
 [hidden] {

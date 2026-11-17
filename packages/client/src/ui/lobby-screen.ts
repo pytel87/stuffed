@@ -13,13 +13,24 @@ export class LobbyScreen {
   private readonly status: HTMLElement;
   private wantedBots = 7;
 
-  constructor(root: HTMLElement, private readonly client: RoomClient) {
+  private readonly nameInput: HTMLInputElement;
+
+  constructor(
+    root: HTMLElement,
+    private readonly client: RoomClient,
+    onLeave: () => void,
+    onRename: (name: string) => void,
+  ) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="end lobby" hidden role="dialog" aria-modal="true" aria-labelledby="lobby-title">
          <div class="end-card">
            <div class="end-placement">Room <span class="lobby-code"></span></div>
            <h1 id="lobby-title">Waiting for plushies</h1>
+           <div class="lobby-name">
+             <label for="lobby-name-input">Your name</label>
+             <input id="lobby-name-input" class="menu-input" maxlength="16" spellcheck="false">
+           </div>
            <div class="lobby-share">
              <input id="lobby-link" class="lobby-link" readonly aria-label="Invite link">
              <button type="button" class="lobby-copy">Copy link</button>
@@ -31,18 +42,31 @@ export class LobbyScreen {
              <button type="button" class="lobby-more" aria-label="More bots">+</button>
            </div>
            <p class="end-subtitle lobby-status"></p>
-           <div class="end-actions"><button type="button" class="end-again lobby-start">Start <kbd>Enter</kbd></button></div>
+           <div class="end-actions">
+             <button type="button" class="end-again lobby-start">Start <kbd>Enter</kbd></button>
+             <button type="button" class="lobby-leave">Leave</button>
+           </div>
          </div>
        </div>`,
     );
     this.el = root.querySelector<HTMLElement>('.lobby')!;
     this.code = this.el.querySelector('.lobby-code')!;
-    this.link = this.el.querySelector('.lobby-link')!;
+    this.link = this.el.querySelector('#lobby-link')!;
     this.list = this.el.querySelector('.lobby-players')!;
     this.botsRow = this.el.querySelector('.lobby-bots')!;
     this.botCount = this.el.querySelector('.lobby-bot-count')!;
     this.start = this.el.querySelector('.lobby-start')!;
     this.status = this.el.querySelector('.lobby-status')!;
+    this.nameInput = this.el.querySelector('#lobby-name-input')!;
+    const commitName = () => {
+      const name = this.nameInput.value.trim().slice(0, 16);
+      if (name) onRename(name);
+    };
+    this.nameInput.addEventListener('change', commitName);
+    this.nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.nameInput.blur();
+    });
+    this.el.querySelector('.lobby-leave')!.addEventListener('click', onLeave);
     this.start.addEventListener('click', () => this.client.start(this.wantedBots));
     this.el.querySelector('.lobby-less')!.addEventListener('click', () => this.setBots(this.wantedBots - 1));
     this.el.querySelector('.lobby-more')!.addEventListener('click', () => this.setBots(this.wantedBots + 1));
@@ -69,6 +93,10 @@ export class LobbyScreen {
     this.el.hidden = true;
   }
 
+  remove(): void {
+    this.el.remove();
+  }
+
   render(): void {
     const c = this.client;
     const lobby = c.lobby;
@@ -78,6 +106,8 @@ export class LobbyScreen {
     this.link.value = url.toString();
     const humans = lobby?.seats.filter((s) => s.connected).length ?? 0;
     this.setBots(this.wantedBots, humans);
+    const mine = lobby?.seats.find((s) => s.seat === c.seat);
+    if (mine && document.activeElement !== this.nameInput) this.nameInput.value = mine.name;
     this.list.replaceChildren(
       ...(lobby?.seats ?? []).map((s) => {
         const li = document.createElement('li');
