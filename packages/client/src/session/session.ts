@@ -27,4 +27,8 @@ export interface GameSession {
   frame(): RenderFrame;
   /** Events from every tick since the last call (a frame can span several ticks). */
   takeEvents(): GameEvent[];
+  /** Plushies still in the match, seen or not (online, the state holds only those in sight). */
+  playersLeft(): number;
+  /** Any player's name, seen or not. */
+  playerName(id: EntityId): string;
 }

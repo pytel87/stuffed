@@ -328,6 +328,15 @@ export class NetworkMatch implements GameSession {
     };
   }
 
+  playerName(id: EntityId): string {
+    return this.parts.roster.get(id)?.name ?? '';
+  }
+
+  playersLeft(): number {
+    // Everyone is on the roster and every knocked-out plush is sent; the living may be out of sight.
+    return this.parts.roster.size - this.parts.fallen.length;
+  }
+
   takeEvents(): GameEvent[] {
     // Your predicted shots already made their muzzle puff and sound; skip the server's echo.
     const me = this.localPlayerId;

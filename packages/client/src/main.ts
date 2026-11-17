@@ -322,7 +322,7 @@ function frame(now: number): void {
       if (e.armorDamage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.armorDamage)), 'armor');
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
-    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(state, e.byId);
+    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
     // Someone firing nearby (seen or not): a softer arc toward them.
@@ -358,7 +358,7 @@ function frame(now: number): void {
   touch.setGrabReady(hud.grabReady);
   touch.setStashReady(hud.stashReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
-  zoneHud.update(state, me, renderer.localPlayerPos, dt);
+  zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft(), dt);
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   debug.update(dt, {
     seed,
@@ -393,6 +393,7 @@ function frame(now: number): void {
 
 /** Moves between playing, knocked out, spectating and the end of the match. */
 function updatePhase(state: GameState): void {
+  if (!session) return;
   const total = state.players.length;
   if (isBackdrop(session)) {
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
@@ -403,7 +404,7 @@ function updatePhase(state: GameState): void {
     // Watching a match you're not in: keep following someone; show the result at the end.
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
     const watched = state.players.find((p) => p.id === followId);
-    spectateLabel.innerHTML = spectateBar(state, watched);
+    spectateLabel.innerHTML = spectateBar(session, watched);
     if (phase !== 'over' && state.status === 'ended') {
       phase = 'over';
       spectateEl.hidden = true;
@@ -455,7 +456,7 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'spectating') {
     const watched = state.players.find((p) => p.id === followId);
-    spectateLabel.innerHTML = spectateBar(state, watched);
+    spectateLabel.innerHTML = spectateBar(session, watched);
   }
 }
 
@@ -475,18 +476,20 @@ function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: s
   };
 }
 
-/** Who knocked you out, as icons: their weapon (in its rarity color) and name, or the water. */
-function describeKiller(state: GameState, byId: EntityId | null): string {
+/**
+ * Who knocked you out, as icons: their weapon (in its rarity color) and name, or the water.
+ * Online, a hidden attacker (in a bush, say) isn't in your state: their name still shows.
+ */
+function describeKiller(s: GameSession, state: GameState, byId: EntityId | null): string {
   if (byId === null) return icon('water');
   const killer = state.players.find((p) => p.id === byId);
-  if (!killer) return '';
-  const weapon = killer.weapons[killer.activeSlot];
+  const weapon = killer?.weapons[killer.activeSlot];
   const art = weapon ? `<span class="rarity" style="--rarity:${config.rarity[weapon.rarity].color}">${icon(weapon.kind)}</span>` : '';
-  return `${art}<span>${escapeHtml(killer.name)}</span>`;
+  return `${art}<span>${escapeHtml(s.playerName(byId))}</span>`;
 }
 
-function spectateBar(state: GameState, watched: Player | undefined): string {
-  const left = state.players.filter((p) => p.alive).length;
+function spectateBar(s: GameSession, watched: Player | undefined): string {
+  const left = s.playersLeft();
   return `${icon('eye')}<span>${escapeHtml(watched?.name ?? '…')}</span>${icon('person')}<b>${left}</b>`;
 }
 

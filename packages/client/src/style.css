@@ -1245,6 +1245,17 @@ body.touch-mode .prompt .icon.tap {
   gap: 0.4rem;
 }
 
+/* Narrower screens (phones): the middle of the top edge is taken by the item slots, so the
+   timer and count sit under the stuffing bar instead. */
+@media (max-width: 1000px) {
+  .zone {
+    left: calc(var(--safe-l) + var(--edge));
+    top: calc(var(--safe-t) + var(--edge) + 3.4rem);
+    transform: none;
+    justify-items: start;
+  }
+}
+
 /* The Rinse timer and how many plushies are left, side by side. */
 .zone-row {
   display: flex;

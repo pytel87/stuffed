@@ -53,7 +53,8 @@ export class ZoneHud {
     }
   }
 
-  update(state: GameState, me: Player | undefined, mePos: Vec2, dt: number): void {
+  /** `left`: plushies still in the match. */
+  update(state: GameState, me: Player | undefined, mePos: Vec2, left: number, dt: number): void {
     const z = state.zone;
     const text = z.stage === 'closed' ? '0:00' : clock(zoneSecondsLeft(z, state.tick));
     const key = `${text}|${z.stage}`;
@@ -63,10 +64,9 @@ export class ZoneHud {
       this.timer.dataset.stage = z.stage;
     }
 
-    const alive = state.players.filter((p) => p.alive).length;
-    if (alive !== this.lastLeft) {
-      this.lastLeft = alive;
-      this.left.textContent = String(alive);
+    if (left !== this.lastLeft) {
+      this.lastLeft = left;
+      this.left.textContent = String(left);
     }
 
     const soggy = !!me?.alive && isOutside(z, mePos);

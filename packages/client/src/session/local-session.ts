@@ -67,6 +67,14 @@ export class LocalSession implements GameSession {
     return { prev: this.prev, curr: this.state, alpha: this.accumulator / DT };
   }
 
+  playerName(id: EntityId): string {
+    return this.state.players.find((p) => p.id === id)?.name ?? '';
+  }
+
+  playersLeft(): number {
+    return this.state.players.filter((p) => p.alive).length;
+  }
+
   takeEvents(): GameEvent[] {
     const events = this.events;
     this.events = [];

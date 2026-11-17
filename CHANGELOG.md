@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Players-left count fixed online; HUD fits phones (2026-11-17)
+
+- Online, the players-left count counted only the plushies in sight; it now counts everyone
+  still in (the roster minus the knocked out). The same for the count while spectating.
+- The knockout card names whoever got you even if they were hidden from you (in a bush).
+- On screens narrower than 1000px the Rinse timer and count sit under the stuffing bar, clear
+  of the item slots.
+
 ## Wardrobe picker, plushier sounds (2026-11-17)
 
 - Wardrobe: no more arrows. Tap a slot, then pick from a grid of every part you own for it
