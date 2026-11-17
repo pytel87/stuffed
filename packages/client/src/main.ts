@@ -115,6 +115,17 @@ wardrobe.onLookChanged = () => room?.lookChanged();
 void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
+/** The soft button click. */
+const uiClick = () => sound.play('click', { pitchSpread: 0, volume: 0.8 });
+// Every button on the cards, the options and the spectate bar clicks (not the in-match HUD).
+document.addEventListener(
+  'click',
+  (e) => {
+    const button = (e.target as Element | null)?.closest?.('button');
+    if (button && !button.disabled && button.closest('.overlay, .sheet, .gear, #spectating')) uiClick();
+  },
+  true,
+);
 // Splashing through water: soft for your own steps, softer for others nearby.
 renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.22 : 0.1, pitchSpread: 0.3 });
 const help = new Help();
@@ -169,7 +180,6 @@ function switchWatched(step: 1 | -1): void {
   if (alive.length === 0) return;
   const at = alive.findIndex((p) => p.id === followId);
   followId = alive[(at + step + alive.length) % alive.length]!.id;
-  sound.play('click', { pitchSpread: 0 });
 }
 
 window.addEventListener('keydown', (e) => {
@@ -181,9 +191,11 @@ window.addEventListener('keydown', (e) => {
   if (!spectateEl.hidden && !e.repeat) {
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') switchWatched(-1);
     if (e.code === 'ArrowRight' || e.code === 'KeyD') switchWatched(1);
+    if (['ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) uiClick();
   }
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
+  uiClick();
   if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel());
   else if (phase !== 'playing') playAgain();
 });
@@ -217,7 +229,6 @@ function beginMatch(next: GameSession): void {
 
 /** Back to the title menu: leave any room, watch bots in the background. */
 function showMenu(): void {
-  sound.play('click', { pitchSpread: 0 });
   room?.close();
   room = null;
   lobbyScreen?.remove();
@@ -230,7 +241,6 @@ function showMenu(): void {
 }
 
 function playAgain(): void {
-  sound.play('click', { pitchSpread: 0 });
   if (room) {
     if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel());
     return;
@@ -296,7 +306,6 @@ function saveName(name: string): void {
 }
 
 function spectate(): void {
-  sound.play('click', { pitchSpread: 0 });
   endScreen.hide();
   phase = 'spectating';
   spectateEl.hidden = false;
@@ -308,7 +317,6 @@ function stopSpectating(): void {
     showMenu();
     return;
   }
-  sound.play('click', { pitchSpread: 0 });
   spectateEl.hidden = true;
   phase = 'out';
   endScreen.reopen();
