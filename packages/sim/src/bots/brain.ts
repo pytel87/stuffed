@@ -26,14 +26,14 @@ export const BOT = {
   /** Seconds a bot keeps fighting back after being hurt, at any range it can see. */
   hurtMemory: 3,
   /** Seconds between first seeing an enemy and starting to shoot. */
-  reaction: [0.9, 1.7] as [number, number],
+  reaction: [1.0, 1.9] as [number, number],
   /** Aim wobble: the aim point drifts this far (units) per 10 units of distance. */
-  aimError: 3.2,
+  aimError: 3.8,
   /** Bots fire in bursts: seconds shooting, then seconds paused. */
   burst: [0.5, 1.1] as [number, number],
-  burstPause: [0.9, 1.8] as [number, number],
+  burstPause: [1.0, 2.0] as [number, number],
   /** How much of the target's motion bots lead their shots by (1 = perfect). */
-  leadFactor: 0.45,
+  leadFactor: 0.4,
   /** Preferred fighting distance per weapon. */
   preferredRange: {
     cork_popper: 9,

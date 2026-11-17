@@ -12,6 +12,9 @@ function clock(seconds: number): string {
 /** The Rinse: a water-drop timer, a soggy badge pointing back to safety, and short call-outs. */
 export class ZoneHud {
   private readonly timer: HTMLElement;
+  /** How many plushies are still in the match. */
+  private readonly left: HTMLElement;
+  private lastLeft = -1;
   private readonly time: HTMLElement;
   private readonly soggy: HTMLElement;
   private readonly soggyRate: HTMLElement;
@@ -24,13 +27,17 @@ export class ZoneHud {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="zone">
-         <div class="zone-timer">${icon('water')}<b class="time"></b></div>
+         <div class="zone-row">
+           <div class="zone-timer">${icon('water')}<b class="time"></b></div>
+           <div class="alive-count">${icon('person')}<b class="left"></b></div>
+         </div>
          <div class="soggy" hidden>${icon('water')}<span class="arrow">${icon('arrow')}</span><b class="rate"></b></div>
        </div>
        <div class="banner" hidden></div>`,
     );
     const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
     this.timer = q('.zone-timer');
+    this.left = q('.alive-count .left');
     this.time = q('.zone-timer .time');
     this.soggy = q('.soggy');
     this.soggyRate = q('.soggy .rate');
@@ -54,6 +61,12 @@ export class ZoneHud {
       this.last = key;
       this.time.textContent = text;
       this.timer.dataset.stage = z.stage;
+    }
+
+    const alive = state.players.filter((p) => p.alive).length;
+    if (alive !== this.lastLeft) {
+      this.lastLeft = alive;
+      this.left.textContent = String(alive);
     }
 
     const soggy = !!me?.alive && isOutside(z, mePos);

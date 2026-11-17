@@ -1044,6 +1044,30 @@ body.touch-mode .prompt .icon.tap {
   gap: 0.4rem;
 }
 
+/* The Rinse timer and how many plushies are left, side by side. */
+.zone-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.alive-count {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.8rem 0.25rem 0.45rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 3px solid var(--ink);
+  color: #fff;
+  font: 900 1.1rem/1 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.alive-count .icon {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
 .zone-timer {
   display: flex;
   align-items: center;
