@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyDamage, Btn, config, makeWeapon, muzzlePosition, reloadTicks, secondsToTicks, sweepCircle } from '../src/index.ts';
 import type { GameState, Player, WeaponKind } from '../src/index.ts';
-import { input, newGame, run } from './helpers.ts';
+import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
 /** Puts players 0 and 1 face to face, `gap` units apart (center to center), in open ground. */
 function duel(gap: number, kind: WeaponKind = 'cork_popper', rarity: 0 | 1 | 2 | 3 | 4 = 0) {
@@ -74,6 +74,26 @@ describe('weapons', () => {
     expect(p.ownerId).toBe(a.id);
     expect(p.vel.x).toBeGreaterThan(0);
     expect(a.weapons[0]!.ammo).toBe(config.weapons.cork_popper.magazine - 1);
+  });
+
+  it('indoors, shots stay level instead of climbing toward the roof overhead', () => {
+    const house = { ...OPEN_MAP, id: 'house', buildings: [{ x: 10, y: 30, w: 30, h: 20, height: 3.2 }] };
+    const { world, state } = newGame(1, 2, house);
+    const a = state.players[0]!;
+    a.pos = { x: 15, y: 40 };
+    a.weapons = [makeWeapon('cork_popper', 0), null];
+    // Aim at a spot 10 units away, still inside the house.
+    run(world, state, 1, (id) => (id === a.id ? input({ aimX: 10, buttons: Btn.Fire }) : idle));
+    const shot = state.projectiles[0]!;
+    expect(shot.vz).toBe(0);
+    expect(shot.zEnd).toBeCloseTo(config.combat.shotHeight);
+    // From outside, a spot on that roof is still worth aiming up at.
+    const out = newGame(1, 2, house);
+    const b = out.state.players[0]!;
+    b.pos = { x: 4, y: 40 };
+    b.weapons = [makeWeapon('cork_popper', 0), null];
+    run(out.world, out.state, 1, (id) => (id === b.id ? input({ aimX: 10, buttons: Btn.Fire }) : idle));
+    expect(out.state.projectiles[0]!.zEnd).toBeCloseTo(3.2 + config.combat.shotHeight);
   });
 
   it('spawns shots at the barrel tip, on the shooter\'s right', () => {

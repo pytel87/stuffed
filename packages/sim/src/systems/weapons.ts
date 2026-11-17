@@ -4,7 +4,7 @@ import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
 import { applyDamage } from './damage.ts';
-import { groundHeight } from './movement.ts';
+import { buildingAt, groundHeight } from './movement.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
 const REVEAL_TICKS = secondsToTicks(config.combat.revealOnShot);
@@ -155,13 +155,19 @@ function handleSwap(state: GameState, player: Player, input: Input): void {
 /**
  * Shots angle toward chest height above whatever is under the aimed-at point (the lawn, a
  * wall top, a roof), so plushies on different levels can hit each other. Level when aiming
- * very close or at the same level.
+ * very close or at the same level. Indoors, the roof over you doesn't count: a shot at a spot
+ * under the same roof aims at what stands on the floor there.
  */
 function shotSlope(world: World, state: GameState, player: Player, z: number, speed: number): { vz: number; zEnd: number } {
   const d = player.aimDistance;
   if (d < config.combat.minAimDistanceForSlope) return { vz: 0, zEnd: z };
   const target = { x: player.pos.x + player.aim.x * d, y: player.pos.y + player.aim.y * d };
-  const zEnd = groundHeight(world, state, target, Infinity) + config.combat.shotHeight;
+  const inside = buildingAt(world, player.pos, player.z);
+  const roof = inside >= 0 ? world.map.buildings[inside]! : null;
+  const sameRoof = roof && target.x > roof.x && target.x < roof.x + roof.w && target.y > roof.y && target.y < roof.y + roof.h;
+  // groundHeight reaches a step above `z`: keep the reach just under the roof.
+  const reachFrom = sameRoof ? roof.height - config.player.stepHeight - 0.01 : Infinity;
+  const zEnd = groundHeight(world, state, target, reachFrom) + config.combat.shotHeight;
   const maxClimb = config.combat.maxShotSlope * speed;
   const vz = Math.max(-maxClimb, Math.min(maxClimb, ((zEnd - z) * speed) / d));
   return { vz, zEnd };

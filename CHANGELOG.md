@@ -16,6 +16,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   recovery code hides behind a key button in the corner.
 - The knockout card shows just a picture of the weapon that got you (no rarity underline).
 - Spectating: a house button next to the switcher goes back to the menu.
+- Shots fired indoors no longer climb toward the roof overhead (aiming took the roof as the
+  surface to aim above); they stay level unless the aimed-at spot is outside or up on something.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 
