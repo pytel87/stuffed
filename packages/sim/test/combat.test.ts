@@ -257,6 +257,20 @@ describe('beach balls', () => {
     expect(ball.vel.x).toBeLessThanOrEqual(0);
   });
 
+  it('score in a goal and go back to where they started', () => {
+    const goaled = {
+      ...pool,
+      walls: [...pool.walls, { x: 28, y: 30, w: 0.3, h: 2, height: 1.6, kind: 'goal' as const }, { x: 31.7, y: 30, w: 0.3, h: 2, height: 1.6, kind: 'goal' as const }, { x: 28, y: 30, w: 4, h: 0.3, height: 1.6, kind: 'goal' as const }],
+      goals: [{ mouth: { x: 28.3, y: 30.3, w: 3.4, h: 1.5 }, opens: 'south' as const }],
+    };
+    const { world, state } = newGame(1, 2, goaled);
+    const ball = state.balls[0]!;
+    ball.vel = { x: 0, y: -12 };
+    run(world, state, 30, () => idle);
+    expect(state.goals).toEqual([1]);
+    expect(ball.pos).toEqual(ball.home);
+  });
+
   it('get knocked along by shots', () => {
     const { world, state } = newGame(1, 2, pool);
     const a = state.players[0]!;

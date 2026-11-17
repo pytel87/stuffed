@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Beach ball goals (2026-11-17)
+
+- Two goals by the Kiddie Pool (north and south, opening toward it), with nets and a floating
+  scoreboard each. Roll a beach ball in: confetti, a cheer, the score pops up, and the ball goes
+  back to where it started. Scores are match state (sent online when they change).
+
 ## Bot difficulty (2026-11-17)
 
 - Every button on the cards, options and spectate bar makes the soft click (once), and so do

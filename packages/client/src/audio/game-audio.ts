@@ -72,6 +72,10 @@ export class GameAudio {
         case 'ballBounce':
           s.play('ball_boing', { at: e.pos, volume: 0.7 });
           break;
+        case 'goal':
+          s.play('chest_open', { at: e.pos, volume: 1, pitchSpread: 0 });
+          s.play('glitter_burst', { at: e.pos, volume: 0.7 });
+          break;
         case 'bonk': {
           const p = byId.get(e.targetId);
           if (p) s.play('pillow_bonk', { at: p.pos, volume: 0.9 });

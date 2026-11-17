@@ -142,10 +142,12 @@ export interface CompactSnapshot {
   fallen?: Player[];
   /** Beach balls, when any moved since the last update. */
   balls?: Ball[];
+  /** Goal scores, when they changed. */
+  goals?: number[];
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls', string>>;
+export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>>;
 
 /**
  * Builds one player's update. `visible` are the living plushies this player may see (their own
@@ -192,6 +194,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius, team: p.team })),
     fallen: state.players.filter((p) => !p.alive),
     balls: state.balls,
+    goals: state.goals,
   };
   for (const key of Object.keys(slow) as (keyof typeof slow)[]) {
     const json = compactJson(slow[key]);
@@ -212,10 +215,11 @@ export interface SnapshotParts {
   roster: Map<EntityId, RosterEntry>;
   fallen: Player[];
   balls: Ball[];
+  goals: number[];
 }
 
 export function emptySnapshotParts(): SnapshotParts {
-  return { chests: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [] };
+  return { chests: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [], goals: [] };
 }
 
 /**
@@ -231,6 +235,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   if (msg.roster) parts.roster = new Map(msg.roster.map((r) => [r.id, r]));
   if (msg.fallen) parts.fallen = msg.fallen;
   if (msg.balls) parts.balls = msg.balls;
+  if (msg.goals) parts.goals = msg.goals;
   if (!parts.zone) return null;
 
   const fallenIds = new Set(parts.fallen.map((p) => p.id));
@@ -272,6 +277,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     placedWalls: parts.walls,
     // Copies: client prediction may nudge them; the next update says where they really are.
     balls: parts.balls.map((b) => ({ ...b, pos: { ...b.pos }, vel: { ...b.vel } })),
+    goals: parts.goals,
     toss: parts.toss,
     zone,
     events: [],

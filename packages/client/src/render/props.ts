@@ -485,6 +485,11 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       add(ballMesh, r);
       break;
     }
+    case 'goal': {
+      // A white post or back bar of a beach ball goal (the net and crossbar: goal-views.ts).
+      add(outlinedBox(b.w, H, b.h, toonMaterial('#fdfbf7', { map: null })), H / 2);
+      break;
+    }
     case 'basket': {
       add(outlinedBox(b.w, H * 0.8, b.h, toonMaterial('#c08a4a', { map: tiled(crateTexture(), 2, 1) })), (H * 0.8) / 2);
       add(outlinedBox(b.w * 0.95, 0.08, b.h * 0.95, toonMaterial('#ffffff', { map: tiled(checkerTexture(), 2, 2) })), H * 0.8 + 0.04);

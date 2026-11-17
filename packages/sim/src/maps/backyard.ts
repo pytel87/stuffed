@@ -7,7 +7,7 @@
 //   Sandbox Desert (SW)   open sand, low sandcastles, half-buried chests
 //   Veggie Jungle (W)     planter rows and leafy bushes; low loot
 // Coordinates: x to the right, y down the screen (north = small y).
-import type { Building, ChestSpawn, Circle, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 128;
 const C = SIZE / 2;
@@ -91,6 +91,27 @@ const shedProps: Wall[] = [
 const POOL: Circle = { center: { x: 106, y: 64 }, radius: 9.5 };
 const poolProps: Wall[] = [ball(94.2, 54.5, 1.6, 1.6), ball(115.5, 73.5, 1.6, 1.6), ball(117, 52, 1.6, 1.6)];
 
+// Beach ball goals north and south of the pool, opening toward it: two posts and a back bar
+// (the frame is solid; the ball scores once its center is inside the mouth).
+const GOAL_W = 4.4;
+const GOAL_D = 2;
+const GOAL_H = 1.6;
+const goalAt = (cx: number, backY: number, opens: Goal['opens']): { frame: Wall[]; goal: Goal } => {
+  const x = cx - GOAL_W / 2;
+  const y = opens === 'south' ? backY : backY - GOAL_D;
+  const back = opens === 'south' ? backY : backY - 0.3;
+  const frame = [
+    w('goal', GOAL_H)(x, y, 0.3, GOAL_D),
+    w('goal', GOAL_H)(x + GOAL_W - 0.3, y, 0.3, GOAL_D),
+    w('goal', GOAL_H)(x, back, GOAL_W, 0.3),
+  ];
+  const mouth = { x: x + 0.3, y: opens === 'south' ? backY + 0.3 : y + 0.2, w: GOAL_W - 0.6, h: GOAL_D - 0.5 };
+  return { frame, goal: { mouth, opens } };
+};
+const northGoal = goalAt(106, 42.4, 'south');
+const southGoal = goalAt(106, 85.6, 'north');
+const goalFrames: Wall[] = [...northGoal.frame, ...southGoal.frame];
+
 // ---------- Picnic Plateau (SE) ----------
 // A 16 x 8 table (its top is a roof at 2) with benches along both long sides and legs at the
 // corners. Under the table you're hidden.
@@ -139,7 +160,7 @@ const lawnBushes: Circle[] = [
 ];
 
 const walls: Wall[] = [
-  ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...picnic, ...sandbox, ...planters, ...lawn,
+  ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
 ];
 
 const buildings: Building[] = [
@@ -227,6 +248,7 @@ export const BACKYARD: MapData = {
   spawns: [...ringSpawns(16, 54, 11), ...ringSpawns(8, 36, 33)],
   chestSpawns,
   pools: [POOL],
+  goals: [northGoal.goal, southGoal.goal],
   grounds,
   zones,
 };

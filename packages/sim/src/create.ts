@@ -93,7 +93,8 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
     placedWalls: [],
     balls: map.walls
       .filter((w) => w.kind === 'ball')
-      .map((w, id) => ({ id, pos: { x: w.x + w.w / 2, y: w.y + w.h / 2 }, vel: { x: 0, y: 0 }, radius: Math.min(w.w, w.h) / 2 })),
+      .map((w, id) => ({ id, pos: { x: w.x + w.w / 2, y: w.y + w.h / 2 }, vel: { x: 0, y: 0 }, radius: Math.min(w.w, w.h) / 2, home: { x: w.x + w.w / 2, y: w.y + w.h / 2 } })),
+    goals: (map.goals ?? []).map(() => 0),
     toss,
     zone: initialZone(map, rng, zoneTimeScale),
     events: [],

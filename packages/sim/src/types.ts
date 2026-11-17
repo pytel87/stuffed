@@ -264,6 +264,8 @@ export type GameEvent =
   | { type: 'burst'; pos: Vec2; z: number; weapon: WeaponKind; radius: number }
   /** A marble bounced off a wall. */
   | { type: 'bounce'; pos: Vec2 }
+  /** A beach ball rolled into goal `goal` (index in map.goals). */
+  | { type: 'goal'; goal: number; ballId: number; pos: Vec2 }
   /** A plush ran into a beach ball and got bounced back (`pos`: the ball's center). */
   | { type: 'ballBounce'; playerId: EntityId; ballId: number; pos: Vec2 }
   /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
@@ -297,6 +299,8 @@ export interface GameState {
   placedWalls: PlacedWall[];
   /** Beach balls rolling around (the map's 'ball' walls become these at the start). */
   balls: Ball[];
+  /** Goals scored in each of the map's beach ball goals. */
+  goals: number[];
   /** The Toss: the blimp flies from `from` to `to` between these ticks; null without one. */
   toss: Toss | null;
   zone: Zone;
@@ -305,12 +309,21 @@ export interface GameState {
   mapId: string;
 }
 
+/** A beach ball goal (a mini-game by the pool): its mouth, and which way it opens. */
+export interface Goal {
+  mouth: Box;
+  /** The side the ball comes in from. */
+  opens: 'north' | 'south';
+}
+
 /** A beach ball: rolls when a plush runs into it or a shot hits it. `id` is its index. */
 export interface Ball {
   id: number;
   pos: Vec2;
   vel: Vec2;
   radius: number;
+  /** Where it goes back to after a goal. */
+  home: Vec2;
 }
 
 /** Axis-aligned box, min corner + size. */
@@ -324,7 +337,7 @@ export interface Box {
 /** How a wall looks. The sim only cares about its box and height. */
 export type WallKind =
   | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
-  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket';
+  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal';
 
 export interface Toss {
   from: Vec2;
@@ -391,6 +404,8 @@ export interface MapData {
   chestSpawns: ChestSpawn[];
   /** Shallow water: plushies wading in it move slower. */
   pools?: Circle[];
+  /** Beach ball goals: a ball whose center rolls into `mouth` scores (the frame is in walls). */
+  goals?: Goal[];
   grounds?: Ground[];
   zones?: MapZone[];
 }

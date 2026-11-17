@@ -5,6 +5,7 @@ import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { BallViews } from './ball-views.ts';
+import { GoalViews } from './goal-views.ts';
 import { ReviveMarkers } from './revive-markers.ts';
 import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
@@ -63,6 +64,8 @@ export class GameRenderer {
   onWaterStep: ((at: Vec2, id: EntityId) => void) | null = null;
   /** Beach balls rolling around. */
   private readonly balls = new BallViews(this.scene);
+  /** Beach ball goals: nets and scoreboards. */
+  private readonly goals: GoalViews;
   /** Team mode: where knocked-out teammates can be re-stitched. */
   private readonly reviveMarkers = new ReviveMarkers(this.scene);
   private readonly loot = new LootViews(this.scene);
@@ -113,6 +116,7 @@ export class GameRenderer {
     this.scene.add(buildMapView(map));
     const obstacles = buildObstacles(map);
     this.scene.add(obstacles.root);
+    this.goals = new GoalViews(this.scene, map);
     this.bushes = obstacles.bushes;
     this.roofs = obstacles.roofs;
     this.rinse = new RinseView(map);
@@ -196,6 +200,9 @@ export class GameRenderer {
         }
         case 'ballBounce':
           this.balls.bounce(e.ballId);
+          break;
+        case 'goal':
+          this.effects.goal(e.pos.x, e.pos.y);
           break;
         case 'chestOpened': {
           const chest = state.chests.find((c) => c.id === e.chestId);
@@ -436,6 +443,7 @@ export class GameRenderer {
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
+    this.goals.update(curr, opts.dt);
     this.reviveMarkers.update(curr, viewer, opts.time);
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));

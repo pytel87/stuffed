@@ -29,8 +29,23 @@ export function updateBalls(world: World, state: GameState): void {
     ball.vel.x *= keep;
     ball.vel.y *= keep;
     if (Math.hypot(ball.vel.x, ball.vel.y) < REST) ball.vel = { x: 0, y: 0 };
+    scoreGoal(world, state, ball);
   }
   separateBalls(state);
+}
+
+/** A ball inside a goal's mouth scores there and goes back to where it started. */
+function scoreGoal(world: World, state: GameState, ball: Ball): void {
+  const goals = world.map.goals ?? [];
+  for (let i = 0; i < goals.length; i++) {
+    const m = goals[i]!.mouth;
+    if (ball.pos.x < m.x || ball.pos.x > m.x + m.w || ball.pos.y < m.y || ball.pos.y > m.y + m.h) continue;
+    state.goals[i] = (state.goals[i] ?? 0) + 1;
+    state.events.push({ type: 'goal', goal: i, ballId: ball.id, pos: { x: ball.pos.x, y: ball.pos.y } });
+    ball.pos = { ...ball.home };
+    ball.vel = { x: 0, y: 0 };
+    return;
+  }
 }
 
 /** Speeds a ball up along `dir` (a kick or a shot), capped. */

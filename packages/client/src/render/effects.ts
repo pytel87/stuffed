@@ -407,6 +407,13 @@ export class Effects {
   }
 
   /** A toy box pops open: confetti buttons and a puff of fluff. */
+  /** A goal! Confetti in every color and a ring on the ground. */
+  goal(x: number, z: number): void {
+    for (const pool of this.glitter) this.burst(pool, x, 1.2, z, 0, 0, 14, 5, 0.1, 1.6, 2);
+    for (const pool of this.buttons) this.burst(pool, x, 1, z, 0, 0, 5, 4, 0.08, 1.2, 8);
+    this.shockwave(x, 0.06, z, 2.6, '#ffd23a');
+  }
+
   chestPop(x: number, z: number): void {
     for (const pool of this.buttons) this.burst(pool, x, 0.8, z, 0, 0, 4, 3, 0.06, 0.9, 9);
     this.burst(this.cotton, x, 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
