@@ -5,7 +5,7 @@ import { Btn } from '../types.ts';
 import type { Ball, GameState, Input, Player, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
-import { TRAIN, trainCircles } from './train.ts';
+import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -31,6 +31,11 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   if (player.drop) {
     tossMove(world, state, player, input);
     return;
+  }
+  // Riding a train wagon: carried along with it (and turned with the track) first.
+  if (world.map.track && player.z > 0.05) {
+    const carried = carriedBy(world.map.track, state.tick - 1, state.tick, player.pos, player.z);
+    if (carried) player.pos = carried;
   }
   // Trapped in a bubble: no walking or jumping (knockback still pushes the bubble around).
   const trapped = state.tick < player.bubbledUntil;
@@ -96,6 +101,8 @@ export function groundHeight(world: World, state: GameState, pos: Vec2, z: numbe
   for (const b of world.map.buildings) {
     if (b.height <= reach && b.height > best && inBox(pos, b)) best = b.height;
   }
+  // A train wagon's deck.
+  if (world.map.track) best = Math.max(best, trainFloor(world.map.track, state.tick, pos, reach));
   return best;
 }
 
@@ -142,8 +149,11 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
     }
-    if (world.map.track && player.z < TRAIN.height) {
-      for (const c of trainCircles(world.map.track, state.tick)) moved = trainBump(state, player, c) || moved;
+    if (world.map.track) {
+      for (const c of trainCircles(world.map.track, state.tick)) {
+        // Standing on (or above) a car: it's floor, not a wall.
+        if (c.top > feet) moved = trainBump(state, player, c) || moved;
+      }
     }
     if (!moved) return;
   }

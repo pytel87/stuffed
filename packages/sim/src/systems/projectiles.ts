@@ -87,10 +87,11 @@ export function updateProjectiles(world: World, state: GameState): void {
       }
     }
     // The toy train's cars stop shots too.
-    if (world.map.track && lowest < TRAIN.height) {
+    if (world.map.track && lowest < TRAIN.engineHeight) {
       for (const c of trainCircles(world.map.track, state.tick)) {
+        if (lowest >= c.top) continue;
         const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, c.x, c.y, c.r + r);
-        if (t !== null && t < wallT && proj.z + dz * t - r < TRAIN.height) {
+        if (t !== null && t < wallT && proj.z + dz * t - r < c.top) {
           wallT = t;
           wallHit = { chest: { x: c.x, y: c.y } };
           ballHit = null;

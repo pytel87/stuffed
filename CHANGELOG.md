@@ -20,6 +20,9 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   round a big oval track across the whole Bedroom all match. The cars are solid: they shove
   plushies off the rails (with a toot), stop shots and knock beach balls along. Where it is
   comes from the match clock alone, so it needs no network data.
+- Ride the train: the wagons are flat decks (height 1.2) a jump lands on; whoever stands on one
+  is carried round the track, turning with it, and steps or jumps off to leave. The engine is
+  taller (its cab) and can't be stood on. Wagons no longer carry cubes.
 
 ## Beach ball goals (2026-11-17)
 

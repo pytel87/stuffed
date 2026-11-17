@@ -16,8 +16,10 @@ function buildCar(index: number): THREE.Group {
   const W = TRAIN.carWidth;
   const color = engine ? '#e2574c' : COLORS[index % COLORS.length]!;
   // Body along +z (the way it drives).
-  const body = outlinedBox(W * 0.9, engine ? 0.8 : 0.9, L * 0.9, toonMaterial(color, { map: null }));
-  body.position.y = 0.75;
+  // The wagon body tops out at the deck height (riders stand on it).
+  const bodyH = engine ? 0.8 : TRAIN.deckHeight - 0.4;
+  const body = outlinedBox(W * 0.9, bodyH, L * 0.9, toonMaterial(color, { map: null }));
+  body.position.y = 0.4 + bodyH / 2;
   g.add(body);
   const base = outlinedBox(W, 0.2, L, toonMaterial('#2a1f2d', { map: null }));
   base.position.y = 0.3;
@@ -46,13 +48,13 @@ function buildCar(index: number): THREE.Group {
     catcher.position.set(0, 0.35, L / 2 + 0.15);
     g.add(catcher);
   } else {
-    // An open wagon with a load of toy blocks.
-    for (const [x, z, c] of [[-0.3, -0.5, '#f7c331'], [0.3, 0.1, '#5bd16a'], [-0.2, 0.6, '#3d7ff2']] as const) {
-      const blk = outlinedBox(0.5, 0.5, 0.5, toonMaterial(c, { map: null }));
-      blk.position.set(x, 1.4, z);
-      blk.rotation.y = x * 2;
-      g.add(blk);
-    }
+    // A flat deck to ride on, with a light stripe round its edge.
+    const deck = outlinedBox(W * 0.94, 0.06, L * 0.94, toonMaterial('#fdfbf7', { map: null }));
+    deck.position.y = TRAIN.deckHeight - 0.02;
+    g.add(deck);
+    const inner = new THREE.Mesh(new THREE.BoxGeometry(W * 0.74, 0.07, L * 0.8), toonMaterial(color, { map: null }));
+    inner.position.y = TRAIN.deckHeight - 0.01;
+    g.add(inner);
   }
   mergeStatic(g);
   return g;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BACKYARD, BEDROOM, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, trainCars, wading } from '../src/index.ts';
+import { applyDamage, BACKYARD, BEDROOM, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, TRAIN, trainCars, wading } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { openChest } from '../src/systems/loot.ts';
 import { input, roster, run } from './helpers.ts';
@@ -203,6 +203,34 @@ describe('the toy train', () => {
     }
     expect(bumped).toBe(true);
     for (const car of trainCars(track, state.tick)) expect(Math.hypot(p.pos.x - car.pos.x, p.pos.y - car.pos.y)).toBeGreaterThan(0.9);
+  });
+
+  it('carries a plush standing on a wagon round the track', () => {
+    const wagon = trainCars(track, 150)[2]!;
+    const { world, state, p } = solo(map, { ...wagon.pos }, TRAIN.deckHeight);
+    state.tick = 150;
+    run(world, state, 60, () => input());
+    const now = trainCars(track, state.tick)[2]!;
+    expect(p.z).toBeCloseTo(TRAIN.deckHeight, 2);
+    expect(Math.hypot(p.pos.x - now.pos.x, p.pos.y - now.pos.y)).toBeLessThan(0.3);
+  });
+
+  it('can be jumped onto from beside the track', () => {
+    const tick = 400;
+    const wagon = trainCars(track, tick + 10)[2]!;
+    const side = { x: -wagon.dir.y, y: wagon.dir.x };
+    // Beside where the wagon will be in a moment: jump toward it, and let go once on board.
+    const { world, state, p } = solo(map, { x: wagon.pos.x + side.x * 3, y: wagon.pos.y + side.y * 3 });
+    state.tick = tick;
+    let onBoard = false;
+    for (let i = 0; i < 25 && !onBoard; i++) {
+      run(world, state, 1, (id) => (id === p.id ? input({ buttons: i < 2 ? Btn.Jump : 0, moveX: -side.x, moveY: -side.y }) : input()));
+      onBoard = i > 3 && Math.abs(p.z - TRAIN.deckHeight) < 0.01 && p.vz === 0;
+    }
+    expect(onBoard).toBe(true);
+    // Standing still, it rides along.
+    run(world, state, 30, () => input());
+    expect(p.z).toBeCloseTo(TRAIN.deckHeight, 2);
   });
 
   it('stops shots', () => {
