@@ -21,13 +21,17 @@ export class LobbyScreen {
     private readonly client: RoomClient,
     onLeave: () => void,
     onRename: (name: string) => void,
+    onWardrobe: (() => void) | null = null,
   ) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="overlay lobby" hidden>
          <div class="card">
            <div class="room-code"><span class="code"></span><button type="button" class="round lobby-share" aria-label="Share invite">${icon('share')}</button></div>
-           <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="Your name"></label>
+           <div class="row">
+             <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="Your name"></label>
+             <button type="button" class="round lobby-wardrobe" aria-label="Wardrobe">${icon('hanger')}</button>
+           </div>
            <ul class="chips"></ul>
            <div class="bots">${icon('bot')}
              <button type="button" class="round small lobby-less" aria-label="Fewer bots">−</button>
@@ -57,6 +61,9 @@ export class LobbyScreen {
     q('.lobby-less').addEventListener('click', () => this.setBots(this.wantedBots - 1));
     q('.lobby-more').addEventListener('click', () => this.setBots(this.wantedBots + 1));
     q('.lobby-leave').addEventListener('click', onLeave);
+    const wardrobe = q('.lobby-wardrobe');
+    wardrobe.hidden = !onWardrobe;
+    if (onWardrobe) wardrobe.addEventListener('click', onWardrobe);
     this.share.addEventListener('click', () => void this.shareInvite());
     const commitName = () => {
       const name = this.nameInput.value.trim().slice(0, 16);

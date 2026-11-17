@@ -408,6 +408,11 @@ button {
 
 /* ---------- wardrobe ---------- */
 
+/* Opened from the lobby or results card too: above them. */
+.overlay.wardrobe {
+  z-index: 12;
+}
+
 .wardrobe .card {
   width: min(34rem, 100%);
 }

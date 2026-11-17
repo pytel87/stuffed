@@ -100,6 +100,11 @@ export class RoomClient {
     this.send({ t: 'start', bots });
   }
 
+  /** Your look changed in the Wardrobe: the next match starts you in it. */
+  lookChanged(): void {
+    this.send({ t: 'look' });
+  }
+
   rename(name: string): void {
     this.name = name;
     this.send({ t: 'rename', name });

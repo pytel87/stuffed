@@ -20,6 +20,8 @@ export class Wardrobe {
   private readonly preview: Preview;
   /** The look being edited (saved after each change). */
   private look: Look | null = null;
+  /** Called after a new look is saved. */
+  onLookChanged: () => void = () => {};
 
   constructor(private readonly store: ProfileStore) {
     document.body.insertAdjacentHTML(
@@ -114,6 +116,7 @@ export class Wardrobe {
     this.render();
     void this.store.setLook(structuredClone(look)).then((ok) => {
       if (!ok) this.message.textContent = '!';
+      else this.onLookChanged();
     });
   }
 

@@ -67,7 +67,7 @@ const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floate
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const zoneNames = new ZoneNames(hudEl);
-const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu);
+const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu, () => wardrobe.show());
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
     saveName(name);
@@ -89,7 +89,12 @@ const menu = new MenuScreen(document.body, playerName(), {
   wardrobe: () => wardrobe.show(),
 });
 const wardrobe = new Wardrobe(profiles);
-profiles.onChange = () => menu.setWardrobe(!!profiles.profile);
+profiles.onChange = () => {
+  menu.setWardrobe(!!profiles.profile);
+  endScreen.setWardrobe(!!profiles.profile);
+};
+// A new look in the Wardrobe: an online room starts you in it from the next match.
+wardrobe.onLookChanged = () => room?.lookChanged();
 void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
@@ -203,10 +208,16 @@ function joinRoom(code: string): void {
     endScreen.setKept(parts);
     void profiles.refresh();
   };
-  lobbyScreen = new LobbyScreen(document.body, room, showMenu, (name) => {
-    saveName(name);
-    room?.rename(name);
-  });
+  lobbyScreen = new LobbyScreen(
+    document.body,
+    room,
+    showMenu,
+    (name) => {
+      saveName(name);
+      room?.rename(name);
+    },
+    profiles.profile ? () => wardrobe.show() : null,
+  );
   lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;

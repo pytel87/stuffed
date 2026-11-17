@@ -37,6 +37,8 @@ interface Seat {
   /** The player's profile, once looked up: their look, and where kept parts go. */
   profileId: string | null;
   look: Look | null;
+  /** The device's profile token, to look the profile up again when its look changes. */
+  profileToken: string | null;
 }
 
 interface Match {
@@ -101,6 +103,11 @@ export class Room extends Server<Env> {
         return this.startRequest(conn, msg.bots);
       case 'rename':
         return this.rename(conn, msg.name);
+      case 'look': {
+        const seat = this.seats.find((s) => s.connId === conn.id);
+        if (seat?.profileToken) void this.attachProfile(seat, seat.profileToken);
+        return;
+      }
       case 'ping':
         return this.send(conn, { t: 'pong', c: Number(msg.c) || 0, s: Date.now() });
       default:
@@ -133,10 +140,13 @@ export class Room extends Server<Env> {
       seat.connId = conn.id;
       seat.name = name;
     } else if (this.seats.length < MAX_PLAYERS) {
-      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null };
+      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null, profileToken: null };
       this.seats.push(seat);
     }
-    if (seat && typeof msg.profile === 'string') void this.attachProfile(seat, msg.profile.slice(0, 128));
+    if (seat && typeof msg.profile === 'string') {
+      seat.profileToken = msg.profile.slice(0, 128);
+      void this.attachProfile(seat, seat.profileToken);
+    }
     conn.setState({ seat: seat?.seat ?? null });
     this.sent.delete(conn.id);
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });

@@ -29,7 +29,9 @@ export class EndScreen {
   private readonly again: HTMLButtonElement;
   private readonly spectate: HTMLButtonElement;
 
-  constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void, onMenu: () => void) {
+  private readonly wardrobe: HTMLButtonElement;
+
+  constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void, onMenu: () => void, onWardrobe: () => void) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="overlay end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
@@ -42,6 +44,7 @@ export class EndScreen {
            <div class="row">
              <button type="button" class="big primary end-again"></button>
              <button type="button" class="round end-spectate" aria-label="Spectate">${icon('eye')}</button>
+             <button type="button" class="round end-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
              <button type="button" class="round end-menu" aria-label="Menu">${icon('home')}</button>
            </div>
          </div>
@@ -58,6 +61,8 @@ export class EndScreen {
     this.again.addEventListener('click', onPlayAgain);
     this.spectate.addEventListener('click', onSpectate);
     this.el.querySelector('.end-menu')!.addEventListener('click', onMenu);
+    this.wardrobe = this.el.querySelector('.end-wardrobe')!;
+    this.wardrobe.addEventListener('click', onWardrobe);
   }
 
   get visible(): boolean {
@@ -81,6 +86,11 @@ export class EndScreen {
 
   hide(): void {
     this.el.hidden = true;
+  }
+
+  /** The Wardrobe button needs a profile. */
+  setWardrobe(available: boolean): void {
+    this.wardrobe.hidden = !available;
   }
 
   private keptShown = false;

@@ -37,6 +37,8 @@ export type ClientMessage =
   | { t: 'start'; bots: number }
   /** Change your name in the lobby. */
   | { t: 'rename'; name: string }
+  /** Your look changed in the Wardrobe: the room re-reads your profile for the next match. */
+  | { t: 'look' }
   | { t: 'ping'; c: number };
 
 export interface LobbySeat {
