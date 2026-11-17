@@ -66,7 +66,8 @@ img.icon {
   pointer-events: none;
 }
 
-.icon.big {
+/* Big icons ('large', not 'big': .big is the big-button style). */
+.icon.large {
   width: 3rem;
   height: 3rem;
 }
@@ -1455,7 +1456,7 @@ body.touch-mode .loadout {
     background: rgba(27, 16, 48, 0.85);
   }
 
-  .rotate .icon {
+  .rotate .icon.large {
     width: 6rem;
     height: 6rem;
     color: var(--ink);

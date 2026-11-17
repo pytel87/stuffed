@@ -25,7 +25,7 @@ export class Help {
            <div class="help-touch">
              <div class="pad"><div class="stick"><div class="stick-knob"></div></div>${icon('person')}</div>
              <div class="pad"><div class="stick"><div class="stick-knob aim"></div></div>${icon('cork_popper')}</div>
-             <div class="pad">${icon('jump', 'icon big')} ${icon('hand', 'icon big')}</div>
+             <div class="pad">${icon('jump', 'icon large')} ${icon('hand', 'icon large')}</div>
            </div>
          </div>
        </div>`,

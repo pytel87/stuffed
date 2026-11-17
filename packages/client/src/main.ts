@@ -105,8 +105,8 @@ const options = new Options({
   help: () => help.show(),
   leave: showMenu,
 });
-document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon big');
-tossHint.innerHTML = `${icon('jump', 'icon big')}<kbd>Space</kbd>`;
+document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
+tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>Space</kbd>`;
 // The hint is a button too: tapping (or clicking) it drops you off the blimp.
 tossHint.addEventListener('pointerdown', (e) => {
   e.preventDefault();
