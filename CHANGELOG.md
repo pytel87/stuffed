@@ -16,8 +16,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   narrower than 16:9.
 - UI rework with almost no text: icon set in the game's style, stitched cards for the menu,
   lobby, results and help, and the ⚙ sheet (sound, fullscreen, controls, leave).
-- HUD: a single stuffing bar with buttons as a blue coat over it; ammo fills the lower part
-  of the weapon card in its rarity color (it drains as you shoot and refills while reloading); hotkeys are plain digits.
+- HUD: a single stuffing bar with buttons as a blue coat over it; ammo is a thin strip along
+  the bottom of the weapon card in its rarity color (it drains as you shoot and refills while reloading); hotkeys are plain digits.
   The E / Grab prompt and the opening bar float over the chest or weapon in the scene.
 - Results show placement, the knocker's weapon and name, and knockouts, damage and time as
   icons.

@@ -638,22 +638,20 @@ body.touch-mode .help-touch {
   transform: translateX(-50%);
 }
 
-/* Ammo fills the lower part of the card, behind the weapon: a rarity tint that drains as you
+/* Ammo: a thin strip along the bottom of the card in the rarity color; it drains as you
    fire and refills while reloading. */
 .weapon .ammo {
   position: absolute;
   inset: auto 0 0 0;
-  height: 36%;
-  z-index: -1;
-  background: rgba(42, 31, 45, 0.18);
-  border-top: 2px solid rgba(42, 31, 45, 0.25);
+  height: 0.4rem;
+  background: rgba(42, 31, 45, 0.25);
+  border-top: 2px solid var(--ink);
 }
 
 .weapon .ammo > i {
   position: absolute;
   inset: 0;
   background: var(--rarity, #fff);
-  box-shadow: inset -2px 0 0 rgba(42, 31, 45, 0.35);
   transform-origin: left;
   transition: transform 90ms linear;
 }

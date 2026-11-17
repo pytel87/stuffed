@@ -99,7 +99,7 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 - The bar at the bottom (top-left on touch) is your stuffing. Buttons show as a blue coat
   along its top, and they soak hits first.
-- The colored band along the bottom of a weapon card is its ammo, in the weapon's rarity
+- The thin colored strip along the bottom of a weapon card is its ammo, in the weapon's rarity
   color. It drains as you shoot and refills in white while you reload.
 - What E or the hand would do floats over the chest or weapon itself. The opening bar floats
   over the chest; the bar for using an item floats over your plush.
