@@ -10,6 +10,7 @@ import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
 import type { Box, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
+import { clearWalk, findPath } from './nav.ts';
 
 export const BOT = {
   /** Seconds at the start of a match when bots only loot, and fight only someone who hurts them. */
@@ -97,6 +98,16 @@ interface Memory {
   burstPauseUntil: number;
   lastHealth: number;
   lastHurtTick: number;
+  /** A path around tall walls to the current goal, when it can't be walked to straight. */
+  path: Vec2[] | null;
+  pathGoal: Vec2 | null;
+  pathAt: number;
+  /** The last avoidance turn taken, tried first next time (no flip-flopping at walls). */
+  lastTurn: number;
+  /** Where the last enemy was last seen: chased for a moment after losing sight of it. */
+  lastSeen: Vec2 | null;
+  /** Heading in from the Rinse: keep going until well inside (no bouncing along its edge). */
+  fleeingWater: boolean;
   /** The Toss: drop off the blimp this far along its line (0..1), and glide toward this spot. */
   dropAt: number;
   landing: Vec2 | null;
@@ -145,6 +156,12 @@ export class BotController {
         lastHealth: bot.stuffing + bot.buttons,
         lastHurtTick: -1e9,
         dropAt: -1,
+        path: null,
+        pathGoal: null,
+        pathAt: -1e9,
+        lastTurn: 0,
+        lastSeen: null,
+        fleeingWater: false,
         landing: null,
       };
       m.aggression = nextRange(m.rng, BOT.aggression[0], BOT.aggression[1]);
@@ -177,7 +194,11 @@ export class BotController {
     const zone = state.zone.current;
     const toCenter = dist(bot.pos, zone.center);
     // Get back inside (with a margin) when the water is close or already here.
-    const zoneUrgent = bot.soggy || (state.zone.stage === 'shrinking' && toCenter > zone.radius - 4);
+    const nearWater = bot.soggy || (state.zone.stage === 'shrinking' && toCenter > zone.radius - 4);
+    // Once running from the water, keep running until comfortably inside (8 units from the edge).
+    if (nearWater) m.fleeingWater = true;
+    else if (toCenter < zone.radius - 8) m.fleeingWater = false;
+    const zoneUrgent = nearWater || (m.fleeingWater && state.zone.stage !== 'waiting');
 
     const canHeal = bot.items.some((s) => s !== null && config.items[s.kind].stuffing > 0 && canUseItem(bot, s.kind));
     const retreating = enemy !== null && bot.stuffing < BOT.retreatBelow && canHeal && !zoneUrgent;
@@ -190,6 +211,7 @@ export class BotController {
       if (nextFloat(m.rng) < (BOT.combatJumpsPerSecond * 1.5) / T) wantJump = true;
     } else if (enemy) {
       m.lastEnemyTick = state.tick;
+      m.lastSeen = { ...enemy.pos };
       const weapon = this.chooseWeapon(bot, dist(bot.pos, enemy.pos), input);
       this.aimAt(state, bot, enemy, weapon, m, input);
       const range = weapon ? BOT.preferredRange[weapon.kind] : 6;
@@ -234,6 +256,12 @@ export class BotController {
       } else if (roof) {
         // Up on a roof with nothing to fight: walk off the nearest edge (chests are down below).
         goal = offEdge(roof, bot.pos);
+      } else if (!calm && m.lastSeen && dist(bot.pos, m.lastSeen) > 1) {
+        // Just lost sight of the enemy (into a bush, under a roof): go where it was, facing it,
+        // instead of turning away at once (which made bots dither at roof edges and doorways).
+        goal = m.lastSeen;
+        input.aimX = m.lastSeen.x - bot.pos.x;
+        input.aimY = m.lastSeen.y - bot.pos.y;
       } else if (calm && this.tryHeal(bot, input)) {
         goal = null; // stand still while healing
       } else {
@@ -247,7 +275,8 @@ export class BotController {
       input.moveX = move.x;
       input.moveY = move.y;
       if (move.jump) wantJump = true;
-      if (!enemy && (move.x !== 0 || move.y !== 0)) {
+      const chasing = !enemy && m.lastSeen !== null && state.tick - m.lastEnemyTick <= BOT.calmAfter * T;
+      if (!enemy && !chasing && (move.x !== 0 || move.y !== 0)) {
         input.aimX = move.x;
         input.aimY = move.y;
       }
@@ -480,7 +509,8 @@ export class BotController {
     if (dist(bot.pos, goal) < 0.4) return { x: 0, y: 0, jump: false };
 
     m.stuckTicks = moved < 0.04 ? m.stuckTicks + 1 : 0;
-    if (m.stuckTicks > T / 2) {
+    if (m.stuckTicks > T / 2) m.path = null; // stuck: plan again
+    if (m.stuckTicks > T) {
       const a = nextFloat(m.rng) * Math.PI * 2;
       m.detour = { x: Math.cos(a), y: Math.sin(a) };
       m.detourUntil = state.tick + Math.round(0.7 * T);
@@ -490,10 +520,14 @@ export class BotController {
     if (m.detour && state.tick < m.detourUntil) return { ...m.detour, jump: false };
     m.detour = null;
 
-    const want = unit(goal.x - bot.pos.x, goal.y - bot.pos.y);
+    const target = this.waypoint(world, state, bot, goal, m);
+    const want = unit(target.x - bot.pos.x, target.y - bot.pos.y);
     const look = 1.6;
     const feet = bot.z + config.player.stepHeight;
-    for (const turn of [0, 35, -35, 70, -70, 110, -110]) {
+    // Keep turning the way it turned last time while that still works (no flip-flopping).
+    const turns = [0, 35, -35, 70, -70, 110, -110];
+    if (m.lastTurn !== 0) turns.splice(1, 0, m.lastTurn);
+    for (const turn of turns) {
       const a = Math.atan2(want.y, want.x) + turn * DEG;
       const dir = { x: Math.cos(a), y: Math.sin(a) };
       const ahead = { x: bot.pos.x + dir.x * look, y: bot.pos.y + dir.y * look };
@@ -501,9 +535,39 @@ export class BotController {
       const tall = raycastWalls(world, bot.pos, ahead, bot.radius * 0.9, feet + jumpReach());
       if (tall !== null) continue;
       const low = turn === 0 && raycastWalls(world, bot.pos, ahead, bot.radius * 0.9, feet) !== null;
+      m.lastTurn = turn;
       return { x: dir.x, y: dir.y, jump: low };
     }
     return { x: want.x, y: want.y, jump: true };
+  }
+
+  /**
+   * Where to head now for `goal`: the goal itself when it can be walked to straight, otherwise
+   * the next waypoint of a path around the walls (planned again when the goal moves, now and
+   * then, or when stuck).
+   */
+  private waypoint(world: World, state: GameState, bot: Player, goal: Vec2, m: Memory): Vec2 {
+    if (bot.z > 0.5 || clearWalk(world, bot.pos, goal)) {
+      m.path = null;
+      return goal;
+    }
+    const stale = !m.path || !m.pathGoal || dist(m.pathGoal, goal) > 2 || state.tick - m.pathAt > T * 2;
+    if (stale) {
+      m.path = findPath(world, bot.pos, goal);
+      m.pathGoal = { ...goal };
+      m.pathAt = state.tick;
+    }
+    const path = m.path;
+    if (!path || path.length === 0) return goal;
+    // Drop waypoints already reached; skip ahead to the farthest one in plain view.
+    while (path.length > 1 && dist(bot.pos, path[0]!) < 0.8) path.shift();
+    for (let i = Math.min(path.length - 1, 4); i > 0; i--) {
+      if (clearWalk(world, bot.pos, path[i]!)) {
+        path.splice(0, i);
+        break;
+      }
+    }
+    return path[0]!;
   }
 }
 
