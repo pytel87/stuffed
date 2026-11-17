@@ -123,7 +123,7 @@ function swing(world: World, state: GameState, player: Player, weapon: WeaponIns
     const uy = d > 1e-6 ? dy / d : player.aim.y;
     p.knockback.x += ux * s.knockback;
     p.knockback.y += uy * s.knockback;
-    applyDamage(state, p, weaponDamage(weapon), player.id);
+    applyDamage(state, p, weaponDamage(weapon), player.id, { from: { x: player.pos.x, y: player.pos.y } });
     state.events.push({ type: 'bonk', playerId: player.id, targetId: p.id });
   }
   state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });

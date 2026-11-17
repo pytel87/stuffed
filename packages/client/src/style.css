@@ -1088,6 +1088,21 @@ body.touch-mode .prompt .icon.tap {
 }
 
 /* damage numbers */
+/* Hit from this way: a red arc around your plush, pointing toward the shot. */
+.hit-arc {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  border: 0.45rem solid transparent;
+  border-top-color: #ff3b4d;
+  filter: drop-shadow(0 0 0.35rem rgba(255, 59, 77, 0.8));
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
 #floaters {
   position: fixed;
   inset: 0;

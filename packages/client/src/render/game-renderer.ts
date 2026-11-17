@@ -7,6 +7,7 @@ import { Effects } from './effects.ts';
 import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
+import { PlacedWallViews } from './placed-walls.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
 import { RinseView } from './rinse-view.ts';
@@ -48,6 +49,7 @@ export class GameRenderer {
   private readonly projectiles = new ProjectileViews(this.scene);
   private readonly effects = new Effects(this.scene);
   private readonly chests = new ChestViews(this.scene);
+  private readonly placedWalls = new PlacedWallViews(this.scene);
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
@@ -186,7 +188,17 @@ export class GameRenderer {
         }
         case 'itemUsed': {
           const p = byId.get(e.playerId);
-          if (p) this.effects.itemUsed(p.pos.x, p.pos.y, e.item === 'button_pack');
+          if (p && e.item !== 'bouncy_ball' && e.item !== 'cardboard_wall') this.effects.itemUsed(p.pos.x, p.pos.y, e.item === 'button_pack');
+          break;
+        }
+        case 'dash': {
+          const p = byId.get(e.playerId);
+          if (p) this.effects.dash(p.pos.x, p.pos.y);
+          break;
+        }
+        case 'wallPlaced': {
+          const w = state.placedWalls.find((pw) => pw.id === e.wallId);
+          if (w) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, false);
           break;
         }
         case 'impact':
@@ -285,6 +297,7 @@ export class GameRenderer {
     this.projectiles.clear();
     this.chests.clear();
     this.loot.clear();
+    this.placedWalls.clear();
     this.rig.reset();
   }
 
@@ -293,6 +306,8 @@ export class GameRenderer {
     const prevById = new Map<EntityId, Player>(prev.players.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();
     // Whoever we follow decides what is visible: you, or the plush you spectate.
+    // Placed walls count for height checks (a plush standing on a Cardboard Wall).
+    this.world.placed = curr.placedWalls;
     const viewer = curr.players.find((p) => p.id === opts.followId);
 
     for (const p of curr.players) {
@@ -310,6 +325,7 @@ export class GameRenderer {
       view.setWeapon(weapon?.kind ?? null, weapon?.rarity ?? 0);
       view.setCharge(weapon ? chargeAmount(p, weapon.kind, curr.tick + alpha) : 0);
       if (view.setBubbled(curr.tick < p.bubbledUntil)) this.effects.bubblePop(p.pos.x, p.z + 0.85, p.pos.y);
+      if (curr.tick < p.juiceUntil && Math.random() < opts.dt * 6) this.effects.juice(p.pos.x, p.z, p.pos.y);
 
       const before = prevById.get(p.id) ?? p;
       const pos = lerp2(before.pos, p.pos, alpha);
@@ -347,6 +363,8 @@ export class GameRenderer {
 
     this.projectiles.update(prev, curr, alpha, opts.time);
     this.chests.update(curr, opts.dt, opts.time);
+    // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
+    for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     this.rinse.update(curr.zone, opts.time, this.followPos);

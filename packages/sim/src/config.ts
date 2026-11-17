@@ -191,13 +191,29 @@ export interface ItemStats {
   readonly chestCount: number;
   /** Ground glow color tier; items' effects do not scale with rarity. */
   readonly rarity: Rarity;
+  /** Special effects: a Juice Box buff, a Bouncy Ball dash, a Cardboard Wall. */
+  readonly effect?: 'juice' | 'dash' | 'wall';
 }
 
-const items = {
+const items: Record<ItemKind, ItemStats> = {
   cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, buttons: 0, stuffingCap: 75, maxStack: 5, chestCount: 2, rarity: 0 },
   sewing_kit: { name: 'Sewing Kit', useTime: 4, stuffing: 50, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 2 },
   button_pack: { name: 'Button Pack', useTime: 2, stuffing: 0, buttons: 25, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 1 },
-} as const satisfies Record<ItemKind, ItemStats>;
+  big_stuffing_bag: { name: 'Big Stuffing Bag', useTime: 8, stuffing: 100, buttons: 0, stuffingCap: 100, maxStack: 1, chestCount: 1, rarity: 3 },
+  juice_box: { name: 'Juice Box', useTime: 2, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2, effect: 'juice' },
+  bouncy_ball: { name: 'Bouncy Ball', useTime: 0, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 2, rarity: 1, effect: 'dash' },
+  cardboard_wall: { name: 'Cardboard Wall', useTime: 1, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 1, effect: 'wall' },
+};
+
+/** Tuning for the items with special effects. */
+const itemEffects = {
+  /** Juice Box: stuffing per second while it lasts, for this long, and a speed boost meanwhile. */
+  juice: { regenPerSecond: 5, seconds: 10, speedMultiplier: 1.15 },
+  /** Bouncy Ball: dash speed (units/s, fading like knockback) and a little hop. */
+  dash: { speed: 18, hop: 5 },
+  /** Cardboard Wall: size, how far in front it stands, how long, how many hits' worth of damage. */
+  wall: { length: 3, thickness: 0.5, height: 1.4, distance: 1.6, seconds: 20, health: 60, perPlayer: 3 },
+} as const;
 
 export interface RarityStats {
   readonly name: string;
@@ -231,10 +247,10 @@ export const config = {
     /** Speed multiplier while outside the safe zone ("soggy"). */
     soggySpeedMultiplier: 0.8,
     /**
-     * How far past the map's edges a plush can wander. There's no fence: the Rinse is the real
-     * limit (its starting circle reaches the corners, and past it you're soggy).
+     * How far past the map's edges a plush can wander. There's no fence: the Rinse's foam is the
+     * edge you see (past it you're soggy); this hard stop is far out, deep in the water.
      */
-    roamOutside: 12,
+    roamOutside: 40,
     /** Wading in a pool (Kiddie Pool). */
     wadeSpeedMultiplier: 0.6,
     /** Knockback decay rate (1/s). */
@@ -317,9 +333,25 @@ export const config = {
       high: [30, 32, 24, 11, 3],
       food: [50, 28, 15, 6, 1],
     } satisfies Record<LootLevel, readonly number[]>,
-    itemWeights: { cotton_puff: 4.5, sewing_kit: 2, button_pack: 3.5 } satisfies Record<ItemKind, number>,
+    itemWeights: {
+      cotton_puff: 4,
+      sewing_kit: 2,
+      button_pack: 3,
+      big_stuffing_bag: 0.6,
+      juice_box: 1.5,
+      bouncy_ball: 1.8,
+      cardboard_wall: 1.6,
+    } satisfies Record<ItemKind, number>,
     /** Food crates (picnic) favor healing. */
-    foodItemWeights: { cotton_puff: 5, sewing_kit: 4, button_pack: 1 } satisfies Record<ItemKind, number>,
+    foodItemWeights: {
+      cotton_puff: 5,
+      sewing_kit: 4,
+      button_pack: 1,
+      big_stuffing_bag: 2,
+      juice_box: 3,
+      bouncy_ball: 0.5,
+      cardboard_wall: 0.5,
+    } satisfies Record<ItemKind, number>,
   },
 
   loot: {
@@ -358,6 +390,7 @@ export const config = {
 
   weapons,
   items,
+  itemEffects,
   rarity,
 } as const;
 

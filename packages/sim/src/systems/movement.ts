@@ -3,7 +3,7 @@ import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
 import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Vec2 } from '../types.ts';
-import type { World } from '../world.ts';
+import { wallsNear, type World } from '../world.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -33,6 +33,7 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     config.player.moveSpeed *
     (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1) *
     (player.chargeStartTick !== null ? config.combat.chargeMoveMultiplier : 1) *
+    (state.tick < player.juiceUntil ? config.itemEffects.juice.speedMultiplier : 1) *
     (player.soggy ? config.player.soggySpeedMultiplier : 1) *
     (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
@@ -77,8 +78,7 @@ export function movePlayer(world: World, state: GameState, player: Player, input
 export function groundHeight(world: World, state: GameState, pos: Vec2, z: number): number {
   let best = 0;
   const reach = z + STEP;
-  for (const i of world.walls.query(pos.x, pos.y, pos.x, pos.y)) {
-    const w = world.map.walls[i]!;
+  for (const w of wallsNear(world, pos.x, pos.y, pos.x, pos.y)) {
     if (w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
   }
   const h = config.chest.height;
@@ -117,8 +117,7 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
   for (let pass = 0; pass < OBSTACLE_PASSES; pass++) {
     const { x, y } = player.pos;
     let moved = false;
-    for (const i of world.walls.query(x - r, y - r, x + r, y + r)) {
-      const wall = world.map.walls[i]!;
+    for (const wall of wallsNear(world, x - r, y - r, x + r, y + r)) {
       if (wall.height <= feet) continue;
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;

@@ -276,6 +276,66 @@ export function buildItem(kind: ItemKind): THREE.Group {
         }
       });
       break;
+    case 'big_stuffing_bag': {
+      // A fat white sack of stuffing, tied with red string, fluff spilling from the top.
+      const sack = toonMesh(new THREE.SphereGeometry(0.3, 18, 14), '#fbf6ef', { outline: 0.06 });
+      sack.scale.set(1, 1.1, 0.9);
+      g.add(sack);
+      const tie = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.03, 8, 16), toonMaterial('#e2574c', { map: null }));
+      tie.rotation.x = Math.PI / 2;
+      tie.position.y = 0.3;
+      g.add(tie);
+      for (const [x, y, z, r] of [[0, 0.42, 0, 0.11], [0.08, 0.38, 0.05, 0.08], [-0.07, 0.4, -0.04, 0.08]] as const) {
+        const puff = toonMesh(new THREE.IcosahedronGeometry(r, 1), '#ffffff', { outline: 0.1 });
+        puff.position.set(x, y, z);
+        g.add(puff);
+      }
+      const patch = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), toonMaterial('#ff8fb1', { map: null }));
+      patch.position.set(0, 0.02, 0.28);
+      g.add(patch);
+      break;
+    }
+    case 'juice_box': {
+      // An orange juice box with a bendy straw.
+      const box = toonMesh(new THREE.BoxGeometry(0.26, 0.38, 0.18), '#f7a531', { outline: 0.06 });
+      g.add(box);
+      const label = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16), toonMaterial('#ff7a3d', { map: null }));
+      label.position.set(0, 0, 0.092);
+      g.add(label);
+      const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.04, 8), toonMaterial('#5fb34f', { map: null }));
+      leaf.position.set(0.05, 0.07, 0.093);
+      g.add(leaf);
+      const straw = toonMesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), '#ff5a8a', { outline: 0.15 });
+      straw.position.set(0.06, 0.28, 0);
+      straw.rotation.z = -0.3;
+      g.add(straw);
+      break;
+    }
+    case 'bouncy_ball': {
+      // A shiny bouncy ball with a stripe round it.
+      const ball = toonMesh(new THREE.SphereGeometry(0.22, 20, 14), '#5bd16a', { outline: 0.06 });
+      g.add(ball);
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 28), toonMaterial('#ffd23a', { map: null }));
+      stripe.rotation.x = 0.4;
+      g.add(stripe);
+      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), toonMaterial('#ffffff', { map: null }));
+      shine.position.set(-0.08, 0.12, 0.15);
+      g.add(shine);
+      break;
+    }
+    case 'cardboard_wall': {
+      // A folded-up cardboard panel with tape and a "this way up" arrow.
+      for (const [y, r] of [[0, 0], [0.1, 0.06]] as const) {
+        const panel = toonMesh(new THREE.BoxGeometry(0.55, 0.08, 0.4), '#c9a27e', { outline: 0.06 });
+        panel.position.y = y;
+        panel.rotation.y = r;
+        g.add(panel);
+      }
+      const tape = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.42), toonMaterial('#e8d9b5', { map: null }));
+      tape.position.y = 0.05;
+      g.add(tape);
+      break;
+    }
   }
   return g;
 }
@@ -366,7 +426,7 @@ export class LootViews {
     const weapons = (Object.keys(config.weapons) as WeaponKind[]).map((kind) =>
       buildLoot({ id: 0, pos: { x: 0, y: 0 }, z: 0, rarity: 4, content: { type: 'weapon', weapon: { kind, rarity: 4, ammo: 0, nextFireTick: 0, reloadEndTick: null } } }),
     );
-    const items = (['cotton_puff', 'sewing_kit', 'button_pack'] as const).map((kind) =>
+    const items = (Object.keys(config.items) as ItemKind[]).map((kind) =>
       buildLoot({ id: 0, pos: { x: 0, y: 0 }, z: 0, rarity: 0, content: { type: 'item', item: { kind, count: 1 } } }),
     );
     // Parts share their shaders with the plushies (warmed up there); one is enough here.

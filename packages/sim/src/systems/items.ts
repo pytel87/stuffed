@@ -1,10 +1,17 @@
-// Using healing and armor items (keys 3-5).
+// Using items (keys 3-5): healing and armor, a Juice Box buff, a Bouncy Ball dash and a
+// Cardboard Wall.
 import { config, secondsToTicks } from '../config.ts';
-import type { GameState, Input, ItemKind, Player } from '../types.ts';
+import { clampLength1 } from '../math.ts';
+import type { GameState, Input, ItemKind, PlacedWall, Player } from '../types.ts';
 
-/** Whether using this item now would do anything (no healing at the cap, no armor at 100). */
+/**
+ * Whether using this item now would do anything (no healing at the cap, no armor at 100). A
+ * Cardboard Wall goes up only from the lawn (not from a roof or a crate top).
+ */
 export function canUseItem(player: Player, kind: ItemKind): boolean {
   const item = config.items[kind];
+  if (item.effect === 'wall') return player.z < 0.3;
+  if (item.effect) return true;
   const heals = item.stuffing > 0 && player.stuffing < item.stuffingCap;
   const armors = item.buttons > 0 && player.buttons < config.player.maxButtons;
   return heals || armors;
@@ -17,7 +24,7 @@ export function updateItemUse(state: GameState, player: Player, input: Input): v
     player.action = null;
     const stack = player.items[action.slot];
     if (!stack || stack.kind !== action.item) return;
-    applyItem(player, action.item);
+    applyItem(state, player, action.item, null);
     stack.count--;
     if (stack.count <= 0) player.items[action.slot] = null;
     state.events.push({ type: 'itemUsed', playerId: player.id, item: action.item });
@@ -27,6 +34,14 @@ export function updateItemUse(state: GameState, player: Player, input: Input): v
   if (input.useItemSlot === -1) return;
   const stack = player.items[input.useItemSlot];
   if (!stack || !canUseItem(player, stack.kind)) return;
+  if (config.items[stack.kind].useTime <= 0) {
+    // Instant (Bouncy Ball): used right away, without stopping to use it.
+    applyItem(state, player, stack.kind, input);
+    stack.count--;
+    if (stack.count <= 0) player.items[input.useItemSlot] = null;
+    state.events.push({ type: 'itemUsed', playerId: player.id, item: stack.kind });
+    return;
+  }
   // Starting an item cancels opening a chest.
   player.action = {
     kind: 'useItem',
@@ -37,10 +52,67 @@ export function updateItemUse(state: GameState, player: Player, input: Input): v
   };
 }
 
-function applyItem(player: Player, kind: ItemKind): void {
+function applyItem(state: GameState, player: Player, kind: ItemKind, input: Input | null): void {
   const item = config.items[kind];
   if (item.stuffing > 0 && player.stuffing < item.stuffingCap) {
     player.stuffing = Math.min(item.stuffingCap, player.stuffing + item.stuffing);
   }
   if (item.buttons > 0) player.buttons = Math.min(config.player.maxButtons, player.buttons + item.buttons);
+  if (item.effect === 'juice') player.juiceUntil = state.tick + secondsToTicks(config.itemEffects.juice.seconds);
+  if (item.effect === 'dash') dash(state, player, input);
+  if (item.effect === 'wall') placeWall(state, player);
+}
+
+/** Bouncy Ball: a burst of speed where you're moving (or aiming, standing still), with a hop. */
+function dash(state: GameState, player: Player, input: Input | null): void {
+  const move = input ? clampLength1(input.moveX, input.moveY) : { x: 0, y: 0 };
+  const len = Math.hypot(move.x, move.y);
+  const dir = len > 0.2 ? { x: move.x / len, y: move.y / len } : player.aim;
+  const { speed, hop } = config.itemEffects.dash;
+  player.knockback.x += dir.x * speed;
+  player.knockback.y += dir.y * speed;
+  if (player.vz === 0) player.vz = hop;
+  state.events.push({ type: 'dash', playerId: player.id });
+}
+
+/**
+ * Cardboard Wall: stands up in front of you, across your aim (walls are boxes, so it faces the
+ * nearest of the four directions). Each plush has only so many up at once; the oldest goes.
+ */
+function placeWall(state: GameState, player: Player): void {
+  const w = config.itemEffects.wall;
+  const cx = player.pos.x + player.aim.x * w.distance;
+  const cy = player.pos.y + player.aim.y * w.distance;
+  const across = Math.abs(player.aim.x) >= Math.abs(player.aim.y);
+  const sizeX = across ? w.thickness : w.length;
+  const sizeY = across ? w.length : w.thickness;
+  const wall: PlacedWall = {
+    id: state.nextId++,
+    ownerId: player.id,
+    x: cx - sizeX / 2,
+    y: cy - sizeY / 2,
+    w: sizeX,
+    h: sizeY,
+    height: w.height,
+    kind: 'cardboard',
+    health: w.health,
+    expireTick: state.tick + secondsToTicks(w.seconds),
+  };
+  const mine = state.placedWalls.filter((p) => p.ownerId === player.id);
+  if (mine.length >= w.perPlayer) removeWall(state, mine[0]!.id);
+  state.placedWalls.push(wall);
+  state.events.push({ type: 'wallPlaced', wallId: wall.id, playerId: player.id });
+}
+
+/** Removes a placed wall in place (the world points at the same list). */
+export function removeWall(state: GameState, id: number): void {
+  const i = state.placedWalls.findIndex((w) => w.id === id);
+  if (i !== -1) state.placedWalls.splice(i, 1);
+}
+
+/** Cardboard Walls fold away when their time is up. */
+export function expireWalls(state: GameState): void {
+  for (let i = state.placedWalls.length - 1; i >= 0; i--) {
+    if (state.tick >= state.placedWalls[i]!.expireTick) state.placedWalls.splice(i, 1);
+  }
 }

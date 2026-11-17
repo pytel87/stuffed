@@ -17,6 +17,7 @@ import { EndScreen, type EndView } from './ui/end-screen.ts';
 import { escapeHtml } from './ui/escape.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Help } from './ui/help.ts';
+import { HitDirection } from './ui/hit-direction.ts';
 import { Hud } from './ui/hud.ts';
 import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
@@ -60,6 +61,7 @@ setModelPictures(renderModelIcons());
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
+const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu);
 const menu = new MenuScreen(document.body, playerName(), {
@@ -136,6 +138,7 @@ function beginMatch(next: GameSession): void {
   lobbyScreen?.hide();
   knockedOutBy = '';
   soloReported = false;
+  hitDirection.clear();
   endScreen.setKept(null);
   me = undefined;
   hudEl.classList.remove('out');
@@ -269,6 +272,8 @@ function frame(now: number): void {
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(state, e.byId);
+    // Hit by someone else: point toward where it came from.
+    if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
     // Solo: what you carried when knocked out decides what you can keep.
     if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.parts, false);
   }
@@ -289,6 +294,7 @@ function frame(now: number): void {
     time: now / 1000,
   });
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
+  hitDirection.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos, me?.z ?? 0);
 
   hud.update(state, me, f.alpha);
   touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));

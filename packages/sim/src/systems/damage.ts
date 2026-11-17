@@ -1,4 +1,4 @@
-import type { EntityId, GameState, Player } from '../types.ts';
+import type { EntityId, GameState, Player, Vec2 } from '../types.ts';
 
 /**
  * Buttons (armor) absorb damage first; the rest comes out of stuffing. `ignoreArmor` skips
@@ -9,7 +9,7 @@ export function applyDamage(
   target: Player,
   amount: number,
   sourceId: EntityId | null,
-  { ignoreArmor = false }: { ignoreArmor?: boolean } = {},
+  { ignoreArmor = false, from }: { ignoreArmor?: boolean; from?: Vec2 } = {},
 ): void {
   if (!target.alive || amount <= 0) return;
   const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
@@ -17,7 +17,7 @@ export function applyDamage(
   const damage = amount - armorDamage;
   const removed = armorDamage + Math.min(damage, Math.max(0, target.stuffing));
   target.stuffing -= damage;
-  state.events.push({ type: 'hit', targetId: target.id, sourceId, damage, armorDamage });
+  state.events.push({ type: 'hit', targetId: target.id, sourceId, damage, armorDamage, ...(from ? { from } : {}) });
   const source = sourceId === null ? undefined : state.players.find((p) => p.id === sourceId);
   if (source && source.id !== target.id) source.damageDealt += removed; // no credit for overkill
   if (target.stuffing <= 0) eliminate(state, target, sourceId);

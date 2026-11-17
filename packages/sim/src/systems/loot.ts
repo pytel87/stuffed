@@ -5,7 +5,7 @@ import { ANIMALS, PART_SLOTS } from '../parts.ts';
 import { pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
-import type { World } from '../world.ts';
+import { wallsNear, type World } from '../world.ts';
 import { groundHeight } from './movement.ts';
 import { makeWeapon } from './weapons.ts';
 
@@ -266,8 +266,7 @@ function removeLoot(state: GameState, id: number): void {
 function pushOutOfWalls(world: World, pos: Vec2, r: number, z: number): void {
   for (let pass = 0; pass < 3; pass++) {
     let moved = false;
-    for (const i of world.walls.query(pos.x - r, pos.y - r, pos.x + r, pos.y + r)) {
-      const wall = world.map.walls[i]!;
+    for (const wall of wallsNear(world, pos.x - r, pos.y - r, pos.x + r, pos.y + r)) {
       if (wall.height <= z + config.player.stepHeight) continue;
       const push = circleBoxPush(pos.x, pos.y, r, wall);
       if (!push) continue;

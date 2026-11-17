@@ -91,6 +91,8 @@ export class Effects {
   private readonly glass: ParticlePool[];
   private readonly stars: ParticlePool;
   private readonly soap: ParticlePool;
+  private readonly cardboardBits: ParticlePool;
+  private readonly juiceDrops: ParticlePool;
   private readonly waves: Shockwave[] = [];
   private readonly emitters: Emitter[] = [];
   private readonly ringGeo = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2);
@@ -117,7 +119,26 @@ export class Effects {
     }
     this.stars = new ParticlePool(scene, new THREE.ExtrudeGeometry(star, { depth: 0.3, bevelEnabled: false }), toonMaterial('#ffd23a', { map: null }));
     this.soap = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.6 }));
+    this.cardboardBits = new ParticlePool(scene, new THREE.BoxGeometry(1, 0.25, 1), toonMaterial('#c9a27e', { map: null }));
+    this.juiceDrops = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }));
     this.scene = scene;
+  }
+
+  /** A Cardboard Wall going up (small puff) or getting shot down / folding away (bits fly). */
+  cardboard(x: number, z: number, broke: boolean): void {
+    if (broke) this.burst(this.cardboardBits, x, 0.8, z, 0, 0, 14, 4, 0.18, 0.9, 12);
+    else this.burst(this.cotton, x, 0.2, z, 0, 0, 6, 2, 0.08, 0.4, 0);
+  }
+
+  /** A Bouncy Ball dash: a puff behind and a little ring. */
+  dash(x: number, z: number): void {
+    this.burst(this.cotton, x, 0.2, z, 0, 0, 8, 2.5, 0.09, 0.45, 0);
+    this.shockwave(x, 0.06, z, 1.2, '#5bd16a');
+  }
+
+  /** Juice Box at work: an orange droplet rising off the plush now and then. */
+  juice(x: number, y: number, z: number): void {
+    this.burst(this.juiceDrops, x, y + 0.9, z, 0, 0, 1, 0.6, 0.05, 0.6, -2);
   }
 
   private readonly scene: THREE.Scene;
@@ -131,6 +152,8 @@ export class Effects {
     this.glitterBurst(-500, 0.5, -500, 2, 0.1);
     this.bonk(-500, -500);
     this.bubblePop(-500, 0.8, -500);
+    this.cardboard(-500, -500, true);
+    this.juice(-500, 0, -500);
   }
 
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */
@@ -164,7 +187,11 @@ export class Effects {
   }
 
   private shockwave(x: number, y: number, z: number, radius: number, color: string): void {
-    const mesh = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
+    // Adds light (rather than covering the ground) so it reads bright on grass.
+    const mesh = new THREE.Mesh(
+      this.ringGeo,
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }),
+    );
     mesh.position.set(x, y, z);
     this.scene.add(mesh);
     this.waves.push({ mesh, life: 0.4, maxLife: 0.4, radius });
@@ -238,6 +265,8 @@ export class Effects {
     for (const pool of this.glass) pool.update(dt);
     this.stars.update(dt);
     this.soap.update(dt);
+    this.cardboardBits.update(dt);
+    this.juiceDrops.update(dt);
 
     for (let i = this.waves.length - 1; i >= 0; i--) {
       const w = this.waves[i]!;

@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 4.3: Four new items, hit direction (2026-11-17)
+
+- Big Stuffing Bag (full stuffing, 8 s), Juice Box (+5 stuffing/s for 10 s and 15% faster),
+  Bouncy Ball (an instant dash where you move, with a hop) and Cardboard Wall (stands up in front
+  of you for 20 s; blocks plushies and shots until shot down; up to 3 each, only from the lawn).
+  Placed walls count everywhere a wall does (movement, shots, line of sight, standing on top) and
+  are sent to clients like the other slow parts. Models, effects and sounds for all four.
+- Hit direction: when you're hit, a red arc around your plush points to where it came from
+  (back along the shot, the burst, the swinger), even if the shooter is hidden.
+- The invisible stop at the yard's edge moved far out into the water: the Rinse's foam is the
+  edge of play.
+- Burst rings add light so they read bright on the grass.
+
 ## Textures and fixes (2026-11-17)
 
 - More detailed surfaces: a mottled lawn with grass blades, sand with ripples and pebbles, soil

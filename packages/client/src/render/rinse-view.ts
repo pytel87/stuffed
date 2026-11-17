@@ -62,7 +62,8 @@ export class RinseView {
   constructor(map: MapData) {
     const size = Math.max(map.width, map.height) * 3;
     this.mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+      // Tiled, like the lawn: huge triangles get their depth wrong on some GPUs.
+      new THREE.PlaneGeometry(size, size, 24, 24).rotateX(-Math.PI / 2),
       new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms: this.uniforms, transparent: true, depthWrite: false }),
     );
     this.mesh.position.set(map.width / 2, WATER_HEIGHT, map.height / 2);

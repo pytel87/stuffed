@@ -1,8 +1,9 @@
 import { config, DT, secondsToTicks, type WeaponStats } from '../config.ts';
 import { segmentBoxT } from '../collision/geometry.ts';
-import type { Box, GameState, Player, Projectile, Vec2 } from '../types.ts';
-import { raycastWalls, type World } from '../world.ts';
+import type { Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
+import { raycastWalls, wallsNear, type World } from '../world.ts';
 import { applyDamage } from './damage.ts';
+import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
 
 /**
@@ -54,14 +55,14 @@ export function updateProjectiles(world: World, state: GameState): void {
     let wallT = Infinity;
     /** What it hit first: a wall box or a chest (for bouncing off it). */
     let wallHit: { box: Box } | { chest: Vec2 } | null = null;
-    const candidates = world.walls.query(
+    const candidates = wallsNear(
+      world,
       Math.min(proj.pos.x, proj.pos.x + dx) - r,
       Math.min(proj.pos.y, proj.pos.y + dy) - r,
       Math.max(proj.pos.x, proj.pos.x + dx) + r,
       Math.max(proj.pos.y, proj.pos.y + dy) + r,
     );
-    for (const i of candidates) {
-      const wall = world.map.walls[i]!;
+    for (const wall of candidates) {
       if (lowest >= wall.height) continue;
       const t = segmentBoxT(proj.pos.x, proj.pos.y, dx, dy, wall, r);
       if (t !== null && t < wallT && proj.z + dz * t - r < wall.height) {
@@ -81,6 +82,15 @@ export function updateProjectiles(world: World, state: GameState): void {
     if (wallT !== Infinity && wallT <= hitT) {
       const at = { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT };
       const zAt = proj.z + dz * wallT;
+      // A Cardboard Wall takes the hit and breaks once it's had enough.
+      if (wallHit && 'box' in wallHit && 'health' in wallHit.box) {
+        const placed = wallHit.box as PlacedWall;
+        placed.health -= proj.damage;
+        if (placed.health <= 0) {
+          removeWall(state, placed.id);
+          state.events.push({ type: 'wallBroken', wallId: placed.id, pos: { x: placed.x + placed.w / 2, y: placed.y + placed.h / 2 } });
+        }
+      }
       if (proj.bounces && proj.bounces > 0 && wallHit) {
         // Marbles bounce off walls (and chests) a couple of times before they burst.
         bounceOff(proj, at, wallHit);
@@ -111,7 +121,9 @@ export function updateProjectiles(world: World, state: GameState): void {
         hit.action = null;
         state.events.push({ type: 'bubble', playerId: hit.id, trapped: true });
       }
-      applyDamage(state, hit, proj.damage, proj.ownerId);
+      // Where it came from: a few units back along its path.
+      const back = 3 / (len || 1);
+      applyDamage(state, hit, proj.damage, proj.ownerId, { from: { x: at.x - proj.vel.x * back, y: at.y - proj.vel.y * back } });
       continue;
     }
 
@@ -182,7 +194,7 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
       p.knockback.x += ((p.pos.x - at.x) / d) * push;
       p.knockback.y += ((p.pos.y - at.y) / d) * push;
     }
-    applyDamage(state, p, proj.damage * (1 - (1 - config.combat.blastEdgeDamage) * share), proj.ownerId);
+    applyDamage(state, p, proj.damage * (1 - (1 - config.combat.blastEdgeDamage) * share), proj.ownerId, { from: { x: at.x, y: at.y } });
   }
   state.events.push({ type: 'burst', pos: { x: at.x, y: at.y }, z, weapon: proj.weapon, radius });
 }

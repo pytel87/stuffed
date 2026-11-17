@@ -1,6 +1,7 @@
+import { config, DT } from './config.ts';
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { checkWinner } from './systems/damage.ts';
-import { updateItemUse } from './systems/items.ts';
+import { expireWalls, updateItemUse } from './systems/items.ts';
 import { autoPickupItems, dropEverything, hasDrops, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
@@ -18,6 +19,9 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   if (state.status === 'ended') return state;
   state.tick++;
   state.events = [];
+  // Walls put up this match count as walls for everything below.
+  expireWalls(state);
+  world.placed = state.placedWalls;
 
   const clean = new Map<EntityId, Input>();
   for (const player of state.players) {
@@ -36,6 +40,9 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     const input = clean.get(player.id)!;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
+    if (state.tick < player.juiceUntil) {
+      player.stuffing = Math.min(config.player.maxStuffing, player.stuffing + config.itemEffects.juice.regenPerSecond * DT);
+    }
     if (state.tick < player.bubbledUntil) {
       // In a bubble: nothing but floating there.
       player.chargeStartTick = null;
@@ -67,6 +74,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
  * server hasn't confirmed yet on top of the confirmed state.
  */
 export function predictPlayer(world: World, state: GameState, player: Player, raw: Input): void {
+  world.placed = state.placedWalls;
   const input = sanitizeInput(raw);
   player.lastInputSeq = input.seq;
   applyAim(player, input);

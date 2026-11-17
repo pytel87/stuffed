@@ -22,6 +22,7 @@ interface Seen {
   opening: boolean;
   charging: boolean;
   bubbled: boolean;
+  bagging: boolean;
 }
 
 export class GameAudio {
@@ -92,9 +93,24 @@ export class GameAudio {
         }
         case 'itemUsed': {
           const p = byId.get(e.playerId);
-          if (p) s.play(e.item === 'button_pack' ? 'armor_up' : 'heal', { at: p.pos, volume: 0.8 });
+          const sound: SoundName | null =
+            e.item === 'button_pack' ? 'armor_up' : e.item === 'juice_box' ? 'juice_slurp' : e.item === 'bouncy_ball' || e.item === 'cardboard_wall' ? null : 'heal';
+          if (p && sound) s.play(sound, { at: p.pos, volume: 0.8 });
           break;
         }
+        case 'dash': {
+          const p = byId.get(e.playerId);
+          if (p) s.play('ball_boing', { at: p.pos, volume: 0.8 });
+          break;
+        }
+        case 'wallPlaced': {
+          const p = byId.get(e.playerId);
+          if (p) s.play('cardboard_place', { at: p.pos, volume: 0.8 });
+          break;
+        }
+        case 'wallBroken':
+          s.play('impact', { at: e.pos, volume: 0.9 });
+          break;
         case 'zone':
           if (e.stage === 'shrinking') s.play('rinse_rising', { volume: 0.8, pitchSpread: 0 });
           break;
@@ -113,6 +129,7 @@ export class GameAudio {
         opening: p.action?.kind === 'openChest',
         charging: p.chargeStartTick !== null,
         bubbled: state.tick < p.bubbledUntil,
+        bagging: p.action?.kind === 'useItem' && p.action.item === 'big_stuffing_bag',
       };
       const before = this.seen.get(p.id);
       this.seen.set(p.id, now);
@@ -125,6 +142,7 @@ export class GameAudio {
       if (!before.opening && now.opening) s.play('chest_rattle', { at: p.pos, volume: mine ? 0.7 : 0.4 });
       if (!before.charging && now.charging) s.play('band_stretch', { at: p.pos, volume: mine ? 0.6 : 0.35, pitchSpread: 0 });
       if (before.bubbled && !now.bubbled) s.play('bubble_pop', { at: p.pos, volume: 0.7 });
+      if (!before.bagging && now.bagging) s.play('bag_rustle', { at: p.pos, volume: mine ? 0.7 : 0.4 });
     }
   }
 }

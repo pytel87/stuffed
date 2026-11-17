@@ -1,7 +1,7 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
-import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
+import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
 
 export const PROTOCOL_VERSION = 2;
 /** Plushies per match, humans and bots together. */
@@ -106,7 +106,7 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius'>;
 export interface SeenPlayer extends Pick<
   Player,
   | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
-  | 'chargeStartTick' | 'bubbledUntil' | 'blindedUntil'
+  | 'chargeStartTick' | 'bubbledUntil' | 'blindedUntil' | 'juiceUntil'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
 }
@@ -130,13 +130,14 @@ export interface CompactSnapshot {
   ev: GameEvent[];
   chests?: Chest[];
   loot?: GroundLoot[];
+  walls?: PlacedWall[];
   zone?: ZonePlan;
   roster?: RosterEntry[];
   fallen?: Player[];
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'zone' | 'roster' | 'fallen', string>>;
+export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'zone' | 'roster' | 'fallen', string>>;
 
 /**
  * Builds one player's update. `visible` are the living plushies this player may see (their own
@@ -156,7 +157,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     others.push({
       id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
-      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, blindedUntil: p.blindedUntil,
+      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, blindedUntil: p.blindedUntil, juiceUntil: p.juiceUntil,
       weapons: [look(p.weapons[0]), look(p.weapons[1])],
     });
   }
@@ -176,6 +177,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
   const slow = {
     chests: state.chests,
     loot: state.loot,
+    walls: state.placedWalls,
     zone: zonePlan,
     roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius })),
     fallen: state.players.filter((p) => !p.alive),
@@ -193,13 +195,14 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
 export interface SnapshotParts {
   chests: Chest[];
   loot: GroundLoot[];
+  walls: PlacedWall[];
   zone: ZonePlan | null;
   roster: Map<EntityId, RosterEntry>;
   fallen: Player[];
 }
 
 export function emptySnapshotParts(): SnapshotParts {
-  return { chests: [], loot: [], zone: null, roster: new Map(), fallen: [] };
+  return { chests: [], loot: [], walls: [], zone: null, roster: new Map(), fallen: [] };
 }
 
 /**
@@ -209,6 +212,7 @@ export function emptySnapshotParts(): SnapshotParts {
 export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { state: GameState; events: GameEvent[] } | null {
   if (msg.chests) parts.chests = msg.chests;
   if (msg.loot) parts.loot = msg.loot;
+  if (msg.walls) parts.walls = msg.walls;
   if (msg.zone) parts.zone = msg.zone;
   if (msg.roster) parts.roster = new Map(msg.roster.map((r) => [r.id, r]));
   if (msg.fallen) parts.fallen = msg.fallen;
@@ -249,6 +253,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     projectiles: msg.projectiles.map((q) => ({ ...q, ownerId: 0, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
     chests: parts.chests,
     loot: parts.loot,
+    placedWalls: parts.walls,
     zone,
     events: [],
     mapId: msg.mapId,

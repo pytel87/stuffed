@@ -16,7 +16,7 @@ export type Rarity = 0 | 1 | 2 | 3 | 4;
 export type WeaponKind =
   | 'cork_popper' | 'foam_dart_smg' | 'super_soaker'
   | 'rubber_band_rifle' | 'marble_launcher' | 'pillow_hammer' | 'glitter_bomb' | 'bubble_wand';
-export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack';
+export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'bouncy_ball' | 'cardboard_wall';
 
 /** Held-button bitfield carried in Input.buttons. */
 export const Btn = {
@@ -140,6 +140,8 @@ export interface Player {
   bubbledUntil: Tick;
   /** Glitter in the eyes until this tick: sees only what's very close. */
   blindedUntil: Tick;
+  /** A Juice Box keeps healing and speeding this plush up until this tick. */
+  juiceUntil: Tick;
   parts: PartLoadout;
   /** One spare part, not shown on the plush. Q swaps it with the part worn in its slot. */
   stash: Part | null;
@@ -215,7 +217,8 @@ export interface Zone {
 
 export type GameEvent =
   | { type: 'shot'; playerId: EntityId; weapon: WeaponKind }
-  | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number }
+  /** `from`: where the damage came from (back along the shot, a burst's middle, the swinger), for a direction hint. */
+  | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number; from?: Vec2 }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
@@ -234,6 +237,11 @@ export type GameEvent =
   | { type: 'bounce'; pos: Vec2 }
   /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
   | { type: 'bonk'; playerId: EntityId; targetId: EntityId }
+  /** A Bouncy Ball dash. */
+  | { type: 'dash'; playerId: EntityId }
+  /** A Cardboard Wall went up, or was shot down. */
+  | { type: 'wallPlaced'; wallId: EntityId; playerId: EntityId }
+  | { type: 'wallBroken'; wallId: EntityId; pos: Vec2 }
   /** A plush got trapped in a bubble (or popped out of one). */
   | { type: 'bubble'; playerId: EntityId; trapped: boolean };
 
@@ -250,6 +258,8 @@ export interface GameState {
   projectiles: Projectile[];
   chests: Chest[];
   loot: GroundLoot[];
+  /** Cardboard Walls standing right now, oldest first. */
+  placedWalls: PlacedWall[];
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
@@ -268,6 +278,14 @@ export interface Box {
 export type WallKind =
   | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
   | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket';
+
+/** A Cardboard Wall someone put up: a wall that breaks when shot enough and folds away in time. */
+export interface PlacedWall extends Wall {
+  id: EntityId;
+  ownerId: EntityId;
+  health: number;
+  expireTick: Tick;
+}
 
 /** A solid box standing on the ground. Plushies can jump onto and over walls low enough. */
 export interface Wall extends Box {

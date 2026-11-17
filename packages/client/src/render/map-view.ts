@@ -6,7 +6,7 @@ import { checkerTexture, dirtTexture, lawnTexture, plankTexture, sandTexture, st
 import { toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
-const LAWN_BEYOND = 48;
+const LAWN_BEYOND = 64;
 /** Patches and grass stop a little earlier; it's all underwater past there anyway. */
 const DECOR_BEYOND = 24;
 
