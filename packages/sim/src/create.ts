@@ -41,6 +41,7 @@ export function createGame({ seed, map, roster }: CreateGameOptions): GameState 
       items: [null, null, null],
       action: null,
       inBush: false,
+      building: -1,
       revealedUntilTick: 0,
       parts: rollParts(rng, entry.parts),
       lastInputSeq: -1,

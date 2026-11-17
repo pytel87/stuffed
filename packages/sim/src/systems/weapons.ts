@@ -2,6 +2,7 @@ import { config, secondsToTicks } from '../config.ts';
 import { nextRange } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
+import { raycastWalls, type World } from '../world.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
 const REVEAL_TICKS = secondsToTicks(config.combat.revealOnShot);
@@ -32,7 +33,7 @@ export function reloadTicks(w: WeaponInstance): number {
   return secondsToTicks(config.weapons[w.kind].reloadTime * (1 - config.rarity[w.rarity].reloadReduction));
 }
 
-export function updateWeapons(state: GameState, player: Player, input: Input): void {
+export function updateWeapons(world: World, state: GameState, player: Player, input: Input): void {
   handleSwap(state, player, input);
 
   const weapon = player.weapons[player.activeSlot];
@@ -50,7 +51,7 @@ export function updateWeapons(state: GameState, player: Player, input: Input): v
   const canFire = weapon.reloadEndTick === null && weapon.ammo > 0 && state.tick >= weapon.nextFireTick;
   if (!(input.buttons & Btn.Fire) || !canFire) return;
 
-  fire(state, player, weapon);
+  fire(world, state, player, weapon);
   weapon.ammo--;
   weapon.nextFireTick = state.tick + Math.max(1, secondsToTicks(stats.fireInterval));
   if (weapon.ammo === 0) weapon.reloadEndTick = state.tick + reloadTicks(weapon);
@@ -72,11 +73,17 @@ function handleSwap(state: GameState, player: Player, input: Input): void {
   player.action = null;
 }
 
-function fire(state: GameState, player: Player, weapon: WeaponInstance): void {
+function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance): void {
   const stats = config.weapons[weapon.kind];
   const base = Math.atan2(player.aim.y, player.aim.x);
   const cone = stats.spreadDegrees * DEG;
-  const muzzle = muzzlePosition(player.pos, player.aim, weapon.kind);
+  // A barrel poking through a wall fires from where it meets the wall, so the shot stops there.
+  const tip = muzzlePosition(player.pos, player.aim, weapon.kind);
+  const blocked = raycastWalls(world, player.pos, tip, stats.projectileRadius);
+  const muzzle =
+    blocked === null
+      ? tip
+      : { x: player.pos.x + (tip.x - player.pos.x) * blocked, y: player.pos.y + (tip.y - player.pos.y) * blocked };
   const damage = weaponDamage(weapon);
   const lifeTicks = Math.max(1, secondsToTicks(stats.range / stats.projectileSpeed));
 

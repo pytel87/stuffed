@@ -1,13 +1,16 @@
 import { createGame, createWorld, NEUTRAL_INPUT, step, TEST_MAP } from '../src/index.ts';
-import type { EntityId, GameState, Input, RosterEntry } from '../src/index.ts';
+import type { EntityId, GameState, Input, MapData, RosterEntry } from '../src/index.ts';
+
+/** The test map's size and spawns with no walls or bushes, so tests control the terrain. */
+export const OPEN_MAP: MapData = { ...TEST_MAP, id: 'open', walls: [], bushes: [], buildings: [] };
 
 export function roster(count: number): RosterEntry[] {
   return Array.from({ length: count }, (_, i) => ({ name: i === 0 ? 'you' : `bot ${i}`, isBot: i > 0 }));
 }
 
-export function newGame(seed = 1, players = 4) {
-  const world = createWorld(TEST_MAP);
-  const state = createGame({ seed, map: TEST_MAP, roster: roster(players) });
+export function newGame(seed = 1, players = 4, map: MapData = OPEN_MAP) {
+  const world = createWorld(map);
+  const state = createGame({ seed, map, roster: roster(players) });
   return { world, state };
 }
 

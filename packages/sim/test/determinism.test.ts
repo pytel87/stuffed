@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Btn, rng } from '../src/index.ts';
+import { Btn, rng, TEST_MAP } from '../src/index.ts';
 import type { EntityId, Input } from '../src/index.ts';
 import { input, newGame, run } from './helpers.ts';
 
@@ -28,15 +28,15 @@ function scriptedInputs(seed: number) {
 
 describe('determinism', () => {
   it('same seed + same inputs = same state', () => {
-    const a = newGame(123, 16);
-    const b = newGame(123, 16);
+    const a = newGame(123, 16, TEST_MAP);
+    const b = newGame(123, 16, TEST_MAP);
     run(a.world, a.state, 900, scriptedInputs(9));
     run(b.world, b.state, 900, scriptedInputs(9));
     expect(JSON.stringify(a.state)).toEqual(JSON.stringify(b.state));
   });
 
   it('a cloned mid-game state continues identically', () => {
-    const a = newGame(5, 16);
+    const a = newGame(5, 16, TEST_MAP);
     run(a.world, a.state, 300, scriptedInputs(1));
     const b = { world: a.world, state: structuredClone(a.state) };
     const inputsA = scriptedInputs(2);
@@ -46,23 +46,26 @@ describe('determinism', () => {
     expect(b.state).toEqual(a.state);
   });
 
-  it('the scripted match actually exercises combat', () => {
-    const a = newGame(123, 16);
+  it('the scripted match on the walled map exercises combat and walls', () => {
+    const a = newGame(123, 16, TEST_MAP);
     let shots = 0;
     let hits = 0;
+    let impacts = 0;
     const script = scriptedInputs(9);
     for (let t = 0; t < 900; t++) {
       run(a.world, a.state, 1, script);
       shots += a.state.events.filter((e) => e.type === 'shot').length;
       hits += a.state.events.filter((e) => e.type === 'hit').length;
+      impacts += a.state.events.filter((e) => e.type === 'impact').length;
     }
     expect(shots).toBeGreaterThan(100);
-    expect(hits).toBeGreaterThan(0);
+    expect(impacts).toBeGreaterThan(0);
+    expect(hits + impacts).toBeGreaterThan(10);
   });
 
   it('different seeds give different games', () => {
-    const a = newGame(1, 16);
-    const b = newGame(2, 16);
+    const a = newGame(1, 16, TEST_MAP);
+    const b = newGame(2, 16, TEST_MAP);
     expect(a.state.players.map((p) => p.pos)).not.toEqual(b.state.players.map((p) => p.pos));
   });
 });

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { muzzlePosition } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, MapData, Player, Vec2 } from '@stuffed/sim';
+import { canSee, createWorld, muzzlePosition } from '@stuffed/sim';
+import type { EntityId, GameEvent, GameState, MapData, Player, Vec2, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { buildMapView } from './map-view.ts';
+import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
 
@@ -34,6 +35,9 @@ export class GameRenderer {
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
   private readonly hit = new THREE.Vector3();
+  private readonly world: World;
+  private readonly bushes: BushView[];
+  private readonly roofs: RoofView[];
   private debug = false;
   /** Interpolated position of the local player in the last rendered frame. */
   readonly localPlayerPos: Vec2 = { x: 0, y: 0 };
@@ -54,6 +58,11 @@ export class GameRenderer {
     this.scene.add(this.sun, this.sun.target);
 
     this.scene.add(buildMapView(map));
+    const obstacles = buildObstacles(map);
+    this.scene.add(obstacles.root);
+    this.bushes = obstacles.bushes;
+    this.roofs = obstacles.roofs;
+    this.world = createWorld(map);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -109,6 +118,9 @@ export class GameRenderer {
           if (source?.weapons[source.activeSlot]?.kind === 'super_soaker') this.effects.splash(target.pos.x, target.pos.y);
           break;
         }
+        case 'impact':
+          this.effects.impact(e.pos.x, e.pos.y, e.weapon === 'super_soaker');
+          break;
         case 'eliminated': {
           const p = byId.get(e.playerId);
           if (p) this.effects.knockout(p.pos.x, p.pos.y);
@@ -124,6 +136,7 @@ export class GameRenderer {
     const { prev, curr, alpha } = frame;
     const prevById = new Map<EntityId, Player>(prev.players.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();
+    const me = curr.players.find((p) => p.id === opts.localPlayerId);
 
     for (const p of curr.players) {
       if (!p.alive) continue;
@@ -144,6 +157,8 @@ export class GameRenderer {
       const vel = lerp2(before.vel, p.vel, alpha);
       const aim = p.id === opts.localPlayerId ? opts.localAim : lerpDir(before.aim, p.aim, alpha);
       view.update(pos, vel, aim, opts.dt, opts.time);
+      // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
+      view.root.visible = this.debug || !me || canSee(this.world, curr, me, p);
 
       if (p.id === opts.localPlayerId) {
         this.localPlayerPos.x = pos.x;
@@ -160,6 +175,8 @@ export class GameRenderer {
 
     this.projectiles.update(prev, curr, alpha);
     this.effects.update(opts.dt);
+    updateBushes(this.bushes, this.localPlayerPos.x, this.localPlayerPos.y);
+    updateRoofs(this.roofs, me?.building ?? -1, this.debug, opts.dt);
 
     this.rig.update(this.localPlayerPos, opts.aimOffset, opts.dt);
     // Keep the shadow camera centered on what the player sees.

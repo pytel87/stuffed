@@ -39,6 +39,9 @@ and rarities, add `?loadout=kind:rarity,kind:rarity` to the URL, for example
 `?loadout=foam_dart_smg:2,super_soaker:4`. Kinds: `cork_popper`, `foam_dart_smg`,
 `super_soaker`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
 
+Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current
+seed). Parameters combine: `?seed=7&loadout=foam_dart_smg:3`.
+
 ## Layout
 
 ```
@@ -62,4 +65,11 @@ apps/server       Placeholder for the Colyseus authoritative server (roadmap ste
   accessory). Placeholder parts are built in code in
   [placeholder-parts.ts](packages/client/src/render/placeholder-parts.ts); real models replace
   them per slot without changing the rig.
+- **Collision**: walls are boxes in a static spatial hash (`world.walls`); plushies and
+  projectiles are circles. Movement substeps and slides along walls; projectiles use swept
+  tests so nothing tunnels.
+- **Hiding**: walls block bullets but not sight (the camera looks over them). You hide in
+  bushes (until you shoot) and under roofs: a plush inside a building is hidden from everyone
+  outside it, and that roof fades for whoever is inside. `canSee()` holds these rules; the
+  client uses it to decide what to draw, and the server will use it to decide what to send.
 - **Units**: 1 world unit = 1 plush width. Sim `(x, y)` maps to three.js `(x, 0, y)`.

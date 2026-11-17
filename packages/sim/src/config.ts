@@ -117,6 +117,13 @@ export const config = {
     muzzleSide: 0.24,
   },
 
+  vision: {
+    /** Farthest distance a plush can see another (beyond the screen edge). */
+    range: 30,
+    /** A plush hidden in a bush is still seen from this close. */
+    bushRevealDistance: 1.5,
+  },
+
   weapons,
   rarity,
 } as const;

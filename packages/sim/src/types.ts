@@ -85,6 +85,8 @@ export interface Player {
   items: [ItemStack | null, ItemStack | null, ItemStack | null];
   action: PlayerAction | null;
   inBush: boolean;
+  /** Index into MapData.buildings of the roofed building this plush stands in, or -1. */
+  building: number;
   /** Visible to others until this tick even inside a bush (set by shooting). */
   revealedUntilTick: Tick;
   parts: PartLoadout;
@@ -143,7 +145,9 @@ export type GameEvent =
   | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
-  | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number };
+  | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
+  /** A projectile stopped against a wall. */
+  | { type: 'impact'; pos: Vec2; weapon: WeaponKind };
 
 export type RngState = [number, number, number, number];
 
@@ -179,6 +183,11 @@ export interface MapData {
   height: number;
   walls: Box[];
   bushes: Circle[];
+  /**
+   * Roofed areas. A plush inside one is hidden from everyone outside it; the roof fades
+   * for players inside. Walls themselves do not block sight.
+   */
+  buildings: Box[];
   spawns: Vec2[];
   chestSpawns: Vec2[];
 }

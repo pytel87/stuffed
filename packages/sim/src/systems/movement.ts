@@ -1,11 +1,15 @@
 import { config, DT } from '../config.ts';
+import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
-import type { Input, Player } from '../types.ts';
+import type { GameState, Input, Player } from '../types.ts';
 import type { World } from '../world.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
 const KNOCKBACK_KEEP = Math.exp(-config.player.knockbackDecay * DT);
+/** Longest move per collision substep; well under the player radius so walls can't be skipped. */
+const MAX_SUBSTEP = 0.35;
+const WALL_PASSES = 3;
 
 export function applyAim(player: Player, input: Input): void {
   const aim = normalizeOrNull(input.aimX, input.aimY);
@@ -15,19 +19,108 @@ export function applyAim(player: Player, input: Input): void {
 export function movePlayer(world: World, player: Player, input: Input): void {
   const move = clampLength1(input.moveX, input.moveY);
   const speed = config.player.moveSpeed;
-  const targetX = move.x * speed;
-  const targetY = move.y * speed;
+  player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
+  player.vel.y += (move.y * speed - player.vel.y) * ACCEL_BLEND;
 
-  player.vel.x += (targetX - player.vel.x) * ACCEL_BLEND;
-  player.vel.y += (targetY - player.vel.y) * ACCEL_BLEND;
-
-  player.pos.x += (player.vel.x + player.knockback.x) * DT;
-  player.pos.y += (player.vel.y + player.knockback.y) * DT;
+  const dx = (player.vel.x + player.knockback.x) * DT;
+  const dy = (player.vel.y + player.knockback.y) * DT;
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / MAX_SUBSTEP));
+  for (let i = 0; i < steps; i++) {
+    player.pos.x += dx / steps;
+    player.pos.y += dy / steps;
+    resolveWalls(world, player);
+  }
   player.knockback.x *= KNOCKBACK_KEEP;
   player.knockback.y *= KNOCKBACK_KEEP;
+  clampToMap(world, player);
+}
 
-  const { width, height } = world.map;
+/** Pushes the player out of any wall it overlaps and removes velocity into those walls (sliding). */
+export function resolveWalls(world: World, player: Player): void {
   const r = player.radius;
-  player.pos.x = clamp(player.pos.x, r, width - r);
-  player.pos.y = clamp(player.pos.y, r, height - r);
+  for (let pass = 0; pass < WALL_PASSES; pass++) {
+    const { x, y } = player.pos;
+    let moved = false;
+    for (const i of world.walls.query(x - r, y - r, x + r, y + r)) {
+      const push = circleBoxPush(player.pos.x, player.pos.y, r, world.map.walls[i]!);
+      if (!push) continue;
+      player.pos.x += push.nx * push.depth;
+      player.pos.y += push.ny * push.depth;
+      removeInto(player.vel, push.nx, push.ny);
+      removeInto(player.knockback, push.nx, push.ny);
+      moved = true;
+    }
+    if (!moved) return;
+  }
+}
+
+/**
+ * Plushies are solid to each other: overlapping pairs are pushed apart equally.
+ * Pairs are visited in id order so the result is deterministic.
+ */
+export function separatePlayers(world: World, state: GameState): void {
+  const alive = state.players.filter((p) => p.alive);
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = alive[i]!;
+      const b = alive[j]!;
+      let dx = b.pos.x - a.pos.x;
+      let dy = b.pos.y - a.pos.y;
+      const min = a.radius + b.radius;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2);
+      const half = (min - d) / 2;
+      if (d < 1e-9) {
+        // Exactly on top of each other: split along x.
+        dx = 1;
+        dy = 0;
+      } else {
+        dx /= d;
+        dy /= d;
+      }
+      a.pos.x -= dx * half;
+      a.pos.y -= dy * half;
+      b.pos.x += dx * half;
+      b.pos.y += dy * half;
+      resolveWalls(world, a);
+      resolveWalls(world, b);
+      clampToMap(world, a);
+      clampToMap(world, b);
+    }
+  }
+}
+
+/** Index of the roofed building containing the point, or -1. */
+export function buildingAt(world: World, x: number, y: number): number {
+  const buildings = world.map.buildings;
+  for (let i = 0; i < buildings.length; i++) {
+    const b = buildings[i]!;
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return i;
+  }
+  return -1;
+}
+
+/** True if the point is inside any bush. */
+export function insideBush(world: World, x: number, y: number): boolean {
+  for (const b of world.map.bushes) {
+    const dx = x - b.center.x;
+    const dy = y - b.center.y;
+    if (dx * dx + dy * dy <= b.radius * b.radius) return true;
+  }
+  return false;
+}
+
+function clampToMap(world: World, player: Player): void {
+  const r = player.radius;
+  player.pos.x = clamp(player.pos.x, r, world.map.width - r);
+  player.pos.y = clamp(player.pos.y, r, world.map.height - r);
+}
+
+function removeInto(v: { x: number; y: number }, nx: number, ny: number): void {
+  const dot = v.x * nx + v.y * ny;
+  if (dot < 0) {
+    v.x -= nx * dot;
+    v.y -= ny * dot;
+  }
 }

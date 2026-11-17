@@ -101,6 +101,12 @@ export class Effects {
     this.burst(water ? this.water : this.cotton, x, 0.65, z, dirX, dirZ, water ? 4 : 2, 2, 0.05, 0.25, 0);
   }
 
+  /** A projectile stopping against a wall: a splash for water, a puff of fluff for the rest. */
+  impact(x: number, z: number, water: boolean): void {
+    if (water) this.burst(this.water, x, 0.6, z, 0, 0, 4, 2, 0.05, 0.35, 10);
+    else this.burst(this.cotton, x, 0.6, z, 0, 0, 3, 1.5, 0.06, 0.35, 3);
+  }
+
   /** A plush bursts into a pile of fluff when Unstitched. */
   knockout(x: number, z: number): void {
     this.burst(this.cotton, x, 0.7, z, 0, 0, 36, 5, 0.14, 1.4, 6);

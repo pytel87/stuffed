@@ -1,11 +1,13 @@
 import { DT } from '../config.ts';
+import { segmentBoxT } from '../collision/geometry.ts';
 import type { GameState, Player, Projectile } from '../types.ts';
 import type { World } from '../world.ts';
 import { applyDamage } from './damage.ts';
 
 /**
- * Moves projectiles with a swept test so fast ones can't skip through a plush between ticks.
- * The earliest hit along the path wins; ties go to the lower player id (deterministic).
+ * Moves projectiles with a swept test so fast ones can't skip through a plush or a wall
+ * between ticks. The earliest hit along the path wins; on equal t a wall beats a plush and a
+ * lower player id beats a higher one (deterministic).
  */
 export function updateProjectiles(world: World, state: GameState): void {
   const survivors: Projectile[] = [];
@@ -23,6 +25,23 @@ export function updateProjectiles(world: World, state: GameState): void {
         hit = p;
         hitT = t;
       }
+    }
+
+    let wallT = Infinity;
+    const r = proj.radius;
+    const candidates = world.walls.query(
+      Math.min(proj.pos.x, proj.pos.x + dx) - r,
+      Math.min(proj.pos.y, proj.pos.y + dy) - r,
+      Math.max(proj.pos.x, proj.pos.x + dx) + r,
+      Math.max(proj.pos.y, proj.pos.y + dy) + r,
+    );
+    for (const i of candidates) {
+      const t = segmentBoxT(proj.pos.x, proj.pos.y, dx, dy, world.map.walls[i]!, r);
+      if (t !== null && t < wallT) wallT = t;
+    }
+    if (wallT !== Infinity && wallT <= hitT) {
+      state.events.push({ type: 'impact', pos: { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT }, weapon: proj.weapon });
+      continue;
     }
 
     if (hit) {

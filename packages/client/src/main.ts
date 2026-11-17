@@ -12,7 +12,10 @@ const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const debugEl = document.querySelector<HTMLElement>('#debug')!;
 
 const input = new KeyboardMouseInput(canvas);
-const session = new LocalSession(input, { seed: Date.now() >>> 0, loadout: loadoutFromUrl() });
+const params = new URLSearchParams(location.search);
+// ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs.
+const seed = Number(params.get('seed')) || Date.now() >>> 0;
+const session = new LocalSession(input, { seed, loadout: loadoutFromUrl() });
 const renderer = new GameRenderer(canvas, session.map);
 const debug = new DebugOverlay(debugEl, (on) => renderer.setDebug(on));
 const hud = new Hud(document.querySelector<HTMLElement>('#hud')!);
@@ -23,7 +26,8 @@ const aimOffset = { x: 0, y: 0 };
 let me: Player | undefined;
 
 function frame(now: number): void {
-  const dt = Math.min(0.1, (now - last) / 1000);
+  // The first rAF timestamp can be earlier than performance.now() at startup: never go negative.
+  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
   last = now;
 
   if (input.pointer) {
@@ -67,10 +71,13 @@ function frame(now: number): void {
   me = f.curr.players.find((p) => p.id === session.localPlayerId);
   hud.update(f.curr, me);
   debug.update(dt, {
+    seed,
     tick: f.curr.tick,
     pos: me ? `${me.pos.x.toFixed(1)}, ${me.pos.y.toFixed(1)}` : '-',
     speed: me ? Math.hypot(me.vel.x, me.vel.y).toFixed(2) : '-',
     alive: f.curr.players.filter((p) => p.alive).length,
+    bush: me?.inBush ? 'hidden' : '-',
+    roof: me && me.building !== -1 ? `building ${me.building}` : '-',
     proj: f.curr.projectiles.length,
     zone: 'not started',
   });
@@ -83,7 +90,7 @@ function frame(now: number): void {
  * ?loadout=foam_dart_smg:2,super_soaker:4 (kind:rarity, rarity 0-4).
  */
 function loadoutFromUrl(): WeaponSpec[] {
-  const param = new URLSearchParams(location.search).get('loadout');
+  const param = params.get('loadout');
   if (!param) return [{ kind: 'cork_popper', rarity: 0 }, { kind: 'super_soaker', rarity: 2 }];
   return param
     .split(',')
