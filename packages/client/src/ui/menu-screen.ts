@@ -1,4 +1,5 @@
 import { parseRoomCode } from '@stuffed/sim/net';
+import { icon } from './icons.ts';
 
 export interface MenuActions {
   solo: (name: string) => void;
@@ -6,7 +7,7 @@ export interface MenuActions {
   join: (name: string, code: string) => void;
 }
 
-/** Title menu: your name, Play solo, Create a room, Join with a code. */
+/** Title menu: your name, Solo, Room (create), and a code field to join. */
 export class MenuScreen {
   private readonly el: HTMLElement;
   private readonly name: HTMLInputElement;
@@ -17,31 +18,26 @@ export class MenuScreen {
   constructor(root: HTMLElement, initialName: string, actions: MenuActions) {
     root.insertAdjacentHTML(
       'beforeend',
-      `<div class="menu" hidden>
-         <div class="menu-card">
-           <h1 class="menu-title">STUFFED</h1>
-           <p class="menu-tag">Last plush standing</p>
-           <label class="menu-label" for="menu-name">Your name</label>
-           <input id="menu-name" class="menu-input" maxlength="16" autocomplete="nickname" spellcheck="false">
-           <div class="menu-actions">
-             <button type="button" class="menu-solo">Play solo</button>
-             <button type="button" class="menu-create">Create a room</button>
+      `<div class="overlay menu" hidden>
+         <div class="card">
+           <h1 class="logo">STUFFED</h1>
+           <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
+           <div class="row">
+             <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
+             <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
            </div>
-           <form class="menu-join">
-             <label class="menu-label" for="menu-code">Have a room code?</label>
-             <div class="menu-join-row">
-               <input id="menu-code" class="menu-input menu-code" maxlength="4" placeholder="BNFJ" autocomplete="off" spellcheck="false">
-               <button type="submit">Join</button>
-             </div>
+           <form class="row menu-join">
+             <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Room code"></label>
+             <button type="submit" class="round primary" aria-label="Join">${icon('arrow')}</button>
            </form>
-           <p class="menu-error" role="alert"></p>
+           <p class="error" role="alert"></p>
          </div>
        </div>`,
     );
     this.el = root.querySelector<HTMLElement>('.menu')!;
     this.name = this.el.querySelector('#menu-name')!;
     this.code = this.el.querySelector('#menu-code')!;
-    this.error = this.el.querySelector('.menu-error')!;
+    this.error = this.el.querySelector('.error')!;
     this.buttons = [...this.el.querySelectorAll('button')];
     this.name.value = initialName;
 
@@ -51,7 +47,7 @@ export class MenuScreen {
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {
       e.preventDefault();
       const code = parseRoomCode(this.code.value);
-      if (!code) return this.showError('Room codes are 4 letters, like BNFJ.');
+      if (!code) return this.showError('4 letters, like BNFJ');
       actions.join(name(), code);
     });
     this.code.addEventListener('input', () => (this.code.value = this.code.value.toUpperCase()));
@@ -64,7 +60,6 @@ export class MenuScreen {
   show(): void {
     this.el.hidden = false;
     this.setBusy(false);
-    this.name.focus();
   }
 
   hide(): void {

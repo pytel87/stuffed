@@ -1,19 +1,20 @@
 import { MAX_PLAYERS } from '@stuffed/sim/net';
 import type { RoomClient } from '../session/room-client.ts';
+import { escapeHtml } from './escape.ts';
+import { icon } from './icons.ts';
 
-/** Room card before a match: the code to share, who's in, bots, and Start for the host. */
+/** Room card before a match: the code to share, who's in, bots, Start (host) and Leave. */
 export class LobbyScreen {
   private readonly el: HTMLElement;
   private readonly code: HTMLElement;
-  private readonly link: HTMLInputElement;
+  private readonly share: HTMLButtonElement;
   private readonly list: HTMLElement;
   private readonly botsRow: HTMLElement;
   private readonly botCount: HTMLElement;
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
-  private wantedBots = 7;
-
   private readonly nameInput: HTMLInputElement;
+  private wantedBots = 7;
 
   constructor(
     root: HTMLElement,
@@ -23,41 +24,40 @@ export class LobbyScreen {
   ) {
     root.insertAdjacentHTML(
       'beforeend',
-      `<div class="end lobby" hidden role="dialog" aria-modal="true" aria-labelledby="lobby-title">
-         <div class="end-card">
-           <div class="end-placement">Room <span class="lobby-code"></span></div>
-           <h1 id="lobby-title">Waiting for plushies</h1>
-           <div class="lobby-name">
-             <label for="lobby-name-input">Your name</label>
-             <input id="lobby-name-input" class="menu-input" maxlength="16" spellcheck="false">
+      `<div class="overlay lobby" hidden>
+         <div class="card">
+           <div class="room-code"><span class="code"></span><button type="button" class="round lobby-share" aria-label="Share invite">${icon('share')}</button></div>
+           <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="Your name"></label>
+           <ul class="chips"></ul>
+           <div class="bots">${icon('bot')}
+             <button type="button" class="round small lobby-less" aria-label="Fewer bots">−</button>
+             <b class="bot-count"></b>
+             <button type="button" class="round small lobby-more" aria-label="More bots">+</button>
            </div>
-           <div class="lobby-share">
-             <input id="lobby-link" class="lobby-link" readonly aria-label="Invite link">
-             <button type="button" class="lobby-copy">Copy link</button>
-           </div>
-           <ul class="lobby-players"></ul>
-           <div class="lobby-bots"><span>Bots</span>
-             <button type="button" class="lobby-less" aria-label="Fewer bots">−</button>
-             <b class="lobby-bot-count"></b>
-             <button type="button" class="lobby-more" aria-label="More bots">+</button>
-           </div>
-           <p class="end-subtitle lobby-status"></p>
-           <div class="end-actions">
-             <button type="button" class="end-again lobby-start">Start <kbd>Enter</kbd></button>
-             <button type="button" class="lobby-leave">Leave</button>
+           <p class="status"></p>
+           <div class="row">
+             <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
+             <button type="button" class="round lobby-leave" aria-label="Leave">${icon('door')}</button>
            </div>
          </div>
        </div>`,
     );
     this.el = root.querySelector<HTMLElement>('.lobby')!;
-    this.code = this.el.querySelector('.lobby-code')!;
-    this.link = this.el.querySelector('#lobby-link')!;
-    this.list = this.el.querySelector('.lobby-players')!;
-    this.botsRow = this.el.querySelector('.lobby-bots')!;
-    this.botCount = this.el.querySelector('.lobby-bot-count')!;
-    this.start = this.el.querySelector('.lobby-start')!;
-    this.status = this.el.querySelector('.lobby-status')!;
-    this.nameInput = this.el.querySelector('#lobby-name-input')!;
+    const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
+    this.code = q('.code');
+    this.share = q('.lobby-share');
+    this.list = q('.chips');
+    this.botsRow = q('.bots');
+    this.botCount = q('.bot-count');
+    this.start = q('.lobby-start');
+    this.status = q('.status');
+    this.nameInput = q('#lobby-name-input');
+
+    this.start.addEventListener('click', () => this.client.start(this.wantedBots));
+    q('.lobby-less').addEventListener('click', () => this.setBots(this.wantedBots - 1));
+    q('.lobby-more').addEventListener('click', () => this.setBots(this.wantedBots + 1));
+    q('.lobby-leave').addEventListener('click', onLeave);
+    this.share.addEventListener('click', () => void this.shareInvite());
     const commitName = () => {
       const name = this.nameInput.value.trim().slice(0, 16);
       if (name) onRename(name);
@@ -65,13 +65,6 @@ export class LobbyScreen {
     this.nameInput.addEventListener('change', commitName);
     this.nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.nameInput.blur();
-    });
-    this.el.querySelector('.lobby-leave')!.addEventListener('click', onLeave);
-    this.start.addEventListener('click', () => this.client.start(this.wantedBots));
-    this.el.querySelector('.lobby-less')!.addEventListener('click', () => this.setBots(this.wantedBots - 1));
-    this.el.querySelector('.lobby-more')!.addEventListener('click', () => this.setBots(this.wantedBots + 1));
-    this.el.querySelector('.lobby-copy')!.addEventListener('click', () => {
-      navigator.clipboard?.writeText(this.link.value).catch(() => this.link.select());
     });
   }
 
@@ -101,26 +94,30 @@ export class LobbyScreen {
     const c = this.client;
     const lobby = c.lobby;
     this.code.textContent = c.code;
-    const url = new URL(location.href);
-    url.search = `?room=${c.code}`;
-    this.link.value = url.toString();
     const humans = lobby?.seats.filter((s) => s.connected).length ?? 0;
     this.setBots(this.wantedBots, humans);
     const mine = lobby?.seats.find((s) => s.seat === c.seat);
     if (mine && document.activeElement !== this.nameInput) this.nameInput.value = mine.name;
-    this.list.replaceChildren(
-      ...(lobby?.seats ?? []).map((s) => {
-        const li = document.createElement('li');
-        li.textContent = s.name + (s.seat === c.seat ? ' (you)' : '');
-        if (s.host) li.dataset.host = 'true';
-        if (!s.connected) li.dataset.away = 'true';
-        return li;
-      }),
-    );
+    this.list.innerHTML = (lobby?.seats ?? [])
+      .map((s) => `<li class="${s.seat === c.seat ? 'me' : ''} ${s.connected ? '' : 'away'}">${icon(s.host ? 'crown' : 'person')}<span>${escapeHtml(s.name)}</span></li>`)
+      .join('');
     this.botsRow.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
-    this.status.textContent =
-      c.status !== 'open' ? 'Connecting to the server…' : c.error === 'full' ? 'This room is full.' : c.isHost ? 'Share the link, then start.' : 'Waiting for the host to start…';
+    this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? 'Full' : c.isHost ? '' : 'Waiting for host…';
+  }
+
+  private async shareInvite(): Promise<void> {
+    const url = new URL(location.href);
+    url.search = `?room=${this.client.code}`;
+    const link = url.toString();
+    try {
+      if (navigator.share) await navigator.share({ title: 'STUFFED', url: link });
+      else await navigator.clipboard.writeText(link);
+      this.share.classList.add('done');
+      setTimeout(() => this.share.classList.remove('done'), 1200);
+    } catch {
+      // cancelled or not allowed: nothing to do
+    }
   }
 
   private setBots(n: number, humans = this.client.lobby?.seats.filter((s) => s.connected).length ?? 1): void {

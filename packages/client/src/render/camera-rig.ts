@@ -48,10 +48,12 @@ export class CameraRig {
     }
 
     const pitch = THREE.MathUtils.degToRad(CAMERA.pitchDegrees);
+    // Narrower than 16:9 (tablets, portrait): back off so you see as far to the sides.
+    const distance = CAMERA.distance * Math.max(1, Math.sqrt(16 / 9 / this.camera.aspect));
     this.camera.position.set(
       this.target.x,
-      this.target.y + Math.sin(pitch) * CAMERA.distance,
-      this.target.z + Math.cos(pitch) * CAMERA.distance,
+      this.target.y + Math.sin(pitch) * distance,
+      this.target.z + Math.cos(pitch) * distance,
     );
     this.camera.lookAt(this.target);
   }

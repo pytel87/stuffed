@@ -2,16 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#8ccdee" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="STUFFED" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
     <title>STUFFED</title>
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="floaters"></div>
-    <div id="hud">
-      <div class="hint">WASD move · Space jump · mouse aim · click shoot · 1 / 2 / wheel swap · R reload · E open / pick up · 3–5 use item · M mute · F1 debug</div>
-    </div>
+    <div id="hud"></div>
     <div id="spectating" hidden></div>
+    <div class="rotate" aria-hidden="true"></div>
     <pre id="debug" hidden></pre>
     <script type="module" src="/src/main.ts"></script>
   </body>

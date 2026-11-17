@@ -3,8 +3,10 @@ import type { Input, Vec2 } from '@stuffed/sim';
 import type { InputSource } from '../session/session.ts';
 
 /**
- * Keyboard + mouse. Held keys are read at each sim tick; one-shot presses (weapon slot,
- * item use, wheel) are latched until the next sample() so a short tap is never lost.
+ * Keyboard + mouse, plus a "virtual" side that on-screen controls write into (touch sticks
+ * and buttons, tappable HUD slots). Held keys are read at each sim tick; one-shot presses
+ * (weapon slot, item use, wheel, reload tap) are latched until the next sample() so a short
+ * tap is never lost.
  */
 export class KeyboardMouseInput implements InputSource {
   /** Cursor position in client pixels, or null before the mouse has moved over the canvas. */
@@ -19,6 +21,12 @@ export class KeyboardMouseInput implements InputSource {
   private weaponSlot: Input['weaponSlot'] = -1;
   private cycleWeapon = false;
   private useItemSlot: Input['useItemSlot'] = -1;
+  /** On-screen stick movement, -1..1 per axis. */
+  readonly virtualMove: Vec2 = { x: 0, y: 0 };
+  /** On-screen buttons currently held (Btn bits). */
+  virtualButtons = 0;
+  /** Buttons pressed for exactly one tick (e.g. a reload tap). */
+  private tapButtons = 0;
 
   constructor(target: HTMLElement) {
     window.addEventListener('keydown', (e) => {
@@ -40,7 +48,8 @@ export class KeyboardMouseInput implements InputSource {
       this.pointer = { x: e.clientX, y: e.clientY };
     });
     target.addEventListener('pointerdown', (e) => {
-      if (e.button === 0) this.fireHeld = true;
+      // Touches go through the on-screen controls, not "click to shoot".
+      if (e.button === 0 && e.pointerType !== 'touch') this.fireHeld = true;
     });
     window.addEventListener('pointerup', (e) => {
       if (e.button === 0) this.fireHeld = false;
@@ -65,10 +74,23 @@ export class KeyboardMouseInput implements InputSource {
     return this.aim;
   }
 
+  selectWeapon(slot: 0 | 1): void {
+    this.weaponSlot = slot;
+  }
+
+  useItem(slot: 0 | 1 | 2): void {
+    this.useItemSlot = slot;
+  }
+
+  reload(): void {
+    this.tapButtons |= Btn.Reload;
+  }
+
   sample(): Input {
     const k = this.keys;
-    const moveX = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
-    const moveY = (k.has('KeyS') ? 1 : 0) - (k.has('KeyW') ? 1 : 0);
+    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+    const moveX = clamp((k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0) + this.virtualMove.x);
+    const moveY = clamp((k.has('KeyS') ? 1 : 0) - (k.has('KeyW') ? 1 : 0) + this.virtualMove.y);
     const input: Input = {
       seq: this.seq++,
       moveX,
@@ -79,7 +101,9 @@ export class KeyboardMouseInput implements InputSource {
         (this.fireHeld ? Btn.Fire : 0) |
         (k.has('KeyE') ? Btn.Interact : 0) |
         (k.has('KeyR') ? Btn.Reload : 0) |
-        (k.has('Space') ? Btn.Jump : 0),
+        (k.has('Space') ? Btn.Jump : 0) |
+        this.virtualButtons |
+        this.tapButtons,
       weaponSlot: this.weaponSlot,
       cycleWeapon: this.cycleWeapon,
       useItemSlot: this.useItemSlot,
@@ -87,6 +111,7 @@ export class KeyboardMouseInput implements InputSource {
     this.weaponSlot = -1;
     this.cycleWeapon = false;
     this.useItemSlot = -1;
+    this.tapButtons = 0;
     return input;
   }
 }

@@ -2,6 +2,26 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Mobile play and a new look (2026-11-17)
+
+- Plays on phones and tablets. Twin sticks appear under your thumbs: left half moves, right
+  half aims, and a longer drag shoots. There are Jump and Grab buttons; Grab lights up when
+  there's something to pick up. Tap a weapon card to switch to it (tap the one in hand to
+  reload), and tap an item to use it. Aim assist snaps to a visible plush within 15°. Touch
+  mode turns on with a touch and off when a mouse moves.
+- Landscape layout with safe-area insets (notches) and a "turn your phone" screen in portrait.
+  Fullscreen (with a landscape lock on Android) is in ⚙. A web app manifest and icons let the
+  game be added to the home screen.
+- Phones render at up to 1.5x with smaller shadow maps. The camera backs off on screens
+  narrower than 16:9.
+- UI rework with almost no text: icon set in the game's style, stitched cards for the menu,
+  lobby, results and help, and the ⚙ sheet (sound, fullscreen, controls, leave).
+- HUD: a single stuffing bar with buttons as a blue coat over it; ammo fills the lower part
+  of the weapon card in its rarity color (it drains as you shoot and refills while reloading); hotkeys are plain digits.
+  The E / Grab prompt and the opening bar float over the chest or weapon in the scene.
+- Results show placement, the knocker's weapon and name, and knockouts, damage and time as
+  icons.
+
 ## Step 2.4: Smaller updates and deploy setup (2026-11-17)
 
 - Compact snapshots (`encodeSnapshot` / `decodeSnapshot` in `@stuffed/sim/net`): every

@@ -75,6 +75,37 @@ at its top. Bots only produce `Input`s, the same as a player, so the server can 
 | Play again (after the match or a knockout) | Enter |
 | Mute / unmute sound | M |
 
+### On a phone or tablet
+
+Hold the device sideways (in portrait the game asks you to turn it). The ⚙ button has
+fullscreen, which on Android also locks landscape; on iPhone, "Add to Home Screen" opens
+the game fullscreen.
+
+| Action | Touch |
+| --- | --- |
+| Move | Drag anywhere on the left half (a stick appears under your thumb) |
+| Aim | Drag on the right half; a short drag aims, a longer one also shoots |
+| Jump | Arrow button, bottom right |
+| Open a chest / pick up a weapon | Hand button (lights up when there's something to grab; hold it for chests) |
+| Switch weapon / reload | Tap a weapon card; tap the one in hand to reload |
+| Use an item | Tap it |
+| Sound, fullscreen, controls, leave | ⚙ top right |
+
+With the aim stick held, aim snaps onto the nearest visible plush within 15° and 16 m.
+With the aim stick idle, your plush faces where it walks. Touch controls turn on with the first touch
+and off again when a mouse moves, so a laptop with a touchscreen works both ways.
+
+### The screen
+
+- The bar at the bottom (top-left on touch) is your stuffing. Buttons show as a blue coat
+  along its top, and they soak hits first.
+- The colored band along the bottom of a weapon card is its ammo, in the weapon's rarity
+  color. It drains as you shoot and refills in white while you reload.
+- What E or the hand would do floats over the chest or weapon itself. The opening bar floats
+  over the chest; the bar for using an item floats over your plush.
+- The water drop at the top counts down to the Rinse. When you're in the water, a badge
+  points back to dry land.
+
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the
 URL, for example

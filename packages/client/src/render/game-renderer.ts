@@ -77,7 +77,9 @@ export class GameRenderer {
     private readonly fixedQuality = false,
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    // Phones and tablets: dense screens, small GPUs. 1.5x still looks sharp at arm's length.
+    const handheld = matchMedia('(pointer: coarse)').matches;
+    this.pixelRatio = Math.min(handheld ? 1.5 : 2, window.devicePixelRatio || 1);
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -85,7 +87,7 @@ export class GameRenderer {
 
     this.scene.add(new THREE.HemisphereLight('#ffffff', '#9a8aa8', 1.25));
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.mapSize.setScalar(handheld ? 1024 : 2048);
     Object.assign(this.sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 60 });
     this.sun.shadow.bias = -0.0005;
     this.sun.shadow.normalBias = 0.02;

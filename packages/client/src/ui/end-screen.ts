@@ -1,49 +1,56 @@
+import { icon } from './icons.ts';
+
 export interface EndView {
   tone: 'win' | 'lose';
+  /** Short headline: "Winner!", "Unstitched!", "Over". */
   title: string;
-  subtitle: string;
-  /** e.g. "#3 of 16" */
+  /** Trusted HTML (icons plus escaped names), e.g. who knocked you out. */
+  subtitleHtml: string;
+  /** e.g. "#3" */
   placement: string;
-  stats: [label: string, value: string][];
+  /** Icon name and value. */
+  stats: [icon: string, value: string][];
   /** Offer to keep watching (only while the match is still going). */
   canSpectate: boolean;
-  /** Online, only the host can start the next match; others see this instead. */
+  /** Online, only the host can start the next match. */
   waitingForHost?: boolean;
 }
 
-/** The win/lose card: placement, stats, Play again (Enter) and Spectate. */
+/** The result card: placement, a few stats, Again (Enter), Spectate and Menu. */
 export class EndScreen {
   private readonly el: HTMLElement;
   private readonly title: HTMLElement;
   private readonly subtitle: HTMLElement;
   private readonly placement: HTMLElement;
   private readonly stats: HTMLElement;
+  private readonly again: HTMLButtonElement;
   private readonly spectate: HTMLButtonElement;
 
   constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void, onMenu: () => void) {
     root.insertAdjacentHTML(
       'beforeend',
-      `<div class="end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
-         <div class="end-card">
-           <div class="end-placement"></div>
+      `<div class="overlay end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
+         <div class="card">
+           <div class="place"></div>
            <h1 id="end-title"></h1>
-           <p class="end-subtitle"></p>
-           <dl class="end-stats"></dl>
-           <div class="end-actions">
-             <button type="button" class="end-again">Play again <kbd>Enter</kbd></button>
-             <button type="button" class="end-spectate">Spectate</button>
-             <button type="button" class="end-menu">Menu</button>
+           <p class="sub"></p>
+           <div class="stats"></div>
+           <div class="row">
+             <button type="button" class="big primary end-again"></button>
+             <button type="button" class="round end-spectate" aria-label="Spectate">${icon('eye')}</button>
+             <button type="button" class="round end-menu" aria-label="Menu">${icon('home')}</button>
            </div>
          </div>
        </div>`,
     );
     this.el = root.querySelector<HTMLElement>('.end')!;
     this.title = this.el.querySelector('h1')!;
-    this.subtitle = this.el.querySelector('.end-subtitle')!;
-    this.placement = this.el.querySelector('.end-placement')!;
-    this.stats = this.el.querySelector('.end-stats')!;
+    this.subtitle = this.el.querySelector('.sub')!;
+    this.placement = this.el.querySelector('.place')!;
+    this.stats = this.el.querySelector('.stats')!;
+    this.again = this.el.querySelector('.end-again')!;
     this.spectate = this.el.querySelector('.end-spectate')!;
-    this.el.querySelector('.end-again')!.addEventListener('click', onPlayAgain);
+    this.again.addEventListener('click', onPlayAgain);
     this.spectate.addEventListener('click', onSpectate);
     this.el.querySelector('.end-menu')!.addEventListener('click', onMenu);
   }
@@ -55,23 +62,14 @@ export class EndScreen {
   show(view: EndView): void {
     this.el.dataset.tone = view.tone;
     this.title.textContent = view.title;
-    this.subtitle.textContent = view.subtitle;
+    this.subtitle.innerHTML = view.subtitleHtml;
     this.placement.textContent = view.placement;
-    this.stats.replaceChildren(
-      ...view.stats.flatMap(([label, value]) => {
-        const dt = document.createElement('dt');
-        dt.textContent = label;
-        const dd = document.createElement('dd');
-        dd.textContent = value;
-        return [dt, dd];
-      }),
-    );
+    this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
     this.spectate.hidden = !view.canSpectate;
-    const again = this.el.querySelector<HTMLButtonElement>('.end-again')!;
-    again.disabled = !!view.waitingForHost;
-    again.innerHTML = view.waitingForHost ? 'Waiting for host…' : 'Play again <kbd>Enter</kbd>';
+    this.again.disabled = !!view.waitingForHost;
+    this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `${icon('play')}<span>Again</span><kbd>Enter</kbd>`;
     this.el.hidden = false;
-    (view.waitingForHost ? this.spectate : again).focus();
+    (view.waitingForHost ? this.spectate : this.again).focus();
   }
 
   hide(): void {

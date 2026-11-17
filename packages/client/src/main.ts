@@ -1,20 +1,25 @@
 import './style.css';
-import { config, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
+import { canSee, config, createWorld, muzzlePosition, TEST_MAP, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
-import type { EntityId, GameState, Player, Rarity, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import type { EntityId, GameState, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
+import { TouchControls } from './input/touch-controls.ts';
 import { GameRenderer } from './render/game-renderer.ts';
 import { LocalSession } from './session/local-session.ts';
 import { createRoom, RoomClient } from './session/room-client.ts';
 import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
 import { EndScreen, type EndView } from './ui/end-screen.ts';
+import { escapeHtml } from './ui/escape.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
+import { Help } from './ui/help.ts';
 import { Hud } from './ui/hud.ts';
+import { icon } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
 import { MenuScreen } from './ui/menu-screen.ts';
+import { Options } from './ui/options.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -22,6 +27,9 @@ const hudEl = document.querySelector<HTMLElement>('#hud')!;
 const spectateEl = document.querySelector<HTMLElement>('#spectating')!;
 
 const input = new KeyboardMouseInput(canvas);
+const touch = new TouchControls(input);
+/** For touch aim assist (who can be seen); the map is the same in every match. */
+const world = createWorld(TEST_MAP);
 const params = new URLSearchParams(location.search);
 const loadout = loadoutFromUrl();
 // ?zonescale=0.1 runs the Rinse 10x faster for testing.
@@ -42,7 +50,7 @@ let lobbyScreen: LobbyScreen | null = null;
 // ?quality=high keeps full resolution even if the frame rate drops.
 const renderer = new GameRenderer(canvas, newSolo().map, params.get('quality') === 'high');
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
-const hud = new Hud(hudEl);
+const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu);
@@ -67,6 +75,14 @@ const menu = new MenuScreen(document.body, playerName(), {
 });
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
+const help = new Help();
+const options = new Options({
+  toggleSound: () => sound.toggleMute(),
+  isMuted: () => sound.isMuted,
+  help: () => help.show(),
+  leave: showMenu,
+});
+document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon big');
 
 /** playing → out (card shown) → spectating (card hidden) → over (match ended), or playing → won. */
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
@@ -77,6 +93,8 @@ let knockedOutBy = '';
 let last = performance.now();
 const aimOffset = { x: 0, y: 0 };
 let me: Player | undefined;
+/** The state drawn last frame (touch aim assist looks for targets in it). */
+let shown: GameState | null = null;
 
 window.addEventListener('keydown', (e) => {
   // Typing a name or code: no hotkeys.
@@ -109,6 +127,7 @@ function beginMatch(next: GameSession): void {
   phase = watching ? 'spectating' : 'playing';
   followId = next.localPlayerId;
   spectateEl.hidden = !watching || isBackdrop(next);
+  options.setCanLeave(mode !== 'menu');
 }
 
 /** Back to the title menu: leave any room, watch bots in the background. */
@@ -121,6 +140,7 @@ function showMenu(): void {
   history.replaceState(null, '', location.pathname);
   mode = 'menu';
   beginMatch(newBackdrop());
+  help.hide();
   menu.show();
 }
 
@@ -187,7 +207,9 @@ function frame(now: number): void {
   const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
   last = now;
 
-  if (input.pointer && me?.alive) {
+  const touchMode = document.body.classList.contains('touch-mode');
+  if (touchMode && me?.alive && shown) aimByTouch(shown, me);
+  else if (input.pointer && me?.alive) {
     const cursor = renderer.screenToWorld(input.pointer.x, input.pointer.y);
     if (cursor) {
       const center = renderer.localPlayerPos;
@@ -215,6 +237,7 @@ function frame(now: number): void {
   }
   const f = session.frame();
   const state = f.curr;
+  shown = state;
   const events = session.takeEvents();
   renderer.playEvents(events, state);
   zoneHud.events(events);
@@ -246,6 +269,9 @@ function frame(now: number): void {
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
 
   hud.update(state, me, f.alpha);
+  touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));
+  touch.setGrabReady(hud.grabReady);
+  hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
   zoneHud.update(state, me, renderer.localPlayerPos, dt);
   debug.update(dt, {
     seed,
@@ -290,16 +316,16 @@ function updatePhase(state: GameState): void {
     // Watching a match you're not in: keep following someone; show the result at the end.
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
     const watched = state.players.find((p) => p.id === followId);
-    spectateEl.textContent = `Watching ${watched?.name ?? '…'} · ${state.players.filter((p) => p.alive).length} left`;
+    spectateEl.innerHTML = spectateBar(state, watched);
     if (phase !== 'over' && state.status === 'ended') {
       phase = 'over';
       spectateEl.hidden = true;
       const winner = state.players.find((p) => p.id === state.winnerId);
       endScreen.show({
         tone: 'lose',
-        title: 'Match over',
-        subtitle: winner ? `${winner.name} is the last plush standing.` : 'Nobody made it.',
-        placement: `${total} plushies`,
+        title: 'Over',
+        subtitleHtml: winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water'),
+        placement: `${total}`,
         stats: [],
         canSpectate: false,
         waitingForHost: !!room && !room.isHost,
@@ -312,7 +338,7 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     renderer.celebrate(me.id, state);
     sound.play('win', { pitchSpread: 0 });
-    endScreen.show({ ...resultView(state, me, 'win', 'Last plush standing!', `You outlasted ${total - 1} other plushies.`, false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, 'win', 'Winner!', `${icon('crown')}<span>${escapeHtml(me.name)}</span>`, false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -329,8 +355,8 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     spectateEl.hidden = true;
     const winner = state.players.find((p) => p.id === state.winnerId);
-    const subtitle = winner ? `${winner.name} is the last plush standing. ${knockedOutBy}` : `Nobody made it. ${knockedOutBy}`;
-    endScreen.show({ ...resultView(state, me, 'lose', 'Match over', subtitle, false), waitingForHost: !!room && !room.isHost });
+    const subtitle = winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water');
+    endScreen.show({ ...resultView(state, me, 'lose', 'Over', subtitle, false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -341,33 +367,80 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'spectating') {
     const watched = state.players.find((p) => p.id === followId);
-    spectateEl.textContent = `Spectating ${watched?.name ?? '…'} · ${state.players.filter((p) => p.alive).length} left · Enter to play again`;
+    spectateEl.innerHTML = spectateBar(state, watched);
   }
 }
 
-function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: string, subtitle: string, canSpectate: boolean): EndView {
+function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: string, subtitleHtml: string, canSpectate: boolean): EndView {
   const until = me.eliminatedTick ?? state.tick;
   return {
     tone,
     title,
-    subtitle,
-    placement: `#${me.placement ?? 1} of ${state.players.length}`,
+    subtitleHtml,
+    placement: `#${me.placement ?? 1}`,
     stats: [
-      ['Knockouts', String(me.knockouts)],
-      ['Damage dealt', String(Math.round(me.damageDealt))],
-      ['Survived', clock(until / config.tickRate)],
+      ['knockout', String(me.knockouts)],
+      ['damage', String(Math.round(me.damageDealt))],
+      ['timer', clock(until / config.tickRate)],
     ],
     canSpectate,
   };
 }
 
+/** Who knocked you out, as icons: their weapon (in its rarity color) and name, or the water. */
 function describeKiller(state: GameState, byId: EntityId | null): string {
-  if (byId === null) return 'The Rinse washed you out.';
+  if (byId === null) return icon('water');
   const killer = state.players.find((p) => p.id === byId);
   if (!killer) return '';
   const weapon = killer.weapons[killer.activeSlot];
-  const how = weapon ? ` with a ${config.rarity[weapon.rarity].name} ${config.weapons[weapon.kind].name}` : '';
-  return `Knocked out by ${killer.name}${how}.`;
+  const art = weapon ? `<span class="rarity" style="--rarity:${config.rarity[weapon.rarity].color}">${icon(weapon.kind)}</span>` : '';
+  return `${art}<span>${escapeHtml(killer.name)}</span>`;
+}
+
+function spectateBar(state: GameState, watched: Player | undefined): string {
+  const left = state.players.filter((p) => p.alive).length;
+  return `${icon('eye')}<span>${escapeHtml(watched?.name ?? '…')}</span>${icon('person')}<b>${left}</b>`;
+}
+
+/** Aim assist reach for touch: enemies within this angle and distance pull the aim onto them. */
+const ASSIST_ANGLE = (15 * Math.PI) / 180;
+const ASSIST_RANGE = 16;
+/** How far ahead a touch aim points when nobody is targeted (sets the shot's drop). */
+const TOUCH_AIM_DISTANCE = 8;
+const lastTouchAim: Vec2 = { x: 1, y: 0 };
+
+/**
+ * Touch aim: the right stick, or the walking direction when it's idle. With the stick held,
+ * the aim snaps to the nearest visible enemy close to where it points.
+ */
+function aimByTouch(state: GameState, me: Player): void {
+  const stick = touch.aim;
+  const moving = Math.hypot(input.virtualMove.x, input.virtualMove.y) > 0;
+  if (stick) Object.assign(lastTouchAim, stick);
+  else if (moving) Object.assign(lastTouchAim, { x: input.virtualMove.x, y: input.virtualMove.y });
+  const len = Math.hypot(lastTouchAim.x, lastTouchAim.y) || 1;
+  let dir = { x: lastTouchAim.x / len, y: lastTouchAim.y / len };
+  let distance = TOUCH_AIM_DISTANCE;
+  if (stick) {
+    let best = ASSIST_ANGLE;
+    for (const p of state.players) {
+      if (p.id === me.id || !p.alive || !canSee(world, state, me, p)) continue;
+      const dx = p.pos.x - me.pos.x;
+      const dy = p.pos.y - me.pos.y;
+      const d = Math.hypot(dx, dy);
+      if (d > ASSIST_RANGE || d < 1e-3) continue;
+      const off = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / d)));
+      if (off < best) {
+        best = off;
+        dir = { x: dx / d, y: dy / d };
+        distance = d;
+      }
+    }
+  }
+  input.setAim(dir.x * distance, dir.y * distance);
+  // The camera leans toward where the stick points, like it does toward the cursor.
+  aimOffset.x = stick ? dir.x * distance : 0;
+  aimOffset.y = stick ? dir.y * distance : 0;
 }
 
 function isAlive(state: GameState, id: EntityId): boolean {

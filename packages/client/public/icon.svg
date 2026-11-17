@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#8ccdee"/>
+  <rect x="28" y="28" width="456" height="456" rx="92" fill="none" stroke="#e0457b" stroke-width="10" stroke-dasharray="26 18"/>
+  <g stroke="#2a1f2d" stroke-width="18" stroke-linejoin="round">
+    <circle cx="150" cy="150" r="62" fill="#b5835a"/>
+    <circle cx="362" cy="150" r="62" fill="#b5835a"/>
+    <circle cx="150" cy="150" r="26" fill="#e9b48f" stroke-width="0"/>
+    <circle cx="362" cy="150" r="26" fill="#e9b48f" stroke-width="0"/>
+    <circle cx="256" cy="280" r="160" fill="#b5835a"/>
+    <ellipse cx="256" cy="335" rx="74" ry="56" fill="#e9b48f"/>
+  </g>
+  <ellipse cx="256" cy="312" rx="24" ry="17" fill="#2a1f2d"/>
+  <circle cx="196" cy="250" r="22" fill="#2a1f2d"/>
+  <circle cx="316" cy="250" r="22" fill="#2a1f2d"/>
+  <circle cx="189" cy="243" r="6" fill="#fff"/>
+  <circle cx="309" cy="243" r="6" fill="#fff"/>
+  <g stroke="#2a1f2d" stroke-width="12" stroke-linecap="round">
+    <path d="M330 170l50 50M380 170l-50 50" stroke="#fbf3e6" stroke-width="30"/>
+    <path d="M330 170l50 50M380 170l-50 50" stroke-width="8"/>
+  </g>
+</svg>

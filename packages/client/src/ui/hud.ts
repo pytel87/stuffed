@@ -1,143 +1,182 @@
 import { canUseItem, config, findInteraction, reloadTicks } from '@stuffed/sim';
-import type { GameState, Player } from '@stuffed/sim';
+import type { GameState, Player, Vec2 } from '@stuffed/sim';
+import * as THREE from 'three';
+import type { KeyboardMouseInput } from '../input/keyboard-mouse.ts';
+import { icon } from './icons.ts';
+
+/** Heights above the ground for things floating in the scene. */
+const PROMPT_HEIGHT = 1.5;
+const OVERHEAD_HEIGHT = 2.4;
 
 /**
- * Stuffing and buttons bars, the two weapon slots, three item slots, the E prompt and the
- * progress bar for opening chests and using items. Writes to the DOM only on change.
+ * In-match HUD, mostly icons: one toughness bar (stuffing, with buttons as a blue coat over it),
+ * the two weapon cards (ammo as a draining bar that refills while reloading; tap to switch, tap
+ * the active one to reload), three item slots (tap to use), and in the scene: what E/Grab would
+ * do, floating over the chest or item, and a progress bar over what's being opened or used.
+ * Writes to the DOM only on change.
  */
 export class Hud {
+  private readonly vitals: HTMLElement;
   private readonly stuffingFill: HTMLElement;
-  private readonly stuffingText: HTMLElement;
+  private readonly stuffingNum: HTMLElement;
   private readonly buttonsFill: HTMLElement;
-  private readonly buttonsText: HTMLElement;
-  private readonly slots: { root: HTMLElement; name: HTMLElement; ammo: HTMLElement; reload: HTMLElement }[];
-  private readonly itemSlots: { root: HTMLElement; name: HTMLElement; count: HTMLElement }[];
+  private readonly buttonsNum: HTMLElement;
+  private readonly weapons: { root: HTMLElement; art: HTMLElement; ammo: HTMLElement }[];
+  private readonly items: { root: HTMLElement; art: HTMLElement; count: HTMLElement }[];
   private readonly prompt: HTMLElement;
+  private readonly promptArt: HTMLElement;
   private readonly progress: HTMLElement;
-  private readonly progressLabel: HTMLElement;
+  private readonly progressArt: HTMLElement;
   private readonly progressFill: HTMLElement;
   private readonly cache = new Map<string, string>();
+  /** Where the prompt and progress float, in world space (null: not shown). */
+  private promptAnchor: Vec2 | null = null;
+  /** The chest being opened; null while using an item (the bar floats over the plush then). */
+  private progressChest: Vec2 | null = null;
+  private readonly v = new THREE.Vector3();
+  /** True when E/Grab would do something right now (lights the touch Grab button). */
+  grabReady = false;
 
-  constructor(root: HTMLElement) {
+  constructor(root: HTMLElement, input: KeyboardMouseInput) {
     root.insertAdjacentHTML(
       'beforeend',
-      `<div class="center-stack">
-         <div class="progress" hidden><span class="label"></span><div class="track"><div class="fill"></div></div></div>
-         <div class="prompt" hidden></div>
+      `<div class="vitals">
+         ${icon('stuffing')}
+         <div class="track"><div class="fill stuffing"></div><div class="fill buttons"></div></div>
+         <b class="num"></b>
+         <b class="coat" hidden>${icon('buttons')}<span></span></b>
        </div>
-       <div class="vitals">
-         <div class="bar buttons"><div class="fill"></div><span class="label"></span></div>
-         <div class="bar stuffing"><div class="fill"></div><span class="label"></span></div>
+       <div class="loadout">
+         <div class="items">
+           ${[0, 1, 2].map((i) => `<button type="button" class="item" data-item="${i}"><span class="art"></span><b class="count"></b><kbd>${i + 3}</kbd></button>`).join('')}
+         </div>
+         <div class="weapons">
+           ${[0, 1].map((i) => `<button type="button" class="weapon" data-slot="${i}"><span class="art"></span><kbd>${i + 1}</kbd><i class="ammo"><i></i></i></button>`).join('')}
+         </div>
        </div>
-       <div class="items">
-         ${[0, 1, 2]
-           .map((i) => `<div class="item" data-item="${i}"><span class="key">${i + 3}</span><span class="name"></span><span class="count"></span></div>`)
-           .join('')}
-       </div>
-       <div class="weapons">
-         ${[0, 1]
-           .map(
-             (i) => `<div class="slot" data-slot="${i}">
-               <span class="key">${i + 1}</span>
-               <span class="name"></span>
-               <span class="ammo"></span>
-               <div class="reload"></div>
-             </div>`,
-           )
-           .join('')}
-       </div>`,
+       <div class="progress in-world" hidden><span class="art"></span><div class="track"><div class="fill"></div></div></div>
+       <div class="prompt in-world" hidden><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span></div>`,
     );
-    const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
-    this.stuffingFill = q('.bar.stuffing .fill');
-    this.stuffingText = q('.bar.stuffing .label');
-    this.buttonsFill = q('.bar.buttons .fill');
-    this.buttonsText = q('.bar.buttons .label');
+    const q = <T extends HTMLElement = HTMLElement>(sel: string, from: ParentNode = root) => from.querySelector<T>(sel)!;
+    this.vitals = q('.vitals');
+    this.stuffingFill = q('.vitals .stuffing');
+    this.stuffingNum = q('.vitals .num');
+    this.buttonsFill = q('.vitals .buttons');
+    this.buttonsNum = q('.vitals .coat span');
     this.prompt = q('.prompt');
+    this.promptArt = q('.prompt .art');
     this.progress = q('.progress');
-    this.progressLabel = q('.progress .label');
+    this.progressArt = q('.progress .art');
     this.progressFill = q('.progress .fill');
-    this.slots = [0, 1].map((i) => {
-      const slot = q(`.slot[data-slot="${i}"]`);
-      return {
-        root: slot,
-        name: slot.querySelector<HTMLElement>('.name')!,
-        ammo: slot.querySelector<HTMLElement>('.ammo')!,
-        reload: slot.querySelector<HTMLElement>('.reload')!,
-      };
+
+    this.weapons = [0, 1].map((i) => {
+      const el = q(`.weapon[data-slot="${i}"]`);
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (el.classList.contains('active')) input.reload();
+        else input.selectWeapon(i as 0 | 1);
+      });
+      return { root: el, art: q('.art', el), ammo: q('.ammo > i', el) };
     });
-    this.itemSlots = [0, 1, 2].map((i) => {
-      const slot = q(`.item[data-item="${i}"]`);
-      return { root: slot, name: slot.querySelector<HTMLElement>('.name')!, count: slot.querySelector<HTMLElement>('.count')! };
+    this.items = [0, 1, 2].map((i) => {
+      const el = q(`.item[data-item="${i}"]`);
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        input.useItem(i as 0 | 1 | 2);
+      });
+      return { root: el, art: q('.art', el), count: q('.count', el) };
     });
   }
 
-  /** `alpha` is how far render time is past `state.tick` (0..1), for smooth progress bars. */
+  /** `alpha` is how far render time is past `state.tick` (0..1), for smooth progress. */
   update(state: GameState, me: Player | undefined, alpha: number): void {
     if (!me) return;
     const stuffing = Math.ceil(me.stuffing);
     const buttons = Math.ceil(me.buttons);
-    this.set('stuffingW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => (this.stuffingFill.style.width = v));
-    this.set('stuffingT', `${stuffing} stuffing`, (v) => (this.stuffingText.textContent = v));
-    this.set('buttonsW', `${(buttons / config.player.maxButtons) * 100}%`, (v) => (this.buttonsFill.style.width = v));
-    this.set('buttonsT', `${buttons} buttons`, (v) => (this.buttonsText.textContent = v));
+    this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => (this.stuffingFill.style.width = v));
+    this.set('sN', String(stuffing), (v) => (this.stuffingNum.textContent = v));
+    this.set('sLow', String(stuffing <= 30), (v) => this.vitals.classList.toggle('low', v === 'true'));
+    this.set('bW', `${(buttons / config.player.maxButtons) * 100}%`, (v) => (this.buttonsFill.style.width = v));
+    this.set('bN', String(buttons), (v) => {
+      this.buttonsNum.textContent = v;
+      this.buttonsNum.parentElement!.hidden = v === '0';
+    });
 
     me.weapons.forEach((w, i) => {
-      const s = this.slots[i]!;
-      const active = i === me.activeSlot;
-      this.set(`active${i}`, String(active), (v) => s.root.classList.toggle('active', v === 'true'));
-      if (!w) {
-        this.set(`name${i}`, 'Empty', (v) => (s.name.textContent = v));
-        this.set(`ammo${i}`, '', (v) => (s.ammo.textContent = v));
-        this.set(`color${i}`, 'transparent', (v) => s.root.style.setProperty('--rarity', v));
-        this.set(`reload${i}`, '0', (v) => (s.reload.style.transform = `scaleX(${v})`));
-        return;
-      }
-      const stats = config.weapons[w.kind];
-      const rarity = config.rarity[w.rarity];
-      this.set(`name${i}`, stats.name, (v) => (s.name.textContent = v));
-      this.set(`title${i}`, rarity.name, (v) => (s.root.title = v));
-      this.set(`color${i}`, rarity.color, (v) => s.root.style.setProperty('--rarity', v));
-      const reloading = w.reloadEndTick !== null;
-      this.set(`ammo${i}`, reloading ? 'reloading' : `${w.ammo} / ${stats.magazine}`, (v) => (s.ammo.textContent = v));
-      const progress = reloading ? 1 - (w.reloadEndTick! - state.tick) / reloadTicks(w) : 0;
-      this.set(`reload${i}`, progress.toFixed(3), (v) => (s.reload.style.transform = `scaleX(${v})`));
+      const s = this.weapons[i]!;
+      this.set(`wa${i}`, String(i === me.activeSlot), (v) => s.root.classList.toggle('active', v === 'true'));
+      this.set(`wk${i}`, w?.kind ?? '', (v) => {
+        s.art.innerHTML = v ? icon(v) : '';
+        s.root.classList.toggle('empty', !v);
+      });
+      this.set(`wc${i}`, w ? config.rarity[w.rarity].color : 'transparent', (v) => s.root.style.setProperty('--rarity', v));
+      // The ammo bar drains as you fire and fills back up while reloading.
+      const reloading = !!w && w.reloadEndTick !== null;
+      const fill = !w ? 0 : reloading
+        ? Math.min(1, 1 - (w.reloadEndTick! - state.tick - alpha) / reloadTicks(w))
+        : w.ammo / config.weapons[w.kind].magazine;
+      this.set(`wf${i}`, fill.toFixed(3), (v) => (s.ammo.style.transform = `scaleX(${v})`));
+      this.set(`wl${i}`, String(reloading), (v) => s.root.classList.toggle('reloading', v === 'true'));
+      this.set(`wo${i}`, String(!!w && !reloading && w.ammo === 0), (v) => s.root.classList.toggle('dry', v === 'true'));
     });
 
     me.items.forEach((stack, i) => {
-      const s = this.itemSlots[i]!;
-      this.set(`iname${i}`, stack ? config.items[stack.kind].name : '', (v) => (s.name.textContent = v));
-      this.set(`icount${i}`, stack ? `×${stack.count}` : '', (v) => (s.count.textContent = v));
-      this.set(`iempty${i}`, String(!stack), (v) => s.root.classList.toggle('empty', v === 'true'));
-      const usable = !!stack && canUseItem(me, stack.kind);
-      this.set(`iuse${i}`, String(usable), (v) => s.root.classList.toggle('unusable', v !== 'true'));
-      const color = stack ? config.rarity[config.items[stack.kind].rarity].color : 'transparent';
-      this.set(`icolor${i}`, color, (v) => s.root.style.setProperty('--rarity', v));
+      const s = this.items[i]!;
+      this.set(`ik${i}`, stack?.kind ?? '', (v) => {
+        s.art.innerHTML = v ? icon(v) : '';
+        s.root.classList.toggle('empty', !v);
+      });
+      this.set(`in${i}`, stack && stack.count > 1 ? String(stack.count) : '', (v) => (s.count.textContent = v));
+      this.set(`iu${i}`, String(!!stack && canUseItem(me, stack.kind)), (v) => s.root.classList.toggle('unusable', v !== 'true'));
+      this.set(`ic${i}`, stack ? config.rarity[config.items[stack.kind].rarity].color : 'transparent', (v) => s.root.style.setProperty('--rarity', v));
     });
 
     const action = me.alive ? me.action : null;
+    const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
+    this.progressChest = chest?.pos ?? null;
     if (action) {
-      const label = action.kind === 'openChest' ? 'Opening toy box' : `Using ${config.items[action.item].name}`;
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
-      this.set('plabel', label, (v) => (this.progressLabel.textContent = v));
+      this.set('pa', action.kind === 'openChest' ? 'chest' : action.item, (v) => (this.progressArt.innerHTML = icon(v)));
       this.progressFill.style.transform = `scaleX(${t.toFixed(3)})`;
     }
-    this.set('pshow', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
+    this.set('ps', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
 
     const interaction = action || !me.alive ? null : findInteraction(state, me);
-    let prompt = '';
-    let promptColor = '#ffffff';
+    this.grabReady = !!interaction;
+    this.promptAnchor = interaction?.kind === 'weapon' ? interaction.loot.pos : interaction?.kind === 'chest' ? interaction.chest.pos : null;
+    let art = '';
+    let color = '#ffffff';
     if (interaction?.kind === 'weapon' && interaction.loot.content.type === 'weapon') {
       const w = interaction.loot.content.weapon;
-      prompt = `<kbd>E</kbd> Pick up ${config.weapons[w.kind].name} · ${config.rarity[w.rarity].name}`;
-      promptColor = config.rarity[w.rarity].color;
+      art = w.kind;
+      color = config.rarity[w.rarity].color;
     } else if (interaction?.kind === 'chest') {
-      prompt = '<kbd>Hold E</kbd> Open toy box';
+      art = 'chest';
     }
-    this.set('prompt', prompt, (v) => {
-      this.prompt.innerHTML = v;
+    this.set('pr', art, (v) => {
+      this.promptArt.innerHTML = v ? icon(v) : '';
       this.prompt.hidden = v === '';
+      this.prompt.classList.toggle('hold', v === 'chest');
     });
-    this.set('promptColor', promptColor, (v) => this.prompt.style.setProperty('--rarity', v));
+    this.set('prc', color, (v) => this.prompt.style.setProperty('--rarity', v));
+  }
+
+  /**
+   * Floats the prompt over the chest or weapon it's about, and the progress bar over what's
+   * being opened (or the plush using an item). Call after the camera has moved this frame.
+   */
+  place(camera: THREE.Camera, width: number, height: number, me: Vec2): void {
+    this.float(this.prompt, this.promptAnchor, PROMPT_HEIGHT, camera, width, height);
+    if (this.progressChest) this.float(this.progress, this.progressChest, PROMPT_HEIGHT, camera, width, height);
+    else this.float(this.progress, me, OVERHEAD_HEIGHT, camera, width, height);
+  }
+
+  private float(el: HTMLElement, at: Vec2 | null, y: number, camera: THREE.Camera, width: number, height: number): void {
+    if (!at || el.hidden) return;
+    this.v.set(at.x, y, at.y).project(camera);
+    const sx = (this.v.x * 0.5 + 0.5) * width;
+    const sy = (-this.v.y * 0.5 + 0.5) * height;
+    el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%)`;
   }
 
   private set(key: string, value: string, apply: (v: string) => void): void {
