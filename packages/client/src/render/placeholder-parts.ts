@@ -7,6 +7,7 @@ import type { Animal, PartSlot } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
 import { BODIES } from './animal-bodies.ts';
 import { EVEN_MORE_PARTS } from './even-more-animals.ts';
+import { mergeStatic } from './merge-static.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
@@ -30,7 +31,9 @@ export function bodyColor(animal: Animal): string {
 
 export function buildPart(slot: PartSlot, animal: Animal): PartObject {
   const builder = BUILDERS[slot][animal];
-  return builder ? builder(OUTLINE_COLOR) : missingPart();
+  const part = builder ? builder(OUTLINE_COLOR) : missingPart();
+  mergeStatic(part, part.userData.swing ?? []);
+  return part;
 }
 
 type Builder = (outline: string) => PartObject;

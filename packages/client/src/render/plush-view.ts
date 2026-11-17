@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
 import { bodyColor, buildPart, type PartObject } from './placeholder-parts.ts';
+import { mergeStatic } from './merge-static.ts';
 import { PlushArms } from './plush-arms.ts';
 import { OUTLINE_COLOR, toonMaterial } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
@@ -247,7 +248,11 @@ export class PlushView {
       disposeGeometries(child);
     }
     this.weaponKind = kind;
-    if (kind) this.weaponSocket.add(buildWeapon(kind, rarity, this.outlineColor));
+    if (kind) {
+      const model = buildWeapon(kind, rarity, this.outlineColor);
+      mergeStatic(model);
+      this.weaponSocket.add(model);
+    }
     this.arms.setGrip(kind);
     this.collectMaterials();
     this.trimShadows();

@@ -324,7 +324,7 @@ export const config = {
 
   parts: {
     /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
-    animalWeights: [0, 8, 4, 2, 1],
+    animalWeights: [0, 6, 4, 3, 2],
   },
 
   chest: {

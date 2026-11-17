@@ -148,8 +148,8 @@ the gallery):
 - Epic (purple): Dino, Axolotl, Lion, Elephant
 - Legendary (gold): Unicorn
 
-Each chest also pops a part; its animal is rolled by rarity (odds 8 : 4 : 2 : 1 per animal, so
-a part is a Unicorn about 1 time in 80). New profiles start in common animals. E puts it on. Q puts it in your one stash slot instead (it shows next to your
+Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
+a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on. Q puts it in your one stash slot instead (it shows next to your
 stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
 When you're knocked out, only your weapons and items drop; the parts you found and your stash
 go home with you. Bots drop their parts for others to take, and put on parts that build toward

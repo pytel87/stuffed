@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Smoother Toss (2026-11-17)
+
+- Plush parts, held weapons, chests and ground loot are baked into one mesh per material when
+  built (moving pieces like leg hips and chest lids stay separate). A chest went from about 45
+  draw calls to 10, a plush part from up to a dozen to a few. With the camera pulled back
+  during the Toss, draw calls dropped from about 1000 to 500-650 a frame, and frames stay at
+  60 fps on a 4x slowed CPU (they dipped to 30 before).
+
 ## Panda, Pig, Lion, Elephant; animal rarity (2026-11-17)
 
 - Four more animals (16 in all): Panda (eye patches, shoulder band, bamboo sprig), Pig (snout,
@@ -9,7 +17,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   Elephant (big ears, trunk, tusks, circus blanket, fez). Two new body shapes (broad, bell);
   set glows, trails (bamboo leaves, mud splats, gold sparkles, trunk spray) and knockout bursts.
 - Animals have a rarity: common, rare, epic, legendary (Unicorn). Chest parts roll animals by
-  it (8 : 4 : 2 : 1), the ring under a part on the ground shows it, and the gallery sorts by it
+  it (6 : 4 : 3 : 2; a Unicorn part about 1 in 35), the ring under a part on the ground shows it, and the gallery sorts by it
   with stars and tinted cards. New profiles start in common animals.
 
 ## Keep every part (2026-11-17)

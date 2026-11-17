@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { Chest, EntityId, GameState, GroundLoot, ItemKind, Part, WeaponKind } from '@stuffed/sim';
+import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { checkerTexture, crateTexture, tiled } from './props.ts';
 import { OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
@@ -198,6 +199,8 @@ export function buildChest(chest: Chest): ChestView {
     glow.position.y = h + 0.005;
     root.add(glow);
   }
+  // Dozens of boards, bands and straps, drawn as a few meshes (the lid and glow still move).
+  mergeStatic(root, glow ? [lid, glow] : [lid]);
   return { root, lid, lidAngle: chest.opened ? LID_OPEN_ANGLE : 0, glow };
 }
 
@@ -412,6 +415,7 @@ function buildLoot(loot: GroundLoot): LootView {
   model.add(c.type === 'weapon' ? buildWeapon(c.weapon.kind, c.weapon.rarity, OUTLINE_COLOR) : c.type === 'part' ? buildLoosePart(c.part) : buildItem(c.item.kind));
   // Weapon models are built around their grip; center them over the glow.
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
+  mergeStatic(model);
   root.add(model);
   return { root, model, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
 }
