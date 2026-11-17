@@ -616,9 +616,10 @@ body.touch-mode .help-touch {
   height: 3.2rem;
 }
 
-/* Hotkey hints on the slots: just the digit, no keycap. */
+/* Hotkey hints on the slots and the grab prompt: just the key, no keycap. */
 .weapon kbd,
-.item kbd {
+.item kbd,
+.prompt kbd {
   position: absolute;
   left: 0.35rem;
   top: 0.2rem;
@@ -630,6 +631,13 @@ body.touch-mode .help-touch {
   font: 900 0.8rem/1 var(--font);
   -webkit-text-stroke: 2.5px var(--ink);
   paint-order: stroke fill;
+}
+
+.prompt kbd {
+  position: static;
+  font-size: 1.4rem;
+  color: var(--ink);
+  -webkit-text-stroke: 0;
 }
 
 .item kbd {
