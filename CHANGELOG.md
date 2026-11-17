@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Wardrobe picker, plushier sounds (2026-11-17)
+
+- Wardrobe: no more arrows. Tap a slot, then pick from a grid of every part you own for it
+  (commonest first, a rarity strip on each). In the gallery, tap an owned part to wear it, or a
+  complete set to wear all five.
+- Softer, plush sounds for hits, knockouts, jumps, landings, pickups, swaps, menu clicks and
+  chests; the chest rattle stops as soon as the opening does.
+
 ## Smoother Toss (2026-11-17)
 
 - Plush parts, held weapons, chests and ground loot are baked into one mesh per material when

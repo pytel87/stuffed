@@ -8,13 +8,17 @@ import { renderPlushPictures } from '../render/model-icons.ts';
 import { icon, partIcon } from './icons.ts';
 
 /**
- * The Wardrobe: pick the look you start matches in from the parts you own (one row per slot,
- * flip with the arrows), see it on a turning plush, and the recovery code that puts this
- * profile on another device (or a field to enter one).
+ * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
+ * part from all you own for it), see it on a turning plush, and the recovery code that puts
+ * this profile on another device (or a field to enter one). The gallery shows every animal;
+ * tapping an owned part there (or a complete set) puts it on.
  */
 export class Wardrobe {
   private readonly el: HTMLElement;
-  private readonly rows: Record<PartSlot, { art: HTMLElement; count: HTMLElement; prev: HTMLButtonElement; next: HTMLButtonElement }>;
+  private readonly tabs: Record<PartSlot, HTMLButtonElement>;
+  private readonly picker: HTMLElement;
+  /** The slot whose parts the picker shows. */
+  private selected: PartSlot = 'head';
   private readonly code: HTMLElement;
   private readonly restoreInput: HTMLInputElement;
   private readonly message: HTMLElement;
@@ -38,14 +42,9 @@ export class Wardrobe {
            <div class="wardrobe-body">
              <canvas class="wardrobe-preview"></canvas>
              <div class="wardrobe-slots">
-               ${PART_SLOTS.map(
-                 (slot) => `<div class="wardrobe-slot" data-slot="${slot}">
-                   <button type="button" class="round small prev" aria-label="Previous">${icon('arrow', 'icon flip')}</button>
-                   <span class="part"><span class="art"></span><b class="count"></b></span>
-                   <button type="button" class="round small next" aria-label="Next">${icon('arrow')}</button>
-                 </div>`,
-               ).join('')}
+               ${PART_SLOTS.map((slot) => `<button type="button" class="wardrobe-slot" data-slot="${slot}" aria-label="${slot}"></button>`).join('')}
              </div>
+             <div class="wardrobe-picker"></div>
            </div>
            <div class="wardrobe-code">
              ${icon('code')}<b class="code"></b>
@@ -66,16 +65,31 @@ export class Wardrobe {
     this.gallery = this.el.querySelector('.gallery')!;
     this.galleryToggle = this.el.querySelector('.gallery-toggle')!;
     this.galleryToggle.addEventListener('click', () => this.showGallery(this.gallery.hidden === true));
-    this.rows = Object.fromEntries(
+    this.tabs = Object.fromEntries(
       PART_SLOTS.map((slot) => {
-        const row = this.el.querySelector<HTMLElement>(`.wardrobe-slot[data-slot="${slot}"]`)!;
-        const prev = row.querySelector<HTMLButtonElement>('.prev')!;
-        const next = row.querySelector<HTMLButtonElement>('.next')!;
-        prev.addEventListener('click', () => this.flip(slot, -1));
-        next.addEventListener('click', () => this.flip(slot, 1));
-        return [slot, { art: row.querySelector<HTMLElement>('.art')!, count: row.querySelector<HTMLElement>('.count')!, prev, next }];
+        const tab = this.el.querySelector<HTMLButtonElement>(`.wardrobe-slot[data-slot="${slot}"]`)!;
+        tab.addEventListener('click', () => {
+          this.selected = slot;
+          this.render();
+        });
+        return [slot, tab];
       }),
-    ) as Wardrobe['rows'];
+    ) as Wardrobe['tabs'];
+    this.picker = this.el.querySelector('.wardrobe-picker')!;
+    this.picker.addEventListener('click', (e) => {
+      const pick = (e.target as HTMLElement).closest<HTMLElement>('[data-animal]');
+      if (pick) this.wear({ [this.selected]: pick.dataset.animal as Animal });
+    });
+    // In the gallery: an owned part puts it on; a complete set puts on all five.
+    this.gallery.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const part = target.closest<HTMLElement>('.gallery-part.owned');
+      const card = target.closest<HTMLElement>('.gallery-card.complete');
+      if (part) this.wear({ [part.dataset.slot as PartSlot]: part.dataset.animal as Animal }, part.dataset.slot as PartSlot);
+      else if (card) this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, card.dataset.animal as Animal])));
+      else return;
+      this.showGallery(false);
+    });
 
     this.el.querySelector('.close')!.addEventListener('click', () => this.hide());
     this.el.addEventListener('click', (e) => {
@@ -124,9 +138,11 @@ export class Wardrobe {
     this.gallery.innerHTML = byRarity.map((animal) => {
       const count = PART_SLOTS.filter((slot) => has(slot, animal)).length;
       const tier = ANIMAL_RARITY[animal];
-      const parts = PART_SLOTS.map((slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}">${partIcon(slot, animal)}</span>`).join('');
+      const parts = PART_SLOTS.map(
+        (slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}" data-slot="${slot}" data-animal="${animal}">${partIcon(slot, animal)}</span>`,
+      ).join('');
       const picture = pictures.get(animal);
-      return `<div class="gallery-card tier-${tier}${count === PART_SLOTS.length ? ' complete' : ''}">
+      return `<div class="gallery-card tier-${tier}${count === PART_SLOTS.length ? ' complete' : ''}" data-animal="${animal}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
         <b class="gallery-tier">${'★'.repeat(tier)}</b>
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
@@ -140,22 +156,23 @@ export class Wardrobe {
     this.preview.stop();
   }
 
-  /** Owned parts for a slot, in a stable order: by animal, then rarity. */
+  /** Owned parts for a slot, commonest animals first (as in the gallery). */
   private owned(slot: PartSlot): OwnedEntry[] {
     const parts = this.store.profile?.parts.filter((p) => p.slot === slot) ?? [];
     // One entry per animal (older collections may hold the same part at several rarities).
     const unique = parts.filter((p, i) => parts.findIndex((q) => q.animal === p.animal) === i);
-    return unique.sort((a, b) => ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal));
+    return unique.sort((a, b) => ANIMAL_RARITY[a.animal] - ANIMAL_RARITY[b.animal] || ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal));
   }
 
-  private flip(slot: PartSlot, step: 1 | -1): void {
+  /** Puts on owned parts (by slot) and saves the look; `focus` selects that slot's picker. */
+  private wear(parts: Partial<Record<PartSlot, Animal>>, focus?: PartSlot): void {
     const look = this.look;
     if (!look) return;
-    const options = this.owned(slot);
-    if (options.length < 2) return;
-    const at = options.findIndex((p) => p.animal === look[slot].animal);
-    const next = options[(at + step + options.length) % options.length]!;
-    look[slot] = { animal: next.animal, rarity: next.rarity };
+    for (const [slot, animal] of Object.entries(parts) as [PartSlot, Animal][]) {
+      const owned = this.owned(slot).find((p) => p.animal === animal);
+      if (owned) look[slot] = { animal, rarity: owned.rarity };
+    }
+    if (focus) this.selected = focus;
     this.render();
     void this.store.setLook(structuredClone(look)).then((ok) => {
       if (!ok) this.message.textContent = '!';
@@ -167,14 +184,16 @@ export class Wardrobe {
     const look = this.look;
     if (!look) return;
     for (const slot of PART_SLOTS) {
-      const row = this.rows[slot];
-      const part = look[slot];
-      const options = this.owned(slot);
-      const entry = options.find((p) => p.animal === part.animal);
-      row.art.innerHTML = partIcon(slot, part.animal);
-      row.count.textContent = `${options.findIndex((p) => p === entry) + 1}/${options.length}`;
-      row.prev.disabled = row.next.disabled = options.length < 2;
+      const tab = this.tabs[slot];
+      tab.innerHTML = partIcon(slot, look[slot].animal);
+      tab.classList.toggle('selected', slot === this.selected);
     }
+    const slot = this.selected;
+    this.picker.innerHTML = this.owned(slot)
+      .map(
+        (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${p.animal}">${partIcon(slot, p.animal)}</button>`,
+      )
+      .join('');
     this.preview.setLook(look);
   }
 

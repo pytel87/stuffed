@@ -543,13 +543,13 @@ button {
 }
 
 .wardrobe .card {
-  width: min(34rem, 100%);
+  width: min(44rem, 100%);
 }
 
 .wardrobe-body {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
+  grid-template-columns: minmax(9rem, 1fr) auto minmax(9rem, 1.3fr);
+  gap: 0.9rem;
   align-items: center;
 }
 
@@ -566,46 +566,88 @@ button {
   gap: 0.35rem;
 }
 
+/* A slot tab: the part you wear there; the selected one is lifted and ringed. */
 .wardrobe-slot {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.wardrobe-slot .part {
-  position: relative;
   display: grid;
   place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.7rem;
+  height: 2.7rem;
+  padding: 0;
   border-radius: 50%;
   border: 3px solid var(--ink);
   background: #fff;
-  box-shadow: inset 0 0 0 3px var(--rarity, transparent);
+  cursor: pointer;
+  transition: transform 0.1s;
 }
 
-.wardrobe-slot .art {
-  display: flex;
+.wardrobe-slot .icon {
+  width: 1.7rem;
+  height: 1.7rem;
 }
 
-.wardrobe-slot .art .icon {
-  width: 1.6rem;
-  height: 1.6rem;
+.wardrobe-slot.selected {
+  background: #ffd36a;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 6px var(--ink);
 }
 
-/* "2/5": which of your parts for this slot is on. */
-.wardrobe-slot .count {
-  position: absolute;
-  bottom: -0.45rem;
-  font: 800 0.6rem/1 var(--font);
-  color: var(--ink);
-  background: var(--cream);
-  padding: 0.05rem 0.25rem;
-  border-radius: 999px;
+/* Every part you own for the selected slot; tap one to wear it. */
+.wardrobe-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.9rem, 1fr));
+  align-content: start;
+  gap: 0.4rem;
+  height: 15rem;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border-radius: 1rem;
+  background: rgba(42, 31, 45, 0.06);
 }
 
-.wardrobe-slot .round:disabled {
-  opacity: 0.3;
+.wardrobe-picker .pick {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 0.8rem;
+  border: 3px solid var(--ink);
+  background: #fff;
+  cursor: pointer;
+  /* A strip in the animal's rarity color along the bottom. */
+  box-shadow: inset 0 -5px 0 var(--tier, transparent);
+}
+
+.wardrobe-picker .pick .icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.wardrobe-picker .pick.tier-1 {
+  --tier: #39ff7a;
+}
+
+.wardrobe-picker .pick.tier-2 {
+  --tier: #29c8ff;
+}
+
+.wardrobe-picker .pick.tier-3 {
+  --tier: #d070ff;
+}
+
+.wardrobe-picker .pick.tier-4 {
+  --tier: #ffd23a;
+}
+
+.wardrobe-picker .pick.worn {
+  background: #fff3c4;
+  outline: 3px solid #ffb800;
+  outline-offset: 1px;
+}
+
+/* In the gallery, owned parts and complete sets can be tapped to put on. */
+.gallery-part.owned,
+.gallery-card.complete {
+  cursor: pointer;
 }
 
 .icon.flip {
@@ -641,12 +683,42 @@ button {
 
 /* Phones in landscape: shorter preview. */
 @media (max-height: 480px) {
-  .wardrobe-preview {
+  .wardrobe-preview,
+  .wardrobe-picker {
     height: 11rem;
+  }
+  .wardrobe-slots {
+    gap: 0.2rem;
+  }
+  .wardrobe-slot {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+  .wardrobe-slot .icon {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  .wardrobe-slot.selected {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px var(--ink);
   }
   .wardrobe .card {
     gap: 0.5rem;
     padding-block: 1rem;
+  }
+}
+
+/* Narrow portrait screens: preview on top, the slots in a row, the picker below. */
+@media (max-width: 560px) and (min-height: 481px) {
+  .wardrobe-body {
+    grid-template-columns: 1fr;
+  }
+  .wardrobe-slots {
+    grid-auto-flow: column;
+    justify-content: center;
+  }
+  .wardrobe-picker {
+    height: 9rem;
   }
 }
 

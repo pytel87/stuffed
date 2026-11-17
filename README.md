@@ -163,9 +163,11 @@ a random look that is also its first five parts. Everyone keeps every part they 
 (found and still worn, or stashed), win or lose; the results card shows them. Online, the
 room saves this; solo matches report it to the server from the browser.
 
-The hanger next to your name on the title menu opens the Wardrobe: flip through the parts you
-own for each slot to choose the look you start every match in. The gallery button in its corner
-shows all sixteen animals in full, commonest first, with the parts you own lit up. It also shows the profile's
+The hanger next to your name on the title menu opens the Wardrobe: tap a slot (head, body,
+legs, tail, accessory), then any part you own for it, to choose the look you start every match
+in. The gallery button in its corner
+shows all sixteen animals in full, commonest first, with the parts you own lit up; tap an owned
+part to wear it, or a complete (gold) set to wear all five. It also shows the profile's
 recovery code: typing it into the Wardrobe on another device puts the same profile there too.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
