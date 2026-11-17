@@ -12,7 +12,7 @@ export const CAMERA = {
   /** Follow smoothing (1/s); higher = tighter. */
   followRate: 8,
   /** Phones and tablets: closer in, since the screen is small. */
-  handheldZoom: 0.8,
+  handheldZoom: 0.9,
 };
 
 const handheld = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;

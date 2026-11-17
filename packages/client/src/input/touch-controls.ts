@@ -45,8 +45,17 @@ export class TouchControls {
     const left = this.root.querySelector<HTMLElement>('.touch-left')!;
     const right = this.root.querySelector<HTMLElement>('.touch-right')!;
 
-    left.addEventListener('pointerdown', (e) => (this.move ??= this.startStick(e, left)));
-    right.addEventListener('pointerdown', (e) => (this.look ??= this.startStick(e, right)));
+    // A new touch on a side replaces that side's stick (in case the old finger's lift was missed).
+    left.addEventListener('pointerdown', (e) => {
+      if (this.move) this.endStick(this.move);
+      this.move = this.startStick(e, left);
+      this.apply();
+    });
+    right.addEventListener('pointerdown', (e) => {
+      if (this.look) this.endStick(this.look);
+      this.look = this.startStick(e, right);
+      this.apply();
+    });
     window.addEventListener('pointermove', (e) => {
       this.moveStick(this.move, e);
       this.moveStick(this.look, e);
@@ -59,6 +68,18 @@ export class TouchControls {
     };
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
+    // Safety nets: browsers sometimes lose a finger's lift (system gestures, notifications), which
+    // would leave a stick pushed and the plush walking on its own. With no fingers on the screen,
+    // or the page in the background, everything lets go.
+    const allUp = (e: TouchEvent) => {
+      if (e.touches.length === 0) this.releaseAll();
+    };
+    window.addEventListener('touchend', allUp);
+    window.addEventListener('touchcancel', allUp);
+    window.addEventListener('blur', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.releaseAll();
+    });
 
     this.hold(this.root.querySelector<HTMLElement>('.touch-jump')!, Btn.Jump);
     this.hold(this.grab, Btn.Interact);
@@ -83,6 +104,15 @@ export class TouchControls {
       this.input.virtualButtons = 0;
       this.apply();
     }
+  }
+
+  /** Lets go of both sticks and every held touch button. */
+  private releaseAll(): void {
+    if (this.move) this.move = this.endStick(this.move);
+    if (this.look) this.look = this.endStick(this.look);
+    for (const b of this.root.querySelectorAll('.touch-btn.down')) b.classList.remove('down');
+    this.input.virtualButtons = 0;
+    this.apply();
   }
 
   /** Lights up Grab when there is something to pick up or open. */
