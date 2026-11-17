@@ -23,6 +23,15 @@ export class Options {
          ${canFullscreen ? `<button type="button" class="round opt-full" aria-label="Fullscreen">${icon('fullscreen')}</button>` : ''}
          <button type="button" class="round opt-help" aria-label="Controls">${icon('help')}</button>
          <button type="button" class="round opt-leave" aria-label="Leave">${icon('home')}</button>
+       </div>
+       <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-label="Leave the match?">
+         <div class="card">
+           <div class="leave-icon">${icon('home', 'icon large')}<b>?</b></div>
+           <div class="row">
+             <button type="button" class="big primary leave-yes" aria-label="Leave">${icon('check')}</button>
+             <button type="button" class="big leave-no" aria-label="Stay">${icon('close')}</button>
+           </div>
+         </div>
        </div>`,
     );
     const gear = document.querySelector<HTMLButtonElement>('.gear')!;
@@ -49,9 +58,19 @@ export class Options {
       this.sheet.hidden = true;
       actions.help();
     });
+    // Leaving ends your match: ask first (✓ leave, ✕ stay).
+    const confirm = document.querySelector<HTMLElement>('.leave-confirm')!;
     this.leave.addEventListener('click', () => {
       this.sheet.hidden = true;
+      confirm.hidden = false;
+    });
+    confirm.querySelector('.leave-yes')!.addEventListener('click', () => {
+      confirm.hidden = true;
       actions.leave();
+    });
+    confirm.querySelector('.leave-no')!.addEventListener('click', () => (confirm.hidden = true));
+    confirm.addEventListener('click', (e) => {
+      if (e.target === confirm) confirm.hidden = true;
     });
   }
 

@@ -9,6 +9,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   bottom; no stray focus ring. Lobby: Share and Leave in the top corners.
 - One card at a time: opening the Wardrobe from the menu, lobby or results card hides that card
   until the Wardrobe closes (no more stacked cards).
+- Leaving from the options (home) asks first: a home and a question mark, ✓ leaves, ✕ stays.
 
 ## Teammate arrows and re-stitching (2026-11-17)
 

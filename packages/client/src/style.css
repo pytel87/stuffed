@@ -1917,3 +1917,27 @@ body.touch-mode .gear {
   width: 1.8rem;
   height: 1.8rem;
 }
+
+/* Leave the match? A home and a question mark; ✓ leaves, ✕ stays. Above everything else. */
+.overlay.leave-confirm {
+  z-index: 30;
+}
+
+.leave-confirm .card {
+  width: min(17rem, 100%);
+}
+
+.leave-confirm .leave-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  color: var(--ink);
+  font: 900 2.6rem/1 var(--font);
+}
+
+.leave-confirm .big .icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  stroke-width: 3;
+}

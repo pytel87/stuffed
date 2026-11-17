@@ -53,6 +53,7 @@ const paths: Record<string, string> = {
   timer: `<circle cx="12" cy="13" r="7.5" fill="#fff"/><path d="M12 9v4l2.5 2M10 3h4"/>`,
   eye: `<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="#fff"/><circle cx="12" cy="12" r="3" fill="${INK}" stroke="none"/>`,
   close: `<path d="M6 6l12 12M18 6L6 18"/>`,
+  check: `<path d="M5 12.5l4.5 4.5L19 7.5"/>`,
   arrow: `<path d="M4 12h15M14 7l5 5-5 5"/>`,
   // an upright phone, an arrow curving round, the phone lying sideways
   rotate: `<rect x="2.5" y="2.5" width="7" height="11" rx="1.6" fill="#fff"/><path d="M5 11h2" stroke-width="1.5"/><rect x="9.5" y="14" width="12" height="7" rx="1.6" fill="#fff"/><path d="M19 16v3" stroke-width="1.5"/><path d="M13.5 4.5a6 6 0 0 1 5.5 6"/><path d="M17 9.5l2 2 2-2"/>`,
