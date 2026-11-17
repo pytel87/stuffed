@@ -85,6 +85,22 @@ Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows
 seed), and `?zonescale=0.1` to run the Rinse 10x faster. Parameters combine:
 `?seed=7&zonescale=0.1&loadout=foam_dart_smg:3`.
 
+## Deploy
+
+One Cloudflare Worker (`stuffed-rooms`) serves both the game files and the game rooms, so
+there is one address and nothing else to host.
+
+```sh
+npx wrangler login   # once, with your Cloudflare account (wrangler whoami to check)
+pnpm deploy          # builds the client, then deploys the Worker with the client as its assets
+```
+
+Wrangler prints the address, e.g. `https://stuffed-rooms.<your-subdomain>.workers.dev`.
+Open it, create a room and send the invite link. Deploys disconnect matches in progress, so
+deploy between games. To serve the client from somewhere else (e.g. Vercel), build it with
+`VITE_SERVER_HOST=<worker host>` and add that site to `ALLOWED_ORIGINS` in
+[apps/server/wrangler.jsonc](apps/server/wrangler.jsonc).
+
 ## Smoothness
 
 The sim ticks 30 times a second but everything is drawn at your display's frame rate,

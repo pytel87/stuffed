@@ -10,7 +10,8 @@
     "typecheck": "pnpm -r typecheck",
     "sfx": "node tools/generate-sfx.mjs",
     "dev:lan": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev:lan",
-    "dev:solo": "pnpm --filter @stuffed/client dev"
+    "dev:solo": "pnpm --filter @stuffed/client dev",
+    "deploy": "pnpm build && pnpm --filter @stuffed/server deploy"
   },
   "devDependencies": {
     "typescript": "7.0.2",

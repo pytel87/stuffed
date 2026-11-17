@@ -11,11 +11,12 @@ export { Room } from './room.ts';
  */
 const ROOM_LOCATION: DurableObjectLocationHint = 'weur';
 
+/** The Worker's own pages are always allowed; other sites only if listed in ALLOWED_ORIGINS. */
 function originAllowed(req: Request, env: Env): boolean {
   const allowed = env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
   if (allowed.length === 0) return true;
   const origin = req.headers.get('origin');
-  return !!origin && allowed.includes(origin);
+  return !!origin && (origin === new URL(req.url).origin || allowed.includes(origin));
 }
 
 function cors(req: Request, env: Env, res: Response): Response {

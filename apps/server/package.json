@@ -6,7 +6,7 @@
   "description": "Authoritative game server: a Cloudflare Worker with one Durable Object per room.",
   "scripts": {
     "dev": "wrangler dev --port 1999",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --assets ../../packages/client/dist",
     "typecheck": "tsc -p tsconfig.json",
     "cf-typegen": "wrangler types --strict-vars=false",
     "dev:lan": "wrangler dev --port 1999 --ip 0.0.0.0"

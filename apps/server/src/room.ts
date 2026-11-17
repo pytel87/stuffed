@@ -4,7 +4,7 @@
 import { BotController, canSee, config, createGame, createWorld, NEUTRAL_INPUT, step, TEST_MAP } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, World } from '@stuffed/sim';
 import {
-  compactJson,
+  encodeSnapshot,
   MAX_PLAYERS,
   PROTOCOL_VERSION,
   SNAPSHOT_EVERY,
@@ -12,6 +12,7 @@ import {
   type LobbySeat,
   type RoomPhase,
   type ServerMessage,
+  type SnapshotMemory,
 } from '@stuffed/sim/net';
 import { Server, type Connection, type WSMessage } from 'partyserver';
 
@@ -63,6 +64,8 @@ export class Room extends Server<Env> {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTime = 0;
   private acc = 0;
+  /** Per connection: the slow parts of a snapshot it already has (see encodeSnapshot). */
+  private sent = new Map<string, SnapshotMemory>();
 
   /** Called by the Worker when handing out a new code; false if this room is already in use. */
   async claim(): Promise<boolean> {
@@ -100,6 +103,7 @@ export class Room extends Server<Env> {
   }
 
   override onClose(conn: Connection<ConnState>): void {
+    this.sent.delete(conn.id);
     const seat = this.seats.find((s) => s.connId === conn.id);
     if (seat) seat.connId = null;
     this.broadcastLobby();
@@ -127,6 +131,7 @@ export class Room extends Server<Env> {
       this.seats.push(seat);
     }
     conn.setState({ seat: seat?.seat ?? null });
+    this.sent.delete(conn.id);
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });
     this.broadcastLobby();
     // Joining a match in progress: watch it (or rejoin your plush if you were in it).
@@ -188,6 +193,7 @@ export class Room extends Server<Env> {
       endedAtTick: null,
     };
     this.phase = 'playing';
+    this.sent.clear();
     this.broadcastLobby();
     for (const conn of this.getConnections<ConnState>()) {
       const seat = conn.state?.seat;
@@ -284,8 +290,9 @@ export class Room extends Server<Env> {
       viewer?.alive && m.state.status === 'playing'
         ? m.state.players.filter((p) => p.id === viewer.id || !p.alive || canSee(m.world, m.state, viewer, p))
         : m.state.players;
-    const s: GameState = { ...m.state, players, rng: [0, 0, 0, 0], events: [] };
-    conn.send(compactJson({ t: 'snap', s, ev: m.events } satisfies ServerMessage));
+    let memory = this.sent.get(conn.id);
+    if (!memory) this.sent.set(conn.id, (memory = {}));
+    conn.send(encodeSnapshot(m.state, players, you ?? null, m.events, memory));
   }
 
   private send(conn: Connection<ConnState>, msg: ServerMessage): void {

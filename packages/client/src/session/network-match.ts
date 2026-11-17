@@ -7,6 +7,7 @@
 // state, re-applies the inputs still in flight, and smooths away any small difference.
 import { config, createWorld, DT, predictPlayer, TEST_MAP } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, MapData, Player, World } from '@stuffed/sim';
+import { decodeSnapshot, emptySnapshotParts, type CompactSnapshot } from '@stuffed/sim/net';
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
 /** How far behind the newest snapshot to draw: 2 snapshot gaps plus jitter room. */
@@ -37,6 +38,8 @@ export class NetworkMatch implements GameSession {
   private inputAcc = 0;
   private events: GameEvent[] = [];
   private readonly world: World;
+  /** Slow parts of the match (chests, loot, names, ...) kept between compact snapshots. */
+  private readonly parts = emptySnapshotParts();
   /** Inputs sent but not yet confirmed by a snapshot, oldest first. */
   private pending: Input[] = [];
   /** Your plush after the latest input, and before it (to draw smoothly between inputs). */
@@ -58,7 +61,13 @@ export class NetworkMatch implements GameSession {
     return this.snaps.length > 0;
   }
 
-  receive(state: GameState, events: GameEvent[]): void {
+  /** A compact snapshot from the server. */
+  receiveCompact(msg: CompactSnapshot): void {
+    const decoded = decodeSnapshot(msg, this.parts);
+    if (decoded) this.receive(decoded.state, decoded.events);
+  }
+
+  private receive(state: GameState, events: GameEvent[]): void {
     const last = this.snaps[this.snaps.length - 1];
     if (last && state.tick <= last.tick) {
       last.events.push(...events); // same tick re-sent (e.g. after the match ends)

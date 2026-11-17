@@ -8,9 +8,14 @@ import type { InputSource } from './session.ts';
 
 export type LobbyState = Extract<ServerMessage, { t: 'lobby' }>;
 
-/** Game server host: VITE_SERVER_HOST, or this page's host on port 1999 (wrangler dev). */
+/**
+ * Game server host: VITE_SERVER_HOST if set; in development the local `wrangler dev` on port
+ * 1999; in production the same host that served the page (the Worker serves both).
+ */
 export function serverHost(): string {
-  return (import.meta.env.VITE_SERVER_HOST as string | undefined) ?? `${location.hostname}:1999`;
+  const configured = import.meta.env.VITE_SERVER_HOST as string | undefined;
+  if (configured) return configured;
+  return import.meta.env.DEV ? `${location.hostname}:1999` : location.host;
 }
 
 /** Asks the server for a fresh room code. */
@@ -117,7 +122,7 @@ export class RoomClient {
         this.onMatch(this.match);
         break;
       case 'snap':
-        this.match?.receive(msg.s, msg.ev);
+        this.match?.receiveCompact(msg);
         break;
       case 'error':
         this.error = msg.code;

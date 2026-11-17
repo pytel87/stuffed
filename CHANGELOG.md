@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 2.4: Smaller updates and deploy setup (2026-11-17)
+
+- Compact snapshots (`encodeSnapshot` / `decodeSnapshot` in `@stuffed/sim/net`): every
+  update carries your own plush in full, other visible plushies with only what drawing needs,
+  projectiles with only position, motion and height, and events. Chests, loot, the zone's
+  plan, names and looks, and knocked-out plushies are sent only when they change for that
+  player; the client keeps them and computes the zone circle from the tick. Typical update
+  with 4 plushies in view: about 2.6 KB instead of 8.2 KB (about 37 KB/s per player).
+- One Worker serves the client too: `pnpm deploy` builds the client and runs
+  `wrangler deploy --assets`. In production the client connects to the host that served it;
+  the Worker always accepts its own origin.
+- Tests: snapshot round trip over a whole bot match, size, slow parts sent once.
+
 ## Smoother frames (2026-11-17)
 
 - Adaptive resolution: if frames average slower than ~48 fps, the render resolution steps

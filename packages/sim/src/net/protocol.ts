@@ -1,5 +1,7 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
-import type { EntityId, GameEvent, GameState, Input } from '../types.ts';
+import { DEFAULT_PARTS } from '../parts.ts';
+import { circleAt } from '../systems/zone.ts';
+import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
 
 export const PROTOCOL_VERSION = 1;
 /** Plushies per match, humans and bots together. */
@@ -50,15 +52,186 @@ export type ServerMessage =
   | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number }
   /** A match started; `you` is your plush, or null when you only watch. */
   | { t: 'start'; mapId: string; you: EntityId | null }
-  /**
-   * The match as you can see it: `s` is a GameState with only the plushies visible to you
-   * (and its RNG blanked); `ev` are the events since the last snapshot.
-   */
-  | { t: 'snap'; s: GameState; ev: GameEvent[] }
+  /** The match as you can see it (see CompactSnapshot below). */
+  | CompactSnapshot
   | { t: 'pong'; c: number; s: number }
   | { t: 'error'; code: 'version' | 'full' | 'not_host' | 'bad_message' };
 
 /** Rounds floats so snapshots stay small (millimeter precision is plenty). */
 export function compactJson(value: unknown): string {
   return JSON.stringify(value, (_key, v: unknown) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1000) / 1000 : v));
+}
+
+// ---------- compact snapshots ----------
+//
+// Each update carries what moves (visible living plushies, projectiles, events) plus, only when
+// they changed since this player's previous update, the slow parts: chests, loot, the zone's
+// plan, everyone's name and look, and knocked-out plushies. The client keeps the slow parts and
+// rebuilds a full GameState; the zone's current circle is computed from the tick.
+
+/** Who a plush is: sent once and when it changes. */
+export interface RosterEntry {
+  id: EntityId;
+  name: string;
+  isBot: boolean;
+  parts: Player['parts'];
+  radius: number;
+}
+
+/** Your own living plush, sent in full every update (prediction needs it all). */
+export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius'>;
+
+/** Someone else's living plush: only what drawing it needs. */
+export interface SeenPlayer extends Pick<
+  Player,
+  'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
+> {
+  weapons: [WeaponLook | null, WeaponLook | null];
+}
+export type WeaponLook = Pick<WeaponInstance, 'kind' | 'rarity' | 'reloadEndTick'>;
+
+/** A projectile as drawn. */
+export type SeenProjectile = Pick<Projectile, 'id' | 'weapon' | 'rarity' | 'pos' | 'vel' | 'z'>;
+
+export type ZonePlan = Omit<Zone, 'current'>;
+
+export interface CompactSnapshot {
+  t: 'snap';
+  tick: number;
+  status: GameState['status'];
+  winnerId: EntityId | null;
+  mapId: string;
+  nextId: number;
+  me?: MovingPlayer;
+  others: SeenPlayer[];
+  projectiles: SeenProjectile[];
+  ev: GameEvent[];
+  chests?: Chest[];
+  loot?: GroundLoot[];
+  zone?: ZonePlan;
+  roster?: RosterEntry[];
+  fallen?: Player[];
+}
+
+/** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
+export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'zone' | 'roster' | 'fallen', string>>;
+
+/**
+ * Builds one player's update. `visible` are the living plushies this player may see (their own
+ * included); `you` is their plush (others lose private details such as items and input counters).
+ */
+export function encodeSnapshot(state: GameState, visible: Player[], you: EntityId | null, events: GameEvent[], memory: SnapshotMemory): string {
+  let me: MovingPlayer | undefined;
+  const others: SeenPlayer[] = [];
+  for (const p of visible) {
+    if (!p.alive) continue;
+    if (p.id === you) {
+      const { name: _n, isBot: _b, parts: _p, radius: _r, ...moving } = p;
+      me = moving;
+      continue;
+    }
+    const look = (w: WeaponInstance | null): WeaponLook | null => (w ? { kind: w.kind, rarity: w.rarity, reloadEndTick: w.reloadEndTick } : null);
+    others.push({
+      id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
+      activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
+      revealedUntilTick: p.revealedUntilTick, weapons: [look(p.weapons[0]), look(p.weapons[1])],
+    });
+  }
+  const msg: CompactSnapshot = {
+    t: 'snap',
+    tick: state.tick,
+    status: state.status,
+    winnerId: state.winnerId,
+    mapId: state.mapId,
+    nextId: state.nextId,
+    ...(me ? { me } : {}),
+    others,
+    projectiles: state.projectiles.map((q) => ({ id: q.id, weapon: q.weapon, rarity: q.rarity, pos: q.pos, vel: q.vel, z: q.z })),
+    ev: events,
+  };
+  const { current: _c, ...zonePlan } = state.zone;
+  const slow = {
+    chests: state.chests,
+    loot: state.loot,
+    zone: zonePlan,
+    roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius })),
+    fallen: state.players.filter((p) => !p.alive),
+  };
+  for (const key of Object.keys(slow) as (keyof typeof slow)[]) {
+    const json = compactJson(slow[key]);
+    if (memory[key] === json) continue;
+    memory[key] = json;
+    (msg as unknown as Record<string, unknown>)[key] = slow[key];
+  }
+  return compactJson(msg);
+}
+
+/** Client side: the slow parts received so far. */
+export interface SnapshotParts {
+  chests: Chest[];
+  loot: GroundLoot[];
+  zone: ZonePlan | null;
+  roster: Map<EntityId, RosterEntry>;
+  fallen: Player[];
+}
+
+export function emptySnapshotParts(): SnapshotParts {
+  return { chests: [], loot: [], zone: null, roster: new Map(), fallen: [] };
+}
+
+/**
+ * Rebuilds a full GameState from an update and the slow parts kept from earlier ones (updated
+ * in place). Null until the zone plan has arrived (the first update always carries it).
+ */
+export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { state: GameState; events: GameEvent[] } | null {
+  if (msg.chests) parts.chests = msg.chests;
+  if (msg.loot) parts.loot = msg.loot;
+  if (msg.zone) parts.zone = msg.zone;
+  if (msg.roster) parts.roster = new Map(msg.roster.map((r) => [r.id, r]));
+  if (msg.fallen) parts.fallen = msg.fallen;
+  if (!parts.zone) return null;
+
+  const fallenIds = new Set(parts.fallen.map((p) => p.id));
+  const identity = (id: EntityId) => {
+    const r = parts.roster.get(id);
+    return { name: r?.name ?? '', isBot: r?.isBot ?? true, parts: r?.parts ?? DEFAULT_PARTS, radius: r?.radius ?? 0.5 };
+  };
+  const living: Player[] = msg.others.map((p) => ({
+    ...identity(p.id),
+    ...p,
+    knockback: { x: 0, y: 0 },
+    aimDistance: 0,
+    alive: true,
+    eliminatedTick: null,
+    placement: null,
+    eliminatedBy: null,
+    knockouts: 0,
+    damageDealt: 0,
+    weapons: [weaponFrom(p.weapons[0]), weaponFrom(p.weapons[1])],
+    items: [null, null, null],
+    lastInputSeq: 0,
+    heldButtons: 0,
+  }));
+  if (msg.me) living.push({ ...identity(msg.me.id), ...msg.me });
+  const players = [...living, ...parts.fallen].sort((a, b) => a.id - b.id);
+  const zone: Zone = { ...parts.zone, current: circleAt({ ...parts.zone, current: parts.zone.start }, msg.tick) };
+  const state: GameState = {
+    tick: msg.tick,
+    rng: [0, 0, 0, 0],
+    nextId: msg.nextId,
+    status: msg.status,
+    winnerId: msg.winnerId,
+    players: players.filter((p) => !(p.alive && fallenIds.has(p.id))),
+    projectiles: msg.projectiles.map((q) => ({ ...q, ownerId: 0, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
+    chests: parts.chests,
+    loot: parts.loot,
+    zone,
+    events: [],
+    mapId: msg.mapId,
+  };
+  return { state, events: msg.ev };
+}
+
+function weaponFrom(look: WeaponLook | null): WeaponInstance | null {
+  return look ? { ...look, ammo: 0, nextFireTick: 0 } : null;
 }
