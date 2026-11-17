@@ -8,7 +8,7 @@ import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
 import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input, Player } from './types.ts';
-import type { World } from './world.ts';
+import { recordPoses, type World } from './world.ts';
 
 /**
  * Advances the game by one tick. Mutates `state` in place and returns it.
@@ -34,6 +34,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     movePlayer(world, state, player, input);
   }
   separatePlayers(world, state);
+  recordPoses(world, state.players, state.tick);
 
   for (const player of state.players) {
     if (!player.alive) continue;

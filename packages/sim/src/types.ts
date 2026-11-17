@@ -51,6 +51,11 @@ export interface Input {
   useItemSlot: -1 | 0 | 1 | 2;
   /** Request to drop something: weapon slot 0..1, item slot 2..4, the stash 5; -1 or absent for none. */
   dropSlot?: number;
+  /**
+   * Online: the tick of the other plushies the player was looking at when they made this input
+   * (they're drawn a little in the past). Shots are checked against where targets were then.
+   */
+  viewTick?: number;
 }
 
 export interface WeaponInstance {
@@ -175,6 +180,8 @@ export interface Projectile {
   damage: number;
   knockback: number;
   expireTick: Tick;
+  /** Lag compensation: hits are checked against where plushies were this many ticks ago. */
+  rewind?: number;
   /** Wall bounces left (Marble Launcher); bursts on the next wall when 0. */
   bounces?: number;
   /** Lobbed (Glitter Bomb): falls under gravity and bursts where it lands. */

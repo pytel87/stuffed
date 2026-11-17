@@ -84,11 +84,11 @@ export function updateWeapons(world: World, state: GameState, player: Player, in
     const charge = chargeAmount(player, weapon.kind, state.tick);
     player.chargeStartTick = null;
     if (!ready) return;
-    fire(world, state, player, weapon, charge);
+    fire(world, state, player, weapon, charge, rewindFor(state, input));
   } else {
     if (!held || !ready) return;
     if (s.mode === 'melee') swing(world, state, player, weapon);
-    else fire(world, state, player, weapon, 1);
+    else fire(world, state, player, weapon, 1, rewindFor(state, input));
   }
 
   if (s.mode !== 'melee') weapon.ammo--;
@@ -167,7 +167,13 @@ function shotSlope(world: World, state: GameState, player: Player, z: number, sp
   return { vz, zEnd };
 }
 
-function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance, charge: number): void {
+/** How far back to test this input's shots (online lag compensation; 0 offline). */
+function rewindFor(state: GameState, input: Input): number {
+  if (input.viewTick === undefined) return 0;
+  return Math.max(0, Math.min(config.combat.maxRewindTicks, state.tick - input.viewTick));
+}
+
+function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance, charge: number, rewind = 0): void {
   const stats = config.weapons[weapon.kind] as WeaponStats;
   const base = Math.atan2(player.aim.y, player.aim.x);
   const cone = stats.spreadDegrees * DEG;
@@ -215,6 +221,7 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
       damage,
       knockback: stats.knockback,
       expireTick: state.tick + lifeTicks,
+      ...(rewind > 0 ? { rewind } : {}),
       ...(stats.bounces ? { bounces: stats.bounces } : {}),
     });
   }

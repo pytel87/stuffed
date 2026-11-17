@@ -244,7 +244,8 @@ export class NetworkMatch implements GameSession {
     while (this.inputAcc >= DT) {
       this.inputAcc -= DT;
       if (this.localPlayerId === -1) continue;
-      const input = this.input.sample();
+      // Say which moment of the others we're showing, so the server checks our shots against it.
+      const input = { ...this.input.sample(), viewTick: Math.floor(this.renderTick) };
       this.sendInput(input);
       this.predict(input);
     }

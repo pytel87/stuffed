@@ -1,7 +1,7 @@
 import { config, DT, secondsToTicks, type WeaponStats } from '../config.ts';
 import { segmentBoxT } from '../collision/geometry.ts';
 import type { Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
-import { raycastWalls, wallsNear, type World } from '../world.ts';
+import { poseAt, raycastWalls, wallsNear, type World } from '../world.ts';
 import { applyDamage } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
@@ -41,11 +41,13 @@ export function updateProjectiles(world: World, state: GameState): void {
     let hitT = Infinity;
     for (const p of state.players) {
       if (!p.alive || p.id === proj.ownerId || p.drop) continue;
-      const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, p.pos.x, p.pos.y, p.radius + r);
+      // Online, where the target was when the shooter saw it (lag compensation).
+      const at = proj.rewind ? (poseAt(world, p.id, state.tick - proj.rewind) ?? { x: p.pos.x, y: p.pos.y, z: p.z }) : { x: p.pos.x, y: p.pos.y, z: p.z };
+      const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, at.x, at.y, p.radius + r);
       if (t === null) continue;
       const zt = proj.z + dz * t;
       // Passes under or over (just touching the feet, e.g. under a roof someone stands on, misses).
-      if (zt + r <= p.z + 1e-9 || zt - r >= p.z + config.player.height - 1e-9) continue;
+      if (zt + r <= at.z + 1e-9 || zt - r >= at.z + config.player.height - 1e-9) continue;
       if (t < hitT) {
         hit = p;
         hitT = t;

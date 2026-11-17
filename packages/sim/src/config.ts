@@ -288,6 +288,12 @@ export const config = {
     blastEdgeDamage: 0.4,
     /** Seen this far while blinded by glitter. */
     blindVision: 3,
+    /**
+     * Lag compensation: online, shots are tested against where plushies were when the shooter
+     * saw them, at most this many ticks back (a third of a second), so laggy shots can't reach
+     * far into the past.
+     */
+    maxRewindTicks: 10,
   },
 
   vision: {

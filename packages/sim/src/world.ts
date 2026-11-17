@@ -2,7 +2,7 @@
 // never part of GameState.
 import { segmentBoxT } from './collision/geometry.ts';
 import { StaticBoxHash } from './collision/spatial-hash.ts';
-import type { MapData, PlacedWall, Vec2, Wall } from './types.ts';
+import type { EntityId, MapData, PlacedWall, Vec2, Wall } from './types.ts';
 
 export interface World {
   map: MapData;
@@ -12,10 +12,44 @@ export interface World {
    * client prediction) so every wall check sees them along with the map's walls.
    */
   placed: readonly PlacedWall[];
+  /** Where each plush was over the last few ticks (newest last), for lag-compensated hits. */
+  history: Map<EntityId, Pose[]>;
 }
 
+export interface Pose {
+  tick: number;
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Ticks of history kept per plush (a bit more than the longest rewind). */
+const HISTORY = 16;
+
 export function createWorld(map: MapData): World {
-  return { map, walls: new StaticBoxHash(map.walls), placed: [] };
+  return { map, walls: new StaticBoxHash(map.walls), placed: [], history: new Map() };
+}
+
+/** Remembers where every living plush is this tick. */
+export function recordPoses(world: World, players: readonly { id: EntityId; alive: boolean; pos: Vec2; z: number }[], tick: number): void {
+  for (const p of players) {
+    if (!p.alive) {
+      world.history.delete(p.id);
+      continue;
+    }
+    let poses = world.history.get(p.id);
+    if (!poses) world.history.set(p.id, (poses = []));
+    poses.push({ tick, x: p.pos.x, y: p.pos.y, z: p.z });
+    if (poses.length > HISTORY) poses.shift();
+  }
+}
+
+/** Where a plush was at `tick` (its oldest known pose if earlier), or null if unknown. */
+export function poseAt(world: World, id: EntityId, tick: number): Pose | null {
+  const poses = world.history.get(id);
+  if (!poses || poses.length === 0) return null;
+  for (let i = poses.length - 1; i >= 0; i--) if (poses[i]!.tick <= tick) return poses[i]!;
+  return poses[0]!;
 }
 
 /** Map walls and placed walls overlapping the box (min/max corners). */

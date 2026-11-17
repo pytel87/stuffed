@@ -135,3 +135,31 @@ describe('empty weapons', () => {
     expect(g.you.weapons[1]!.reloadEndTick).not.toBeNull();
   });
 });
+
+describe('lag compensation', () => {
+  /**
+   * The target takes a few quick steps away and stops; the shooter, seeing 6 ticks into the past,
+   * fires at where it stood.
+   */
+  function shootAtOldSpot(withViewTick: boolean) {
+    const g = duel('cork_popper', 2.5);
+    g.play(10, {}); // settle
+    const seen = { ...g.other.pos };
+    g.play(6, {}, { moveY: 1 }); // walks off about a unit
+    g.play(2, {}); // and stands there
+    const shot = {
+      buttons: Btn.Fire,
+      aimX: seen.x - g.you.pos.x,
+      aimY: seen.y - g.you.pos.y,
+      ...(withViewTick ? { viewTick: g.state.tick - 6 } : {}),
+    };
+    g.play(1, shot);
+    g.play(10, {});
+    return g.other.stuffing;
+  }
+
+  it('hits where the shooter saw the target, not where it is now on the server', () => {
+    expect(shootAtOldSpot(false)).toBe(100); // without: the target has moved on
+    expect(shootAtOldSpot(true)).toBeLessThan(100); // with: tested against where it was
+  });
+});
