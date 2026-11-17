@@ -331,9 +331,28 @@ button {
   gap: 0.7rem;
 }
 
-/* Team mode toggle: blue when on, faded when off. */
-.bots .lobby-team {
-  margin-left: 0.6rem;
+.bots > .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+/* A thin line between the bot count and the team toggle. */
+.bots .divider {
+  align-self: stretch;
+  width: 2px;
+  margin: 0.2rem 0.3rem;
+  border-radius: 1px;
+  background: rgba(42, 31, 45, 0.18);
+}
+
+/* Team mode toggle, the same size as − and +: light blue when on, faded when off. */
+.bots .lobby-team .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.bots .lobby-team[aria-pressed='true'] {
+  background: #dbe9ff;
 }
 
 .bots .lobby-team[aria-pressed='false'] {
@@ -341,8 +360,9 @@ button {
   filter: grayscale(1);
 }
 
-.bots .lobby-team[aria-pressed='true'] {
-  background: #dbe9ff;
+/* A tap leaves it focused; the blue focus ring read as part of the button. */
+.bots .lobby-team:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .bots b {
@@ -354,6 +374,14 @@ button {
 .status {
   min-height: 1.1em;
   margin: 0;
+}
+
+/* Nothing to say (the host's own lobby): no gap above Start. */
+.status:empty {
+  display: none;
+}
+
+.status {
   font: 700 0.95rem/1.2 var(--font);
   color: #6b5d73;
 }
