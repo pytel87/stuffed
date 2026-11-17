@@ -1,13 +1,15 @@
 // Toy chests and ground loot. Loot floats and spins above a glow in its rarity color so it
 // reads from the top-down camera; Limited Edition and up also get a light beam.
 import * as THREE from 'three';
-import { config } from '@stuffed/sim';
 import type { Chest, EntityId, GameState, GroundLoot, ItemKind } from '@stuffed/sim';
 import { OUTLINE_COLOR, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
 const LID_OPEN_ANGLE = -1.9;
+
+/** Brighter takes on the rarity colors for the rings on the ground, so they pop on the lawn. */
+const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#d070ff', '#ffd23a'] as const;
 
 let glowTexture: THREE.CanvasTexture | null = null;
 function glowMap(): THREE.CanvasTexture {
@@ -24,6 +26,26 @@ function glowMap(): THREE.CanvasTexture {
     glowTexture = new THREE.CanvasTexture(c);
   }
   return glowTexture;
+}
+
+let haloTexture: THREE.CanvasTexture | null = null;
+/** A soft band of light around the ring: clear at the center, brightest at the ring, fading out. */
+function haloMap(): THREE.CanvasTexture {
+  if (!haloTexture) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    grad.addColorStop(0.72, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.86, 'rgba(255,255,255,0.35)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    haloTexture = new THREE.CanvasTexture(c);
+  }
+  return haloTexture;
 }
 
 // ---------- chests ----------
@@ -147,6 +169,7 @@ interface LootView {
   root: THREE.Group;
   model: THREE.Group;
   glow: THREE.Mesh;
+  halo: THREE.Mesh;
   beam: THREE.Mesh | null;
   age: number;
   phase: number;
@@ -155,14 +178,21 @@ interface LootView {
 function buildLoot(loot: GroundLoot): LootView {
   const root = new THREE.Group();
   root.position.set(loot.pos.x, 0, loot.pos.y);
-  const color = config.rarity[loot.rarity].color;
+  const color = NEON[loot.rarity];
 
   const glow = new THREE.Mesh(
     new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color, map: glowMap(), transparent: true, depthWrite: false, opacity: 1 }),
+    new THREE.MeshBasicMaterial({ color, map: glowMap(), transparent: true, depthWrite: false, opacity: 1, toneMapped: false }),
   );
   glow.position.y = 0.025;
   root.add(glow);
+  // Neon glow hugging the ring, inside and out.
+  const halo = new THREE.Mesh(
+    new THREE.CircleGeometry(1.05, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color, map: haloMap(), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }),
+  );
+  halo.position.y = 0.031;
+  glow.add(halo);
   // A solid ring with a dark edge keeps the rarity readable even green-on-grass.
   const edge = new THREE.Mesh(
     new THREE.RingGeometry(0.66, 0.8, 40).rotateX(-Math.PI / 2),
@@ -171,8 +201,8 @@ function buildLoot(loot: GroundLoot): LootView {
   edge.position.y = 0.027;
   glow.add(edge);
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.68, 0.76, 40).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true }),
+    new THREE.RingGeometry(0.67, 0.77, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true, toneMapped: false }),
   );
   ring.position.y = 0.029;
   glow.add(ring);
@@ -181,7 +211,7 @@ function buildLoot(loot: GroundLoot): LootView {
   if (loot.rarity >= 3) {
     beam = new THREE.Mesh(
       new THREE.CylinderGeometry(0.18, 0.32, 3, 16, 1, true).translate(0, 1.5, 0),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
     );
     root.add(beam);
   }
@@ -191,7 +221,7 @@ function buildLoot(loot: GroundLoot): LootView {
   // Weapon models are built around their grip; center them over the glow.
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
   root.add(model);
-  return { root, model, glow, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
+  return { root, model, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
 }
 
 export class LootViews {
@@ -233,6 +263,7 @@ export class LootViews {
       view.model.rotation.y = time * 1.3 + view.phase;
       const pulse = 0.8 + Math.sin(time * 3 + view.phase) * 0.2;
       (view.glow.material as THREE.MeshBasicMaterial).opacity = pulse * pop;
+      (view.halo.material as THREE.MeshBasicMaterial).opacity = (0.4 + Math.sin(time * 3 + view.phase) * 0.1) * pop;
       view.glow.scale.setScalar(pop);
       if (view.beam) view.beam.scale.set(1, pop, 1);
     }
