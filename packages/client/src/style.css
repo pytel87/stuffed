@@ -605,11 +605,13 @@ button {
 .wardrobe-picker {
   display: grid;
   grid-template-columns: repeat(var(--cols, 1), 2.9rem);
-  align-content: center;
+  /* Start, not center: centered rows that overflow would be cut off above the scroll. */
+  align-content: start;
   gap: 0.4rem;
   max-height: 15rem;
   overflow-y: auto;
-  padding: 0.3rem;
+  /* Room for the worn part's outline. */
+  padding: 0.45rem;
 }
 
 .wardrobe-picker .pick {

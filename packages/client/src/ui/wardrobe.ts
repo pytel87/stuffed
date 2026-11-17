@@ -197,8 +197,11 @@ export class Wardrobe {
     }
     const slot = this.selected;
     const owned = this.owned(slot);
-    // Only as wide as it needs: up to 4 columns, 4 rows before it scrolls.
-    this.picker.style.setProperty('--cols', String(Math.min(4, Math.max(1, Math.ceil(owned.length / 4)))));
+    // Only as wide as it needs: up to 4 columns of 4 rows before it scrolls; short screens
+    // (phones in landscape) fit 3 rows, so they spread to up to 6 columns instead.
+    const short = window.innerHeight <= 480;
+    const rows = short ? 3 : 4;
+    this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 4, Math.max(1, Math.ceil(owned.length / rows)))));
     this.picker.innerHTML = owned
       .map(
         (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${p.animal}">${partIcon(slot, p.animal)}</button>`,
