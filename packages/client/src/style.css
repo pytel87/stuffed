@@ -1245,34 +1245,22 @@ body.touch-mode .prompt .icon.tap {
   gap: 0.4rem;
 }
 
-/* Narrower screens (phones): the middle of the top edge is taken by the item slots, so the
-   timer and count sit under the stuffing bar instead. */
-@media (max-width: 1000px) {
-  .zone {
-    left: calc(var(--safe-l) + var(--edge));
-    top: calc(var(--safe-t) + var(--edge) + 3.4rem);
-    transform: none;
-    justify-items: start;
-  }
-}
-
-/* The Rinse timer and how many plushies are left, side by side. */
+/* The Rinse timer and how many plushies are left, in one pill; as tall as the gear button so
+   their centers line up. */
 .zone-row {
   display: flex;
-  gap: 0.4rem;
+  align-items: center;
+  min-height: 3.2rem;
 }
 
+/* The count, after a divider inside the timer pill. */
 .alive-count {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.25rem 0.8rem 0.25rem 0.45rem;
-  border-radius: 999px;
-  background: var(--panel);
-  border: 3px solid var(--ink);
-  color: #fff;
-  font: 900 1.1rem/1 var(--font);
-  font-variant-numeric: tabular-nums;
+  margin-left: 0.35rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.35);
 }
 
 .alive-count .icon {
@@ -1635,21 +1623,57 @@ body.touch-mode .prompt .stash-opt {
   border-left: 0;
 }
 
-/* On touch screens the HUD moves to the top so thumbs keep the bottom. */
-body.touch-mode .vitals {
-  left: calc(var(--safe-l) + var(--edge));
-  top: calc(var(--safe-t) + var(--edge));
-  bottom: auto;
+/* On touch screens the HUD moves to the top so thumbs keep the bottom: stuffing, the Rinse
+   timer and count, then the items and weapons, in one row with their centers on one line (the
+   rest of the HUD floats on its own). The gear button sits at the row's end. */
+body.touch-mode #hud {
+  --row: 3.4rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+body.touch-mode .vitals,
+body.touch-mode .zone,
+body.touch-mode .loadout {
+  position: static;
   transform: none;
-  width: min(16rem, 34vw);
+}
+
+body.touch-mode .vitals {
+  order: 1;
+  flex: 0 1 15rem;
+  min-width: 0;
+  width: auto;
+  height: var(--row);
+}
+
+body.touch-mode .vitals .track {
+  min-width: 2.5rem;
+}
+
+body.touch-mode .zone {
+  order: 2;
+  flex: none;
+  justify-items: start;
+}
+
+body.touch-mode .zone-row {
+  min-height: var(--row);
 }
 
 body.touch-mode .loadout {
-  top: calc(var(--safe-t) + var(--edge));
-  right: calc(var(--safe-r) + var(--edge) + 3.8rem);
-  bottom: auto;
+  order: 3;
+  flex: none;
+  margin-left: auto;
+  margin-right: 3.8rem;
+  height: var(--row);
   grid-auto-flow: column;
   align-items: center;
+}
+
+body.touch-mode .gear {
+  top: calc(var(--safe-t) + var(--edge) + (var(--row, 3.4rem) - 3.2rem) / 2);
 }
 
 /* Phones held upright: ask for landscape. */

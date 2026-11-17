@@ -7,8 +7,9 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Online, the players-left count counted only the plushies in sight; it now counts everyone
   still in (the roster minus the knocked out). The same for the count while spectating.
 - The knockout card names whoever got you even if they were hidden from you (in a bush).
-- On screens narrower than 1000px the Rinse timer and count sit under the stuffing bar, clear
-  of the item slots.
+- The top HUD is one row with every center on one line: on touch screens stuffing, the Rinse
+  timer and players-left count (one pill now), items, weapons and the gear; on desktop the pill
+  lines up with the gear.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 

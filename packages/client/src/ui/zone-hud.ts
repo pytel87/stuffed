@@ -28,8 +28,7 @@ export class ZoneHud {
       'beforeend',
       `<div class="zone">
          <div class="zone-row">
-           <div class="zone-timer">${icon('water')}<b class="time"></b></div>
-           <div class="alive-count">${icon('person')}<b class="left"></b></div>
+           <div class="zone-timer">${icon('water')}<b class="time"></b><span class="alive-count">${icon('person')}<b class="left"></b></span></div>
          </div>
          <div class="soggy" hidden>${icon('water')}<span class="arrow">${icon('arrow')}</span><b class="rate"></b></div>
        </div>
