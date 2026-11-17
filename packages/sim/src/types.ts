@@ -133,19 +133,17 @@ export interface Circle {
 }
 
 export interface Zone {
-  /** Index into config.zone.phases (0 = phase 1). */
-  phase: number;
-  /** 'final' = the last circle has closed; nothing changes any more. */
-  stage: 'wait' | 'shrink' | 'final';
-  stageStartTick: Tick;
-  stageEndTick: Tick;
-  /** Multiplies every wait and shrink duration (1 = as configured; tests and playtests use less). */
-  timeScale: number;
+  /** 'waiting' before the water rises, 'shrinking' while it does, 'closed' at radius 0. */
+  stage: 'waiting' | 'shrinking' | 'closed';
+  /** The circle shrinks linearly from `start` (at startTick) to `end` (at endTick). */
+  startTick: Tick;
+  endTick: Tick;
+  start: Circle;
+  /** Radius 0 at the final point. */
+  end: Circle;
   current: Circle;
-  /** Circle at the start of the current shrink; `current` lerps from `from` to `next`. */
-  from: Circle;
-  /** Next safe circle, shown to players ahead of time. */
-  next: Circle;
+  /** Multiplies the delay and duration (1 = as configured; tests and playtests use less). */
+  timeScale: number;
 }
 
 export type GameEvent =
@@ -155,8 +153,8 @@ export type GameEvent =
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
-  /** The Rinse started waiting or shrinking for a phase, or closed for good. */
-  | { type: 'zone'; phase: number; stage: Zone['stage'] }
+  /** The Rinse started rising, or closed completely. */
+  | { type: 'zone'; stage: Zone['stage'] }
   /** A projectile stopped against a wall. */
   | { type: 'impact'; pos: Vec2; weapon: WeaponKind };
 

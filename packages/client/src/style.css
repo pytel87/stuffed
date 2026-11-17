@@ -290,14 +290,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.zone-timer .phase {
-  font: 600 11px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.75;
-}
-
-.zone-timer .status[data-stage='shrink'] {
+.zone-timer .status[data-stage='shrinking'] {
   color: #8fd8f7;
 }
 

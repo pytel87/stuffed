@@ -87,7 +87,7 @@ function frame(now: number): void {
     roof: me && me.building !== -1 ? `building ${me.building}` : '-',
     proj: f.curr.projectiles.length,
     loot: `${f.curr.loot.length} on ground, ${f.curr.chests.filter((c) => !c.opened).length} chests closed`,
-    zone: `phase ${f.curr.zone.phase + 1} ${f.curr.zone.stage} ${zoneSecondsLeft(f.curr.zone, f.curr.tick).toFixed(1)}s r=${f.curr.zone.current.radius.toFixed(1)}`,
+    zone: `${f.curr.zone.stage} ${zoneSecondsLeft(f.curr.zone, f.curr.tick).toFixed(1)}s r=${f.curr.zone.current.radius.toFixed(1)}`,
     soggy: me?.soggy ? 'yes' : '-',
   });
 

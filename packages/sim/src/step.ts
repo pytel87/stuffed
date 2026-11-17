@@ -44,7 +44,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   }
 
   updateProjectiles(world, state);
-  updateZone(world, state);
+  updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {
     if (!player.alive && (player.weapons.some(Boolean) || player.items.some(Boolean))) dropEverything(world, state, player);

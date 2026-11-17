@@ -2,6 +2,17 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.5b: The Rinse rises without phases (2026-11-17)
+
+- The Rinse no longer has phases: after a 60 s grace period the circle shrinks steadily for
+  540 s from the whole map to a random final point (at least 25% of the map away from the
+  edges). Damage while soggy ramps from 1 to 10 stuffing per second as it closes. Every
+  later circle still lies inside every earlier one.
+- The dashed next-circle ring is gone; the HUD shows "The Rinse rises in 0:42" and then
+  "The Rinse closes in 7:12", and the soggy warning shows the current damage rate.
+- `config.zone` is now `delay`, `duration`, `damagePerSecond.start/end` and
+  `finalCenterMargin`.
+
 ## Step 1.5: The Rinse (2026-11-17)
 
 - Sim: the safe circle shrinks in 5 phases (wait/shrink 120/90, 90/60, 60/45, 45/30,

@@ -1,5 +1,5 @@
-// The Rinse: soapy water outside the safe circle (wobbling foam edge, ripples, bubbles) and a
-// dashed ring marking the next circle. One shader on a big plane; plushies wade in it.
+// The Rinse: soapy water outside the safe circle (wobbling foam edge, ripples, bubbles).
+// One shader on a big plane; plushies wade in it.
 import * as THREE from 'three';
 import type { MapData, Zone } from '@stuffed/sim';
 
@@ -17,9 +17,6 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   uniform vec2 uCenter;
   uniform float uRadius;
-  uniform vec2 uNextCenter;
-  uniform float uNextRadius;
-  uniform float uShowNext;
   uniform float uTime;
   varying vec2 vWorld;
 
@@ -46,12 +43,6 @@ const fragmentShader = /* glsl */ `
       col = vec4(mix(water, vec3(1.0), foam * 0.85), 0.84);
     }
 
-    vec2 n = vWorld - uNextCenter;
-    float ring = 1.0 - smoothstep(0.09, 0.17, abs(length(n) - uNextRadius));
-    float arc = atan(n.y, n.x) * uNextRadius;
-    float dash = step(0.45, fract(arc / 1.4 + uTime * 0.3));
-    col = mix(col, vec4(1.0, 1.0, 1.0, 0.92), ring * dash * uShowNext);
-
     if (col.a < 0.01) discard;
     gl_FragColor = col;
   }
@@ -62,9 +53,6 @@ export class RinseView {
   private readonly uniforms = {
     uCenter: { value: new THREE.Vector2() },
     uRadius: { value: 0 },
-    uNextCenter: { value: new THREE.Vector2() },
-    uNextRadius: { value: 0 },
-    uShowNext: { value: 1 },
     uTime: { value: 0 },
   };
 
@@ -82,9 +70,6 @@ export class RinseView {
     const u = this.uniforms;
     u.uCenter.value.set(zone.current.center.x, zone.current.center.y);
     u.uRadius.value = zone.current.radius;
-    u.uNextCenter.value.set(zone.next.center.x, zone.next.center.y);
-    u.uNextRadius.value = zone.next.radius;
-    u.uShowNext.value = zone.stage === 'final' ? 0 : 1;
     u.uTime.value = time;
   }
 }

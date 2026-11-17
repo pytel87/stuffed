@@ -6,7 +6,7 @@ export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee } from './systems/visibility.ts';
 export { findInteraction, addToSlots, type Interaction } from './systems/loot.ts';
 export { canUseItem } from './systems/items.ts';
-export { isOutside, zoneSecondsLeft, pickNextCircle } from './systems/zone.ts';
+export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft } from './systems/zone.ts';
 export { segmentBoxT, circleBoxPush } from './collision/geometry.ts';
 export { StaticBoxHash } from './collision/spatial-hash.ts';
 export { NEUTRAL_INPUT, sanitizeInput } from './input.ts';

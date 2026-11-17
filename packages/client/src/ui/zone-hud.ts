@@ -1,4 +1,4 @@
-import { config, isOutside, zoneSecondsLeft } from '@stuffed/sim';
+import { isOutside, zoneDamagePerSecond, zoneSecondsLeft } from '@stuffed/sim';
 import type { GameEvent, GameState, Player, Vec2 } from '@stuffed/sim';
 
 const ANNOUNCE_SECONDS = 2.8;
@@ -8,9 +8,8 @@ function clock(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** Top-center Rinse timer, a soggy warning with an arrow to safety, and phase announcements. */
+/** Top-center Rinse timer, a soggy warning with an arrow to safety, and announcements. */
 export class ZoneHud {
-  private readonly phase: HTMLElement;
   private readonly status: HTMLElement;
   private readonly soggy: HTMLElement;
   private readonly soggyText: HTMLElement;
@@ -23,13 +22,12 @@ export class ZoneHud {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="zone">
-         <div class="zone-timer"><span class="phase"></span><span class="status"></span></div>
+         <div class="zone-timer"><span class="status"></span></div>
          <div class="soggy" hidden><span class="arrow">➜</span><span class="text"></span></div>
        </div>
        <div class="banner" hidden></div>`,
     );
     const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
-    this.phase = q('.zone .phase');
     this.status = q('.zone .status');
     this.soggy = q('.zone .soggy');
     this.soggyText = q('.zone .soggy .text');
@@ -40,22 +38,19 @@ export class ZoneHud {
   events(events: GameEvent[]): void {
     for (const e of events) {
       if (e.type !== 'zone') continue;
-      if (e.stage === 'shrink') this.announce(e.phase === config.zone.phases.length - 1 ? 'The final Rinse! Get to the center' : 'The Rinse is coming! Get inside the circle');
-      else if (e.stage === 'final') this.announce('The Rinse has closed');
+      if (e.stage === 'shrinking') this.announce('The Rinse is rising! Stay inside the circle');
+      else if (e.stage === 'closed') this.announce('The Rinse has closed');
     }
   }
 
   update(state: GameState, me: Player | undefined, mePos: Vec2, dt: number): void {
     const z = state.zone;
     const left = clock(zoneSecondsLeft(z, state.tick));
-    const total = config.zone.phases.length;
     const text =
-      z.stage === 'wait' ? `The Rinse moves in ${left}` : z.stage === 'shrink' ? `The Rinse is moving · ${left}` : 'The Rinse has closed';
-    const phase = `Phase ${Math.min(z.phase + 1, total)}/${total}`;
-    const key = `${phase}|${text}|${z.stage}`;
+      z.stage === 'waiting' ? `The Rinse rises in ${left}` : z.stage === 'shrinking' ? `The Rinse closes in ${left}` : 'The Rinse has closed';
+    const key = `${text}|${z.stage}`;
     if (key !== this.last) {
       this.last = key;
-      this.phase.textContent = phase;
       this.status.textContent = text;
       this.status.dataset.stage = z.stage;
     }
@@ -63,8 +58,8 @@ export class ZoneHud {
     const soggy = !!me?.alive && isOutside(z, mePos);
     this.soggy.hidden = !soggy;
     if (soggy) {
-      const dps = config.zone.phases[Math.min(z.phase, total - 1)]!.damagePerSecond;
-      this.soggyText.textContent = `Soggy! −${dps} stuffing/s · get to the circle`;
+      const dps = zoneDamagePerSecond(z, state.tick);
+      this.soggyText.textContent = `Soggy! −${dps.toFixed(dps < 10 ? 1 : 0)} stuffing/s · get to the circle`;
       const angle = Math.atan2(z.current.center.y - mePos.y, z.current.center.x - mePos.x);
       this.arrow.style.transform = `rotate(${angle}rad)`;
     }
