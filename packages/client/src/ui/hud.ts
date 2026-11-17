@@ -160,7 +160,7 @@ export class Hud {
     this.progressChest = chest?.pos ?? null;
     if (action) {
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
-      this.set('pa', action.kind === 'openChest' ? 'chest' : action.item, (v) => (this.progressArt.innerHTML = icon(v)));
+      this.set('pa', action.kind === 'openChest' ? `chest:${chest?.loot ?? 'medium'}` : action.item, (v) => (this.progressArt.innerHTML = icon(v)));
       this.progressFill.style.transform = `scaleX(${t.toFixed(3)})`;
     }
     this.set('ps', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
@@ -179,13 +179,14 @@ export class Hud {
       art = `part:${p.slot}:${p.animal}`;
       color = config.rarity[p.rarity].color;
     } else if (interaction?.kind === 'chest') {
-      art = 'chest';
+      // The exact chest you're about to open.
+      art = `chest:${interaction.chest.loot}`;
     }
     this.set('pr', art, (v) => {
       const [kind, slot, animal] = v.split(':');
       this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
       this.prompt.hidden = v === '';
-      this.prompt.classList.toggle('hold', v === 'chest');
+      this.prompt.classList.toggle('hold', kind === 'chest');
       // Parts can be worn (E) or stashed (Q).
       this.promptStash.hidden = kind !== 'part';
     });

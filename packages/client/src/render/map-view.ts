@@ -1,12 +1,10 @@
 // Static map visuals: felt lawn (no fence: it carries on past the edges), ground patches (sand, dirt, a picnic blanket,
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Circle, Ground, MapData } from '@stuffed/sim';
-import { checkerTexture, plankTexture, tiled } from './props.ts';
-import { feltTexture, toonMaterial, toonMesh } from './toon.ts';
+import { checkerTexture, dirtTexture, lawnTexture, plankTexture, sandTexture, stoneTexture, tiled } from './props.ts';
+import { toonMaterial, toonMesh } from './toon.ts';
 
-const LAWN = '#7cc46a';
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
 const LAWN_BEYOND = 48;
 /** Patches and grass stop a little earlier; it's all underwater past there anyway. */
@@ -19,12 +17,10 @@ export function buildMapView(map: MapData): THREE.Group {
   // No fence around the yard: the lawn just goes on (the Rinse is the edge of play).
   const lw = w + 2 * LAWN_BEYOND;
   const lh = h + 2 * LAWN_BEYOND;
-  const lawnTex = feltTexture().clone();
-  lawnTex.repeat.set(lw / 4, lh / 4);
-  lawnTex.needsUpdate = true;
+  const lawnTex = tiled(lawnTexture(), lw / 8, lh / 8);
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
   // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), toonMaterial(LAWN, { map: lawnTex }));
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), toonMaterial('#ffffff', { map: lawnTex }));
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
@@ -32,12 +28,11 @@ export function buildMapView(map: MapData): THREE.Group {
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
-  g.add(feltPatches(map));
   g.add(grassTufts(map));
   return g;
 }
 
-/** Lawn decorations (felt patches, grass) stay off sand, dirt, the blanket and water. */
+/** Grass tufts stay off sand, dirt, the blanket and water. */
 function onBareLawn(map: MapData, x: number, z: number, margin = 0.5): boolean {
   for (const ground of map.grounds ?? []) {
     if (ground.kind === 'stones' || !ground.box) continue;
@@ -49,8 +44,6 @@ function onBareLawn(map: MapData, x: number, z: number, margin = 0.5): boolean {
   }
   return true;
 }
-
-const GROUND_COLORS = { sand: '#edd58f', dirt: '#86603f' } as const;
 
 function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
   const box = ground.box ?? { x: 0, y: 0, w: 0, h: 0 };
@@ -66,7 +59,7 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n - 0.5;
       const r = 0.55 + rand() * 0.25;
-      const stone = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, 0.08, 14), toonMaterial('#c9c3b8'));
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, 0.08, 14), toonMaterial('#ffffff', { map: stoneTexture() }));
       stone.position.set(cx + (long ? t * length : (rand() - 0.5) * 0.6), 0.04, cz + (long ? (rand() - 0.5) * 0.6 : t * length));
       stone.receiveShadow = true;
       g.add(stone);
@@ -79,7 +72,7 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
       ? toonMaterial('#ffffff', { map: tiled(checkerTexture('#e25b5b', '#fff6ec'), box.w / 3, box.h / 3) })
       : ground.kind === 'floor'
         ? toonMaterial('#f0dcc0', { map: tiled(plankTexture(), box.w / 1.6, box.h / 6) })
-        : toonMaterial(GROUND_COLORS[ground.kind], { map: tiled(feltTexture(), box.w / 4, box.h / 4) });
+        : toonMaterial('#ffffff', { map: tiled(ground.kind === 'sand' ? sandTexture() : dirtTexture(), box.w / 8, box.h / 8) });
   const patch = new THREE.Mesh(geometry, material);
   patch.position.set(cx, 0.012, cz);
   patch.receiveShadow = true;
@@ -129,38 +122,6 @@ function mapRandom(map: MapData, salt: number): () => number {
   let seed = salt;
   for (const ch of map.id) seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647;
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-}
-
-/**
- * Sewn-on felt patches in other greens, so movement reads against the ground. Merged into one
- * mesh per color plus one for all the stitch rings: a handful of draw calls instead of ~200.
- */
-function feltPatches(map: MapData): THREE.Group {
-  const rand = mapRandom(map, 7);
-  const g = new THREE.Group();
-  const colors = ['#86cc72', '#71b860', '#8fd27a', '#6fb35f'];
-  const byColor = colors.map(() => [] as THREE.BufferGeometry[]);
-  const rings: THREE.BufferGeometry[] = [];
-  const span = { w: map.width + 2 * DECOR_BEYOND, h: map.height + 2 * DECOR_BEYOND };
-  const count = Math.round((span.w * span.h) / 60);
-  for (let i = 0; i < count; i++) {
-    const r = 1.2 + rand() * 2.8;
-    const x = rand() * span.w - DECOR_BEYOND;
-    const z = rand() * span.h - DECOR_BEYOND;
-    const c = Math.floor(rand() * colors.length);
-    if (!onBareLawn(map, x, z, r)) continue;
-    // A tiny height step per patch keeps overlapping patches from flickering.
-    byColor[c]!.push(new THREE.CircleGeometry(r, 28).rotateX(-Math.PI / 2).translate(x, 0.004 + i * 1e-5, z));
-    rings.push(new THREE.RingGeometry(r - 0.12, r - 0.08, 40, 1).rotateX(-Math.PI / 2).translate(x, 0.006 + i * 1e-5, z));
-  }
-  byColor.forEach((geos, c) => {
-    if (!geos.length) return;
-    const patch = new THREE.Mesh(mergeGeometries(geos), toonMaterial(colors[c]!));
-    patch.receiveShadow = true;
-    g.add(patch);
-  });
-  g.add(new THREE.Mesh(mergeGeometries(rings), new THREE.MeshBasicMaterial({ color: '#5a9a4c', transparent: true, opacity: 0.7 })));
-  return g;
 }
 
 function grassTufts(map: MapData): THREE.InstancedMesh {

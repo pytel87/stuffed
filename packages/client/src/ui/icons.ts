@@ -104,6 +104,7 @@ export function setModelPictures(pictures: Map<string, string>): void {
 export function icon(name: keyof typeof paths | string, className = 'icon'): string {
   const picture = modelPictures.get(name);
   if (picture) return `<img class="${className} model" src="${picture}" alt="" draggable="false">`;
-  const body = paths[name] ?? paths.help!;
+  // 'chest:high' falls back to the drawn 'chest'.
+  const body = paths[name] ?? paths[name.split(':')[0]!] ?? paths.help!;
   return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }

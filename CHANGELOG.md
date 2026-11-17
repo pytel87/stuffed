@@ -2,6 +2,16 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Textures and fixes (2026-11-17)
+
+- More detailed surfaces: a mottled lawn with grass blades, sand with ripples and pebbles, soil
+  with clods and roots, wood with grain and knots, bricks and roof tiles in varied tones,
+  speckled stepping stones. The picnic tablecloth is now blue gingham with a red hem, unlike the
+  red-check blanket under the table. The felt circles on the lawn are gone.
+- The open-chest prompt and the opening bar show the exact chest (plain, toy, royal, basket).
+- Fixed: flickering on the house roof and lines poking through roofs and the tablecloth. Walls
+  that reach up to a roof are drawn just under it.
+
 ## Step 4.2: Five new weapons, nicer chests, model pictures (2026-11-17)
 
 - Rubber Band Rifle (hold to draw, release to fire; stronger and faster the longer you held,

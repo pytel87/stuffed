@@ -1,8 +1,8 @@
 // Walls, bushes and roofs. The sim only knows boxes and circles; each wall's look comes from its
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
-import type { Building, Circle, MapData } from '@stuffed/sim';
-import { buildWall, checkerTexture, corrugatedTexture, plankTexture, tiled, tileTexture } from './props.ts';
+import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
+import { buildWall, corrugatedTexture, ginghamTexture, plankTexture, tiled, tileTexture } from './props.ts';
 import { feltTexture, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
 const OUTLINE = 0.045;
@@ -101,7 +101,11 @@ function roof(b: Building): RoofView {
       break;
     }
     case 'table': {
-      lid(toonMaterial('#ffffff', { map: tiled(checkerTexture(), w / 2, d / 2) }));
+      // Blue gingham with a red hem, so it doesn't look like the blanket under the table.
+      lid(toonMaterial('#ffffff', { map: tiled(ginghamTexture(), w / 1.2, d / 1.2) }));
+      for (const [sx, sz, x, z] of [[w + 0.04, 0.12, 0, d / 2], [w + 0.04, 0.12, 0, -d / 2], [0.12, d + 0.04, w / 2, 0], [0.12, d + 0.04, -w / 2, 0]] as const) {
+        on(new THREE.Mesh(new THREE.BoxGeometry(sx, ROOF_THICKNESS + 0.04, sz), flat('#e25b5b')), x, 0, z);
+      }
       // plates and a cake on the cloth
       for (const [x, z] of [[-w / 3, -d / 4], [w / 3, d / 4], [0, -d / 4]] as const) {
         on(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.5, 0.06, 20), flat('#ffffff')), x, top + 0.03, z);
@@ -125,9 +129,21 @@ function roof(b: Building): RoofView {
   return { object: g, materials, meshes, opacity: 1 };
 }
 
+/**
+ * A wall reaching up to a roof (house and shed walls, table legs) is drawn a little shorter,
+ * so its top and outline stay under the roof instead of poking through it.
+ */
+function underRoof(wall: Wall, map: MapData): Wall {
+  for (const b of map.buildings) {
+    const inside = wall.x >= b.x - 0.01 && wall.y >= b.y - 0.01 && wall.x + wall.w <= b.x + b.w + 0.01 && wall.y + wall.h <= b.y + b.h + 0.01;
+    if (inside && wall.height >= b.height - 0.05) return { ...wall, height: b.height - 0.08 };
+  }
+  return wall;
+}
+
 export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushView[]; roofs: RoofView[] } {
   const root = new THREE.Group();
-  map.walls.forEach((b, i) => root.add(buildWall(b, i)));
+  map.walls.forEach((b, i) => root.add(buildWall(underRoof(b, map), i)));
   const bushes = map.bushes.map((c) => {
     const { object, view } = bush(c);
     root.add(object);

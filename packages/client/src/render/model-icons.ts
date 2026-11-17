@@ -63,7 +63,10 @@ export function renderModelIcons(): Map<string, string> {
   for (const kind of Object.keys(config.items) as ItemKind[]) {
     shoot(kind, buildItem(kind), new THREE.Euler(0.5, -0.5, 0, 'YXZ'));
   }
-  shoot('chest', buildChest({ id: 0, pos: { x: 0, y: 0 }, opened: false, loot: 'medium' }).root, new THREE.Euler(0.45, -0.5, 0, 'YXZ'));
+  // Each kind of chest (by loot level), for the open prompt.
+  for (const loot of ['low', 'medium', 'high', 'food'] as const) {
+    shoot(`chest:${loot}`, buildChest({ id: 0, pos: { x: 0, y: 0 }, opened: false, loot }).root, new THREE.Euler(0.45, -0.5, 0, 'YXZ'));
+  }
   // Every skin part, turned to show its best side (tails from behind).
   const partTurn: Record<PartSlot, THREE.Euler> = {
     head: new THREE.Euler(0.15, 0.45, 0, 'YXZ'),

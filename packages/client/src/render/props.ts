@@ -44,38 +44,194 @@ export function tiled(tex: THREE.Texture, rx: number, ry: number): THREE.Texture
   return t;
 }
 
+/** Render-only randomness for textures, seeded so they look the same every time. */
+function seeded(seed: number): () => number {
+  let x = seed;
+  return () => (x = (x * 16807) % 2147483647) / 2147483647;
+}
+
+/** Bricks of slightly different reds and tans in light mortar, with a few speckles. */
 export const brickTexture = () =>
-  canvasTexture('brick', 128, (g, s) => {
-    g.fillStyle = '#e9c9a8';
+  canvasTexture('brick', 256, (g, s) => {
+    const rand = seeded(11);
+    g.fillStyle = '#efdcc4';
     g.fillRect(0, 0, s, s);
-    g.fillStyle = '#d89f7c';
-    const rows = 4;
+    const rows = 8;
     const h = s / rows;
+    const tones = ['#d99a78', '#d38d6c', '#dfa583', '#cf8a68', '#e2ad8c'];
     for (let r = 0; r < rows; r++) {
-      const off = r % 2 ? s / 4 : 0;
-      for (let c = -1; c < 2; c++) g.fillRect(c * (s / 2) + off + 4, r * h + 4, s / 2 - 8, h - 8);
+      const off = r % 2 ? s / 8 : 0;
+      for (let c = -1; c < 5; c++) {
+        g.fillStyle = tones[Math.floor(rand() * tones.length)]!;
+        const x = c * (s / 4) + off + 3;
+        g.beginPath();
+        g.roundRect(x, r * h + 3, s / 4 - 6, h - 6, 3);
+        g.fill();
+      }
+    }
+    for (let i = 0; i < 500; i++) {
+      g.fillStyle = rand() < 0.5 ? 'rgba(120,60,40,0.25)' : 'rgba(255,240,220,0.3)';
+      g.fillRect(rand() * s, rand() * s, 2, 2);
     }
   });
 
+/** Four planks of slightly different wood, with grain lines, knots and dark gaps. */
 export const plankTexture = () =>
-  canvasTexture('plank', 128, (g, s) => {
-    g.fillStyle = '#c08a57';
+  canvasTexture('plank', 256, (g, s) => {
+    const rand = seeded(5);
+    const tones = ['#c48d58', '#bb8450', '#c9955f', '#b98049'];
+    const pw = s / 4;
+    for (let p = 0; p < 4; p++) {
+      g.fillStyle = tones[p]!;
+      g.fillRect(p * pw, 0, pw, s);
+      // grain: long wavy lines down the plank
+      g.strokeStyle = 'rgba(110,70,35,0.35)';
+      g.lineWidth = 1.5;
+      for (let l = 0; l < 6; l++) {
+        const x0 = p * pw + 6 + rand() * (pw - 12);
+        g.beginPath();
+        for (let y = 0; y <= s; y += 8) g.lineTo(x0 + Math.sin(y / 30 + l) * 3, y);
+        g.stroke();
+      }
+      // a knot or two
+      for (let k = 0; k < 1 + Math.floor(rand() * 2); k++) {
+        const kx = p * pw + 12 + rand() * (pw - 24);
+        const ky = rand() * s;
+        g.fillStyle = 'rgba(100,60,30,0.6)';
+        g.beginPath();
+        g.ellipse(kx, ky, 5, 8, 0, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = 'rgba(100,60,30,0.35)';
+        g.beginPath();
+        g.ellipse(kx, ky, 9, 14, 0, 0, Math.PI * 2);
+        g.stroke();
+      }
+      // gap and nail heads
+      g.fillStyle = '#7a4f2a';
+      g.fillRect(p * pw, 0, 3, s);
+      g.fillStyle = '#6d6a66';
+      for (const y of [s * 0.12, s * 0.88]) {
+        g.beginPath();
+        g.arc(p * pw + pw / 2, y, 3, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+  });
+
+/** Lawn felt: soft patches of lighter and darker green, short blades and fibers. */
+export const lawnTexture = () =>
+  canvasTexture('lawn', 256, (g, s) => {
+    const rand = seeded(21);
+    g.fillStyle = '#7cc46a';
     g.fillRect(0, 0, s, s);
-    g.strokeStyle = '#8e6036';
-    g.lineWidth = 4;
-    for (let x = 0; x <= s; x += s / 4) {
+    for (let i = 0; i < 40; i++) {
+      const x = rand() * s;
+      const y = rand() * s;
+      const r = 20 + rand() * 50;
+      const light = rand() < 0.5;
+      // Draw wrapped copies so the texture tiles without seams.
+      for (const dx of [-s, 0, s]) {
+        for (const dy of [-s, 0, s]) {
+          const grad = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+          grad.addColorStop(0, light ? 'rgba(160,220,130,0.35)' : 'rgba(80,150,70,0.3)');
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad;
+          g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2);
+        }
+      }
+    }
+    const blades = ['rgba(70,140,60,0.55)', 'rgba(150,215,120,0.55)', 'rgba(100,170,80,0.5)'];
+    for (let i = 0; i < 1600; i++) {
+      g.strokeStyle = blades[i % 3]!;
+      g.lineWidth = 1 + rand();
+      const x = rand() * s;
+      const y = rand() * s;
+      const a = -Math.PI / 2 + (rand() - 0.5) * 1.2;
+      const len = 3 + rand() * 6;
       g.beginPath();
-      g.moveTo(x, 0);
-      g.lineTo(x, s);
+      g.moveTo(x, y);
+      g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
       g.stroke();
     }
-    g.fillStyle = '#7a502c';
-    for (let x = s / 8; x < s; x += s / 4) {
+  });
+
+/** Sand: grains in a few tones, gentle ripples and the odd pebble. */
+export const sandTexture = () =>
+  canvasTexture('sand', 256, (g, s) => {
+    const rand = seeded(31);
+    g.fillStyle = '#efd793';
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = 'rgba(200,165,95,0.35)';
+    g.lineWidth = 2;
+    for (let r = 0; r < 7; r++) {
+      const y0 = (r + 0.5) * (s / 7);
       g.beginPath();
-      g.arc(x, s * 0.15, 3, 0, Math.PI * 2);
-      g.arc(x, s * 0.85, 3, 0, Math.PI * 2);
+      for (let x = 0; x <= s; x += 8) g.lineTo(x, y0 + Math.sin((x / s) * Math.PI * 4 + r) * 5);
+      g.stroke();
+    }
+    const grains = ['rgba(190,150,80,0.5)', 'rgba(255,245,210,0.7)', 'rgba(170,130,70,0.4)'];
+    for (let i = 0; i < 2600; i++) {
+      g.fillStyle = grains[i % 3]!;
+      g.fillRect(rand() * s, rand() * s, 1.5, 1.5);
+    }
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = rand() < 0.5 ? '#cfc6b8' : '#fff4e4';
+      g.beginPath();
+      g.ellipse(rand() * s, rand() * s, 3 + rand() * 3, 2 + rand() * 2, rand() * 3, 0, Math.PI * 2);
       g.fill();
     }
+  });
+
+/** Garden soil: dark clods, pebbles and little roots. */
+export const dirtTexture = () =>
+  canvasTexture('dirt', 256, (g, s) => {
+    const rand = seeded(41);
+    g.fillStyle = '#86603f';
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = rand() < 0.6 ? 'rgba(90,60,35,0.5)' : 'rgba(160,120,80,0.4)';
+      g.beginPath();
+      g.ellipse(rand() * s, rand() * s, 3 + rand() * 7, 2 + rand() * 5, rand() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = rand() < 0.5 ? '#a8a29a' : '#c7c0b6';
+      g.beginPath();
+      g.arc(rand() * s, rand() * s, 2 + rand() * 2, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.strokeStyle = 'rgba(200,170,120,0.5)';
+    g.lineWidth = 1.5;
+    for (let i = 0; i < 12; i++) {
+      const x = rand() * s;
+      const y = rand() * s;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.quadraticCurveTo(x + 8, y + rand() * 10, x + 14, y + rand() * 12 - 6);
+      g.stroke();
+    }
+  });
+
+/** Stepping stones: grey with darker and lighter speckles. */
+export const stoneTexture = () =>
+  canvasTexture('stone', 128, (g, s) => {
+    const rand = seeded(51);
+    g.fillStyle = '#cbc5bb';
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 700; i++) {
+      g.fillStyle = rand() < 0.5 ? 'rgba(120,115,108,0.45)' : 'rgba(240,236,228,0.6)';
+      g.fillRect(rand() * s, rand() * s, 2, 2);
+    }
+  });
+
+/** Blue gingham for the picnic tablecloth (unlike the red check of the blanket below it). */
+export const ginghamTexture = () =>
+  canvasTexture('gingham', 64, (g, s) => {
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = 'rgba(74,144,226,0.45)';
+    g.fillRect(0, 0, s / 2, s);
+    g.fillRect(0, 0, s, s / 2);
   });
 
 export const crateTexture = () =>
@@ -113,18 +269,27 @@ const stripeTexture = () =>
     });
   });
 
+/** Rounded roof tiles, each row a slightly different red. */
 export const tileTexture = () =>
-  canvasTexture('roofTiles', 128, (g, s) => {
-    g.fillStyle = '#c4553e';
-    g.fillRect(0, 0, s, s);
-    g.strokeStyle = '#9a3b2a';
-    g.lineWidth = 4;
-    for (let r = 0; r < 4; r++) {
-      const y = (r + 1) * (s / 4);
-      for (let c = 0; c < 4; c++) {
-        const x = c * (s / 4) + (r % 2 ? s / 8 : 0);
+  canvasTexture('roofTiles', 256, (g, s) => {
+    const rand = seeded(61);
+    const rows = 8;
+    const h = s / rows;
+    const tones = ['#c4553e', '#bd4f39', '#cb5d45', '#b84a35'];
+    for (let r = 0; r < rows; r++) {
+      g.fillStyle = tones[Math.floor(rand() * tones.length)]!;
+      g.fillRect(0, r * h, s, h);
+      const off = r % 2 ? s / 16 : 0;
+      for (let c = -1; c < 9; c++) {
+        const x = c * (s / 8) + off + s / 16;
+        g.fillStyle = 'rgba(255,200,170,0.18)';
         g.beginPath();
-        g.arc(x + s / 8, y - s / 8, s / 8, 0, Math.PI);
+        g.ellipse(x, r * h + h * 0.35, s / 22, h * 0.25, 0, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = '#8f3626';
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(x, r * h, s / 16, 0.15, Math.PI - 0.15);
         g.stroke();
       }
     }
@@ -197,8 +362,9 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     case 'brick': {
       const long = Math.max(b.w, b.h);
       add(outlinedBox(b.w, H, b.h, toonMaterial('#ffffff', { map: tiled(brickTexture(), long / 2, H / 1) })), H / 2);
-      // a painted trim along the top
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.06, 0.16, b.h + 0.06), flat('#7fb3d9')), H - 0.07);
+      // A painted trim along the top, kept just below the wall top: the house roof's surface sits
+      // exactly at wall height, and two faces at one height flicker through each other.
+      add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.06, 0.16, b.h + 0.06), flat('#7fb3d9')), H - 0.12);
       break;
     }
     case 'plank': {
