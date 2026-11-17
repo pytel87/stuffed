@@ -59,6 +59,12 @@ body {
   overflow: visible;
 }
 
+/* Pictures of the real models (weapons, items) used as icons. */
+img.icon {
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .icon.big {
   width: 3rem;
   height: 3rem;

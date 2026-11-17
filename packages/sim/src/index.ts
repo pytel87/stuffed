@@ -13,7 +13,7 @@ export { StaticBoxHash } from './collision/spatial-hash.ts';
 export { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 export { ANIMALS, PART_SLOTS, DEFAULT_PARTS, SET_SIZE, carriedParts, fullSet, rollKeeps, wornSet } from './parts.ts';
 export { applyDamage } from './systems/damage.ts';
-export { makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems/weapons.ts';
+export { chargeAmount, makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems/weapons.ts';
 export { sweepCircle } from './systems/projectiles.ts';
 export type { WeaponStats, RarityStats, ItemStats } from './config.ts';
 export { TEST_MAP } from './maps/test-map.ts';

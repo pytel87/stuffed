@@ -27,12 +27,13 @@ describe('movement', () => {
     expect(Math.hypot(state.players[0]!.vel.x, state.players[0]!.vel.y)).toBeLessThan(0.01);
   });
 
-  it('stays inside the map bounds', () => {
+  it('can wander a little past the map edges, no farther', () => {
     const { world, state } = newGame();
     run(world, state, 30 * 30, () => input({ moveX: -1, moveY: -1 }));
     const p = state.players[0]!;
-    expect(p.pos.x).toBeCloseTo(p.radius, 6);
-    expect(p.pos.y).toBeCloseTo(p.radius, 6);
+    const limit = -config.player.roamOutside + p.radius;
+    expect(p.pos.x).toBeCloseTo(limit, 6);
+    expect(p.pos.y).toBeCloseTo(limit, 6);
   });
 
   it('keeps the previous aim when the aim input is zero', () => {

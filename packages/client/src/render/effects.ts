@@ -64,10 +64,36 @@ class ParticlePool {
   }
 }
 
+/** An expanding ring on the ground (a marble or glitter burst), fading out. */
+interface Shockwave {
+  mesh: THREE.Mesh;
+  life: number;
+  maxLife: number;
+  radius: number;
+}
+
+/** Keeps sprinkling glitter over an area for a while (the cloud a Glitter Bomb leaves). */
+interface Emitter {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  left: number;
+  acc: number;
+}
+
 export class Effects {
   private readonly cotton: ParticlePool;
   private readonly buttons: ParticlePool[];
   private readonly water: ParticlePool;
+  /** Glitter in a few bright colors; also marble shards and bonk stars. */
+  private readonly glitter: ParticlePool[];
+  private readonly glass: ParticlePool[];
+  private readonly stars: ParticlePool;
+  private readonly soap: ParticlePool;
+  private readonly waves: Shockwave[] = [];
+  private readonly emitters: Emitter[] = [];
+  private readonly ringGeo = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2);
   private readonly tmpPos = new THREE.Vector3();
   private readonly tmpVel = new THREE.Vector3();
 
@@ -77,13 +103,71 @@ export class Effects {
     const disc = new THREE.CylinderGeometry(1, 1, 0.35, 12);
     this.buttons = ['#e2574c', '#3d7ff2', '#f7c331'].map((c) => new ParticlePool(scene, disc, toonMaterial(c, { map: null })));
     this.water = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), toonMaterial('#7fd0f7', { map: null }));
+    const flake = new THREE.OctahedronGeometry(1, 0);
+    this.glitter = ['#ff7ac8', '#fff27a', '#7af0ff', '#ffffff', '#c58bff'].map(
+      (c) => new ParticlePool(scene, flake, new THREE.MeshBasicMaterial({ color: c, toneMapped: false })),
+    );
+    this.glass = ['#ff5a5a', '#3fa9f5', '#5bd16a', '#9fd9ff'].map((c) => new ParticlePool(scene, new THREE.IcosahedronGeometry(1, 0), toonMaterial(c, { map: null })));
+    const star = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const r = i % 2 ? 0.45 : 1;
+      if (i === 0) star.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else star.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    this.stars = new ParticlePool(scene, new THREE.ExtrudeGeometry(star, { depth: 0.3, bevelEnabled: false }), toonMaterial('#ffd23a', { map: null }));
+    this.soap = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.6 }));
+    this.scene = scene;
   }
+
+  private readonly scene: THREE.Scene;
 
   /** Spawns one of every particle far off the map so their shaders compile at startup. */
   warmUp(): void {
     this.knockout(-500, -500);
     this.armorHit(-500, -500, 0, 0, 5);
     this.splash(-500, -500);
+    this.marbleBurst(-500, 0.5, -500, 2);
+    this.glitterBurst(-500, 0.5, -500, 2, 0.1);
+    this.bonk(-500, -500);
+    this.bubblePop(-500, 0.8, -500);
+  }
+
+  /** A marble bursts: a ring rolling out over the ground and glass bits flying. */
+  marbleBurst(x: number, y: number, z: number, radius: number): void {
+    this.shockwave(x, y + 0.05, z, radius, '#ffffff');
+    for (const pool of this.glass) this.burst(pool, x, y + 0.3, z, 0, 0, 4, radius * 2.2, 0.08, 0.6, 12);
+    this.burst(this.cotton, x, y + 0.3, z, 0, 0, 6, radius * 1.2, 0.12, 0.5, 2);
+  }
+
+  /** A glitter bomb bursts and leaves a sparkling cloud for `seconds`. */
+  glitterBurst(x: number, y: number, z: number, radius: number, seconds: number): void {
+    this.shockwave(x, y + 0.05, z, radius, '#ff7ac8');
+    for (const pool of this.glitter) this.burst(pool, x, y + 0.6, z, 0, 0, 10, radius * 1.6, 0.06, 1.2, 1.5);
+    this.emitters.push({ x, y, z, radius, left: seconds, acc: 0 });
+  }
+
+  /** Someone got bonked by a Pillow Hammer: stars and a puff of fluff. */
+  bonk(x: number, z: number): void {
+    this.burst(this.stars, x, 1.4, z, 0, 0, 5, 2.5, 0.16, 0.7, 4);
+    this.burst(this.cotton, x, 1.0, z, 0, 0, 5, 2, 0.08, 0.5, 2);
+  }
+
+  /** A trap bubble pops: soap droplets. */
+  bubblePop(x: number, y: number, z: number): void {
+    this.burst(this.soap, x, y, z, 0, 0, 12, 3, 0.06, 0.45, 6);
+  }
+
+  /** A marble bounced off a wall. */
+  bounce(x: number, z: number): void {
+    this.burst(this.stars, x, 0.6, z, 0, 0, 2, 1.5, 0.08, 0.3, 0);
+  }
+
+  private shockwave(x: number, y: number, z: number, radius: number, color: string): void {
+    const mesh = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
+    mesh.position.set(x, y, z);
+    this.scene.add(mesh);
+    this.waves.push({ mesh, life: 0.4, maxLife: 0.4, radius });
   }
 
   /** Stuffing knocked out of a plush, sprayed away from the hit direction. */
@@ -150,6 +234,39 @@ export class Effects {
     this.cotton.update(dt);
     for (const pool of this.buttons) pool.update(dt);
     this.water.update(dt);
+    for (const pool of this.glitter) pool.update(dt);
+    for (const pool of this.glass) pool.update(dt);
+    this.stars.update(dt);
+    this.soap.update(dt);
+
+    for (let i = this.waves.length - 1; i >= 0; i--) {
+      const w = this.waves[i]!;
+      w.life -= dt;
+      const t = 1 - w.life / w.maxLife;
+      w.mesh.scale.setScalar(Math.max(0.01, w.radius * (0.2 + 0.8 * Math.sqrt(t))));
+      (w.mesh.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - t);
+      if (w.life <= 0) {
+        w.mesh.removeFromParent();
+        (w.mesh.material as THREE.Material).dispose();
+        this.waves.splice(i, 1);
+      }
+    }
+
+    // Glitter clouds keep sparkling over their area, slowly falling.
+    for (let i = this.emitters.length - 1; i >= 0; i--) {
+      const e = this.emitters[i]!;
+      e.left -= dt;
+      e.acc += dt * 40;
+      while (e.acc >= 1) {
+        e.acc -= 1;
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * e.radius;
+        this.tmpPos.set(e.x + Math.cos(a) * r, e.y + 0.3 + Math.random() * 1.6, e.z + Math.sin(a) * r);
+        this.tmpVel.set((Math.random() - 0.5) * 0.4, -0.3, (Math.random() - 0.5) * 0.4);
+        this.glitter[Math.floor(Math.random() * this.glitter.length)]!.spawn(this.tmpPos, this.tmpVel, 0.05, 0.9, 0.5);
+      }
+      if (e.left <= 0) this.emitters.splice(i, 1);
+    }
   }
 
   private burst(

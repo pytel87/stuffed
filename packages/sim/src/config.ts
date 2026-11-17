@@ -24,9 +24,29 @@ export interface WeaponStats {
   readonly knockback: number;
   /** Distance from the shooter's center to the barrel tip, along the aim. Matches the model. */
   readonly barrelLength: number;
+  /**
+   * How firing works: 'auto' fires while held; 'charge' fires on release, stronger the longer it
+   * was held; 'melee' swings at whoever is in reach; 'throw' lobs to where you aim.
+   */
+  readonly mode?: 'auto' | 'charge' | 'melee' | 'throw';
+  /** Charge: seconds to full strength. A quick tap fires at minCharge strength. */
+  readonly chargeTime?: number;
+  readonly minCharge?: number;
+  /** Bursts (on a hit, its last bounce, landing or running out of range) hurting everyone within this radius. */
+  readonly blastRadius?: number;
+  /** Wall bounces before bursting. */
+  readonly bounces?: number;
+  /** Melee: how far and how wide the swing reaches. */
+  readonly reach?: number;
+  readonly arcDegrees?: number;
+  /** What a hit or burst does besides damage, and for how long (seconds). */
+  readonly effect?: 'bubble' | 'glitter';
+  readonly effectTime?: number;
+  /** Used up when empty instead of reloading (throwables). */
+  readonly consumable?: boolean;
 }
 
-const weapons = {
+const weapons: Record<WeaponKind, WeaponStats> = {
   cork_popper: {
     name: 'Cork Popper',
     damage: 18,
@@ -69,7 +89,94 @@ const weapons = {
     knockback: 3,
     barrelLength: 1.04,
   },
-} as const satisfies Record<WeaponKind, WeaponStats>;
+  rubber_band_rifle: {
+    name: 'Rubber Band Rifle',
+    // At full charge; a tap does minCharge of it, flying slower.
+    damage: 52,
+    fireInterval: 0.5,
+    magazine: 3,
+    reloadTime: 2.4,
+    projectileSpeed: 46,
+    projectileRadius: 0.12,
+    range: 34,
+    spreadDegrees: 0,
+    pellets: 1,
+    knockback: 2,
+    barrelLength: 1.02,
+    mode: 'charge',
+    chargeTime: 1.1,
+    minCharge: 0.3,
+  },
+  marble_launcher: {
+    name: 'Marble Launcher',
+    // In the middle of the burst; less toward its edge.
+    damage: 30,
+    fireInterval: 0.9,
+    magazine: 4,
+    reloadTime: 2.6,
+    projectileSpeed: 15,
+    projectileRadius: 0.2,
+    range: 17,
+    spreadDegrees: 3,
+    pellets: 1,
+    knockback: 7,
+    barrelLength: 0.92,
+    blastRadius: 2.4,
+    bounces: 2,
+  },
+  pillow_hammer: {
+    name: 'Pillow Hammer',
+    damage: 26,
+    fireInterval: 0.7,
+    magazine: 1,
+    reloadTime: 0,
+    projectileSpeed: 0,
+    projectileRadius: 0,
+    range: 0,
+    spreadDegrees: 0,
+    pellets: 0,
+    knockback: 15,
+    barrelLength: 0.8,
+    mode: 'melee',
+    reach: 1.9,
+    arcDegrees: 120,
+  },
+  glitter_bomb: {
+    name: 'Glitter Bomb',
+    damage: 6,
+    fireInterval: 0.8,
+    magazine: 2,
+    reloadTime: 0,
+    projectileSpeed: 13,
+    projectileRadius: 0.22,
+    range: 14,
+    spreadDegrees: 0,
+    pellets: 1,
+    knockback: 0,
+    barrelLength: 0.5,
+    mode: 'throw',
+    blastRadius: 3.5,
+    effect: 'glitter',
+    effectTime: 3,
+    consumable: true,
+  },
+  bubble_wand: {
+    name: 'Bubble Wand',
+    damage: 4,
+    fireInterval: 0.7,
+    magazine: 3,
+    reloadTime: 2,
+    projectileSpeed: 9,
+    projectileRadius: 0.35,
+    range: 11,
+    spreadDegrees: 2,
+    pellets: 1,
+    knockback: 0,
+    barrelLength: 0.95,
+    effect: 'bubble',
+    effectTime: 1.5,
+  },
+};
 
 export interface ItemStats {
   readonly name: string;
@@ -123,6 +230,11 @@ export const config = {
     acceleration: 16,
     /** Speed multiplier while outside the safe zone ("soggy"). */
     soggySpeedMultiplier: 0.8,
+    /**
+     * How far past the map's edges a plush can wander. There's no fence: the Rinse is the real
+     * limit (its starting circle reaches the corners, and past it you're soggy).
+     */
+    roamOutside: 12,
     /** Wading in a pool (Kiddie Pool). */
     wadeSpeedMultiplier: 0.6,
     /** Knockback decay rate (1/s). */
@@ -151,6 +263,15 @@ export const config = {
     maxShotSlope: 0.6,
     /** Closer than this, shots fly level (no meaningful point to aim at). */
     minAimDistanceForSlope: 1.5,
+    /** Lobbed throws: launch height above the feet and how fast they fall (units/s²). */
+    throwHeight: 1.4,
+    throwGravity: 22,
+    /** Movement speed while charging a Rubber Band Rifle. */
+    chargeMoveMultiplier: 0.65,
+    /** A burst at the edge of its radius does this share of its damage (full in the middle). */
+    blastEdgeDamage: 0.4,
+    /** Seen this far while blinded by glitter. */
+    blindVision: 3,
   },
 
   vision: {
@@ -179,7 +300,16 @@ export const config = {
     /** Max distance from a plush's center to a chest's center to open it. */
     interactRange: 1.6,
     /** Relative odds of each weapon kind in a Toy Box. */
-    weaponWeights: { cork_popper: 4, foam_dart_smg: 3.5, super_soaker: 2.5 } satisfies Record<WeaponKind, number>,
+    weaponWeights: {
+      cork_popper: 3.5,
+      foam_dart_smg: 3,
+      super_soaker: 2.5,
+      rubber_band_rifle: 1.5,
+      marble_launcher: 1.5,
+      pillow_hammer: 2,
+      glitter_bomb: 1.5,
+      bubble_wand: 1.5,
+    } satisfies Record<WeaponKind, number>,
     /** Relative odds of each rarity (Hand-me-down .. One-of-a-Kind), by the chest's loot level. */
     rarityWeights: {
       low: [64, 25, 9, 2, 0],

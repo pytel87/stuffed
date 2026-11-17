@@ -85,14 +85,25 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
 
 /** A skin part as a slot shape in its animal's colors. */
 export function partIcon(slot: PartSlot, animal: Animal, className = 'icon'): string {
+  const picture = modelPictures.get(`part:${slot}:${animal}`);
+  if (picture) return `<img class="${className} model" src="${picture}" alt="" draggable="false">`;
   const c = ANIMAL_COLORS[animal];
   const shape = slot === 'head' ? HEAD_EXTRAS[animal] + PART_SHAPES.head + (HEAD_FRONT[animal] ?? '') : PART_SHAPES[slot];
   const body = shape.replaceAll('fill="M"', `fill="${c.main}"`).replaceAll('fill="B"', `fill="${c.belly}"`);
   return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
-/** An icon as inline SVG markup. */
+/** Pictures of the real models (weapons, items, the chest), rendered at startup. */
+const modelPictures = new Map<string, string>();
+
+export function setModelPictures(pictures: Map<string, string>): void {
+  for (const [name, url] of pictures) modelPictures.set(name, url);
+}
+
+/** An icon as inline markup: the model's picture if there is one, else a drawn SVG. */
 export function icon(name: keyof typeof paths | string, className = 'icon'): string {
+  const picture = modelPictures.get(name);
+  if (picture) return `<img class="${className} model" src="${picture}" alt="" draggable="false">`;
   const body = paths[name] ?? paths.help!;
   return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }

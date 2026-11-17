@@ -13,7 +13,9 @@ export interface Vec2 {
 
 /** 0 Hand-me-down, 1 Store-bought, 2 Collector, 3 Limited Edition, 4 One-of-a-Kind. */
 export type Rarity = 0 | 1 | 2 | 3 | 4;
-export type WeaponKind = 'cork_popper' | 'foam_dart_smg' | 'super_soaker';
+export type WeaponKind =
+  | 'cork_popper' | 'foam_dart_smg' | 'super_soaker'
+  | 'rubber_band_rifle' | 'marble_launcher' | 'pillow_hammer' | 'glitter_bomb' | 'bubble_wand';
 export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack';
 
 /** Held-button bitfield carried in Input.buttons. */
@@ -132,6 +134,12 @@ export interface Player {
   building: number;
   /** Visible to others until this tick even inside a bush (set by shooting). */
   revealedUntilTick: Tick;
+  /** Holding fire with a charge weapon (Rubber Band Rifle) since this tick; null when not. */
+  chargeStartTick: Tick | null;
+  /** Trapped in a bubble until this tick: can't move, shoot, pick up or use items. */
+  bubbledUntil: Tick;
+  /** Glitter in the eyes until this tick: sees only what's very close. */
+  blindedUntil: Tick;
   parts: PartLoadout;
   /** One spare part, not shown on the plush. Q swaps it with the part worn in its slot. */
   stash: Part | null;
@@ -156,6 +164,10 @@ export interface Projectile {
   damage: number;
   knockback: number;
   expireTick: Tick;
+  /** Wall bounces left (Marble Launcher); bursts on the next wall when 0. */
+  bounces?: number;
+  /** Lobbed (Glitter Bomb): falls under gravity and bursts where it lands. */
+  lobbed?: boolean;
 }
 
 /** How good a chest's loot is: rarer at 'high'; 'food' favors healing items. */
@@ -215,7 +227,15 @@ export type GameEvent =
   /** The Rinse started rising, or closed completely. */
   | { type: 'zone'; stage: Zone['stage'] }
   /** A projectile stopped against a wall. */
-  | { type: 'impact'; pos: Vec2; weapon: WeaponKind };
+  | { type: 'impact'; pos: Vec2; weapon: WeaponKind }
+  /** A marble or glitter bomb burst here, affecting everything within `radius`. */
+  | { type: 'burst'; pos: Vec2; z: number; weapon: WeaponKind; radius: number }
+  /** A marble bounced off a wall. */
+  | { type: 'bounce'; pos: Vec2 }
+  /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
+  | { type: 'bonk'; playerId: EntityId; targetId: EntityId }
+  /** A plush got trapped in a bubble (or popped out of one). */
+  | { type: 'bubble'; playerId: EntityId; trapped: boolean };
 
 export type RngState = [number, number, number, number];
 

@@ -98,6 +98,14 @@ export class PlushView {
   /** While the plush wears a full set: a ring of light underfoot and a pulsing tint in the set's color. */
   private readonly glowRing: THREE.Mesh;
   private glowColor: THREE.Color | null = null;
+  /** A soap bubble around the plush while it's trapped. */
+  private readonly bubble: THREE.Mesh;
+  private bubbleAmount = 0;
+  /** The Rubber Band Rifle's aim line while drawing it. */
+  private readonly beam: THREE.Mesh;
+  /** Pillow Hammer swing in progress (1 → 0). */
+  private swingTime = 0;
+  private weaponKind: WeaponKind | null = null;
 
   constructor(parts: PartLoadout, private readonly outlineColor = OUTLINE_COLOR) {
     this.root.add(this.lean);
@@ -136,6 +144,29 @@ export class PlushView {
     this.glowRing.position.y = 0.01;
     this.glowRing.visible = false;
     this.blob.add(this.glowRing);
+
+    this.bubble = new THREE.Mesh(
+      new THREE.SphereGeometry(1.05, 24, 16),
+      new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.32, depthWrite: false }),
+    );
+    const bubbleRim = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.03, 6, 40), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7 }));
+    this.bubble.add(bubbleRim);
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+    shine.position.set(-0.45, 0.55, 0.5);
+    this.bubble.add(shine);
+    this.bubble.position.y = 0.85;
+    this.bubble.visible = false;
+    this.root.add(this.bubble);
+
+    // A thin red line from the band rifle out along the aim, brighter as it's drawn.
+    this.beam = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.06, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
+      new THREE.MeshBasicMaterial({ color: '#ff3b5c', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    );
+    this.beam.position.set(WEAPON_SOCKET[0], WEAPON_SOCKET[1] + 0.06, WEAPON_SOCKET[2] + 0.7);
+    this.beam.scale.z = 16;
+    this.beam.visible = false;
+    this.facing.add(this.beam);
     this.setParts(parts);
   }
 
@@ -179,6 +210,7 @@ export class PlushView {
       this.weaponSocket.remove(child);
       disposeGeometries(child);
     }
+    this.weaponKind = kind;
     if (kind) this.weaponSocket.add(buildWeapon(kind, rarity, this.outlineColor));
     this.arms.setGrip(kind);
     this.collectMaterials();
@@ -188,6 +220,24 @@ export class PlushView {
   /** Kick the weapon back after a shot. */
   kick(): void {
     this.recoil = 1;
+    if (this.weaponKind === 'pillow_hammer') this.swingTime = 1;
+  }
+
+  /**
+   * Trapped in a bubble or not. Returns true when the bubble just popped (for a splash).
+   */
+  setBubbled(trapped: boolean): boolean {
+    const popped = !trapped && this.bubble.visible && this.bubbleAmount > 0.5;
+    if (trapped && !this.bubble.visible) this.bubbleAmount = 0;
+    this.bubble.visible = trapped;
+    return popped;
+  }
+
+  /** How far the band rifle is drawn (0 = not charging). */
+  setCharge(amount: number): void {
+    this.beam.visible = amount > 0;
+    (this.beam.material as THREE.MeshBasicMaterial).opacity = 0.2 + amount * 0.6;
+    this.beam.scale.x = 1 + amount;
   }
 
   /** Seams flash white when hit. */
@@ -247,6 +297,16 @@ export class PlushView {
 
     this.recoil = Math.max(0, this.recoil - dt * 9);
     this.weaponSocket.position.z = WEAPON_SOCKET[2] - this.recoil * RECOIL_DISTANCE;
+    // Pillow Hammer: a quick swing across from the right to the left.
+    this.swingTime = Math.max(0, this.swingTime - dt * 5);
+    this.weaponSocket.rotation.y = this.swingTime > 0 ? (this.swingTime - 0.5) * 2.4 : 0;
+    // The bubble grows in, wobbles and bobs.
+    if (this.bubble.visible) {
+      this.bubbleAmount = Math.min(1, this.bubbleAmount + dt * 6);
+      const w = Math.sin(time * 7) * 0.05;
+      this.bubble.scale.set(this.bubbleAmount * (1 + w), this.bubbleAmount * (1 - w), this.bubbleAmount * (1 + w));
+      this.bubble.position.y = 0.85 + Math.sin(time * 3) * 0.08;
+    }
     this.arms.update(this.weaponSocket.position, this.walkPhase, m);
 
     const pulse = 0.5 + Math.sin(time * 3) * 0.5;

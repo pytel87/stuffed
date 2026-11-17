@@ -105,7 +105,8 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius'>;
 /** Someone else's living plush: only what drawing it needs. */
 export interface SeenPlayer extends Pick<
   Player,
-  'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
+  | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
+  | 'chargeStartTick' | 'bubbledUntil' | 'blindedUntil'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
 }
@@ -155,7 +156,8 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     others.push({
       id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
-      revealedUntilTick: p.revealedUntilTick, weapons: [look(p.weapons[0]), look(p.weapons[1])],
+      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, blindedUntil: p.blindedUntil,
+      weapons: [look(p.weapons[0]), look(p.weapons[1])],
     });
   }
   const msg: CompactSnapshot = {

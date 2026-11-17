@@ -1,7 +1,7 @@
 // Projectiles: bright, oversized, with a short fading trail. Pooled per weapon kind because the
 // SMG alone spawns 10 per second per shooter.
 import * as THREE from 'three';
-import { DT } from '@stuffed/sim';
+import { config, DT } from '@stuffed/sim';
 import type { EntityId, GameState, Projectile, WeaponKind } from '@stuffed/sim';
 import { toonMaterial, toonMesh } from './toon.ts';
 
@@ -37,7 +37,55 @@ function buildProjectile(kind: WeaponKind): THREE.Group {
       g.add(blob);
       break;
     }
+    case 'rubber_band_rifle': {
+      // A stretched red rubber band, a long thin loop.
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 6, 20), toonMaterial('#ff4d6d', { map: null }));
+      band.rotation.x = Math.PI / 2;
+      band.scale.set(0.5, 2.6, 1);
+      g.add(band);
+      break;
+    }
+    case 'marble_launcher': {
+      const glass = toonMesh(new THREE.SphereGeometry(0.2, 18, 12), '#9fd9ff', { outline: 0.08 });
+      g.add(glass);
+      const swirl = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.04, 6, 16), toonMaterial('#ff5a5a', { map: null }));
+      swirl.rotation.set(0.6, 0.3, 0);
+      glass.add(swirl);
+      g.userData.spin = glass;
+      break;
+    }
+    case 'glitter_bomb': {
+      const ball = toonMesh(new THREE.SphereGeometry(0.22, 16, 12), '#ff7ac8', { outline: 0.08 });
+      for (const [x, y, z, c] of [[0.13, 0.12, 0.1, '#fff27a'], [-0.15, 0.05, 0.08, '#7af0ff'], [0.02, -0.12, 0.17, '#ffffff']] as const) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), toonMaterial(c, { map: null }));
+        dot.position.set(x, y, z);
+        ball.add(dot);
+      }
+      g.add(ball);
+      g.userData.spin = ball;
+      g.userData.noTrail = true;
+      break;
+    }
+    case 'bubble_wand': {
+      const bubble = new THREE.Mesh(
+        new THREE.SphereGeometry(0.36, 20, 14),
+        new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.35, depthWrite: false }),
+      );
+      g.add(bubble);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.02, 6, 28), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8 }));
+      g.add(rim);
+      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+      shine.position.set(0.14, 0.16, 0.12);
+      g.add(shine);
+      g.userData.wobble = bubble;
+      g.userData.billboard = rim;
+      g.userData.noTrail = true;
+      break;
+    }
+    case 'pillow_hammer':
+      break;
   }
+  if (g.userData.noTrail) return g;
   TRAIL_MATS.forEach((mat, i) => {
     const ghost = new THREE.Mesh(trailGeo, mat);
     ghost.position.z = -0.25 - i * 0.18;
@@ -55,7 +103,7 @@ export class ProjectileViews {
 
   /** One of each projectile, for shader warm-up. */
   samples(): THREE.Object3D[] {
-    return (['cork_popper', 'foam_dart_smg', 'super_soaker'] as const).map((kind) => buildProjectile(kind));
+    return (Object.keys(config.weapons) as WeaponKind[]).map((kind) => buildProjectile(kind));
   }
 
   clear(): void {
@@ -66,7 +114,7 @@ export class ProjectileViews {
     this.live.clear();
   }
 
-  update(prev: GameState, curr: GameState, alpha: number): void {
+  update(prev: GameState, curr: GameState, alpha: number, time = 0): void {
     const prevById = new Map<EntityId, Projectile>(prev.projectiles.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();
 
@@ -84,6 +132,11 @@ export class ProjectileViews {
       const z = before ? before.z + (p.z - before.z) * alpha : p.z;
       entry.obj.position.set(x, z, y);
       entry.obj.rotation.y = Math.atan2(p.vel.x, p.vel.y);
+      // Marbles and bombs tumble; bubbles wobble.
+      const spin = entry.obj.userData.spin as THREE.Object3D | undefined;
+      if (spin) spin.rotation.x = time * 14;
+      const wobble = entry.obj.userData.wobble as THREE.Object3D | undefined;
+      if (wobble) wobble.scale.set(1 + Math.sin(time * 9) * 0.06, 1 - Math.sin(time * 9) * 0.06, 1);
     }
 
     for (const [id, entry] of this.live) {

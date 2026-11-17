@@ -2,28 +2,157 @@
   "$comment": "Sound effects for STUFFED. `pnpm sfx` generates any missing file with the ElevenLabs sound-generation API (needs ELEVEN_LABS_API_KEY in .env.local); `pnpm sfx --force name` regenerates one. Files land in packages/client/public/sfx/<name>.mp3 and are committed.",
   "style": "cartoon toy sound effect, playful, clean, no music, no voice",
   "sounds": {
-    "cork_pop": { "prompt": "a toy cork gun firing: a crisp hollow cork pop", "seconds": 0.5 },
-    "dart_shot": { "prompt": "a foam dart blaster firing one dart: soft plastic thwip with a little air puff", "seconds": 0.5 },
-    "soaker_shot": { "prompt": "a toy water gun firing a big burst: pressurized squirt and splatter", "seconds": 0.7 },
-    "hit_stuffing": { "prompt": "a soft plush stuffed animal getting hit: muffled fabric thump with a fluffy cotton poof", "seconds": 0.5 },
-    "hit_armor": { "prompt": "plastic sewing buttons clattering and rattling from a hit", "seconds": 0.5 },
-    "impact": { "prompt": "a cork bouncing off a cardboard box: short dull thud", "seconds": 0.5 },
-    "splash": { "prompt": "small water splash hitting fabric", "seconds": 0.5 },
-    "knockout": { "prompt": "a plush toy bursting at the seams: quick fabric rip and a big poof of cotton stuffing, comedic", "seconds": 1.2 },
-    "chest_rattle": { "prompt": "a wooden toy box lid rattling and wiggling as someone pries it open", "seconds": 1.0 },
-    "chest_open": { "prompt": "a toy box lid popping open with a bright cheerful sparkly jingle", "seconds": 1.2 },
-    "pickup_weapon": { "prompt": "picking up a plastic toy blaster: plastic grab click and short swish", "seconds": 0.5 },
-    "pickup_item": { "prompt": "picking up a small soft item: gentle soft pop", "seconds": 0.5 },
-    "heal": { "prompt": "quick stitching with needle and thread, then a soft twinkle", "seconds": 1.0 },
-    "armor_up": { "prompt": "several plastic buttons snapping into place, satisfying clicks", "seconds": 0.8 },
-    "reload": { "prompt": "toy blaster reload: plastic click clack", "seconds": 0.6 },
-    "swap": { "prompt": "quick plastic toy gun swap: short rustle and click", "seconds": 0.5 },
-    "jump": { "prompt": "a small soft cartoon boing for a squishy plush jumping", "seconds": 0.5 },
-    "land": { "prompt": "a soft plush toy landing on grass: light padded thump", "seconds": 0.5 },
-    "rinse_rising": { "prompt": "soapy water starting to flood in: rushing water with lots of bubbles, a warning swell", "seconds": 2.5 },
-    "soggy": { "prompt": "a soaked plush toy squelching with bubbles", "seconds": 0.8 },
-    "win": { "prompt": "short cheerful toy victory fanfare with kazoo and xylophone", "seconds": 3 },
-    "lose": { "prompt": "short sad cartoon deflating slide whistle, comedic", "seconds": 1.8 },
-    "click": { "prompt": "soft toy button click for a menu", "seconds": 0.5 }
+    "cork_pop": {
+      "prompt": "a toy cork gun firing: a crisp hollow cork pop",
+      "seconds": 0.5
+    },
+    "dart_shot": {
+      "prompt": "a foam dart blaster firing one dart: soft plastic thwip with a little air puff",
+      "seconds": 0.5
+    },
+    "soaker_shot": {
+      "prompt": "a toy water gun firing a big burst: pressurized squirt and splatter",
+      "seconds": 0.7
+    },
+    "hit_stuffing": {
+      "prompt": "a soft plush stuffed animal getting hit: muffled fabric thump with a fluffy cotton poof",
+      "seconds": 0.5
+    },
+    "hit_armor": {
+      "prompt": "plastic sewing buttons clattering and rattling from a hit",
+      "seconds": 0.5
+    },
+    "impact": {
+      "prompt": "a cork bouncing off a cardboard box: short dull thud",
+      "seconds": 0.5
+    },
+    "splash": {
+      "prompt": "small water splash hitting fabric",
+      "seconds": 0.5
+    },
+    "knockout": {
+      "prompt": "a plush toy bursting at the seams: quick fabric rip and a big poof of cotton stuffing, comedic",
+      "seconds": 1.2
+    },
+    "chest_rattle": {
+      "prompt": "a wooden toy box lid rattling and wiggling as someone pries it open",
+      "seconds": 1.0
+    },
+    "chest_open": {
+      "prompt": "a toy box lid popping open with a bright cheerful sparkly jingle",
+      "seconds": 1.2
+    },
+    "pickup_weapon": {
+      "prompt": "picking up a plastic toy blaster: plastic grab click and short swish",
+      "seconds": 0.5
+    },
+    "pickup_item": {
+      "prompt": "picking up a small soft item: gentle soft pop",
+      "seconds": 0.5
+    },
+    "heal": {
+      "prompt": "quick stitching with needle and thread, then a soft twinkle",
+      "seconds": 1.0
+    },
+    "armor_up": {
+      "prompt": "several plastic buttons snapping into place, satisfying clicks",
+      "seconds": 0.8
+    },
+    "reload": {
+      "prompt": "toy blaster reload: plastic click clack",
+      "seconds": 0.6
+    },
+    "swap": {
+      "prompt": "quick plastic toy gun swap: short rustle and click",
+      "seconds": 0.5
+    },
+    "jump": {
+      "prompt": "a small soft cartoon boing for a squishy plush jumping",
+      "seconds": 0.5
+    },
+    "land": {
+      "prompt": "a soft plush toy landing on grass: light padded thump",
+      "seconds": 0.5
+    },
+    "rinse_rising": {
+      "prompt": "soapy water starting to flood in: rushing water with lots of bubbles, a warning swell",
+      "seconds": 2.5
+    },
+    "soggy": {
+      "prompt": "a soaked plush toy squelching with bubbles",
+      "seconds": 0.8
+    },
+    "win": {
+      "prompt": "short cheerful toy victory fanfare with kazoo and xylophone",
+      "seconds": 3
+    },
+    "lose": {
+      "prompt": "short sad cartoon deflating slide whistle, comedic",
+      "seconds": 1.8
+    },
+    "click": {
+      "prompt": "soft toy button click for a menu",
+      "seconds": 0.5
+    },
+    "band_twang": {
+      "prompt": "a stretched rubber band snapping and flying off a wooden ruler: sharp twang",
+      "seconds": 0.5
+    },
+    "band_stretch": {
+      "prompt": "a rubber band slowly being stretched tight: rising creaky squeak",
+      "seconds": 1.0
+    },
+    "marble_shot": {
+      "prompt": "a toy tube launching a glass marble: hollow plastic thunk",
+      "seconds": 0.5
+    },
+    "marble_bounce": {
+      "prompt": "a glass marble bouncing off wood: bright clink",
+      "seconds": 0.5
+    },
+    "marble_burst": {
+      "prompt": "a burst of glass marbles scattering everywhere with a soft cartoon pop and clatter",
+      "seconds": 0.9
+    },
+    "pillow_swing": {
+      "prompt": "a big fluffy pillow swung fast through the air: soft whoosh",
+      "seconds": 0.5
+    },
+    "pillow_bonk": {
+      "prompt": "a pillow bonking a plush toy: comedic soft thwump with a squeaky boing",
+      "seconds": 0.6
+    },
+    "glitter_throw": {
+      "prompt": "a small sparkly ball tossed through the air: light whoosh with a tiny jingle",
+      "seconds": 0.5
+    },
+    "glitter_burst": {
+      "prompt": "a glitter bomb bursting: magical sparkly poof with shimmering twinkles",
+      "seconds": 1.2
+    },
+    "bubble_blow": {
+      "prompt": "blowing a big soap bubble from a wand: wobbly bloop",
+      "seconds": 0.6
+    },
+    "bubble_pop": {
+      "prompt": "a big soap bubble popping: wet cartoon pop",
+      "seconds": 0.5
+    },
+    "juice_slurp": {
+      "prompt": "sipping a juice box through a straw: quick slurp then a happy gulp",
+      "seconds": 0.9
+    },
+    "ball_boing": {
+      "prompt": "a bouncy rubber ball launching someone forward: springy cartoon boing",
+      "seconds": 0.6
+    },
+    "cardboard_place": {
+      "prompt": "a cardboard panel unfolding and slapping down onto grass: papery thump",
+      "seconds": 0.6
+    },
+    "bag_rustle": {
+      "prompt": "a big soft bag of cotton stuffing being rustled and squeezed",
+      "seconds": 1.0
+    }
   }
 }

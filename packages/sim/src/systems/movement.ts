@@ -26,10 +26,13 @@ export function applyAim(player: Player, input: Input): void {
  * below its top (minus the step height); above that the plush passes over or stands on it.
  */
 export function movePlayer(world: World, state: GameState, player: Player, input: Input): void {
-  const move = clampLength1(input.moveX, input.moveY);
+  // Trapped in a bubble: no walking or jumping (knockback still pushes the bubble around).
+  const trapped = state.tick < player.bubbledUntil;
+  const move = trapped ? { x: 0, y: 0 } : clampLength1(input.moveX, input.moveY);
   const speed =
     config.player.moveSpeed *
     (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1) *
+    (player.chargeStartTick !== null ? config.combat.chargeMoveMultiplier : 1) *
     (player.soggy ? config.player.soggySpeedMultiplier : 1) *
     (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
@@ -50,7 +53,7 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   // Jump on a fresh press while standing on something, unless a roof is overhead.
   const ground = groundHeight(world, state, player.pos, player.z);
   const grounded = player.z <= ground + EPS && player.vz <= 0;
-  const pressed = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
+  const pressed = !trapped && (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
   if (grounded && pressed && !underRoof(world, player.pos, player.z)) player.vz = config.player.jumpSpeed;
 
   if (!grounded || player.vz > 0) {
@@ -198,8 +201,9 @@ function inBox(p: Vec2, b: { x: number; y: number; w: number; h: number }): bool
 
 function clampToMap(world: World, player: Player): void {
   const r = player.radius;
-  player.pos.x = clamp(player.pos.x, r, world.map.width - r);
-  player.pos.y = clamp(player.pos.y, r, world.map.height - r);
+  const out = config.player.roamOutside;
+  player.pos.x = clamp(player.pos.x, -out + r, world.map.width + out - r);
+  player.pos.y = clamp(player.pos.y, -out + r, world.map.height + out - r);
 }
 
 function removeInto(v: { x: number; y: number }, nx: number, ny: number): void {

@@ -36,6 +36,13 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     const input = clean.get(player.id)!;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
+    if (state.tick < player.bubbledUntil) {
+      // In a bubble: nothing but floating there.
+      player.chargeStartTick = null;
+      player.action = null;
+      player.heldButtons = input.buttons;
+      continue;
+    }
     updateWeapons(world, state, player, input);
     updateInteraction(world, state, player, input);
     updateItemUse(state, player, input);

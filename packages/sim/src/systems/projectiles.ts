@@ -1,8 +1,9 @@
-import { config, DT } from '../config.ts';
+import { config, DT, secondsToTicks, type WeaponStats } from '../config.ts';
 import { segmentBoxT } from '../collision/geometry.ts';
-import type { GameState, Player, Projectile } from '../types.ts';
-import type { World } from '../world.ts';
+import type { Box, GameState, Player, Projectile, Vec2 } from '../types.ts';
+import { raycastWalls, type World } from '../world.ts';
 import { applyDamage } from './damage.ts';
+import { groundHeight } from './movement.ts';
 
 /**
  * Moves projectiles with a swept test so fast ones can't skip through a plush or a wall
@@ -14,12 +15,23 @@ import { applyDamage } from './damage.ts';
 export function updateProjectiles(world: World, state: GameState): void {
   const survivors: Projectile[] = [];
   for (const proj of state.projectiles) {
-    if (state.tick >= proj.expireTick) continue;
+    const s: WeaponStats = config.weapons[proj.weapon];
+    if (state.tick >= proj.expireTick) {
+      // Out of range: a marble or a bomb bursts where it is; anything else just vanishes.
+      if (s.blastRadius) burst(world, state, proj, proj.pos, proj.z);
+      continue;
+    }
     const dx = proj.vel.x * DT;
     const dy = proj.vel.y * DT;
     const r = proj.radius;
-    // Height along this tick's path: z at t is proj.z + dz * t.
-    let zNext = proj.vz > 0 ? Math.min(proj.z + proj.vz * DT, proj.zEnd) : Math.max(proj.z + proj.vz * DT, proj.zEnd);
+    // Height along this tick's path: z at t is proj.z + dz * t. Lobbed throws fall under gravity.
+    let zNext: number;
+    if (proj.lobbed) {
+      zNext = proj.z + proj.vz * DT - 0.5 * config.combat.throwGravity * DT * DT;
+      proj.vz -= config.combat.throwGravity * DT;
+    } else {
+      zNext = proj.vz > 0 ? Math.min(proj.z + proj.vz * DT, proj.zEnd) : Math.max(proj.z + proj.vz * DT, proj.zEnd);
+    }
     zNext = clampToRoofs(world, proj.pos.x, proj.pos.y, proj.z, zNext, r);
     const dz = zNext - proj.z;
     const lowest = Math.min(proj.z, zNext) - r;
@@ -40,6 +52,8 @@ export function updateProjectiles(world: World, state: GameState): void {
     }
 
     let wallT = Infinity;
+    /** What it hit first: a wall box or a chest (for bouncing off it). */
+    let wallHit: { box: Box } | { chest: Vec2 } | null = null;
     const candidates = world.walls.query(
       Math.min(proj.pos.x, proj.pos.x + dx) - r,
       Math.min(proj.pos.y, proj.pos.y + dy) - r,
@@ -50,23 +64,53 @@ export function updateProjectiles(world: World, state: GameState): void {
       const wall = world.map.walls[i]!;
       if (lowest >= wall.height) continue;
       const t = segmentBoxT(proj.pos.x, proj.pos.y, dx, dy, wall, r);
-      if (t !== null && t < wallT && proj.z + dz * t - r < wall.height) wallT = t;
+      if (t !== null && t < wallT && proj.z + dz * t - r < wall.height) {
+        wallT = t;
+        wallHit = { box: wall };
+      }
     }
     if (lowest < config.chest.height) {
       for (const chest of state.chests) {
         const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, chest.pos.x, chest.pos.y, config.chest.radius + r);
-        if (t !== null && t < wallT && proj.z + dz * t - r < config.chest.height) wallT = t;
+        if (t !== null && t < wallT && proj.z + dz * t - r < config.chest.height) {
+          wallT = t;
+          wallHit = { chest: chest.pos };
+        }
       }
     }
     if (wallT !== Infinity && wallT <= hitT) {
-      state.events.push({ type: 'impact', pos: { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT }, weapon: proj.weapon });
+      const at = { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT };
+      const zAt = proj.z + dz * wallT;
+      if (proj.bounces && proj.bounces > 0 && wallHit) {
+        // Marbles bounce off walls (and chests) a couple of times before they burst.
+        bounceOff(proj, at, wallHit);
+        proj.z = zAt;
+        proj.bounces--;
+        state.events.push({ type: 'bounce', pos: at });
+        survivors.push(proj);
+      } else if (s.blastRadius) {
+        burst(world, state, proj, at, zAt);
+      } else {
+        state.events.push({ type: 'impact', pos: at, weapon: proj.weapon });
+      }
       continue;
     }
 
     if (hit) {
+      const at = { x: proj.pos.x + dx * hitT, y: proj.pos.y + dy * hitT };
+      if (s.blastRadius) {
+        burst(world, state, proj, at, proj.z + dz * hitT);
+        continue;
+      }
       const len = Math.hypot(proj.vel.x, proj.vel.y) || 1;
       hit.knockback.x += (proj.vel.x / len) * proj.knockback;
       hit.knockback.y += (proj.vel.y / len) * proj.knockback;
+      if (s.effect === 'bubble' && s.effectTime) {
+        hit.bubbledUntil = state.tick + secondsToTicks(s.effectTime);
+        hit.chargeStartTick = null;
+        hit.action = null;
+        state.events.push({ type: 'bubble', playerId: hit.id, trapped: true });
+      }
       applyDamage(state, hit, proj.damage, proj.ownerId);
       continue;
     }
@@ -74,11 +118,73 @@ export function updateProjectiles(world: World, state: GameState): void {
     proj.pos.x += dx;
     proj.pos.y += dy;
     proj.z = zNext;
+    // A lobbed throw bursts where it comes down (on the lawn, a roof, a wall top).
+    if (proj.lobbed && proj.vz < 0 && proj.z - r <= groundHeight(world, state, proj.pos, proj.z)) {
+      burst(world, state, proj, proj.pos, groundHeight(world, state, proj.pos, proj.z));
+      continue;
+    }
     const { width, height } = world.map;
-    if (proj.pos.x < 0 || proj.pos.y < 0 || proj.pos.x > width || proj.pos.y > height) continue;
+    const out = config.player.roamOutside + 4;
+    if (proj.pos.x < -out || proj.pos.y < -out || proj.pos.x > width + out || proj.pos.y > height + out) continue;
     survivors.push(proj);
   }
   state.projectiles = survivors;
+}
+
+/** Reflects the velocity off the face of the box (or chest) it hit, and moves it to the contact point. */
+function bounceOff(proj: Projectile, at: Vec2, hit: { box: Box } | { chest: Vec2 }): void {
+  let nx = 0;
+  let ny = 0;
+  if ('box' in hit) {
+    const b = hit.box;
+    if (at.x <= b.x) nx = -1;
+    else if (at.x >= b.x + b.w) nx = 1;
+    if (at.y <= b.y) ny = -1;
+    else if (at.y >= b.y + b.h) ny = 1;
+    if (nx === 0 && ny === 0) {
+      // Started inside it: head back the way it came.
+      proj.vel.x = -proj.vel.x;
+      proj.vel.y = -proj.vel.y;
+    }
+    if (nx !== 0) proj.vel.x = Math.abs(proj.vel.x) * nx;
+    if (ny !== 0) proj.vel.y = Math.abs(proj.vel.y) * ny;
+  } else {
+    const len = Math.hypot(at.x - hit.chest.x, at.y - hit.chest.y) || 1;
+    nx = (at.x - hit.chest.x) / len;
+    ny = (at.y - hit.chest.y) / len;
+    const dot = proj.vel.x * nx + proj.vel.y * ny;
+    proj.vel.x -= 2 * dot * nx;
+    proj.vel.y -= 2 * dot * ny;
+  }
+  proj.pos.x = at.x + nx * 0.01;
+  proj.pos.y = at.y + ny * 0.01;
+}
+
+/**
+ * A marble or glitter bomb bursts: everyone within the radius (on about the same level and not
+ * behind a tall wall) takes damage, more in the middle, and is pushed away; glitter also blinds,
+ * the thrower included. The thrower takes no damage from their own burst.
+ */
+function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: number): void {
+  const s: WeaponStats = config.weapons[proj.weapon];
+  const radius = s.blastRadius ?? 0;
+  for (const p of state.players) {
+    if (!p.alive) continue;
+    const d = Math.hypot(p.pos.x - at.x, p.pos.y - at.y);
+    if (d > radius + p.radius) continue;
+    if (p.z > z + radius || p.z + config.player.height < z - radius) continue;
+    if (raycastWalls(world, at, p.pos, 0, z + 0.05) !== null) continue;
+    const share = Math.min(1, d / radius);
+    if (s.effect === 'glitter' && s.effectTime) p.blindedUntil = Math.max(p.blindedUntil, state.tick + secondsToTicks(s.effectTime));
+    if (p.id === proj.ownerId) continue;
+    const push = proj.knockback * (1 - share);
+    if (push > 0 && d > 1e-6) {
+      p.knockback.x += ((p.pos.x - at.x) / d) * push;
+      p.knockback.y += ((p.pos.y - at.y) / d) * push;
+    }
+    applyDamage(state, p, proj.damage * (1 - (1 - config.combat.blastEdgeDamage) * share), proj.ownerId);
+  }
+  state.events.push({ type: 'burst', pos: { x: at.x, y: at.y }, z, weapon: proj.weapon, radius });
 }
 
 /**

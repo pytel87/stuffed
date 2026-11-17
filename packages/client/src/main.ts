@@ -7,6 +7,7 @@ import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { TouchControls } from './input/touch-controls.ts';
 import { GameRenderer } from './render/game-renderer.ts';
+import { renderModelIcons } from './render/model-icons.ts';
 import { LocalSession } from './session/local-session.ts';
 import { ProfileStore } from './session/profile.ts';
 import { createRoom, RoomClient } from './session/room-client.ts';
@@ -17,7 +18,7 @@ import { escapeHtml } from './ui/escape.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Help } from './ui/help.ts';
 import { Hud } from './ui/hud.ts';
-import { icon } from './ui/icons.ts';
+import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
 import { MenuScreen } from './ui/menu-screen.ts';
 import { Options } from './ui/options.ts';
@@ -54,6 +55,8 @@ let room: RoomClient | null = null;
 let lobbyScreen: LobbyScreen | null = null;
 // ?quality=high keeps full resolution even if the frame rate drops.
 const renderer = new GameRenderer(canvas, newSolo().map, params.get('quality') === 'high');
+// Pictures of the weapon, item and chest models for the HUD (before anything draws an icon).
+setModelPictures(renderModelIcons());
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);

@@ -1,8 +1,9 @@
-import { config, secondsToTicks } from '../config.ts';
+import { config, secondsToTicks, type WeaponStats } from '../config.ts';
 import { nextRange } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
+import { applyDamage } from './damage.ts';
 import { groundHeight } from './movement.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
@@ -34,30 +35,98 @@ export function reloadTicks(w: WeaponInstance): number {
   return secondsToTicks(config.weapons[w.kind].reloadTime * (1 - config.rarity[w.rarity].reloadReduction));
 }
 
+export function stats(kind: WeaponKind): WeaponStats {
+  return config.weapons[kind];
+}
+
+/** How far a charge weapon is drawn (0..1), or 0 when not charging. */
+export function chargeAmount(player: Pick<Player, 'chargeStartTick'>, kind: WeaponKind, tick: number): number {
+  const s = stats(kind);
+  if (player.chargeStartTick === null || s.mode !== 'charge') return 0;
+  return Math.min(1, (tick - player.chargeStartTick) / Math.max(1, secondsToTicks(s.chargeTime ?? 1)));
+}
+
 export function updateWeapons(world: World, state: GameState, player: Player, input: Input): void {
   handleSwap(state, player, input);
 
   const weapon = player.weapons[player.activeSlot];
-  if (!weapon) return;
-  const stats = config.weapons[weapon.kind];
+  if (!weapon) {
+    player.chargeStartTick = null;
+    return;
+  }
+  const s = stats(weapon.kind);
+  const reloads = !s.consumable && s.mode !== 'melee';
 
   if (weapon.reloadEndTick !== null && state.tick >= weapon.reloadEndTick) {
-    weapon.ammo = stats.magazine;
+    weapon.ammo = s.magazine;
     weapon.reloadEndTick = null;
   }
-  if (input.buttons & Btn.Reload && weapon.reloadEndTick === null && weapon.ammo < stats.magazine) {
+  if (reloads && input.buttons & Btn.Reload && weapon.reloadEndTick === null && weapon.ammo < s.magazine) {
     weapon.reloadEndTick = state.tick + reloadTicks(weapon);
+    player.chargeStartTick = null;
   }
 
-  const canFire = weapon.reloadEndTick === null && weapon.ammo > 0 && state.tick >= weapon.nextFireTick;
-  if (!(input.buttons & Btn.Fire) || !canFire) return;
+  const ready = weapon.reloadEndTick === null && weapon.ammo > 0 && state.tick >= weapon.nextFireTick;
+  const held = (input.buttons & Btn.Fire) !== 0;
 
-  fire(world, state, player, weapon);
-  weapon.ammo--;
-  weapon.nextFireTick = state.tick + Math.max(1, secondsToTicks(stats.fireInterval));
-  if (weapon.ammo === 0) weapon.reloadEndTick = state.tick + reloadTicks(weapon);
+  if (s.mode === 'charge') {
+    // Hold to draw the band back; it fires when you let go.
+    if (held) {
+      if (ready) player.chargeStartTick ??= state.tick;
+      return;
+    }
+    if (player.chargeStartTick === null) return;
+    const charge = chargeAmount(player, weapon.kind, state.tick);
+    player.chargeStartTick = null;
+    if (!ready) return;
+    fire(world, state, player, weapon, charge);
+  } else {
+    if (!held || !ready) return;
+    if (s.mode === 'melee') swing(world, state, player, weapon);
+    else fire(world, state, player, weapon, 1);
+  }
+
+  if (s.mode !== 'melee') weapon.ammo--;
+  weapon.nextFireTick = state.tick + Math.max(1, secondsToTicks(s.fireInterval));
+  if (weapon.ammo === 0) {
+    if (s.consumable) {
+      // The last one is thrown: the slot empties; hold the other weapon if there is one.
+      player.weapons[player.activeSlot] = null;
+      const other: 0 | 1 = player.activeSlot === 0 ? 1 : 0;
+      if (player.weapons[other]) player.activeSlot = other;
+    } else {
+      weapon.reloadEndTick = state.tick + reloadTicks(weapon);
+    }
+  }
   player.revealedUntilTick = state.tick + REVEAL_TICKS;
   player.action = null; // shooting cancels opening chests and using items
+}
+
+/**
+ * Pillow Hammer: everyone in front within reach (and the swing's arc), on about the same level
+ * and not behind a tall wall, gets bonked and knocked away.
+ */
+function swing(world: World, state: GameState, player: Player, weapon: WeaponInstance): void {
+  const s = stats(weapon.kind);
+  const reach = s.reach ?? 1.8;
+  const halfArc = ((s.arcDegrees ?? 90) * DEG) / 2;
+  for (const p of state.players) {
+    if (!p.alive || p.id === player.id) continue;
+    const dx = p.pos.x - player.pos.x;
+    const dy = p.pos.y - player.pos.y;
+    const d = Math.hypot(dx, dy);
+    if (d > reach + p.radius || Math.abs(p.z - player.z) > 1.2) continue;
+    const off = Math.acos(Math.max(-1, Math.min(1, (dx * player.aim.x + dy * player.aim.y) / (d || 1))));
+    if (off > halfArc && d > player.radius + p.radius + 0.2) continue;
+    if (raycastWalls(world, player.pos, p.pos, 0, player.z + config.combat.shotHeight) !== null) continue;
+    const ux = d > 1e-6 ? dx / d : player.aim.x;
+    const uy = d > 1e-6 ? dy / d : player.aim.y;
+    p.knockback.x += ux * s.knockback;
+    p.knockback.y += uy * s.knockback;
+    applyDamage(state, p, weaponDamage(weapon), player.id);
+    state.events.push({ type: 'bonk', playerId: player.id, targetId: p.id });
+  }
+  state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
 }
 
 function handleSwap(state: GameState, player: Player, input: Input): void {
@@ -68,6 +137,7 @@ function handleSwap(state: GameState, player: Player, input: Input): void {
 
   const old = player.weapons[player.activeSlot];
   if (old) old.reloadEndTick = null; // holstering cancels a reload
+  player.chargeStartTick = null;
   player.activeSlot = slot;
   const next = player.weapons[slot]!;
   next.nextFireTick = Math.max(next.nextFireTick, state.tick + SWAP_TICKS);
@@ -89,21 +159,32 @@ function shotSlope(world: World, state: GameState, player: Player, z: number, sp
   return { vz, zEnd };
 }
 
-function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance): void {
-  const stats = config.weapons[weapon.kind];
+function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance, charge: number): void {
+  const stats = config.weapons[weapon.kind] as WeaponStats;
   const base = Math.atan2(player.aim.y, player.aim.x);
   const cone = stats.spreadDegrees * DEG;
   // A barrel poking through a wall fires from where it meets the wall, so the shot stops there.
   const tip = muzzlePosition(player.pos, player.aim, weapon.kind);
   const z = player.z + config.combat.shotHeight;
   const blocked = raycastWalls(world, player.pos, tip, stats.projectileRadius, z - stats.projectileRadius);
-  const { vz, zEnd } = shotSlope(world, state, player, z, stats.projectileSpeed);
   const muzzle =
     blocked === null
       ? tip
       : { x: player.pos.x + (tip.x - player.pos.x) * blocked, y: player.pos.y + (tip.y - player.pos.y) * blocked };
-  const damage = weaponDamage(weapon);
-  const lifeTicks = Math.max(1, secondsToTicks(stats.range / stats.projectileSpeed));
+  // A charge weapon fired early is weaker and slower.
+  const strength = stats.mode === 'charge' ? (stats.minCharge ?? 0.3) + (1 - (stats.minCharge ?? 0.3)) * charge : 1;
+  const speed = stats.projectileSpeed * (stats.mode === 'charge' ? 0.6 + 0.4 * charge : 1);
+  const damage = weaponDamage(weapon) * strength;
+
+  if (stats.mode === 'throw') {
+    lob(world, state, player, weapon, muzzle, speed, damage);
+    state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
+    return;
+  }
+
+  // Bouncing marbles fly level: aiming at a wall to bank a shot shouldn't send it up the wall.
+  const { vz, zEnd } = stats.bounces ? { vz: 0, zEnd: z } : shotSlope(world, state, player, z, speed);
+  const lifeTicks = Math.max(1, secondsToTicks(stats.range / speed));
 
   for (let i = 0; i < stats.pellets; i++) {
     // Pellets spread evenly across the cone with a little jitter; single shots get random spread.
@@ -118,7 +199,7 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
       weapon: weapon.kind,
       rarity: weapon.rarity,
       pos: { x: muzzle.x, y: muzzle.y },
-      vel: { x: dx * stats.projectileSpeed, y: dy * stats.projectileSpeed },
+      vel: { x: dx * speed, y: dy * speed },
       z,
       vz,
       zEnd,
@@ -126,7 +207,40 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
       damage,
       knockback: stats.knockback,
       expireTick: state.tick + lifeTicks,
+      ...(stats.bounces ? { bounces: stats.bounces } : {}),
     });
   }
   state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
+}
+
+/**
+ * Throws in an arc that lands where you aim (up to the weapon's range), over low cover: launched
+ * from above your head with the upward speed that brings it down on the surface there.
+ */
+function lob(world: World, state: GameState, player: Player, weapon: WeaponInstance, from: Vec2, speed: number, damage: number): void {
+  const stats = config.weapons[weapon.kind];
+  const distance = Math.max(1.5, Math.min(player.aimDistance || stats.range / 2, stats.range));
+  const target = { x: player.pos.x + player.aim.x * distance, y: player.pos.y + player.aim.y * distance };
+  const flight = Math.hypot(target.x - from.x, target.y - from.y) / speed;
+  const z0 = player.z + config.combat.throwHeight;
+  const zLand = groundHeight(world, state, target, Infinity);
+  const g = config.combat.throwGravity;
+  const vz = (zLand - z0 + 0.5 * g * flight * flight) / Math.max(flight, 1e-3);
+  state.projectiles.push({
+    id: state.nextId++,
+    ownerId: player.id,
+    weapon: weapon.kind,
+    rarity: weapon.rarity,
+    pos: { x: from.x, y: from.y },
+    vel: { x: player.aim.x * speed, y: player.aim.y * speed },
+    z: z0,
+    vz,
+    zEnd: zLand,
+    radius: stats.projectileRadius,
+    damage,
+    knockback: stats.knockback,
+    // Lands by itself; this is only a backstop.
+    expireTick: state.tick + secondsToTicks(flight * 2 + 1),
+    lobbed: true,
+  });
 }

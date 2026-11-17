@@ -8,6 +8,8 @@ export const SOUNDS = [
   'cork_pop', 'dart_shot', 'soaker_shot', 'hit_stuffing', 'hit_armor', 'impact', 'splash', 'knockout',
   'chest_rattle', 'chest_open', 'pickup_weapon', 'pickup_item', 'heal', 'armor_up', 'reload', 'swap',
   'jump', 'land', 'rinse_rising', 'soggy', 'win', 'lose', 'click',
+  'band_twang', 'band_stretch', 'marble_shot', 'marble_bounce', 'marble_burst', 'pillow_swing', 'pillow_bonk',
+  'glitter_throw', 'glitter_burst', 'bubble_blow', 'bubble_pop', 'juice_slurp', 'ball_boing', 'cardboard_place', 'bag_rustle',
 ] as const;
 export type SoundName = (typeof SOUNDS)[number];
 

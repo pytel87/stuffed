@@ -1,7 +1,8 @@
 // Toy chests and ground loot. Loot floats and spins above a glow in its rarity color so it
 // reads from the top-down camera; Limited Edition and up also get a light beam.
 import * as THREE from 'three';
-import type { Chest, EntityId, GameState, GroundLoot, ItemKind, Part } from '@stuffed/sim';
+import { config } from '@stuffed/sim';
+import type { Chest, EntityId, GameState, GroundLoot, ItemKind, Part, WeaponKind } from '@stuffed/sim';
 import { buildPart } from './placeholder-parts.ts';
 import { checkerTexture, crateTexture, tiled } from './props.ts';
 import { OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
@@ -79,7 +80,7 @@ function starShape(r: number): THREE.Shape {
   return star;
 }
 
-function buildChest(chest: Chest): ChestView {
+export function buildChest(chest: Chest): ChestView {
   const look = CHEST_LOOKS[chest.loot] ?? CHEST_LOOKS.medium;
   const root = new THREE.Group();
   root.position.set(chest.pos.x, 0, chest.pos.y);
@@ -96,9 +97,31 @@ function buildChest(chest: Chest): ChestView {
       : chest.loot === 'food'
         ? toonMaterial(look.body, { map: tiled(checkerTexture('#a87440', '#d8aa6a'), 6, 3) })
         : toonMaterial(look.body);
-  const base = toonMesh(new THREE.BoxGeometry(w, h, d), look.body, { outline: 0.04, material: bodyMat });
-  base.position.y = h / 2;
-  root.add(base);
+  // A hollow box: a floor and four walls, so an open chest is empty inside.
+  const t = 0.08;
+  const inner = flat(chest.loot === 'high' ? '#2a1f4d' : '#4a2f22');
+  const floor = toonMesh(new THREE.BoxGeometry(w - 2 * t, 0.12, d - 2 * t), look.body, { outline: false, material: inner });
+  floor.position.y = 0.06;
+  root.add(floor);
+  // Box faces are +x, -x, +y, -y, +z, -z; each wall's face toward the middle is the dark inside.
+  const walls = [
+    [w, t, 0, (d - t) / 2, 5],
+    [w, t, 0, -(d - t) / 2, 4],
+    [t, d - 2 * t, (w - t) / 2, 0, 1],
+    [t, d - 2 * t, -(w - t) / 2, 0, 0],
+  ] as const;
+  for (const [sx, sz, x, z, insideFace] of walls) {
+    const faces = Array.from({ length: 6 }, (_, i) => (i === insideFace ? inner : bodyMat));
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(sx, h, sz), faces);
+    wall.position.set(x, h / 2, z);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    root.add(wall);
+  }
+  // One outline around the whole box (outlining each wall would draw lines inside it).
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(w + 0.07, h + 0.05, d + 0.07), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
+  hull.position.y = h / 2;
+  root.add(hull);
 
   if (chest.loot === 'medium' || chest.loot === 'high') {
     // Trim bands (a frame around the sides, not a slab over the top), straps and a star latch.
@@ -109,10 +132,13 @@ function buildChest(chest: Chest): ChestView {
         root.add(band);
       }
     }
+    // Straps down the front and back only (not through the hollow inside).
     for (const sx of [-1, 1]) {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, d + 0.03), flat(look.trim));
-      strap.position.set(sx * (w / 2 - 0.18), h / 2, 0);
-      root.add(strap);
+      for (const sz of [-1, 1]) {
+        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, 0.03), flat(look.trim));
+        strap.position.set(sx * (w / 2 - 0.18), h / 2, sz * (d / 2 + 0.005));
+        root.add(strap);
+      }
     }
     const plate = toonMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.04, 20), look.trim, { outline: 0.1, castShadow: false });
     plate.rotation.x = Math.PI / 2;
@@ -126,10 +152,7 @@ function buildChest(chest: Chest): ChestView {
     plate.position.set(0, h * 0.7, d / 2 + 0.015);
     root.add(plate);
   } else {
-    // Basket handle arching over the lid.
-    const handle = toonMesh(new THREE.TorusGeometry(0.38, 0.04, 8, 20, Math.PI), '#8e6036', { outline: 0.1 });
-    handle.position.y = h + 0.12;
-    root.add(handle);
+    // (The basket's handle sits on its lid, added below, so it lifts away when opened.)
   }
 
   // The lid hinges on the back edge: rounded on toy chests, flat on the others.
@@ -144,6 +167,11 @@ function buildChest(chest: Chest): ChestView {
   const lidMesh = toonMesh(lidGeo, look.lid, { outline: 0.04, material: lidMat });
   lidMesh.position.set(0, look.round ? 0 : 0.07, d / 2);
   lid.add(lidMesh);
+  if (chest.loot === 'food') {
+    const handle = toonMesh(new THREE.TorusGeometry(0.38, 0.04, 8, 20, Math.PI), '#8e6036', { outline: 0.1 });
+    handle.position.set(0, 0.14, d / 2);
+    lid.add(handle);
+  }
   if (look.round) {
     // Close the half tube's flat underside, and band the dome in the trim color.
     const under = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06, 0.02, d + 0.06), flat(look.trim));
@@ -158,10 +186,6 @@ function buildChest(chest: Chest): ChestView {
       lid.add(strap);
     }
   }
-  // The inside, seen once the lid is open.
-  const inside = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.02, d - 0.08), flat(chest.loot === 'high' ? '#2a1f4d' : '#4a2f22'));
-  inside.position.y = h + 0.002;
-  root.add(inside);
   root.add(lid);
 
   // Light leaking out of the gap under the lid while the chest is closed.
@@ -218,7 +242,7 @@ export class ChestViews {
 
 // ---------- loot ----------
 
-function buildItem(kind: ItemKind): THREE.Group {
+export function buildItem(kind: ItemKind): THREE.Group {
   const g = new THREE.Group();
   switch (kind) {
     case 'cotton_puff':
@@ -339,7 +363,7 @@ export class LootViews {
 
   /** One of every loot look (each weapon with a beam, each item, a part), for shader warm-up. */
   samples(): THREE.Object3D[] {
-    const weapons = (['cork_popper', 'foam_dart_smg', 'super_soaker'] as const).map((kind) =>
+    const weapons = (Object.keys(config.weapons) as WeaponKind[]).map((kind) =>
       buildLoot({ id: 0, pos: { x: 0, y: 0 }, z: 0, rarity: 4, content: { type: 'weapon', weapon: { kind, rarity: 4, ammo: 0, nextFireTick: 0, reloadEndTick: null } } }),
     );
     const items = (['cotton_puff', 'sewing_kit', 'button_pack'] as const).map((kind) =>

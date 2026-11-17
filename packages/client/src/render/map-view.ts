@@ -1,4 +1,4 @@
-// Static map visuals: felt lawn, boundary hedge, ground patches (sand, dirt, a picnic blanket,
+// Static map visuals: felt lawn (no fence: it carries on past the edges), ground patches (sand, dirt, a picnic blanket,
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -7,47 +7,28 @@ import { checkerTexture, plankTexture, tiled } from './props.ts';
 import { feltTexture, toonMaterial, toonMesh } from './toon.ts';
 
 const LAWN = '#7cc46a';
-const OUTSIDE = '#5d9e55';
-const HEDGE = '#3f8f4a';
+/** How far the lawn (and its patches and grass) carries on past the map's edges. */
+const LAWN_BEYOND = 48;
+/** Patches and grass stop a little earlier; it's all underwater past there anyway. */
+const DECOR_BEYOND = 24;
 
 export function buildMapView(map: MapData): THREE.Group {
   const g = new THREE.Group();
   const { width: w, height: h } = map;
 
+  // No fence around the yard: the lawn just goes on (the Rinse is the edge of play).
+  const lw = w + 2 * LAWN_BEYOND;
+  const lh = h + 2 * LAWN_BEYOND;
   const lawnTex = feltTexture().clone();
-  lawnTex.repeat.set(w / 4, h / 4);
+  lawnTex.repeat.set(lw / 4, lh / 4);
   lawnTex.needsUpdate = true;
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
   // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(w, h, Math.ceil(w / 8), Math.ceil(h / 8)), toonMaterial(LAWN, { map: lawnTex }));
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), toonMaterial(LAWN, { map: lawnTex }));
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
   g.add(lawn);
-
-  const outsideTex = feltTexture().clone();
-  outsideTex.repeat.set((w * 3) / 4, (h * 3) / 4);
-  outsideTex.needsUpdate = true;
-  const outside = new THREE.Mesh(new THREE.PlaneGeometry(w * 3, h * 3, 12, 12), toonMaterial(OUTSIDE, { map: outsideTex }));
-  outside.rotation.x = -Math.PI / 2;
-  outside.position.set(w / 2, -0.02, h / 2);
-  outside.receiveShadow = true;
-  g.add(outside);
-
-  // Boundary hedge, just outside the playable area.
-  const t = 0.8;
-  const height = 0.9;
-  const sides: [number, number, number, number][] = [
-    [w / 2, -t / 2, w + 2 * t, t],
-    [w / 2, h + t / 2, w + 2 * t, t],
-    [-t / 2, h / 2, t, h],
-    [w + t / 2, h / 2, t, h],
-  ];
-  for (const [cx, cz, sx, sz] of sides) {
-    const hedge = toonMesh(new THREE.BoxGeometry(sx, height, sz), HEDGE, { outline: 0.02, outlineColor: '#1f3f26' });
-    hedge.position.set(cx, height / 2, cz);
-    g.add(hedge);
-  }
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
@@ -160,11 +141,12 @@ function feltPatches(map: MapData): THREE.Group {
   const colors = ['#86cc72', '#71b860', '#8fd27a', '#6fb35f'];
   const byColor = colors.map(() => [] as THREE.BufferGeometry[]);
   const rings: THREE.BufferGeometry[] = [];
-  const count = Math.round((map.width * map.height) / 60);
+  const span = { w: map.width + 2 * DECOR_BEYOND, h: map.height + 2 * DECOR_BEYOND };
+  const count = Math.round((span.w * span.h) / 60);
   for (let i = 0; i < count; i++) {
     const r = 1.2 + rand() * 2.8;
-    const x = rand() * map.width;
-    const z = rand() * map.height;
+    const x = rand() * span.w - DECOR_BEYOND;
+    const z = rand() * span.h - DECOR_BEYOND;
     const c = Math.floor(rand() * colors.length);
     if (!onBareLawn(map, x, z, r)) continue;
     // A tiny height step per patch keeps overlapping patches from flickering.
@@ -183,7 +165,8 @@ function feltPatches(map: MapData): THREE.Group {
 
 function grassTufts(map: MapData): THREE.InstancedMesh {
   const rand = mapRandom(map, 1);
-  const count = Math.round(map.width * map.height * 0.25);
+  const span = { w: map.width + 2 * DECOR_BEYOND, h: map.height + 2 * DECOR_BEYOND };
+  const count = Math.round(span.w * span.h * 0.25);
   const blade = new THREE.ConeGeometry(0.07, 0.45, 4).translate(0, 0.22, 0);
   const mesh = new THREE.InstancedMesh(blade, toonMaterial('#5fa552', { map: null }), count * 3);
   const m = new THREE.Matrix4();
@@ -193,8 +176,8 @@ function grassTufts(map: MapData): THREE.InstancedMesh {
   const p = new THREE.Vector3();
   let i = 0;
   for (let n = 0; n < count; n++) {
-    const x = rand() * map.width;
-    const z = rand() * map.height;
+    const x = rand() * span.w - DECOR_BEYOND;
+    const z = rand() * span.h - DECOR_BEYOND;
     const scale = 0.7 + rand() * 0.6;
     if (!onBareLawn(map, x, z)) continue;
     for (const dx of [-0.07, 0, 0.07]) {

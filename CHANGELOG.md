@@ -2,6 +2,23 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 4.2: Five new weapons, nicer chests, model pictures (2026-11-17)
+
+- Rubber Band Rifle (hold to draw, release to fire; stronger and faster the longer you held,
+  a red aim line while drawing, slower walking meanwhile), Marble Launcher (marbles bounce off
+  walls twice, then burst for area damage and knockback; never hurts you), Pillow Hammer (a
+  swing that bonks everyone in front and knocks them away), Glitter Bomb (lobbed in an arc to
+  where you aim, over low cover; the burst blinds everyone inside for 3 s; two per pickup) and
+  Bubble Wand (traps whoever it hits in a bubble for 1.5 s: no moving, shooting or looting).
+  Bots use all of them. 15 new sounds generated with ElevenLabs.
+- Chests by loot level: a plain wooden one, the red toy chest with a domed lid and a star latch,
+  a royal blue and gold one, and a picnic basket. They're hollow (empty when open), and toy
+  chests glow from under the lid until opened. The three old weapons got chunkier models.
+- The HUD, prompts and results card show pictures of the real 3D models (weapons, items, skin
+  parts), rendered once at startup.
+- No fence around the yard: the lawn carries on, plushies can wander 12 units past the edges, and
+  the Rinse is the real limit.
+
 ## Step 4.1: The Backyard map (2026-11-17)
 
 - The first real map, 128 x 128: a house with four doors, rooms and a rain barrel up to its roof,

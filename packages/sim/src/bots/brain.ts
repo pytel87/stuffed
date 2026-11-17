@@ -4,6 +4,7 @@
 import { config } from '../config.ts';
 import { nextFloat, nextRange, seedRng } from '../rng.ts';
 import { findInteraction } from '../systems/loot.ts';
+import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
@@ -33,7 +34,29 @@ export const BOT = {
   /** How much of the target's motion bots lead their shots by (1 = perfect). */
   leadFactor: 0.45,
   /** Preferred fighting distance per weapon. */
-  preferredRange: { cork_popper: 9, foam_dart_smg: 6.5, super_soaker: 3.5 } satisfies Record<WeaponKind, number>,
+  preferredRange: {
+    cork_popper: 9,
+    foam_dart_smg: 6.5,
+    super_soaker: 3.5,
+    rubber_band_rifle: 15,
+    marble_launcher: 8,
+    pillow_hammer: 1.3,
+    glitter_bomb: 8,
+    bubble_wand: 6,
+  } satisfies Record<WeaponKind, number>,
+  /** How much a bot values each weapon (before rarity). */
+  weaponValue: {
+    cork_popper: 1,
+    foam_dart_smg: 1.6,
+    super_soaker: 1.4,
+    rubber_band_rifle: 1.5,
+    marble_launcher: 1.5,
+    pillow_hammer: 1.2,
+    glitter_bomb: 1.1,
+    bubble_wand: 1.2,
+  } satisfies Record<WeaponKind, number>,
+  /** Rubber Band Rifle: let go once drawn this far. */
+  releaseCharge: 0.85,
   /** Chance per second to hop while fighting. */
   combatJumpsPerSecond: 0.6,
   /** Look this far for chests and loot. */
@@ -165,7 +188,17 @@ export class BotController {
       this.aimAt(state, bot, enemy, weapon, m, input);
       const range = weapon ? BOT.preferredRange[weapon.kind] : 6;
       const d = dist(bot.pos, enemy.pos);
-      if (weapon && state.tick >= m.fireFromTick && this.inBurst(state, m) && this.clearShot(world, bot, enemy)) input.buttons |= Btn.Fire;
+      const mode = weapon ? config.weapons[weapon.kind].mode : undefined;
+      if (weapon && mode === 'charge') {
+        // Hold to draw the band back; let go when it's drawn far enough (and the shot is clear).
+        const drawn = chargeAmount(bot, weapon.kind, state.tick);
+        const clear = this.clearShot(world, bot, enemy);
+        if (state.tick >= m.fireFromTick && !(bot.chargeStartTick !== null && drawn >= BOT.releaseCharge && clear)) input.buttons |= Btn.Fire;
+      } else if (weapon && mode === 'melee') {
+        if (state.tick >= m.fireFromTick && d <= (config.weapons[weapon.kind].reach ?? 1.8) + 0.3) input.buttons |= Btn.Fire;
+      } else if (weapon && state.tick >= m.fireFromTick && this.inBurst(state, m) && (mode === 'throw' || this.clearShot(world, bot, enemy))) {
+        input.buttons |= Btn.Fire;
+      }
       if (weapon && weapon.ammo === 0) input.buttons &= ~Btn.Fire;
 
       if (zoneUrgent) {
@@ -281,7 +314,7 @@ export class BotController {
   private aimAt(state: GameState, bot: Player, enemy: Player, weapon: WeaponInstance | null, m: Memory, input: Input): void {
     const d = dist(bot.pos, enemy.pos);
     const speed = weapon ? config.weapons[weapon.kind].projectileSpeed : 25;
-    const lead = (d / speed) * BOT.leadFactor;
+    const lead = speed > 0 ? (d / speed) * BOT.leadFactor : 0;
     if (state.tick >= m.aimOffsetUntil) {
       const r = (BOT.aimError * d) / 10;
       const a = nextFloat(m.rng) * Math.PI * 2;
@@ -433,8 +466,7 @@ function jumpReach(): number {
 }
 
 function weaponValue(w: WeaponInstance): number {
-  const base = { cork_popper: 1, foam_dart_smg: 1.6, super_soaker: 1.4 }[w.kind];
-  return base + w.rarity * 0.5;
+  return BOT.weaponValue[w.kind] + w.rarity * 0.5;
 }
 
 function dist(a: Vec2, b: Vec2): number {

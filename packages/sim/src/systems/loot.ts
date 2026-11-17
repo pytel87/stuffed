@@ -277,8 +277,9 @@ function pushOutOfWalls(world: World, pos: Vec2, r: number, z: number): void {
     }
     if (!moved) break;
   }
-  pos.x = Math.min(Math.max(pos.x, r), world.map.width - r);
-  pos.y = Math.min(Math.max(pos.y, r), world.map.height - r);
+  const out = config.player.roamOutside;
+  pos.x = Math.min(Math.max(pos.x, -out + r), world.map.width + out - r);
+  pos.y = Math.min(Math.max(pos.y, -out + r), world.map.height + out - r);
 }
 
 function dist(a: Vec2, b: Vec2): number {

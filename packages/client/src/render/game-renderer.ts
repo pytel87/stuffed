@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, World } from '@stuffed/sim';
+import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS } from '@stuffed/sim';
+import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
@@ -192,6 +192,18 @@ export class GameRenderer {
         case 'impact':
           this.effects.impact(e.pos.x, e.pos.y, e.weapon === 'super_soaker');
           break;
+        case 'burst':
+          if (e.weapon === 'glitter_bomb') this.effects.glitterBurst(e.pos.x, e.z, e.pos.y, e.radius, config.weapons.glitter_bomb.effectTime ?? 3);
+          else this.effects.marbleBurst(e.pos.x, e.z, e.pos.y, e.radius);
+          break;
+        case 'bounce':
+          this.effects.bounce(e.pos.x, e.pos.y);
+          break;
+        case 'bonk': {
+          const target = byId.get(e.targetId);
+          if (target) this.effects.bonk(target.pos.x, target.pos.y);
+          break;
+        }
         case 'eliminated': {
           const p = byId.get(e.playerId);
           if (p) this.effects.knockout(p.pos.x, p.pos.y);
@@ -228,7 +240,7 @@ export class GameRenderer {
     for (const slot of PART_SLOTS) for (const animal of ANIMALS) samples.add(buildPart(slot, animal));
     // A plush in a full set, for its glow.
     samples.add(new PlushView(Object.fromEntries(PART_SLOTS.map((slot) => [slot, { animal: 'frog', rarity: 0, found: false }])) as PartLoadout).root);
-    for (const kind of ['cork_popper', 'foam_dart_smg', 'super_soaker'] as const) samples.add(buildWeapon(kind, 4, '#2a1f2d'));
+    for (const kind of Object.keys(config.weapons) as WeaponKind[]) samples.add(buildWeapon(kind, 4, '#2a1f2d'));
     samples.add(new THREE.Mesh(new THREE.SphereGeometry(1), toonMaterial('#3f8f4a', { transparent: true, opacity: 0.4 })));
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
     // Spread them out in a grid at the map center, where the shadow camera can see them too.
@@ -296,6 +308,8 @@ export class GameRenderer {
       view.setParts(p.parts);
       const weapon = p.weapons[p.activeSlot];
       view.setWeapon(weapon?.kind ?? null, weapon?.rarity ?? 0);
+      view.setCharge(weapon ? chargeAmount(p, weapon.kind, curr.tick + alpha) : 0);
+      if (view.setBubbled(curr.tick < p.bubbledUntil)) this.effects.bubblePop(p.pos.x, p.z + 0.85, p.pos.y);
 
       const before = prevById.get(p.id) ?? p;
       const pos = lerp2(before.pos, p.pos, alpha);
@@ -331,7 +345,7 @@ export class GameRenderer {
       }
     }
 
-    this.projectiles.update(prev, curr, alpha);
+    this.projectiles.update(prev, curr, alpha, opts.time);
     this.chests.update(curr, opts.dt, opts.time);
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
