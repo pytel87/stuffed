@@ -130,11 +130,20 @@ export class GameRenderer {
   setMap(map: MapData): void {
     if (map.id === this.mapId) return;
     this.mapId = map.id;
+    // Free the old map's GPU memory: shapes, materials and their textures. (Shared ones, like
+    // the felt texture or outline materials, are simply uploaded again when next used.)
+    const materials = new Set<THREE.Material>();
     for (const child of [...this.mapLayer.children]) {
       this.mapLayer.remove(child);
       child.traverse((o) => {
+        if (!(o instanceof THREE.Mesh || o instanceof THREE.Sprite)) return;
         if (o instanceof THREE.Mesh) o.geometry.dispose();
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m);
       });
+    }
+    for (const m of materials) {
+      for (const value of Object.values(m)) if (value instanceof THREE.Texture) value.dispose();
+      m.dispose();
     }
     this.mapLayer.add(buildMapView(map));
     const obstacles = buildObstacles(map);

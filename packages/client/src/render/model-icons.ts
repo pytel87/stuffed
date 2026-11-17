@@ -1,6 +1,8 @@
 // Pictures of the real 3D models for the HUD: every weapon, item, skin part and the toy chest is
-// drawn once at startup onto a small offscreen canvas with the game's toon lighting and
-// outlines. The resulting images replace the drawn SVG icons wherever one exists.
+// drawn once onto a small offscreen canvas with the game's toon lighting and outlines. The
+// resulting images replace the drawn SVG icons wherever one exists. Weapons, items and chests are
+// drawn at startup (the HUD needs them first); the hundred skin parts follow a few at a time in
+// idle moments, so the menu shows sooner.
 import * as THREE from 'three';
 import { ANIMALS, config, PART_SLOTS } from '@stuffed/sim';
 import type { ItemKind, PartLoadout, PartSlot, WeaponKind } from '@stuffed/sim';
@@ -12,16 +14,22 @@ import { buildWeapon } from './weapon-models.ts';
 
 const SIZE = 160;
 
-/** Renders the pictures; returns name → image URL (data URL). Empty if WebGL isn't available. */
-export function renderModelIcons(): Map<string, string> {
-  const urls = new Map<string, string>();
+/** Parts drawn per idle moment. */
+const PARTS_PER_SLICE = 6;
+
+/**
+ * Renders the pictures and hands them to `deliver` (name → data URL): weapons, items and chests
+ * at once, then the skin parts in small batches. Nothing if WebGL isn't available.
+ */
+export function renderModelIcons(deliver: (pictures: Map<string, string>) => void): void {
+  let urls = new Map<string, string>();
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = SIZE;
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
   } catch {
-    return urls;
+    return;
   }
   renderer.setPixelRatio(1);
   renderer.setSize(SIZE, SIZE, false);
@@ -76,11 +84,23 @@ export function renderModelIcons(): Map<string, string> {
     tail: new THREE.Euler(0.2, Math.PI - 0.7, 0, 'YXZ'),
     accessory: new THREE.Euler(0.3, 0.6, 0, 'YXZ'),
   };
-  for (const slot of PART_SLOTS) for (const animal of ANIMALS) shoot(`part:${slot}:${animal}`, buildPart(slot, animal), partTurn[slot]);
+  deliver(urls);
 
-  renderer.dispose();
-  renderer.forceContextLoss();
-  return urls;
+  const jobs: [PartSlot, (typeof ANIMALS)[number]][] = [];
+  for (const slot of PART_SLOTS) for (const animal of ANIMALS) jobs.push([slot, animal]);
+  const idle = (fn: () => void) =>
+    'requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout: 500 }) : setTimeout(fn, 16);
+  const slice = () => {
+    urls = new Map();
+    for (const [slot, animal] of jobs.splice(0, PARTS_PER_SLICE)) shoot(`part:${slot}:${animal}`, buildPart(slot, animal), partTurn[slot]);
+    deliver(urls);
+    if (jobs.length > 0) idle(slice);
+    else {
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+  };
+  idle(slice);
 }
 
 let plushPictures: Map<string, string> | null = null;

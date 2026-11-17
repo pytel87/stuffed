@@ -64,7 +64,8 @@ let lobbyScreen: LobbyScreen | null = null;
 // ?quality=high keeps full resolution even if the frame rate drops.
 const renderer = new GameRenderer(canvas, newSolo().map, params.get('quality') === 'high');
 // Pictures of the weapon, item and chest models for the HUD (before anything draws an icon).
-setModelPictures(renderModelIcons());
+// Weapons, items and chests now; the skin parts a few at a time once the menu is up.
+renderModelIcons(setModelPictures);
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
