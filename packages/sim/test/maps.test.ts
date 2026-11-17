@@ -245,3 +245,19 @@ describe('the toy train', () => {
     expect(state.projectiles).toHaveLength(0);
   });
 });
+
+describe('the toy train and loot', () => {
+  it('pushes loot off the rails instead of running through it', () => {
+    const map = BEDROOM;
+    const engine = trainCars(map.track!, 200)[0]!;
+    const { world, state } = solo(map, { x: 4, y: 60 });
+    state.tick = 200;
+    const at = { x: engine.pos.x + engine.dir.x * 4, y: engine.pos.y + engine.dir.y * 4 };
+    const loot = spawnLoot(world, state, at, { type: 'weapon', weapon: makeWeapon('cork_popper', 0) });
+    run(world, state, 60, () => input());
+    for (let t = state.tick - 60; t <= state.tick; t += 5) {
+      for (const car of trainCars(map.track!, t)) expect(Math.hypot(loot.pos.x - car.pos.x, loot.pos.y - car.pos.y)).toBeGreaterThan(0.9);
+    }
+    expect(Math.hypot(loot.pos.x - at.x, loot.pos.y - at.y)).toBeGreaterThan(0.5);
+  });
+});

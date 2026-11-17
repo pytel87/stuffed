@@ -454,6 +454,9 @@ export class LootViews {
         this.scene.add(view.root);
       }
       view.age += dt;
+      // Loot can move (the toy train pushes it off the rails): glide to where it is now.
+      view.root.position.x += (loot.pos.x - view.root.position.x) * Math.min(1, dt * 12);
+      view.root.position.z += (loot.pos.y - view.root.position.z) * Math.min(1, dt * 12);
       const pop = Math.min(1, view.age / POP_SECONDS);
       const overshoot = pop < 1 ? Math.sin(pop * Math.PI) * 0.25 : 0;
       view.model.scale.setScalar(pop + overshoot);

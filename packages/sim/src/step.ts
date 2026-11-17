@@ -1,6 +1,7 @@
 import { config, DT } from './config.ts';
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { updateBalls } from './systems/balls.ts';
+import { plowLoot } from './systems/train.ts';
 import { checkWinner } from './systems/damage.ts';
 import { expireWalls, updateItemUse } from './systems/items.ts';
 import { autoPickupItems, dropEverything, dropFromSlot, hasDrops, updateInteraction } from './systems/loot.ts';
@@ -67,6 +68,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   }
 
   updateBalls(world, state);
+  if (world.map.track) plowLoot(world.map.track, state);
   updateProjectiles(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.

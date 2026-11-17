@@ -29,6 +29,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Ride the train: the wagons are flat decks (height 1.2) a jump lands on; whoever stands on one
   is carried round the track, turning with it, and steps or jumps off to leave. The engine is
   taller (its cab) and can't be stood on. Wagons no longer carry cubes.
+- The train pushes loot lying on the rails aside, like a snowplough, instead of running
+  through it (the loot glides out of the way).
 
 ## Beach ball goals (2026-11-17)
 

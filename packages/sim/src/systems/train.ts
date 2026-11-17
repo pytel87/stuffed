@@ -4,7 +4,7 @@
 // knock beach balls along. The wagons behind the engine have flat decks a jump can land on;
 // whoever stands on one rides along.
 import { config } from '../config.ts';
-import type { TrainTrack, Vec2 } from '../types.ts';
+import type { GameState, TrainTrack, Vec2 } from '../types.ts';
 
 export const TRAIN = {
   carLength: 2.6,
@@ -137,4 +137,25 @@ export function distanceToTrack(track: TrainTrack, p: Vec2): number {
   let best = Infinity;
   for (const q of t.points) best = Math.min(best, Math.hypot(p.x - q.x, p.y - q.y));
   return best;
+}
+
+/** Loot lying on the rails is pushed aside as the train comes, like a snowplough. */
+export function plowLoot(track: TrainTrack, state: GameState): void {
+  if (state.loot.length === 0) return;
+  for (const c of trainCircles(track, state.tick)) {
+    for (const loot of state.loot) {
+      if (loot.z > c.top) continue;
+      const dx = loot.pos.x - c.x;
+      const dy = loot.pos.y - c.y;
+      const min = c.r + 0.5;
+      if (dx * dx + dy * dy >= min * min) continue;
+      // Out to the side it's already on, across the track.
+      const across = dx * -c.dir.y + dy * c.dir.x >= 0 ? 1 : -1;
+      const along = dx * c.dir.x + dy * c.dir.y;
+      loot.pos = {
+        x: c.x + c.dir.x * along - c.dir.y * across * (min + 0.05),
+        y: c.y + c.dir.y * along + c.dir.x * across * (min + 0.05),
+      };
+    }
+  }
 }
