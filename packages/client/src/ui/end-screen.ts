@@ -44,7 +44,7 @@ export class EndScreen {
            <div class="kept" hidden></div>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
-             <button type="button" class="big end-spectate" aria-label="Spectate">${icon('eye')}</button>
+             <button type="button" class="big end-spectate"><span>Watch</span></button>
            </div>
          </div>
        </div>`,

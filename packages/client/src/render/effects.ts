@@ -483,7 +483,8 @@ export class Effects {
 
   /** A plush bursts into a pile of fluff when Unstitched. */
   knockout(x: number, z: number): void {
-    this.burst(this.cotton, x, 0.7, z, 0, 0, 36, 5, 0.14, 1.4, 6);
+    // Fewer puffs scattering wider and settling sooner: a burst, not a cloud hiding whoever's near.
+    this.burst(this.cotton, x, 0.7, z, 0, 0, 22, 7, 0.12, 0.9, 9);
   }
 
   update(dt: number): void {

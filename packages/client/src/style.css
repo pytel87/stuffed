@@ -1994,10 +1994,6 @@ body.touch-mode .gear {
   flex: 1 1 0;
 }
 
-.end .end-spectate .icon {
-  width: 1.8rem;
-  height: 1.8rem;
-}
 
 /* Leave the match? A home and a question mark; ✓ leaves, ✕ stays. Above everything else. */
 .overlay.leave-confirm {
