@@ -3,9 +3,10 @@
 // outlines. The resulting images replace the drawn SVG icons wherever one exists.
 import * as THREE from 'three';
 import { ANIMALS, config, PART_SLOTS } from '@stuffed/sim';
-import type { ItemKind, PartSlot, WeaponKind } from '@stuffed/sim';
+import type { ItemKind, PartLoadout, PartSlot, WeaponKind } from '@stuffed/sim';
 import { buildChest, buildItem } from './loot-views.ts';
 import { buildPart } from './placeholder-parts.ts';
+import { PlushView } from './plush-view.ts';
 import { OUTLINE_COLOR } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
@@ -79,5 +80,54 @@ export function renderModelIcons(): Map<string, string> {
 
   renderer.dispose();
   renderer.forceContextLoss();
+  return urls;
+}
+
+let plushPictures: Map<string, string> | null = null;
+
+/**
+ * Pictures of every animal wearing its full set (for the Wardrobe's gallery). Drawn the first
+ * time they're asked for, then kept.
+ */
+export function renderPlushPictures(): Map<string, string> {
+  if (plushPictures) return plushPictures;
+  const urls = new Map<string, string>();
+  const size = 220;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  let renderer: THREE.WebGLRenderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+  } catch {
+    return urls;
+  }
+  renderer.setPixelRatio(1);
+  renderer.setSize(size, size, false);
+  renderer.setClearColor(0x000000, 0);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight('#ffffff', '#9a8aa8', 1.5));
+  const sun = new THREE.DirectionalLight('#ffffff', 1.4);
+  sun.position.set(-2, 5, 4);
+  scene.add(sun);
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
+  camera.position.set(0, 1.3, 4.6);
+  camera.lookAt(0, 0.98, 0);
+  for (const animal of ANIMALS) {
+    const parts = Object.fromEntries(PART_SLOTS.map((s) => [s, { animal, rarity: 0, found: false }])) as PartLoadout;
+    const plush = new PlushView(parts);
+    // Turned a little so tails and backs show; no set glow in the picture.
+    plush.update({ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0.45, y: 0.9 }, 0, 0, 0.016, 0);
+    plush.root.traverse((o) => {
+      if (o instanceof THREE.Mesh && (o.material as THREE.Material).blending === THREE.AdditiveBlending) o.visible = false;
+      if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) o.material.emissive.setScalar(0);
+    });
+    scene.add(plush.root);
+    renderer.render(scene, camera);
+    urls.set(animal, canvas.toDataURL('image/png'));
+    scene.remove(plush.root);
+  }
+  renderer.dispose();
+  renderer.forceContextLoss();
+  plushPictures = urls;
   return urls;
 }

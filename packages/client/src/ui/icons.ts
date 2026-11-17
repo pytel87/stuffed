@@ -56,6 +56,8 @@ const paths: Record<string, string> = {
   mouse: `<rect x="6" y="3" width="12" height="18" rx="6" fill="#fff"/><path d="M12 3v6"/>`,
   // a house key: the recovery code
   code: `<circle cx="8" cy="12" r="4.5" fill="#f7c331"/><circle cx="8" cy="12" r="1.5" fill="#fff"/><path d="M12.5 12H21M18 12v3M21 12v2.5"/>`,
+  // a 2x2 grid of little frames: the animal gallery
+  gallery: `<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ffd36a"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ff9cbf"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#7be07b"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#6bc6ff"/>`,
   // a clothes hanger: the Wardrobe
   hanger: `<path d="M12 8.5V7.2a2.2 2.2 0 1 0-2.2-2.2"/><path d="M12 8.5 3.5 15.5a1.2 1.2 0 0 0 .8 2h15.4a1.2 1.2 0 0 0 .8-2Z" fill="#fff"/>`,
   // a little sack with a drawstring: the part stash

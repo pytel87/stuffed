@@ -409,6 +409,95 @@ button {
 
 /* ---------- wardrobe ---------- */
 
+/* The gallery button, top-left of the Wardrobe card (the close button is top-right). */
+.wardrobe .gallery-toggle {
+  position: absolute;
+  top: -1rem;
+  left: -1rem;
+  z-index: 1;
+}
+
+/* The gallery: every animal's full set; owned parts lit, missing ones faded. */
+.wardrobe .card.showing-gallery {
+  width: min(46rem, 100%);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.6rem, 1fr));
+  gap: 0.6rem;
+  max-height: min(70vh, 34rem);
+  overflow-y: auto;
+  padding: 0.2rem;
+}
+
+.gallery-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem 0.5rem;
+  border-radius: 1rem;
+  border: 3px solid var(--ink);
+  background: radial-gradient(circle at 50% 40%, #e3f6d8, #b8e2a6);
+}
+
+.gallery-card.complete {
+  background: radial-gradient(circle at 50% 40%, #fff6c8, #ffd36a);
+  box-shadow: 0 0 0.8rem rgba(255, 210, 90, 0.9);
+}
+
+.gallery-card img {
+  width: 100%;
+  max-width: 8rem;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.gallery-count {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  font: 900 0.85rem/1 var(--font);
+  color: var(--ink);
+  background: rgba(255, 250, 243, 0.9);
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+}
+
+.gallery-parts {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.gallery-part {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 250, 243, 0.55);
+  border: 2px solid rgba(42, 31, 45, 0.3);
+}
+
+.gallery-part .icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.gallery-part.owned {
+  background: #fffaf3;
+  border-color: var(--ink);
+}
+
+.gallery-part.owned .icon {
+  opacity: 1;
+  filter: none;
+}
+
 /* Opened from the lobby or results card too: above them. */
 .overlay.wardrobe {
   z-index: 12;

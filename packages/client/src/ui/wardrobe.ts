@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { ANIMALS, PART_SLOTS } from '@stuffed/sim';
-import type { PartLoadout, PartSlot } from '@stuffed/sim';
+import type { Animal, PartLoadout, PartSlot } from '@stuffed/sim';
 import type { Look, OwnedEntry } from '@stuffed/sim/net';
 import { PlushView } from '../render/plush-view.ts';
 import type { ProfileStore } from '../session/profile.ts';
+import { renderPlushPictures } from '../render/model-icons.ts';
 import { icon, partIcon } from './icons.ts';
 
 /**
@@ -22,6 +23,9 @@ export class Wardrobe {
   private look: Look | null = null;
   /** Called after a new look is saved. */
   onLookChanged: () => void = () => {};
+  /** Every animal's full set, with the parts you own lit up (what to chase). */
+  private readonly gallery: HTMLElement;
+  private readonly galleryToggle: HTMLButtonElement;
 
   constructor(private readonly store: ProfileStore) {
     document.body.insertAdjacentHTML(
@@ -29,6 +33,8 @@ export class Wardrobe {
       `<div class="overlay wardrobe" hidden>
          <div class="card">
            <button type="button" class="round close" aria-label="Close">${icon('close')}</button>
+           <button type="button" class="round gallery-toggle" aria-label="Gallery">${icon('gallery')}</button>
+           <div class="gallery" hidden></div>
            <div class="wardrobe-body">
              <canvas class="wardrobe-preview"></canvas>
              <div class="wardrobe-slots">
@@ -57,6 +63,9 @@ export class Wardrobe {
     this.restoreInput = this.el.querySelector('.restore input')!;
     this.message = this.el.querySelector('.error')!;
     this.preview = new Preview(this.el.querySelector('.wardrobe-preview')!);
+    this.gallery = this.el.querySelector('.gallery')!;
+    this.galleryToggle = this.el.querySelector('.gallery-toggle')!;
+    this.galleryToggle.addEventListener('click', () => this.showGallery(this.gallery.hidden === true));
     this.rows = Object.fromEntries(
       PART_SLOTS.map((slot) => {
         const row = this.el.querySelector<HTMLElement>(`.wardrobe-slot[data-slot="${slot}"]`)!;
@@ -90,8 +99,36 @@ export class Wardrobe {
     this.code.textContent = profile.recovery;
     this.message.textContent = '';
     this.render();
+    this.showGallery(false);
     this.el.hidden = false;
     this.preview.start();
+  }
+
+  /** Switches between dressing up and the gallery of all the animals. */
+  private showGallery(on: boolean): void {
+    this.gallery.hidden = !on;
+    this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
+    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = on;
+    this.galleryToggle.innerHTML = icon(on ? 'hanger' : 'gallery');
+    this.galleryToggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Gallery');
+    this.el.querySelector('.card')!.classList.toggle('showing-gallery', on);
+    if (on) this.renderGallery();
+  }
+
+  private renderGallery(): void {
+    const pictures = renderPlushPictures();
+    const owned = this.store.profile?.parts ?? [];
+    const has = (slot: PartSlot, animal: Animal) => owned.some((p) => p.slot === slot && p.animal === animal);
+    this.gallery.innerHTML = ANIMALS.map((animal) => {
+      const count = PART_SLOTS.filter((slot) => has(slot, animal)).length;
+      const parts = PART_SLOTS.map((slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}">${partIcon(slot, animal)}</span>`).join('');
+      const picture = pictures.get(animal);
+      return `<div class="gallery-card${count === PART_SLOTS.length ? ' complete' : ''}">
+        ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
+        <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
+        <div class="gallery-parts">${parts}</div>
+      </div>`;
+    }).join('');
   }
 
   hide(): void {
