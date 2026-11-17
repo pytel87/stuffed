@@ -1,4 +1,4 @@
-import { icon } from './icons.ts';
+import { icon, partIcon } from './icons.ts';
 
 const keys = (...k: string[]) => k.map((x) => `<kbd>${x}</kbd>`).join('');
 
@@ -16,7 +16,8 @@ export class Help {
              <span>${keys('W', 'A', 'S', 'D')}</span><span>${icon('person')}</span>
              <span>${icon('mouse')}</span><span>${icon('cork_popper')}</span>
              <span>${keys('Space')}</span><span>${icon('jump')}</span>
-             <span>${keys('E')}</span><span>${icon('hand')} ${icon('chest')}</span>
+             <span>${keys('E')}</span><span>${icon('hand')} ${icon('chest')} ${partIcon('head', 'shark')}</span>
+             <span>${keys('Q')}</span><span>${icon('stash')} ${icon('swap')}</span>
              <span>${keys('1', '2')}</span><span>${icon('swap')}</span>
              <span>${keys('R')}</span><span>${icon('reload')}</span>
              <span>${keys('3', '4', '5')}</span><span>${icon('cotton_puff')} ${icon('button_pack')}</span>

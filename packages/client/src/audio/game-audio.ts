@@ -62,7 +62,13 @@ export class GameAudio {
         case 'pickup': {
           const p = byId.get(e.playerId);
           const weapon = e.what === 'cork_popper' || e.what === 'foam_dart_smg' || e.what === 'super_soaker';
-          if (p) s.play(weapon ? 'pickup_weapon' : 'pickup_item', { at: p.pos, volume: 0.7 });
+          // Parts make their sound on the 'wear' event (which also covers swapping from the stash).
+          if (p && e.what !== 'part') s.play(weapon ? 'pickup_weapon' : 'pickup_item', { at: p.pos, volume: 0.7 });
+          break;
+        }
+        case 'wear': {
+          const p = byId.get(e.playerId);
+          if (p) s.play('pickup_item', { at: p.pos, volume: e.stashed ? 0.5 : 0.8 });
           break;
         }
         case 'itemUsed': {

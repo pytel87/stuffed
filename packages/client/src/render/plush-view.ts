@@ -56,7 +56,9 @@ export class PlushView {
   private readonly squash = new THREE.Group();
   private readonly slots = {} as Record<PartSlot, THREE.Group>;
   private readonly hitbox: THREE.Mesh;
-  private parts: Partial<PartLoadout> = {};
+  /** The animal per slot, to rebuild only the slots that changed. */
+  private partKeys: Partial<Record<PartSlot, string>> = {};
+  private bodyAnimal = '';
   private legPivots: THREE.Object3D[] = [];
   private walkPhase = 0;
   private moveAmount = 0;
@@ -107,23 +109,32 @@ export class PlushView {
     this.setParts(parts);
   }
 
-  /** Swaps only the slots whose part id changed. */
-  setParts(parts: PartLoadout): void {
+  /** Swaps only the slots whose animal changed. Returns whether any did. */
+  setParts(parts: PartLoadout): boolean {
+    let changed = false;
     for (const slot of PART_SLOTS) {
-      if (this.parts[slot] === parts[slot]) continue;
+      const worn = parts[slot];
+      const key = worn.animal;
+      if (this.partKeys[slot] === key) continue;
+      this.partKeys[slot] = key;
+      changed = true;
       const socket = this.slots[slot];
       for (const child of [...socket.children]) {
         socket.remove(child);
         disposeGeometries(child);
       }
-      const part: PartObject = buildPart(slot, parts[slot], this.outlineColor);
+      const part: PartObject = buildPart(slot, worn.animal);
       socket.add(part);
       if (slot === 'legs') this.legPivots = part.userData.swing ?? [];
     }
-    if (this.parts.body !== parts.body) this.arms.setColor(bodyColor(parts.body));
-    this.parts = { ...parts };
+    if (!changed) return false;
+    if (this.bodyAnimal !== parts.body.animal) {
+      this.bodyAnimal = parts.body.animal;
+      this.arms.setColor(bodyColor(parts.body.animal));
+    }
     this.collectMaterials();
     this.trimShadows();
+    return true;
   }
 
   setWeapon(kind: WeaponKind | null, rarity: Rarity): void {

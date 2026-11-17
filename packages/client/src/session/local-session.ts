@@ -1,5 +1,8 @@
-import { BotController, createGame, createWorld, DT, DEFAULT_PARTS, step, TEST_MAP } from '@stuffed/sim';
+import { BotController, createGame, createWorld, DT, step, TEST_MAP } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
+
+/** Your plush's own look in solo play (bots get random ones), until the Wardrobe exists. */
+const YOUR_LOOK: RosterEntry['parts'] = { head: 'bear', body: 'bear', legs: 'chicken', tail: 'bear', accessory: 'frog' };
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
 /** Longest real-time gap simulated in one frame; longer stalls (tab switch) are dropped. */
@@ -37,7 +40,7 @@ export class LocalSession implements GameSession {
     this.map = map;
     this.world = createWorld(map);
     const roster: RosterEntry[] = [
-      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: DEFAULT_PARTS, ...(loadout ? { loadout } : {}) }]),
+      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: YOUR_LOOK, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale });

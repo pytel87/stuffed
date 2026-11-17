@@ -7,7 +7,7 @@ import { findInteraction } from '../systems/loot.ts';
 import { canUseItem } from '../systems/items.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
-import type { EntityId, GameState, GroundLoot, Input, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
+import type { EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
 
 export const BOT = {
@@ -323,7 +323,10 @@ export class BotController {
 
     // E picks up a nearby weapon before opening a chest, so only press it when that's wanted.
     const interaction = findInteraction(state, bot);
-    if (interaction?.kind === 'weapon' && this.wants(bot, interaction.loot)) {
+    const wanted =
+      (interaction?.kind === 'weapon' && this.wants(bot, interaction.loot)) ||
+      (interaction?.kind === 'part' && wantsPart(bot, interaction.part));
+    if (wanted) {
       m.tapE = !m.tapE;
       if (m.tapE) input.buttons |= Btn.Interact;
       return 'stay';
@@ -355,6 +358,7 @@ export class BotController {
   private useful(bot: Player, loot: GroundLoot): boolean {
     const c = loot.content;
     if (c.type === 'weapon') return this.wants(bot, loot);
+    if (c.type === 'part') return wantsPart(bot, c.part);
     return bot.items.some((s) => s === null || (s.kind === c.item.kind && s.count < config.items[s.kind].maxStack));
   }
 
@@ -435,4 +439,9 @@ function dist(a: Vec2, b: Vec2): number {
 function unit(x: number, y: number): Vec2 {
   const len = Math.hypot(x, y);
   return len > 1e-9 ? { x: x / len, y: y / len } : { x: 0, y: 0 };
+}
+
+/** Bots dress up: they put on any part rarer than the one they wear in that slot. */
+function wantsPart(bot: Player, part: Part): boolean {
+  return part.rarity > bot.parts[part.slot].rarity;
 }

@@ -3,7 +3,7 @@ import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
 import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 10;
 /** The server sends a snapshot every this many ticks (2 = 15 per second). */
@@ -209,6 +209,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     damageDealt: 0,
     weapons: [weaponFrom(p.weapons[0]), weaponFrom(p.weapons[1])],
     items: [null, null, null],
+    stash: null,
     lastInputSeq: 0,
     heldButtons: 0,
   }));

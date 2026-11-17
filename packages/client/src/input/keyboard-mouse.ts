@@ -86,6 +86,11 @@ export class KeyboardMouseInput implements InputSource {
     this.tapButtons |= Btn.Reload;
   }
 
+  /** Stash the part in reach, or swap the stash with the worn part (Q). */
+  stash(): void {
+    this.tapButtons |= Btn.Stash;
+  }
+
   sample(): Input {
     const k = this.keys;
     const clamp = (v: number) => Math.max(-1, Math.min(1, v));
@@ -101,6 +106,7 @@ export class KeyboardMouseInput implements InputSource {
         (this.fireHeld ? Btn.Fire : 0) |
         (k.has('KeyE') ? Btn.Interact : 0) |
         (k.has('KeyR') ? Btn.Reload : 0) |
+        (k.has('KeyQ') ? Btn.Stash : 0) |
         (k.has('Space') ? Btn.Jump : 0) |
         this.virtualButtons |
         this.tapButtons,

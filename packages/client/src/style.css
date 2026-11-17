@@ -478,6 +478,8 @@ body.touch-mode .help-touch {
 #hud {
   position: fixed;
   inset: 0;
+  /* Above the touch sticks: only the HUD's buttons take touches, the rest passes through. */
+  z-index: 6;
   pointer-events: none;
   padding: calc(var(--safe-t) + var(--edge)) calc(var(--safe-r) + var(--edge)) calc(var(--safe-b) + var(--edge)) calc(var(--safe-l) + var(--edge));
 }
@@ -622,6 +624,7 @@ body.touch-mode .help-touch {
 /* Hotkey hints: just the key, no keycap. On every slot it sits on the top-left corner. */
 .weapon kbd,
 .item kbd,
+.stash-slot kbd,
 .prompt kbd {
   position: absolute;
   left: -0.3rem;
@@ -732,6 +735,33 @@ body.touch-mode .help-touch {
   filter: grayscale(0.6);
 }
 
+/* The part stash, next to the stuffing bar: tap (or Q) to wear what's in it. */
+.stash-slot {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: rgba(255, 250, 243, 0.92);
+  box-shadow: inset 0 0 0 3px var(--rarity, transparent), 0 3px 0 var(--ink);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.stash-slot .art {
+  display: flex;
+}
+
+.stash-slot .art .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 /* Floating in the scene over a chest, a weapon or the plush; placed each frame by the HUD. */
 .in-world {
   position: absolute;
@@ -749,6 +779,30 @@ body.touch-mode .help-touch {
   background: rgba(255, 250, 243, 0.95);
   border: 3px solid var(--ink);
   box-shadow: inset 0 0 0 3px var(--rarity, #fff);
+}
+
+.prompt .opt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* "or stash it": a second, tappable option after a divider. */
+.prompt .stash-opt {
+  margin-left: 0.2rem;
+  padding: 0 0 0 0.55rem;
+  border: 0;
+  border-left: 2px solid rgba(42, 31, 45, 0.2);
+  background: none;
+  color: var(--ink);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.prompt .stash-opt .icon {
+  width: 1.7rem;
+  height: 1.7rem;
 }
 
 .prompt .art {

@@ -2,6 +2,9 @@
 // All icons are 24x24 SVG strings; `currentColor` is the stroke, fills are fixed toy colors
 // unless noted. Use icon('name') inside innerHTML.
 
+import type { Animal, PartSlot } from '@stuffed/sim';
+import { ANIMAL_COLORS } from '../render/animal-colors.ts';
+
 const INK = '#2a1f2d';
 
 const paths: Record<string, string> = {
@@ -50,7 +53,25 @@ const paths: Record<string, string> = {
   rotate: `<rect x="3" y="7" width="12" height="16" rx="2" fill="#fff" transform="rotate(-90 9 15)"/><path d="M17 3a5 5 0 0 1 4 5M21 4v4h-4"/>`,
   key: `<rect x="3" y="5" width="18" height="14" rx="3" fill="#fff"/>`,
   mouse: `<rect x="6" y="3" width="12" height="18" rx="6" fill="#fff"/><path d="M12 3v6"/>`,
+  // a little sack with a drawstring: the part stash
+  stash: `<path d="M8 8h8l3 5.5a6 6 0 0 1-5.4 7.5h-3.2A6 6 0 0 1 5 13.5Z" fill="#d9a066"/><path d="M8 8l-1-3.5h10L16 8"/><path d="M9.5 8.5h5"/>`,
 };
+
+/** Slot shapes for skin parts, drawn in the animal's colors (main `M`, belly `B`). */
+const PART_SHAPES: Record<PartSlot, string> = {
+  head: `<circle cx="6.5" cy="7" r="3" fill="M"/><circle cx="17.5" cy="7" r="3" fill="M"/><circle cx="12" cy="13" r="7.5" fill="M"/><ellipse cx="12" cy="15.5" rx="3.2" ry="2.4" fill="B"/><circle cx="9" cy="11.5" r="1.1" fill="${INK}" stroke="none"/><circle cx="15" cy="11.5" r="1.1" fill="${INK}" stroke="none"/>`,
+  body: `<ellipse cx="12" cy="12.5" rx="7.5" ry="8.5" fill="M"/><ellipse cx="12" cy="14" rx="4" ry="4.8" fill="B"/>`,
+  legs: `<rect x="6.5" y="3.5" width="4" height="12" rx="2" fill="M"/><rect x="13.5" y="3.5" width="4" height="12" rx="2" fill="M"/><ellipse cx="7.5" cy="18.5" rx="3.5" ry="2" fill="B"/><ellipse cx="16.5" cy="18.5" rx="3.5" ry="2" fill="B"/>`,
+  tail: `<path d="M5 19c0-8 5-14 14-14-1.5 3-1.2 6 .5 8.5C14 13 9 15 5 19Z" fill="M"/><path d="M15.5 6.5c2 .2 3.5-.6 3.5-1.5" stroke-width="1.5"/>`,
+  accessory: `<path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.4l-5.1 2.8 1.1-5.7-4.3-4 5.8-.7Z" fill="M"/><circle cx="12" cy="12" r="2" fill="B"/>`,
+};
+
+/** A skin part as a slot shape in its animal's colors. */
+export function partIcon(slot: PartSlot, animal: Animal, className = 'icon'): string {
+  const c = ANIMAL_COLORS[animal];
+  const body = PART_SHAPES[slot].replaceAll('fill="M"', `fill="${c.main}"`).replaceAll('fill="B"', `fill="${c.belly}"`);
+  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
 
 /** An icon as inline SVG markup. */
 export function icon(name: keyof typeof paths | string, className = 'icon'): string {

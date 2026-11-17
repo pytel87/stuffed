@@ -1,7 +1,8 @@
 // Toy chests and ground loot. Loot floats and spins above a glow in its rarity color so it
 // reads from the top-down camera; Limited Edition and up also get a light beam.
 import * as THREE from 'three';
-import type { Chest, EntityId, GameState, GroundLoot, ItemKind } from '@stuffed/sim';
+import type { Chest, EntityId, GameState, GroundLoot, ItemKind, Part } from '@stuffed/sim';
+import { buildPart } from './placeholder-parts.ts';
 import { OUTLINE_COLOR, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
@@ -165,6 +166,22 @@ function buildItem(kind: ItemKind): THREE.Group {
   return g;
 }
 
+/** Largest size of a part shown on the ground. */
+const PART_SIZE = 0.8;
+
+/** A skin part on its own, centered on its middle and scaled to a fixed size. */
+function buildLoosePart(part: Part): THREE.Group {
+  const model = buildPart(part.slot, part.animal);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  model.position.sub(center);
+  const g = new THREE.Group();
+  g.add(model);
+  g.scale.setScalar(PART_SIZE / Math.max(size.x, size.y, size.z, 0.3));
+  return g;
+}
+
 interface LootView {
   root: THREE.Group;
   model: THREE.Group;
@@ -217,7 +234,8 @@ function buildLoot(loot: GroundLoot): LootView {
   }
 
   const model = new THREE.Group();
-  model.add(loot.content.type === 'weapon' ? buildWeapon(loot.content.weapon.kind, loot.content.weapon.rarity, OUTLINE_COLOR) : buildItem(loot.content.item.kind));
+  const c = loot.content;
+  model.add(c.type === 'weapon' ? buildWeapon(c.weapon.kind, c.weapon.rarity, OUTLINE_COLOR) : c.type === 'part' ? buildLoosePart(c.part) : buildItem(c.item.kind));
   // Weapon models are built around their grip; center them over the glow.
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
   root.add(model);
@@ -229,7 +247,7 @@ export class LootViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
-  /** One of every loot look (each weapon with a beam, each item), for shader warm-up. */
+  /** One of every loot look (each weapon with a beam, each item, a part), for shader warm-up. */
   samples(): THREE.Object3D[] {
     const weapons = (['cork_popper', 'foam_dart_smg', 'super_soaker'] as const).map((kind) =>
       buildLoot({ id: 0, pos: { x: 0, y: 0 }, rarity: 4, content: { type: 'weapon', weapon: { kind, rarity: 4, ammo: 0, nextFireTick: 0, reloadEndTick: null } } }),
@@ -237,7 +255,9 @@ export class LootViews {
     const items = (['cotton_puff', 'sewing_kit', 'button_pack'] as const).map((kind) =>
       buildLoot({ id: 0, pos: { x: 0, y: 0 }, rarity: 0, content: { type: 'item', item: { kind, count: 1 } } }),
     );
-    return [...weapons, ...items].map((v) => v.root);
+    // Parts share their shaders with the plushies (warmed up there); one is enough here.
+    const part = buildLoot({ id: 0, pos: { x: 0, y: 0 }, rarity: 4, content: { type: 'part', part: { slot: 'head', animal: 'bear', rarity: 4 } } });
+    return [...weapons, ...items, part].map((v) => v.root);
   }
 
   clear(): void {

@@ -22,6 +22,8 @@ export const Btn = {
   Interact: 2,
   Reload: 4,
   Jump: 8,
+  /** Q: put the part in reach into the stash, or swap the stash with the part worn in its slot. */
+  Stash: 16,
 } as const;
 
 /** One player's intent for one tick. Clients and bots produce these; only the sim interprets them. */
@@ -66,8 +68,24 @@ export type PlayerAction =
   | { kind: 'useItem'; slot: number; item: ItemKind; startTick: Tick; endTick: Tick };
 
 export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
-/** Cosmetic part ids per slot. Never affects stats or hitboxes. */
-export type PartLoadout = Record<PartSlot, string>;
+/** Every animal has one part for each slot. */
+export type Animal = 'bear' | 'frog' | 'shark' | 'chicken';
+
+/** A skin part: purely cosmetic, never changes stats or hitboxes. */
+export interface Part {
+  slot: PartSlot;
+  animal: Animal;
+  rarity: Rarity;
+}
+
+export interface WornPart {
+  animal: Animal;
+  rarity: Rarity;
+  /** Picked up this match, so it drops when the plush is Unstitched. A plush's own look doesn't. */
+  found: boolean;
+}
+
+export type PartLoadout = Record<PartSlot, WornPart>;
 
 export interface Player {
   id: EntityId;
@@ -109,6 +127,8 @@ export interface Player {
   /** Visible to others until this tick even inside a bush (set by shooting). */
   revealedUntilTick: Tick;
   parts: PartLoadout;
+  /** One spare part, not shown on the plush. Q swaps it with the part worn in its slot. */
+  stash: Part | null;
   lastInputSeq: number;
   /** Buttons held last tick, to detect presses (E to pick up). */
   heldButtons: number;
@@ -140,7 +160,8 @@ export interface Chest {
 
 export type LootContent =
   | { type: 'weapon'; weapon: WeaponInstance }
-  | { type: 'item'; item: ItemStack };
+  | { type: 'item'; item: ItemStack }
+  | { type: 'part'; part: Part };
 
 export interface GroundLoot {
   id: EntityId;
@@ -173,7 +194,9 @@ export type GameEvent =
   | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
-  | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind }
+  | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
+  /** Put on a part (from the ground or the stash) or stashed one. */
+  | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
   /** The Rinse started rising, or closed completely. */
   | { type: 'zone'; stage: Zone['stage'] }
@@ -236,8 +259,8 @@ export interface MapData {
 export interface RosterEntry {
   name: string;
   isBot: boolean;
-  /** Omitted parts are picked at random from the placeholder catalog. */
-  parts?: Partial<PartLoadout>;
+  /** The plush's own look; omitted slots get a random animal. Own parts never drop. */
+  parts?: Partial<Record<PartSlot, Animal>>;
   /** Up to 2 weapons to start with; defaults to config.player.startingLoadout. */
   loadout?: WeaponSpec[];
 }

@@ -2,6 +2,24 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 3.1: Patchwork parts (2026-11-17)
+
+- Four animals (Bear, Frog, Shark, Chicken) with a part for each of the five slots: 20 parts.
+  New models: chicken head, flipper and fin legs, pom tail, lily-pad backpack, shark tail,
+  feather fan and an egg-shell hat.
+- Parts have a rarity. Every chest pops a part, which floats over a neon ring in its rarity
+  color. E puts it on (a found part it replaces drops); Q stashes it in the one stash slot; Q
+  with nothing in reach puts the stashed part on. On touch, tap the sack in the prompt, or the
+  stash slot next to the stuffing bar.
+- Unstitched plushies drop the parts they found and their stash; a plush's own starting look
+  never drops. Bots put on any part rarer than what they wear.
+- Ground loot rings are neon with a soft glow.
+- Fixed: on wide screens (phones in landscape) the lawn could cover everything when standing
+  in the building. The lawn is now drawn in tiles.
+- HUD buttons (weapons, items, stash) take taps above the touch sticks.
+- Network protocol version 2 (parts are part of the state now).
+- Tests: wearing, stashing, swapping, drops on knockout, sets, and a bot dressing up.
+
 ## Mobile play and a new look (2026-11-17)
 
 - Plays on phones and tablets. Twin sticks appear under your thumbs: left half moves, right

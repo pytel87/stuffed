@@ -503,4 +503,7 @@ if (roomCode) {
   showMenu();
 }
 
+// Dev builds only: lets test scripts reach the running match (window.stuffed.session).
+if (import.meta.env.DEV) Object.assign(window, { stuffed: { renderer, get session() { return session; } } });
+
 requestAnimationFrame(frame);

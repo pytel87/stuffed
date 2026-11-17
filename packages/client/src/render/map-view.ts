@@ -15,7 +15,9 @@ export function buildMapView(map: MapData): THREE.Group {
   const lawnTex = feltTexture().clone();
   lawnTex.repeat.set(w / 4, h / 4);
   lawnTex.needsUpdate = true;
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(w, h), toonMaterial(LAWN, { map: lawnTex }));
+  // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
+  // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(w, h, Math.ceil(w / 8), Math.ceil(h / 8)), toonMaterial(LAWN, { map: lawnTex }));
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
@@ -24,7 +26,7 @@ export function buildMapView(map: MapData): THREE.Group {
   const outsideTex = feltTexture().clone();
   outsideTex.repeat.set((w * 3) / 4, (h * 3) / 4);
   outsideTex.needsUpdate = true;
-  const outside = new THREE.Mesh(new THREE.PlaneGeometry(w * 3, h * 3), toonMaterial(OUTSIDE, { map: outsideTex }));
+  const outside = new THREE.Mesh(new THREE.PlaneGeometry(w * 3, h * 3, 12, 12), toonMaterial(OUTSIDE, { map: outsideTex }));
   outside.rotation.x = -Math.PI / 2;
   outside.position.set(w / 2, -0.02, h / 2);
   outside.receiveShadow = true;

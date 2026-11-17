@@ -70,6 +70,8 @@ at its top. Bots only produce `Input`s, the same as a player, so the server can 
 | Reload | R |
 | Open a toy chest | Hold E (1 s) |
 | Pick up a weapon | E (items are picked up by walking over them) |
+| Put on a part | E |
+| Stash a part / wear the stashed part | Q |
 | Use an item | 3, 4, 5 |
 | Debug overlay (FPS, draw calls, frame time, tick, hitboxes) | F1 |
 | Play again (after the match or a knockout) | Enter |
@@ -86,7 +88,8 @@ the game fullscreen.
 | Move | Drag anywhere on the left half (a stick appears under your thumb) |
 | Aim | Drag on the right half; a short drag aims, a longer one also shoots |
 | Jump | Arrow button, bottom right |
-| Open a chest / pick up a weapon | Hand button (lights up when there's something to grab; hold it for chests) |
+| Open a chest / pick up a weapon / put on a part | Hand button (lights up when there's something to grab; hold it for chests) |
+| Stash a part | Tap the sack in the floating prompt; tap the stash slot to wear what's in it |
 | Switch weapon / reload | Tap a weapon card; tap the one in hand to reload |
 | Use an item | Tap it |
 | Sound, fullscreen, controls, leave | ⚙ top right |
@@ -105,6 +108,16 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
   over the chest; the bar for using an item floats over your plush.
 - The water drop at the top counts down to the Rinse. When you're in the water, a badge
   points back to dry land.
+
+### Parts (Patchwork)
+
+Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of four
+animals: Bear, Frog, Shark and Chicken. Each chest also pops a part, floating over a ring in its
+rarity color. E puts it on. Q puts it in your one stash slot instead (it shows next to your
+stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
+When you're knocked out, the parts you found and your stash drop for others to take; your own
+starting look never drops. Bots put on any part rarer than what they wear. Parts never change
+stats or hitboxes.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the

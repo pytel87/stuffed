@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { canSee, config, createWorld, groundHeight, muzzlePosition, PART_CATALOG, PART_SLOTS } from '@stuffed/sim';
+import { ANIMALS, canSee, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, Player, Vec2, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
@@ -178,7 +178,8 @@ export class GameRenderer {
           if (chest) this.effects.chestPop(chest.pos.x, chest.pos.y);
           break;
         }
-        case 'pickup': {
+        case 'pickup':
+        case 'wear': {
           const p = byId.get(e.playerId);
           if (p) this.effects.pickup(p.pos.x, p.pos.y);
           break;
@@ -224,7 +225,7 @@ export class GameRenderer {
    */
   private warmUp(): void {
     const samples = new THREE.Group();
-    for (const slot of PART_SLOTS) for (const id of PART_CATALOG[slot]) samples.add(buildPart(slot, id, '#2a1f2d'));
+    for (const slot of PART_SLOTS) for (const animal of ANIMALS) samples.add(buildPart(slot, animal));
     for (const kind of ['cork_popper', 'foam_dart_smg', 'super_soaker'] as const) samples.add(buildWeapon(kind, 4, '#2a1f2d'));
     samples.add(new THREE.Mesh(new THREE.SphereGeometry(1), toonMaterial('#3f8f4a', { transparent: true, opacity: 0.4 })));
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());

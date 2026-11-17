@@ -1,7 +1,7 @@
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { checkWinner } from './systems/damage.ts';
 import { updateItemUse } from './systems/items.ts';
-import { autoPickupItems, dropEverything, updateInteraction } from './systems/loot.ts';
+import { autoPickupItems, dropEverything, hasDrops, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
@@ -47,7 +47,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {
-    if (!player.alive && (player.weapons.some(Boolean) || player.items.some(Boolean))) dropEverything(world, state, player);
+    if (!player.alive && hasDrops(player)) dropEverything(world, state, player);
   }
   checkWinner(state);
   return state;

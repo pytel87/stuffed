@@ -1,9 +1,9 @@
 import { config } from './config.ts';
-import { PART_CATALOG, PART_SLOTS } from './parts.ts';
+import { ANIMALS, PART_SLOTS } from './parts.ts';
 import { pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
 import { initialZone } from './systems/zone.ts';
-import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, WeaponInstance, WeaponSpec } from './types.ts';
+import type { Animal, GameState, MapData, PartLoadout, PartSlot, Player, RosterEntry, RngState, WeaponInstance, WeaponSpec } from './types.ts';
 
 export interface CreateGameOptions {
   seed: number;
@@ -54,6 +54,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameO
       building: -1,
       revealedUntilTick: 0,
       parts: rollParts(rng, entry.parts),
+      stash: null,
       lastInputSeq: -1,
       heldButtons: 0,
     };
@@ -82,9 +83,10 @@ function startingWeapons(loadout: readonly WeaponSpec[]): [WeaponInstance | null
   return [a ? makeWeapon(a.kind, a.rarity) : null, b ? makeWeapon(b.kind, b.rarity) : null];
 }
 
-function rollParts(rng: RngState, fixed: Partial<PartLoadout> = {}): PartLoadout {
+/** A plush's own look: Hand-me-down parts that never drop. */
+function rollParts(rng: RngState, fixed: Partial<Record<PartSlot, Animal>> = {}): PartLoadout {
   const parts = {} as PartLoadout;
-  for (const slot of PART_SLOTS) parts[slot] = fixed[slot] ?? pick(rng, PART_CATALOG[slot]);
+  for (const slot of PART_SLOTS) parts[slot] = { animal: fixed[slot] ?? pick(rng, ANIMALS), rarity: 0, found: false };
   return parts;
 }
 

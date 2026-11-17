@@ -178,7 +178,7 @@ export const config = {
   loot: {
     /** Items are picked up by walking within this distance. */
     itemPickupRadius: 1,
-    /** Weapons are picked up with E within this distance. */
+    /** Weapons and parts are picked up with E (or stashed with Q) within this distance. */
     weaponPickupRange: 1.6,
     /** Loot lands this far from the chest or the knocked-out plush. */
     dropDistance: 1.4,
