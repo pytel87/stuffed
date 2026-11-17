@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Sound effects (2026-11-17)
+
+- 23 sound effects generated with the ElevenLabs sound-generation API from prompts in
+  `tools/sfx.json` (`pnpm sfx`; key in git-ignored `.env.local`): weapon shots, hits on
+  stuffing and buttons, wall impacts and splashes, knockouts, chest rattle and pop, pickups,
+  healing and armor, reload, weapon swap, jump and landing, the Rinse rising, soggy squelch,
+  win and lose stings, UI click.
+- Web Audio playback: heard from the camera, distance falloff and stereo pan, pitch
+  variation, at most 5 overlapping copies per sound. Loads on the first click or key press
+  (browser autoplay rules). M mutes; remembered per browser.
+- Sounds come from sim events plus frame-to-frame changes the sim has no event for (jumps,
+  landings, reloads, swaps, starting to open a chest).
+
 ## Step 1.7: Win and lose (2026-11-17) — roadmap step 1 complete
 
 - Sim: players track `knockouts`, `damageDealt` (no credit for overkill) and

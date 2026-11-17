@@ -7,7 +7,8 @@
     "dev": "pnpm --filter @stuffed/client dev",
     "build": "pnpm --filter @stuffed/client build",
     "test": "pnpm --filter @stuffed/sim test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "sfx": "node tools/generate-sfx.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

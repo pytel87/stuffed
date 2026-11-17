@@ -163,6 +163,11 @@ export class GameRenderer {
     }
   }
 
+  /** Where the camera is looking (the followed plush); sounds are heard from here. */
+  get cameraFocus(): Vec2 {
+    return this.followPos;
+  }
+
   /** Confetti around a winning plush. */
   celebrate(id: EntityId, state: GameState): void {
     const p = state.players.find((q) => q.id === id);

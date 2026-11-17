@@ -24,6 +24,21 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | `pnpm typecheck` | Strict TypeScript check of every package |
 | `pnpm build` | Production build of the client into `packages/client/dist` |
 
+## Sound
+
+Sound effects are MP3s in [packages/client/public/sfx](packages/client/public/sfx), generated
+with the ElevenLabs sound-generation API from the prompts in [tools/sfx.json](tools/sfx.json).
+The game only plays the files; the API is only called by the generator:
+
+```sh
+cp .env.example .env.local   # then put your ELEVEN_LABS_API_KEY in it (git-ignored)
+pnpm sfx                     # generates any sound that has no file yet
+pnpm sfx --force cork_pop    # regenerates one (e.g. after editing its prompt)
+```
+
+Playback is plain Web Audio ([audio/sound.ts](packages/client/src/audio/sound.ts)): sounds
+are heard from the camera, fade with distance, pan left/right and vary slightly in pitch.
+
 ## Bots
 
 You play against 15 bots. They loot chests, pick up better weapons, heal when hurt, stay
@@ -47,6 +62,7 @@ at its top. Bots only produce `Input`s, the same as a player, so the server can 
 | Use an item | 3, 4, 5 |
 | Debug overlay (FPS, tick, hitboxes) | F1 |
 | Play again (after the match or a knockout) | Enter |
+| Mute / unmute sound | M |
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the

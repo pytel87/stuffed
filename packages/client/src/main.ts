@@ -1,6 +1,8 @@
 import './style.css';
 import { config, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
 import type { EntityId, GameState, Player, Rarity, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import { GameAudio } from './audio/game-audio.ts';
+import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { GameRenderer } from './render/game-renderer.ts';
 import { LocalSession } from './session/local-session.ts';
@@ -30,6 +32,8 @@ const hud = new Hud(hudEl);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const endScreen = new EndScreen(document.body, playAgain, spectate);
+const sound = new Sound(import.meta.env.BASE_URL);
+const audio = new GameAudio(sound);
 
 /** playing → out (card shown) → spectating (card hidden) → over (match ended), or playing → won. */
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
@@ -42,11 +46,14 @@ const aimOffset = { x: 0, y: 0 };
 let me: Player | undefined;
 
 window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
   // A focused button (Play again / Spectate) handles its own Enter.
   if (e.code === 'Enter' && phase !== 'playing' && !(document.activeElement instanceof HTMLButtonElement)) playAgain();
 });
 
 function playAgain(): void {
+  sound.play('click', { pitchSpread: 0 });
+  audio.reset();
   seed = (seed * 1664525 + 1013904223) >>> 0;
   session = newSession();
   renderer.reset();
@@ -60,6 +67,7 @@ function playAgain(): void {
 }
 
 function spectate(): void {
+  sound.play('click', { pitchSpread: 0 });
   endScreen.hide();
   phase = 'spectating';
   spectateEl.hidden = false;
@@ -105,6 +113,9 @@ function frame(now: number): void {
 
   me = state.players.find((p) => p.id === session.localPlayerId);
   updatePhase(state);
+  sound.listener.x = renderer.cameraFocus.x;
+  sound.listener.y = renderer.cameraFocus.y;
+  audio.update(events, state, session.localPlayerId);
 
   renderer.render(f, {
     localPlayerId: session.localPlayerId,
@@ -145,6 +156,7 @@ function updatePhase(state: GameState): void {
   if (phase === 'playing' && state.status === 'ended' && state.winnerId === me.id) {
     phase = 'over';
     renderer.celebrate(me.id, state);
+    sound.play('win', { pitchSpread: 0 });
     endScreen.show(resultView(state, me, 'win', 'Last plush standing!', `You outlasted ${total - 1} other plushies.`, false));
     return;
   }
@@ -152,6 +164,7 @@ function updatePhase(state: GameState): void {
   if (phase === 'playing' && !me.alive) {
     phase = 'out';
     hudEl.classList.add('out');
+    sound.play('lose', { volume: 0.8, pitchSpread: 0 });
     followId = me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
     endScreen.show(resultView(state, me, 'lose', 'Unstitched!', knockedOutBy, state.status === 'playing'));
     return;
