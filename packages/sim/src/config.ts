@@ -160,6 +160,14 @@ export const config = {
     bushHeight: 1.2,
   },
 
+  parts: {
+    /**
+     * Chance to keep each part you carried (found and worn, or stashed) when you're knocked out,
+     * by rarity (Hand-me-down .. One-of-a-Kind). The winner keeps everything.
+     */
+    keepChance: [1, 0.6, 0.35, 0.15, 0.05] as readonly number[],
+  },
+
   chest: {
     /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,

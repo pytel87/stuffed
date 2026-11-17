@@ -9,6 +9,9 @@
     "bindings": [{ "name": "Room", "class_name": "Room" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  // Profiles and part collections. Create the database once with `npx wrangler d1 create stuffed`
+  // and put its id here; `wrangler dev` uses a local copy. Tables are created on first use.
+  "d1_databases": [{ "binding": "DB", "database_name": "stuffed", "database_id": "00000000-0000-0000-0000-000000000000" }],
   "vars": {
     // Comma-separated origins allowed to open game sockets; empty = any (local dev).
     "ALLOWED_ORIGINS": ""

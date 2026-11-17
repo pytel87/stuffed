@@ -1,8 +1,8 @@
 // One Durable Object per room. It holds the lobby (seats for up to MAX_PLAYERS people) and,
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
-import { BotController, canSee, config, createGame, createWorld, NEUTRAL_INPUT, step, TEST_MAP } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, Input, World } from '@stuffed/sim';
+import { BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, rollKeeps, step, TEST_MAP } from '@stuffed/sim';
+import type { EntityId, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
   MAX_PLAYERS,
@@ -15,6 +15,7 @@ import {
   type SnapshotMemory,
 } from '@stuffed/sim/net';
 import { Server, type Connection, type WSMessage } from 'partyserver';
+import { addParts, loadProfile, profileIdForToken, type Look } from './profiles.ts';
 
 const TICK_MS = 1000 / config.tickRate;
 /** Never run more than this many ticks to catch up after a stall. */
@@ -33,6 +34,9 @@ interface Seat {
   token: string;
   name: string;
   connId: string | null;
+  /** The player's profile, once looked up: their look, and where kept parts go. */
+  profileId: string | null;
+  look: Look | null;
 }
 
 interface Match {
@@ -46,6 +50,8 @@ interface Match {
   lastInputTick: Map<EntityId, number>;
   events: GameEvent[];
   endedAtTick: number | null;
+  /** Parts each plush dropped when it was knocked out (what it can keep). */
+  dropped: Map<EntityId, Part[]>;
 }
 
 interface ConnState {
@@ -127,9 +133,10 @@ export class Room extends Server<Env> {
       seat.connId = conn.id;
       seat.name = name;
     } else if (this.seats.length < MAX_PLAYERS) {
-      seat = { seat: this.seats.length, token, name, connId: conn.id };
+      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null };
       this.seats.push(seat);
     }
+    if (seat && typeof msg.profile === 'string') void this.attachProfile(seat, msg.profile.slice(0, 128));
     conn.setState({ seat: seat?.seat ?? null });
     this.sent.delete(conn.id);
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });
@@ -140,6 +147,18 @@ export class Room extends Server<Env> {
       this.sendSnapshot(conn, this.match);
     }
     if (this.match && this.phase === 'playing') this.startLoop();
+  }
+
+  /** Looks up the player's profile in the background; their next match starts in their look. */
+  private async attachProfile(seat: Seat, token: string): Promise<void> {
+    try {
+      const id = await profileIdForToken(this.env.DB, token);
+      const profile = id ? await loadProfile(this.env.DB, id) : null;
+      seat.profileId = profile?.id ?? null;
+      seat.look = profile?.look ?? null;
+    } catch (err) {
+      console.error('profile lookup failed', err);
+    }
   }
 
   private rename(conn: Connection<ConnState>, name: string): void {
@@ -176,7 +195,7 @@ export class Room extends Server<Env> {
   private startMatch(humans: Seat[]): void {
     const seed = (Math.random() * 2 ** 32) >>> 0;
     const roster = [
-      ...humans.map((s) => ({ name: s.name, isBot: false })),
+      ...humans.map((s) => ({ name: s.name, isBot: false, ...(s.look ? { parts: s.look } : {}) })),
       ...Array.from({ length: this.bots }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     const state = createGame({ seed, map: TEST_MAP, roster });
@@ -191,6 +210,7 @@ export class Room extends Server<Env> {
       lastInputTick: new Map(),
       events: [],
       endedAtTick: null,
+      dropped: new Map(),
     };
     this.phase = 'playing';
     this.sent.clear();
@@ -267,13 +287,38 @@ export class Room extends Server<Env> {
     }
     step(m.world, m.state, inputs);
     m.events.push(...m.state.events);
+    for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.parts);
 
     const ended = hasEnded(m.state);
     if (ended) {
       this.phase = 'ended';
       this.broadcastLobby();
+      void this.saveKeeps(m);
     }
     if (m.state.tick % SNAPSHOT_EVERY === 0 || ended) this.sendSnapshots(m);
+  }
+
+  /**
+   * After a match: each player with a profile keeps the parts they carried (the winner all of
+   * them, the others by chance per rarity). Saved to their collection and sent to them.
+   */
+  private async saveKeeps(m: Match): Promise<void> {
+    for (const seat of this.seats) {
+      const id = m.plushOf.get(seat.seat);
+      const plush = m.state.players.find((p) => p.id === id);
+      if (!seat.profileId || !plush) continue;
+      const won = m.state.winnerId === plush.id;
+      const carried = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
+      const kept = rollKeeps(carried, won, Math.random);
+      try {
+        await addParts(this.env.DB, seat.profileId, kept);
+      } catch (err) {
+        console.error('saving kept parts failed', err);
+        continue;
+      }
+      const conn = seat.connId ? this.getConnection<ConnState>(seat.connId) : undefined;
+      if (conn) this.send(conn, { t: 'kept', parts: kept });
+    }
   }
 
   private sendSnapshots(m: Match): void {

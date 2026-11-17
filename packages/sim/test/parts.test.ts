@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BotController, Btn, config, createGame, fullSet, PART_SLOTS, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
+import { applyDamage, BotController, Btn, carriedParts, config, createGame, fullSet, PART_SLOTS, rollKeeps, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -37,6 +37,18 @@ describe('skin parts', () => {
     const state = createGame({ seed: 1, map: OPEN_MAP, roster: [{ name: 'a', isBot: false, parts: { head: 'frog', legs: 'chicken' } }] });
     expect(state.players[0]!.parts.head.animal).toBe('frog');
     expect(state.players[0]!.parts.legs.animal).toBe('chicken');
+  });
+
+  it('a roster look can carry rarity; unknown animals get a random one', () => {
+    const state = createGame({
+      seed: 1,
+      map: OPEN_MAP,
+      roster: [{ name: 'a', isBot: false, parts: { head: { animal: 'shark', rarity: 3 }, body: { animal: 'unicorn' as never, rarity: 4 } } }],
+    });
+    const p = state.players[0]!;
+    expect(p.parts.head).toEqual({ animal: 'shark', rarity: 3, found: false });
+    expect(['bear', 'frog', 'shark', 'chicken']).toContain(p.parts.body.animal);
+    expect(p.parts.body.rarity).toBe(0);
   });
 
   it('chests also drop a part', () => {
@@ -112,9 +124,27 @@ describe('skin parts', () => {
     expect(dropped).toContainEqual({ slot: 'legs', animal: 'frog', rarity: 1 });
     expect(dropped).toContainEqual(shark('tail', 4));
     expect(p.stash).toBeNull();
+    const event = state.events.find((e) => e.type === 'partsDropped');
+    expect(event).toMatchObject({ playerId: p.id });
+    expect(event?.type === 'partsDropped' && event.parts).toHaveLength(3);
     // Nothing more drops on later ticks.
     run(world, state, 3, () => idle);
     expect(partsOnGround(state)).toHaveLength(3);
+  });
+
+  it('what you carry home: found parts you wear, and the stash', () => {
+    const { p } = solo();
+    p.parts.head = { animal: 'shark', rarity: 3, found: true };
+    p.stash = shark('tail', 1);
+    expect(carriedParts(p)).toEqual([shark('head', 3), shark('tail', 1)]);
+  });
+
+  it('keep rolls: the winner keeps everything; otherwise each part by its rarity', () => {
+    const parts = [0, 1, 2, 3, 4].map((r) => shark('head', r as Part['rarity']));
+    expect(rollKeeps(parts, true, () => 0.999)).toHaveLength(5);
+    expect(rollKeeps(parts, false, () => 0.999)).toEqual([parts[0]]); // Hand-me-down always
+    expect(rollKeeps(parts, false, () => 0.5)).toEqual(parts.slice(0, 2)); // 100% and 60%
+    expect(rollKeeps(parts, false, () => 0)).toHaveLength(5);
   });
 
   it('three parts of one animal make a set', () => {

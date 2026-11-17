@@ -1,7 +1,7 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
-import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
+import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Part, Player, Projectile, WeaponInstance, Zone } from '../types.ts';
 
 export const PROTOCOL_VERSION = 2;
 /** Plushies per match, humans and bots together. */
@@ -29,7 +29,8 @@ export function parseRoomCode(input: string): string | null {
 
 export type ClientMessage =
   /** First message on every connection. `token` identifies the seat across reconnects. */
-  | { t: 'hello'; v: number; name: string; token: string }
+  /** `profile` is the device's profile token, if it has one (for its look and keeping parts). */
+  | { t: 'hello'; v: number; name: string; token: string; profile?: string }
   /** One per client tick (30 per second) while playing. */
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
@@ -55,6 +56,8 @@ export type ServerMessage =
   /** The match as you can see it (see CompactSnapshot below). */
   | CompactSnapshot
   | { t: 'pong'; c: number; s: number }
+  /** After a match: the parts that went into your collection. */
+  | { t: 'kept'; parts: Part[] }
   | { t: 'error'; code: 'version' | 'full' | 'not_host' | 'bad_message' };
 
 /** Rounds floats so snapshots stay small (millimeter precision is plenty). */

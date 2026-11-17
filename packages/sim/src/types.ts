@@ -78,6 +78,12 @@ export interface Part {
   rarity: Rarity;
 }
 
+/** A part in someone's collection (and how they can start a match wearing it). */
+export interface OwnedPart {
+  animal: Animal;
+  rarity: Rarity;
+}
+
 export interface WornPart {
   animal: Animal;
   rarity: Rarity;
@@ -195,6 +201,8 @@ export type GameEvent =
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
+  /** A knocked-out plush dropped the parts it had found (and its stash). */
+  | { type: 'partsDropped'; playerId: EntityId; parts: Part[] }
   /** Put on a part (from the ground or the stash) or stashed one. */
   | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
@@ -259,8 +267,8 @@ export interface MapData {
 export interface RosterEntry {
   name: string;
   isBot: boolean;
-  /** The plush's own look; omitted slots get a random animal. Own parts never drop. */
-  parts?: Partial<Record<PartSlot, Animal>>;
+  /** The plush's own look (Hand-me-down when only an animal is given); omitted slots get a random animal. Own parts never drop. */
+  parts?: Partial<Record<PartSlot, Animal | OwnedPart>>;
   /** Up to 2 weapons to start with; defaults to config.player.startingLoadout. */
   loadout?: WeaponSpec[];
 }

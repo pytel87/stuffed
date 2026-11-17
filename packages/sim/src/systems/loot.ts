@@ -233,6 +233,8 @@ export function dropEverything(world: World, state: GameState, player: Player): 
     worn.found = false;
   }
   if (player.stash) drops.push({ type: 'part', part: player.stash });
+  const parts = drops.flatMap((d) => (d.type === 'part' ? [d.part] : []));
+  if (parts.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, parts });
   player.weapons = [null, null];
   player.items = [null, null, null];
   player.stash = null;
