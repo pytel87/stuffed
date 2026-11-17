@@ -1,8 +1,8 @@
-// Skin parts: eight animals, each with a part for every slot. Parts are cosmetic only.
+// Skin parts: twelve animals, each with a part for every slot. Parts are cosmetic only.
 import { config } from './config.ts';
 import type { Animal, Part, PartLoadout, PartSlot, Player } from './types.ts';
 
-export const ANIMALS: readonly Animal[] = ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin'];
+export const ANIMALS: readonly Animal[] = ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox'];
 
 export const PART_SLOTS: readonly PartSlot[] = ['head', 'body', 'legs', 'tail', 'accessory'];
 

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Animal, PartSlot } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
 import { BODIES } from './animal-bodies.ts';
+import { EVEN_MORE_PARTS } from './even-more-animals.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -41,6 +42,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     chicken: (o) => chickenHead(o),
 
     ...MORE_PARTS.head,
+    ...EVEN_MORE_PARTS.head,
   },
   // Each animal's body has its own shape (animal-bodies.ts); all fit any head, legs and arms.
   body: BODIES,
@@ -51,6 +53,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     chicken: (o) => chickenLegs(o),
 
     ...MORE_PARTS.legs,
+    ...EVEN_MORE_PARTS.legs,
   },
   tail: {
     bear: (o) => pomTail(o),
@@ -59,6 +62,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     chicken: (o) => featherFan(o),
 
     ...MORE_PARTS.tail,
+    ...EVEN_MORE_PARTS.tail,
   },
   accessory: {
     bear: (o) => bow(o),
@@ -67,6 +71,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     chicken: (o) => eggShell(o),
 
     ...MORE_PARTS.accessory,
+    ...EVEN_MORE_PARTS.accessory,
   },
 };
 

@@ -171,6 +171,25 @@ export class Effects {
       case 'axolotl':
         this.burst(this.soap, x, y + 0.4, z, 0, 0, 2, 0.6, 0.06, 0.8, -1.5);
         break;
+      case 'bunny':
+        // Hop puffs.
+        if (step % 2 === 0) this.burst(this.cotton, x, y + 0.1, z, 0, 0, 3, 0.8, 0.06, 0.4, 1);
+        break;
+      case 'unicorn': {
+        const pool = this.glitter[step % this.glitter.length]!;
+        this.burst(pool, x, y + 0.3, z, 0, 0, 3, 0.8, 0.06, 0.8, -0.5);
+        break;
+      }
+      case 'cat': {
+        const side = step % 2 ? 0.14 : -0.14;
+        this.tmpPos.set(x - dirZ * side, y + 0.06, z + dirX * side);
+        this.tmpVel.set(0, 0, 0);
+        this.paws.spawn(this.tmpPos, this.tmpVel, 0.09, 1.3, 0, Math.atan2(-dirX, -dirZ));
+        break;
+      }
+      case 'fox':
+        this.burst(this.feathers, x, y + 0.5, z, 0, 0, 1, 0.5, 0.07, 1.0, 0.8);
+        break;
       case 'penguin':
         // Little snowflakes swirling up behind.
         this.burst(this.glitter[3]!, x, y + 0.2, z, -dirX * 0.5, -dirZ * 0.5, 3, 1, 0.05, 0.7, 0.5);
@@ -211,6 +230,18 @@ export class Effects {
         break;
       case 'penguin':
         this.burst(this.glitter[3]!, x, 1, z, 0, 0, 30, 4, 0.07, 1.4, 1);
+        break;
+      case 'bunny':
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 24, 4, 0.1, 1.2, 4);
+        break;
+      case 'unicorn':
+        for (const pool of this.glitter) this.burst(pool, x, 1, z, 0, 0, 8, 4, 0.08, 1.4, 1);
+        break;
+      case 'cat':
+        this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.1, 1.2, 9);
+        break;
+      case 'fox':
+        this.burst(this.feathers, x, 1, z, 0, 0, 16, 4, 0.12, 1.5, 1.5);
         break;
       case 'bear':
         this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.12, 1.2, 9);
@@ -257,7 +288,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
-    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin']) this.setKnockout(a, -500, -500);
+    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox']) this.setKnockout(a, -500, -500);
   }
 
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */

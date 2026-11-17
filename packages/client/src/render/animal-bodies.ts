@@ -136,6 +136,52 @@ function penguinBody(outline: string): THREE.Object3D {
   return b.group;
 }
 
+function bunnyBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.bunny;
+  const b = shapedBody({ shape: 'plump', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.26, bellyY: -0.06 });
+  // A stitched-on carrot patch.
+  const patch = toonMesh(new THREE.ConeGeometry(0.04, 0.13, 8), '#f28a2c', { outline: false });
+  patch.position.copy(b.surface(0.2, 0.2, 0.015));
+  patch.rotation.z = 2.4;
+  b.group.add(patch);
+  return b.group;
+}
+
+function unicornBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.unicorn;
+  const b = shapedBody({ shape: 'barrel', main: c.main, belly: c.belly, outline, stitch: '#f2b8d6' });
+  // A rainbow arc across the chest.
+  ['#ff6b8a', '#ffe36b', '#6bc6ff'].forEach((col, i) => {
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.14 - i * 0.03, 0.014, 6, 20, Math.PI), flat(col));
+    arc.position.copy(b.surface(0, 0.12, 0.02));
+    b.group.add(arc);
+  });
+  return b.group;
+}
+
+function catBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.cat;
+  const b = shapedBody({ shape: 'pear', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.24, bellyY: -0.08 });
+  // Tabby stripes round the back.
+  for (const y of [0.22, 0.06, -0.1]) {
+    for (const s of [-1, 1]) {
+      const stripe = toonMesh(new THREE.BoxGeometry(0.2, 0.04, 0.03), darken(c.main, 0.25).getStyle(), { outline: false });
+      const p = b.surface(s * 0.2, y, 0.0, true);
+      stripe.position.copy(p);
+      stripe.rotation.y = s * 0.6;
+      b.group.add(stripe);
+    }
+  }
+  return b.group;
+}
+
+function foxBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.fox;
+  // A big white chest bib.
+  const b = shapedBody({ shape: 'tapered', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.32, bellyY: 0.0, stitch: '#c45a26' });
+  return b.group;
+}
+
 export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   bear: bearBody,
   frog: frogBody,
@@ -145,4 +191,8 @@ export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   owl: owlBody,
   axolotl: axolotlBody,
   penguin: penguinBody,
+  bunny: bunnyBody,
+  unicorn: unicornBody,
+  cat: catBody,
+  fox: foxBody,
 };

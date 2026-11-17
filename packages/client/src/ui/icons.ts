@@ -81,6 +81,10 @@ const HEAD_EXTRAS: Record<Animal, string> = {
   owl: `<path d="M5.5 8L5 2.5l4 3.5M18.5 8l.5-5.5-4 3.5" fill="M"/>`,
   axolotl: `<path d="M4.5 10l-3-2.5M4.5 13H1M4.5 16l-3 2.5M19.5 10l3-2.5M19.5 13H23M19.5 16l3 2.5" stroke="#ff5f97" stroke-width="2.2"/>`,
   penguin: ``,
+  bunny: `<rect x="7" y="0.5" width="3.6" height="9" rx="1.8" fill="M"/><rect x="13.4" y="0.5" width="3.6" height="9" rx="1.8" fill="M"/>`,
+  unicorn: `<path d="M12 0.5l1.8 6h-3.6Z" fill="#f7c331"/><circle cx="19" cy="9" r="2.4" fill="#ff6b8a"/><circle cx="20" cy="13" r="2.2" fill="#6bc6ff"/>`,
+  cat: `<path d="M4.5 9l1-6.5 5 3.5M19.5 9l-1-6.5-5 3.5" fill="M"/>`,
+  fox: `<path d="M4.5 9.5l.5-7.5 5.5 4M19.5 9.5l-.5-7.5-5.5 4" fill="M"/>`,
 };
 /** ...and in front of it. */
 const HEAD_FRONT: Partial<Record<Animal, string>> = {
@@ -88,6 +92,9 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
   shark: `<path d="M8.5 16.5l1 1 1-1 1 1 1-1 1 1 1-1 1 1" stroke-width="1.3"/>`,
   owl: `<path d="M11 14h2l-1 2.5Z" fill="#f0a93b" stroke-width="1.3"/>`,
   penguin: `<path d="M10.5 14.5h3L12 17Z" fill="#f7a531" stroke-width="1.3"/>`,
+  bunny: `<path d="M11 14.5h2l-1 1.2Z" fill="#ff9cbf" stroke-width="1.2"/>`,
+  cat: `<path d="M11 14.5h2l-1 1.2Z" fill="#ff9cbf" stroke-width="1.2"/>`,
+  fox: `<path d="M9.5 15.5l2.5 3.5 2.5-3.5" fill="#fff7ee" stroke-width="1.3"/>`,
 };
 
 /** A skin part as a slot shape in its animal's colors. */

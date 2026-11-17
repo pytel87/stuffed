@@ -73,7 +73,9 @@ export type PlayerAction =
 
 export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 /** Every animal has one part for each slot. */
-export type Animal = 'bear' | 'frog' | 'shark' | 'chicken' | 'dino' | 'owl' | 'axolotl' | 'penguin';
+export type Animal =
+  | 'bear' | 'frog' | 'shark' | 'chicken' | 'dino' | 'owl' | 'axolotl' | 'penguin'
+  | 'bunny' | 'unicorn' | 'cat' | 'fox';
 
 /** A skin part: purely cosmetic, never changes stats or hitboxes. */
 export interface Part {

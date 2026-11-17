@@ -59,6 +59,10 @@ const SET_GLOW: Record<Animal, string> = {
   owl: '#ffd27a',
   axolotl: '#ff8ad0',
   penguin: '#a8e4ff',
+  bunny: '#d9b8ff',
+  unicorn: '#ff9cf0',
+  cat: '#ffd36a',
+  fox: '#ff9a4a',
 };
 
 let glowTexture: THREE.CanvasTexture | null = null;
