@@ -78,7 +78,7 @@ export const plankTexture = () =>
     }
   });
 
-const crateTexture = () =>
+export const crateTexture = () =>
   canvasTexture('crate', 128, (g, s) => {
     g.fillStyle = '#d6a468';
     g.fillRect(0, 0, s, s);
