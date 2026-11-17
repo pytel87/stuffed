@@ -11,7 +11,10 @@ export class KeyboardMouseInput implements InputSource {
   pointer: Vec2 | null = null;
   private readonly keys = new Set<string>();
   private fireHeld = false;
+  /** Unit aim direction, for facing. */
   private aim: Vec2 = { x: 1, y: 0 };
+  /** Distance to the aimed-at point; sent as the aim vector's length so shots can angle. */
+  private aimDistance = 0;
   private seq = 0;
   private weaponSlot: Input['weaponSlot'] = -1;
   private cycleWeapon = false;
@@ -19,6 +22,7 @@ export class KeyboardMouseInput implements InputSource {
 
   constructor(target: HTMLElement) {
     window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') e.preventDefault(); // no page scroll
       if (e.repeat) return;
       this.keys.add(e.code);
       if (e.code === 'Digit1') this.weaponSlot = 0;
@@ -48,10 +52,13 @@ export class KeyboardMouseInput implements InputSource {
     target.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  /** Aim direction in world space; set by the game loop from the cursor's ground point. */
+  /** Vector from the plush (or its barrel tip) to the cursor's point in the world. */
   setAim(x: number, y: number): void {
     const len = Math.hypot(x, y);
-    if (len > 1e-6) this.aim = { x: x / len, y: y / len };
+    if (len > 1e-6) {
+      this.aim = { x: x / len, y: y / len };
+      this.aimDistance = len;
+    }
   }
 
   get currentAim(): Vec2 {
@@ -66,9 +73,13 @@ export class KeyboardMouseInput implements InputSource {
       seq: this.seq++,
       moveX,
       moveY,
-      aimX: this.aim.x,
-      aimY: this.aim.y,
-      buttons: (this.fireHeld ? Btn.Fire : 0) | (k.has('KeyE') ? Btn.Interact : 0) | (k.has('KeyR') ? Btn.Reload : 0),
+      aimX: this.aim.x * this.aimDistance,
+      aimY: this.aim.y * this.aimDistance,
+      buttons:
+        (this.fireHeld ? Btn.Fire : 0) |
+        (k.has('KeyE') ? Btn.Interact : 0) |
+        (k.has('KeyR') ? Btn.Reload : 0) |
+        (k.has('Space') ? Btn.Jump : 0),
       weaponSlot: this.weaponSlot,
       cycleWeapon: this.cycleWeapon,
       useItemSlot: this.useItemSlot,

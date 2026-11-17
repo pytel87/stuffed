@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { canSee, createWorld, muzzlePosition } from '@stuffed/sim';
+import { canSee, config, createWorld, groundHeight, muzzlePosition } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, Player, Vec2, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
@@ -46,6 +46,8 @@ export class GameRenderer {
   /** Seconds until each soggy plush drips again. */
   private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
+  /** Height of the surface the local plush stands over (for the camera and aiming). */
+  private localGround = 0;
   /** Interpolated position of the local player in the last rendered frame. */
   readonly localPlayerPos: Vec2 = { x: 0, y: 0 };
 
@@ -180,7 +182,9 @@ export class GameRenderer {
       const pos = lerp2(before.pos, p.pos, alpha);
       const vel = lerp2(before.vel, p.vel, alpha);
       const aim = p.id === opts.localPlayerId ? opts.localAim : lerpDir(before.aim, p.aim, alpha);
-      view.update(pos, vel, aim, opts.dt, opts.time);
+      const z = before.z + (p.z - before.z) * alpha;
+      const groundY = groundHeight(this.world, curr, pos, z);
+      if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       view.root.visible = this.debug || !me || canSee(this.world, curr, me, p);
       if (p.soggy && view.root.visible) {
@@ -192,6 +196,7 @@ export class GameRenderer {
       if (p.id === opts.localPlayerId) {
         this.localPlayerPos.x = pos.x;
         this.localPlayerPos.y = pos.y;
+        this.localGround = groundY;
       }
     }
 
@@ -210,7 +215,9 @@ export class GameRenderer {
     updateBushes(this.bushes, this.localPlayerPos.x, this.localPlayerPos.y);
     updateRoofs(this.roofs, me?.building ?? -1, this.debug, opts.dt);
 
-    this.rig.update(this.localPlayerPos, opts.aimOffset, opts.dt);
+    this.rig.update(this.localPlayerPos, opts.aimOffset, opts.dt, this.localGround);
+    // Aim at chest height of the level you stand on.
+    this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
     // Keep the shadow camera centered on what the player sees.
     this.sun.target.position.copy(this.rig.target);
     this.sun.position.copy(this.rig.target).add(SUN_OFFSET);

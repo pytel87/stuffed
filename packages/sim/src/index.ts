@@ -4,6 +4,7 @@ export { createGame, type CreateGameOptions } from './create.ts';
 export { step } from './step.ts';
 export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee } from './systems/visibility.ts';
+export { groundHeight } from './systems/movement.ts';
 export { findInteraction, addToSlots, type Interaction } from './systems/loot.ts';
 export { canUseItem } from './systems/items.ts';
 export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft } from './systems/zone.ts';

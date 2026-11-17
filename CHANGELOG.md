@@ -2,6 +2,30 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.5c: Jumping and heights (2026-11-17)
+
+- Space jumps (apex about 1.5, about 0.6 s in the air; exact constant-gravity integration).
+  A fresh press is needed: no double jumps, no auto-jump while held. No jumping under a roof.
+- Obstacles have heights: toy blocks 2.0 (too tall), cardboard room walls 1.4, books 1.2,
+  chests 0.75. You jump over or onto anything low enough, walk along wall tops, stand on
+  chests, and walk on the room's roof (being on the roof is not being inside). Ledges up
+  to 0.2 are stepped onto without jumping.
+- Shots fly at a height: they start at the shooter's chest and angle (at most 0.6 per unit)
+  toward chest height over the surface under the aimed-at point, then fly level. They only
+  hit plushies, walls and chests they overlap vertically: a jump dodges a level shot,
+  chests and low walls are cover, a shot from a ledge clears low cover and hits players
+  below, and a shot up at a ledge hits from range. The input aim vector now carries the
+  aim distance.
+- Plushies only push each other when they overlap in height; jumping high leaves a bush.
+- Client: plush drawn at its height, legs tucked in the air, stretch on take-off and squash
+  with a dust puff on landing, a soft shadow blob on the surface below that shrinks with
+  height, shots drawn at their height, walls drawn at their data heights with the roof lid
+  level with the wall tops, the camera rises with the floor you stand on, height in the
+  debug overlay.
+- Tests: apex and landing, fresh press, clearing low walls but not blocks, standing on and
+  falling off walls, standing on chests, roofs, bushes, dodging shots, shooting from and up
+  at ledges, cover; the determinism test now jumps.
+
 ## Step 1.5b: The Rinse rises without phases (2026-11-17)
 
 - The Rinse no longer has phases: after a 60 s grace period the circle shrinks steadily for

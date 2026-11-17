@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Btn, canSee, circleBoxPush, config, createWorld, makeWeapon, raycastWalls, rng, segmentBoxT, StaticBoxHash, TEST_MAP } from '../src/index.ts';
-import type { Box, MapData, Player } from '../src/index.ts';
+import type { Building, MapData, Player, Wall } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
-const WALL: Box = { x: 30, y: 30, w: 2, h: 20 };
-const walled = (walls: Box[] = [WALL], bushes: MapData['bushes'] = [], buildings: Box[] = []): MapData => ({
+/** Too tall to jump, so these tests are about walls that always block. */
+const WALL: Wall = { x: 30, y: 30, w: 2, h: 20, height: 3 };
+const walled = (walls: Wall[] = [WALL], bushes: MapData['bushes'] = [], buildings: Building[] = []): MapData => ({
   ...OPEN_MAP,
   id: 'walled',
   walls,
@@ -34,7 +35,7 @@ describe('geometry', () => {
 
   it('spatial hash returns every box a brute-force search would', () => {
     const r = rng.seedRng(4);
-    const boxes = Array.from({ length: 60 }, () => ({ x: rng.nextRange(r, 0, 70), y: rng.nextRange(r, 0, 70), w: rng.nextRange(r, 0.5, 8), h: rng.nextRange(r, 0.5, 8) }));
+    const boxes = Array.from({ length: 60 }, () => ({ x: rng.nextRange(r, 0, 70), y: rng.nextRange(r, 0, 70), w: rng.nextRange(r, 0.5, 8), h: rng.nextRange(r, 0.5, 8), height: 1 }));
     const hash = new StaticBoxHash(boxes);
     for (let q = 0; q < 200; q++) {
       const x = rng.nextRange(r, 0, 75);
@@ -68,7 +69,7 @@ describe('walls and movement', () => {
   });
 
   it('hold against strong knockback (no tunneling through a thin wall)', () => {
-    const thin: Box = { x: 30, y: 30, w: 1, h: 20 };
+    const thin: Wall = { x: 30, y: 30, w: 1, h: 20, height: 3 };
     const { world, state } = newGame(1, 1, walled([thin]));
     place(state.players, [29, 35]);
     state.players[0]!.knockback = { x: 60, y: 0 };
@@ -148,7 +149,7 @@ describe('sight: bushes and roofs', () => {
   });
 
   it('canSee: a roof hides those inside from those outside, not from each other', () => {
-    const roofed = walled([], [], [{ x: 40, y: 40, w: 10, h: 10 }]);
+    const roofed = walled([], [], [{ x: 40, y: 40, w: 10, h: 10, height: 1.4 }]);
     const { world, state } = newGame(1, 3, roofed);
     place(state.players, [30, 45], [45, 45], [47, 42]);
     const [outside, inA, inB] = state.players as [Player, Player, Player];

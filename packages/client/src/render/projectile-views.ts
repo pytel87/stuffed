@@ -5,8 +5,6 @@ import { DT } from '@stuffed/sim';
 import type { EntityId, GameState, Projectile, WeaponKind } from '@stuffed/sim';
 import { toonMaterial, toonMesh } from './toon.ts';
 
-/** Projectiles fly at the height the plush holds its weapon. */
-const HEIGHT = 0.6;
 const TRAIL_MATS = [0.55, 0.32, 0.15].map(
   (opacity) => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity, depthWrite: false }),
 );
@@ -70,7 +68,8 @@ export class ProjectileViews {
       // A projectile born this tick has no previous position: extrapolate back to the muzzle.
       const x = before ? before.pos.x + (p.pos.x - before.pos.x) * alpha : p.pos.x - p.vel.x * DT * (1 - alpha);
       const y = before ? before.pos.y + (p.pos.y - before.pos.y) * alpha : p.pos.y - p.vel.y * DT * (1 - alpha);
-      entry.obj.position.set(x, HEIGHT, y);
+      const z = before ? before.z + (p.z - before.z) * alpha : p.z;
+      entry.obj.position.set(x, z, y);
       entry.obj.rotation.y = Math.atan2(p.vel.x, p.vel.y);
     }
 

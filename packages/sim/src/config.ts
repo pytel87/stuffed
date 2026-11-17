@@ -125,6 +125,13 @@ export const config = {
     soggySpeedMultiplier: 0.8,
     /** Knockback decay rate (1/s). */
     knockbackDecay: 8,
+    /** Top of the plush above its feet; bullets and other plushies use it. */
+    height: 1.6,
+    /** Take-off speed (units/s). Apex = jumpSpeed² / (2 gravity) ≈ 1.5: clears chests, books and room walls. */
+    jumpSpeed: 9.5,
+    gravity: 30,
+    /** Ledges up to this high are climbed without jumping, and a jump only needs to reach a top minus this. */
+    stepHeight: 0.2,
     /** What every plush starts with until chests exist (prototype step 4). */
     startingLoadout: [{ kind: 'cork_popper', rarity: 0 }] as readonly WeaponSpec[],
   },
@@ -136,6 +143,12 @@ export const config = {
     revealOnShot: 1.5,
     /** The weapon is held this far to the shooter's right of center; shots leave from there. */
     muzzleSide: 0.24,
+    /** Shots leave this high above the shooter's feet and aim this high above the surface under the cursor. */
+    shotHeight: 0.6,
+    /** Steepest a shot can climb or dip: height change per unit traveled. */
+    maxShotSlope: 0.6,
+    /** Closer than this, shots fly level (no meaningful point to aim at). */
+    minAimDistanceForSlope: 1.5,
   },
 
   vision: {
@@ -143,11 +156,14 @@ export const config = {
     range: 30,
     /** A plush hidden in a bush is still seen from this close. */
     bushRevealDistance: 1.5,
+    /** Jumping above this height takes you out of a bush. */
+    bushHeight: 1.2,
   },
 
   chest: {
-    /** Chests are solid; plushies bump into them. */
+    /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,
+    height: 0.75,
     /** Seconds E must be held. */
     openTime: 1,
     /** Max distance from a plush's center to a chest's center to open it. */

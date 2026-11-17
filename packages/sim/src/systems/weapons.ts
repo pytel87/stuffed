@@ -3,6 +3,7 @@ import { nextRange } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
+import { groundHeight } from './movement.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
 const REVEAL_TICKS = secondsToTicks(config.combat.revealOnShot);
@@ -73,13 +74,30 @@ function handleSwap(state: GameState, player: Player, input: Input): void {
   player.action = null;
 }
 
+/**
+ * Shots angle toward chest height above whatever is under the aimed-at point (the lawn, a
+ * wall top, a roof), so plushies on different levels can hit each other. Level when aiming
+ * very close or at the same level.
+ */
+function shotSlope(world: World, state: GameState, player: Player, z: number, speed: number): { vz: number; zEnd: number } {
+  const d = player.aimDistance;
+  if (d < config.combat.minAimDistanceForSlope) return { vz: 0, zEnd: z };
+  const target = { x: player.pos.x + player.aim.x * d, y: player.pos.y + player.aim.y * d };
+  const zEnd = groundHeight(world, state, target, Infinity) + config.combat.shotHeight;
+  const maxClimb = config.combat.maxShotSlope * speed;
+  const vz = Math.max(-maxClimb, Math.min(maxClimb, ((zEnd - z) * speed) / d));
+  return { vz, zEnd };
+}
+
 function fire(world: World, state: GameState, player: Player, weapon: WeaponInstance): void {
   const stats = config.weapons[weapon.kind];
   const base = Math.atan2(player.aim.y, player.aim.x);
   const cone = stats.spreadDegrees * DEG;
   // A barrel poking through a wall fires from where it meets the wall, so the shot stops there.
   const tip = muzzlePosition(player.pos, player.aim, weapon.kind);
-  const blocked = raycastWalls(world, player.pos, tip, stats.projectileRadius);
+  const z = player.z + config.combat.shotHeight;
+  const blocked = raycastWalls(world, player.pos, tip, stats.projectileRadius, z - stats.projectileRadius);
+  const { vz, zEnd } = shotSlope(world, state, player, z, stats.projectileSpeed);
   const muzzle =
     blocked === null
       ? tip
@@ -101,6 +119,9 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
       rarity: weapon.rarity,
       pos: { x: muzzle.x, y: muzzle.y },
       vel: { x: dx * stats.projectileSpeed, y: dy * stats.projectileSpeed },
+      z,
+      vz,
+      zEnd,
       radius: stats.projectileRadius,
       damage,
       knockback: stats.knockback,

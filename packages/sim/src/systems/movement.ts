@@ -1,7 +1,8 @@
 import { config, DT } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
-import type { GameState, Input, Player } from '../types.ts';
+import { Btn } from '../types.ts';
+import type { GameState, Input, Player, Vec2 } from '../types.ts';
 import type { World } from '../world.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
@@ -9,13 +10,21 @@ const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
 const KNOCKBACK_KEEP = Math.exp(-config.player.knockbackDecay * DT);
 /** Longest move per collision substep; well under the player radius so walls can't be skipped. */
 const MAX_SUBSTEP = 0.35;
-const WALL_PASSES = 3;
+const OBSTACLE_PASSES = 3;
+const STEP = config.player.stepHeight;
+const EPS = 1e-6;
 
 export function applyAim(player: Player, input: Input): void {
   const aim = normalizeOrNull(input.aimX, input.aimY);
   if (aim) player.aim = aim;
+  player.aimDistance = Math.hypot(input.aimX, input.aimY);
 }
 
+/**
+ * Horizontal movement with sliding collision, then jumping and gravity. Obstacles are boxes
+ * and circles with a top height: one is solid to a plush only while the plush's feet are
+ * below its top (minus the step height); above that the plush passes over or stands on it.
+ */
 export function movePlayer(world: World, state: GameState, player: Player, input: Input): void {
   const move = clampLength1(input.moveX, input.moveY);
   const speed =
@@ -36,29 +45,90 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   player.knockback.x *= KNOCKBACK_KEEP;
   player.knockback.y *= KNOCKBACK_KEEP;
   clampToMap(world, player);
+
+  // Jump on a fresh press while standing on something, unless a roof is overhead.
+  const ground = groundHeight(world, state, player.pos, player.z);
+  const grounded = player.z <= ground + EPS && player.vz <= 0;
+  const pressed = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
+  if (grounded && pressed && !underRoof(world, player.pos, player.z)) player.vz = config.player.jumpSpeed;
+
+  if (!grounded || player.vz > 0) {
+    // Exact for constant gravity, so the apex matches jumpSpeed² / (2 gravity).
+    const g = config.player.gravity;
+    player.z += player.vz * DT - 0.5 * g * DT * DT;
+    player.vz -= g * DT;
+  }
+  const floor = groundHeight(world, state, player.pos, player.z);
+  if (player.z <= floor + EPS) {
+    // Landed, or stepped up onto something low enough.
+    player.z = floor;
+    if (player.vz < 0) player.vz = 0;
+  }
 }
 
 /**
- * Pushes the player out of any wall or chest it overlaps and removes velocity into them, so
- * the plush slides along instead of sticking.
+ * Height of the highest surface under `pos` that a plush with its feet at `z` can stand on:
+ * the lawn (0), or a wall, chest or roof whose top is at most a step above the feet.
+ */
+export function groundHeight(world: World, state: GameState, pos: Vec2, z: number): number {
+  let best = 0;
+  const reach = z + STEP;
+  for (const i of world.walls.query(pos.x, pos.y, pos.x, pos.y)) {
+    const w = world.map.walls[i]!;
+    if (w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
+  }
+  const h = config.chest.height;
+  if (h <= reach && h > best) {
+    for (const c of state.chests) {
+      if (Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= config.chest.radius) best = h;
+    }
+  }
+  for (const b of world.map.buildings) {
+    if (b.height <= reach && b.height > best && inBox(pos, b)) best = b.height;
+  }
+  return best;
+}
+
+/** Index of the roofed building the plush is under (inside the area, below the roof), or -1. */
+export function buildingAt(world: World, pos: Vec2, z: number): number {
+  const buildings = world.map.buildings;
+  for (let i = 0; i < buildings.length; i++) {
+    const b = buildings[i]!;
+    if (z < b.height && inBox(pos, b)) return i;
+  }
+  return -1;
+}
+
+function underRoof(world: World, pos: Vec2, z: number): boolean {
+  return buildingAt(world, pos, z) !== -1;
+}
+
+/**
+ * Pushes the player out of any wall or chest it overlaps and is not above, and removes
+ * velocity into them, so the plush slides along instead of sticking.
  */
 export function resolveObstacles(world: World, state: GameState, player: Player): void {
   const r = player.radius;
-  for (let pass = 0; pass < WALL_PASSES; pass++) {
+  const feet = player.z + STEP;
+  for (let pass = 0; pass < OBSTACLE_PASSES; pass++) {
     const { x, y } = player.pos;
     let moved = false;
     for (const i of world.walls.query(x - r, y - r, x + r, y + r)) {
-      const push = circleBoxPush(player.pos.x, player.pos.y, r, world.map.walls[i]!);
+      const wall = world.map.walls[i]!;
+      if (wall.height <= feet) continue;
+      const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
-    for (const chest of state.chests) {
-      const dx = player.pos.x - chest.pos.x;
-      const dy = player.pos.y - chest.pos.y;
-      const min = r + config.chest.radius;
-      const d2 = dx * dx + dy * dy;
-      if (d2 >= min * min) continue;
-      const d = Math.sqrt(d2);
-      moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+    if (config.chest.height > feet) {
+      for (const chest of state.chests) {
+        const dx = player.pos.x - chest.pos.x;
+        const dy = player.pos.y - chest.pos.y;
+        const min = r + config.chest.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2);
+        moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+      }
     }
     if (!moved) return;
   }
@@ -73,8 +143,8 @@ function pushOut(player: Player, nx: number, ny: number, depth: number): boolean
 }
 
 /**
- * Plushies are solid to each other: overlapping pairs are pushed apart equally.
- * Pairs are visited in id order so the result is deterministic.
+ * Plushies are solid to each other when they overlap in height: overlapping pairs are pushed
+ * apart equally. Pairs are visited in id order so the result is deterministic.
  */
 export function separatePlayers(world: World, state: GameState): void {
   const alive = state.players.filter((p) => p.alive);
@@ -82,6 +152,7 @@ export function separatePlayers(world: World, state: GameState): void {
     for (let j = i + 1; j < alive.length; j++) {
       const a = alive[i]!;
       const b = alive[j]!;
+      if (Math.abs(a.z - b.z) >= config.player.height) continue;
       let dx = b.pos.x - a.pos.x;
       let dy = b.pos.y - a.pos.y;
       const min = a.radius + b.radius;
@@ -109,24 +180,19 @@ export function separatePlayers(world: World, state: GameState): void {
   }
 }
 
-/** Index of the roofed building containing the point, or -1. */
-export function buildingAt(world: World, x: number, y: number): number {
-  const buildings = world.map.buildings;
-  for (let i = 0; i < buildings.length; i++) {
-    const b = buildings[i]!;
-    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return i;
-  }
-  return -1;
-}
-
-/** True if the point is inside any bush. */
-export function insideBush(world: World, x: number, y: number): boolean {
+/** True if a plush at this point and height is inside a bush. */
+export function insideBush(world: World, pos: Vec2, z: number): boolean {
+  if (z >= config.vision.bushHeight) return false;
   for (const b of world.map.bushes) {
-    const dx = x - b.center.x;
-    const dy = y - b.center.y;
+    const dx = pos.x - b.center.x;
+    const dy = pos.y - b.center.y;
     if (dx * dx + dy * dy <= b.radius * b.radius) return true;
   }
   return false;
+}
+
+function inBox(p: Vec2, b: { x: number; y: number; w: number; h: number }): boolean {
+  return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
 }
 
 function clampToMap(world: World, player: Player): void {

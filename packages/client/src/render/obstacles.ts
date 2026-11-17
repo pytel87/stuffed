@@ -1,7 +1,7 @@
 // Walls, bushes and roofs. The sim only knows boxes and circles; the look is picked from the
 // shape: square boxes are toy letter blocks, 1-thick walls are cardboard, thicker ones are books.
 import * as THREE from 'three';
-import type { Box, Circle, MapData } from '@stuffed/sim';
+import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
 import { darken, feltTexture, lighten, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
 const OUTLINE = 0.045;
@@ -40,7 +40,7 @@ function letterTexture(color: string, letter: string): THREE.CanvasTexture {
   return tex;
 }
 
-function wall(b: Box, index: number): THREE.Object3D {
+function wall(b: Wall, index: number): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(b.x + b.w / 2, 0, b.y + b.h / 2);
   const thin = Math.min(b.w, b.h);
@@ -48,11 +48,11 @@ function wall(b: Box, index: number): THREE.Object3D {
   if (Math.abs(b.w - b.h) < 0.01) {
     const color = BLOCK_COLORS[index % BLOCK_COLORS.length]!;
     const mat = toonMaterial('#ffffff', { map: letterTexture(color, LETTERS[index % LETTERS.length]!) });
-    const block = outlinedBox(b.w, b.w, b.h, mat);
-    block.position.y = b.w / 2;
+    const block = outlinedBox(b.w, b.height, b.h, mat);
+    block.position.y = b.height / 2;
     g.add(block);
   } else if (thin <= 1.01) {
-    const height = 1.4;
+    const height = b.height;
     const box = outlinedBox(b.w, height, b.h, toonMaterial(CARDBOARD));
     box.position.y = height / 2;
     g.add(box);
@@ -64,7 +64,7 @@ function wall(b: Box, index: number): THREE.Object3D {
     tape.position.y = height + 0.011;
     g.add(tape);
   } else {
-    const height = 1.2;
+    const height = b.height;
     const cover = BOOK_COLORS[index % BOOK_COLORS.length]!;
     const book = outlinedBox(b.w, height, b.h, toonMaterial(cover));
     book.position.y = height / 2;
@@ -121,15 +121,14 @@ export interface RoofView {
   opacity: number;
 }
 
-const WALL_TOP = 1.4;
 const ROOF_THICKNESS = 0.32;
 const ROOF_OVERHANG = 0.2;
 const ROOF_FADE_RATE = 10;
 
-/** A cardboard box lid over a building, taped shut. */
-function roof(b: Box): RoofView {
+/** A cardboard box lid over a building, taped shut; its top is the walkable roof. */
+function roof(b: Building): RoofView {
   const g = new THREE.Group();
-  g.position.set(b.x + b.w / 2, WALL_TOP + ROOF_THICKNESS / 2, b.y + b.h / 2);
+  g.position.set(b.x + b.w / 2, b.height - ROOF_THICKNESS / 2 + 0.01, b.y + b.h / 2);
   const w = b.w + ROOF_OVERHANG * 2;
   const d = b.h + ROOF_OVERHANG * 2;
   const lidTex = feltTexture().clone();

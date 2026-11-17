@@ -24,13 +24,16 @@ export class CameraRig {
     camera.updateProjectionMatrix();
   }
 
-  /** `aimOffset` is the vector from the player to the cursor's ground point. */
-  update(player: Vec2, aimOffset: Vec2, dt: number): void {
+  /**
+   * `aimOffset` is the vector from the player to the cursor's ground point; `groundY` the
+   * height of the surface the player stands over (the camera rises with it, not with jumps).
+   */
+  update(player: Vec2, aimOffset: Vec2, dt: number, groundY = 0): void {
     const len = Math.hypot(aimOffset.x, aimOffset.y);
     const lean = Math.min(len * CAMERA.leanFactor, CAMERA.maxLean);
     const lx = len > 1e-6 ? (aimOffset.x / len) * lean : 0;
     const ly = len > 1e-6 ? (aimOffset.y / len) * lean : 0;
-    this.desired.set(player.x + lx, 0, player.y + ly);
+    this.desired.set(player.x + lx, groundY, player.y + ly);
 
     if (!this.initialized) {
       this.target.copy(this.desired);

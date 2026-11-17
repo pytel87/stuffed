@@ -28,6 +28,7 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | Action | Key |
 | --- | --- |
 | Move | W A S D |
+| Jump | Space |
 | Aim | Mouse |
 | Shoot | Left click (hold) |
 | Switch weapon | 1, 2 or mouse wheel |
@@ -77,4 +78,9 @@ apps/server       Placeholder for the Colyseus authoritative server (roadmap ste
   bushes (until you shoot) and under roofs: a plush inside a building is hidden from everyone
   outside it, and that roof fades for whoever is inside. `canSee()` holds these rules; the
   client uses it to decide what to draw, and the server will use it to decide what to send.
-- **Units**: 1 world unit = 1 plush width. Sim `(x, y)` maps to three.js `(x, 0, y)`.
+- **Heights**: walls, chests and roofs have a top height. A plush (feet height `z`) is
+  blocked by an obstacle only while its feet are below the top; above that it passes over or
+  stands on it. Shots start at chest height and angle toward chest height over the surface
+  under the cursor, then fly level; they hit only what they overlap vertically, so a jump can
+  dodge them.
+- **Units**: 1 world unit = 1 plush width. Sim `(x, y, z)` maps to three.js `(x, z, y)`.

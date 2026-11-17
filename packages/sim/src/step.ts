@@ -34,8 +34,8 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   for (const player of state.players) {
     if (!player.alive) continue;
     const input = clean.get(player.id)!;
-    player.inBush = insideBush(world, player.pos.x, player.pos.y);
-    player.building = buildingAt(world, player.pos.x, player.pos.y);
+    player.inBush = insideBush(world, player.pos, player.z);
+    player.building = buildingAt(world, player.pos, player.z);
     updateWeapons(world, state, player, input);
     updateInteraction(world, state, player, input);
     updateItemUse(state, player, input);

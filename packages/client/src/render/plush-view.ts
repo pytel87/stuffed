@@ -29,6 +29,25 @@ const LEG_SWING = 0.8;
 const WEAPON_SOCKET: [number, number, number] = [-config.combat.muzzleSide, 0.6, 0.34];
 const RECOIL_DISTANCE = 0.14;
 const FLASH_SECONDS = 0.14;
+/** Above this height over the surface below, the plush counts as in the air. */
+const AIRBORNE = 0.03;
+const LEG_TUCK = -0.7;
+
+let shadowTexture: THREE.CanvasTexture | null = null;
+function shadowMap(): THREE.CanvasTexture {
+  if (!shadowTexture) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(32, 32, 4, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(0,0,0,1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    shadowTexture = new THREE.CanvasTexture(c);
+  }
+  return shadowTexture;
+}
 
 export class PlushView {
   readonly root = new THREE.Group();
@@ -48,6 +67,12 @@ export class PlushView {
   private flashTime = 0;
   private toonMaterials: THREE.MeshToonMaterial[] = [];
   private readonly arms: PlushArms;
+  /** Soft blob on the surface below; shrinks and fades with height so jumps read from above. */
+  private readonly blob: THREE.Mesh;
+  private airAmount = 0;
+  private wasAirborne = false;
+  private lastZ = 0;
+  private landSquash = 0;
 
   constructor(parts: PartLoadout, private readonly outlineColor = OUTLINE_COLOR) {
     this.root.add(this.lean);
@@ -74,6 +99,11 @@ export class PlushView {
     this.hitbox.renderOrder = 10;
     this.hitbox.visible = false;
     this.root.add(this.hitbox);
+    this.blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.55, 24).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: '#000000', map: shadowMap(), transparent: true, opacity: 0.35, depthWrite: false }),
+    );
+    this.root.add(this.blob);
     this.setParts(parts);
   }
 
@@ -122,19 +152,39 @@ export class PlushView {
     this.hitbox.visible = visible;
   }
 
-  update(pos: Vec2, vel: Vec2, aim: Vec2, dt: number, time: number): void {
-    this.root.position.set(pos.x, 0, pos.y);
+  /**
+   * `z` is the plush's feet height and `groundY` the surface below it. Returns true on the
+   * frame the plush lands, so the caller can puff some dust.
+   */
+  update(pos: Vec2, vel: Vec2, aim: Vec2, z: number, groundY: number, dt: number, time: number): boolean {
+    this.root.position.set(pos.x, z, pos.y);
     this.facing.rotation.y = Math.atan2(aim.x, aim.y);
+
+    const height = z - groundY;
+    const airborne = height > AIRBORNE;
+    const landed = this.wasAirborne && !airborne;
+    this.wasAirborne = airborne;
+    if (landed) this.landSquash = 1;
+    const climb = dt > 0 ? (z - this.lastZ) / dt : 0;
+    this.lastZ = z;
+    this.airAmount += ((airborne ? 1 : 0) - this.airAmount) * (1 - Math.exp(-18 * dt));
+    this.landSquash = Math.max(0, this.landSquash - dt * 6);
 
     const speed = Math.hypot(vel.x, vel.y);
     const target = Math.min(1, speed / config.player.moveSpeed);
     this.moveAmount += (target - this.moveAmount) * (1 - Math.exp(-12 * dt));
-    this.walkPhase += speed * WALK_RADIANS_PER_UNIT * dt;
-    const m = this.moveAmount;
+    if (!airborne) this.walkPhase += speed * WALK_RADIANS_PER_UNIT * dt;
+    const m = this.moveAmount * (1 - this.airAmount);
 
-    const s = Math.sin(this.walkPhase * 2) * SQUASH * m + Math.sin(time * 2.4) * 0.025 * (1 - m);
+    // Walking bounce on the ground; stretch while rising, squash on landing.
+    const stretch = Math.max(-0.12, Math.min(0.16, climb * 0.025)) * this.airAmount;
+    const s = Math.sin(this.walkPhase * 2) * SQUASH * m + Math.sin(time * 2.4) * 0.025 * (1 - m) * (1 - this.airAmount) - stretch + this.landSquash * 0.22;
     this.squash.scale.set(1 + s, 1 - s, 1 + s);
     this.squash.position.y = Math.abs(Math.sin(this.walkPhase)) * BOB * m;
+
+    this.blob.position.y = -height + 0.03;
+    this.blob.scale.setScalar(Math.max(0.45, 1 - height * 0.3));
+    (this.blob.material as THREE.MeshBasicMaterial).opacity = 0.35 * Math.max(0.4, 1 - height * 0.25);
 
     // Lean into the direction of travel (world space, independent of aim).
     if (speed > 0.01) {
@@ -145,7 +195,8 @@ export class PlushView {
     }
 
     const swing = Math.sin(this.walkPhase) * LEG_SWING * m;
-    this.legPivots.forEach((hip, i) => (hip.rotation.x = i % 2 ? -swing : swing));
+    const tuck = LEG_TUCK * this.airAmount;
+    this.legPivots.forEach((hip, i) => (hip.rotation.x = (i % 2 ? -swing : swing) + tuck));
 
     this.recoil = Math.max(0, this.recoil - dt * 9);
     this.weaponSocket.position.z = WEAPON_SOCKET[2] - this.recoil * RECOIL_DISTANCE;
@@ -154,6 +205,7 @@ export class PlushView {
     const flash = this.flashTime > 0 ? this.flashTime / FLASH_SECONDS : 0;
     this.flashTime = Math.max(0, this.flashTime - dt);
     for (const mat of this.toonMaterials) mat.emissive.setScalar(flash * 0.7);
+    return landed;
   }
 
   private collectMaterials(): void {

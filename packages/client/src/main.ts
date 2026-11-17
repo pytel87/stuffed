@@ -82,6 +82,7 @@ function frame(now: number): void {
     tick: f.curr.tick,
     pos: me ? `${me.pos.x.toFixed(1)}, ${me.pos.y.toFixed(1)}` : '-',
     speed: me ? Math.hypot(me.vel.x, me.vel.y).toFixed(2) : '-',
+    z: me ? `${me.z.toFixed(2)}${me.vz !== 0 ? ` (vz ${me.vz.toFixed(1)})` : ''}` : '-',
     alive: f.curr.players.filter((p) => p.alive).length,
     bush: me?.inBush ? 'hidden' : '-',
     roof: me && me.building !== -1 ? `building ${me.building}` : '-',

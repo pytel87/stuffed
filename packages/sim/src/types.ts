@@ -21,6 +21,7 @@ export const Btn = {
   Fire: 1,
   Interact: 2,
   Reload: 4,
+  Jump: 8,
 } as const;
 
 /** One player's intent for one tick. Clients and bots produce these; only the sim interprets them. */
@@ -30,7 +31,10 @@ export interface Input {
   /** -1..1; the sim clamps and normalizes. */
   moveX: number;
   moveY: number;
-  /** Aim direction; the sim normalizes it and keeps the previous aim if it is zero. */
+  /**
+   * Aim vector toward the point being aimed at. Its direction sets where shots go; its length
+   * is the distance to that point, used to angle shots up or down to what's there.
+   */
   aimX: number;
   aimY: number;
   /** Btn bitfield of held buttons. */
@@ -71,10 +75,16 @@ export interface Player {
   isBot: boolean;
   pos: Vec2;
   vel: Vec2;
+  /** Height of the plush's feet above the ground (0 on the lawn, more on top of things). */
+  z: number;
+  /** Vertical speed, units per second (positive = up). */
+  vz: number;
   knockback: Vec2;
   radius: number;
   /** Unit aim direction. */
   aim: Vec2;
+  /** Distance to the aimed-at point (from the last input). */
+  aimDistance: number;
   stuffing: number;
   buttons: number;
   alive: boolean;
@@ -104,6 +114,11 @@ export interface Projectile {
   rarity: Rarity;
   pos: Vec2;
   vel: Vec2;
+  /** Flight height. Only hits what it overlaps vertically. */
+  z: number;
+  /** Climb or dip speed (units/s) until the shot reaches zEnd; then it flies level. */
+  vz: number;
+  zEnd: number;
   radius: number;
   damage: number;
   knockback: number;
@@ -185,18 +200,28 @@ export interface Box {
   h: number;
 }
 
+/** A solid box standing on the ground. Plushies can jump onto and over walls low enough. */
+export interface Wall extends Box {
+  height: number;
+}
+
+/**
+ * A roofed area. Its roof is a floor at `height` that plushies can walk on; a plush under it
+ * (inside the area, below the roof) is hidden from everyone outside and can't jump.
+ */
+export interface Building extends Box {
+  height: number;
+}
+
 /** Static map data. Not part of GameState: it never changes during a match. */
 export interface MapData {
   id: string;
   width: number;
   height: number;
-  walls: Box[];
+  walls: Wall[];
   bushes: Circle[];
-  /**
-   * Roofed areas. A plush inside one is hidden from everyone outside it; the roof fades
-   * for players inside. Walls themselves do not block sight.
-   */
-  buildings: Box[];
+  /** Roofed areas. Walls do not block sight; bushes and roofs hide plushies. */
+  buildings: Building[];
   spawns: Vec2[];
   chestSpawns: Vec2[];
 }
