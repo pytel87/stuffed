@@ -31,9 +31,10 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #8ccdee;
   font-family: var(--font);
   color: var(--ink);
+  /* Lawn green: in-browser on iPhones in landscape, the strips beside the notch show only this. */
+  background: #5e9e50;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -183,9 +184,20 @@ button {
   font: 800 max(16px, 1.15rem)/1.2 var(--font);
 }
 
-/* In a row with buttons, the field takes the room left. */
+/* In a row with buttons, the field takes the room left (and may shrink below its input's size). */
 .row > .field {
   flex: 1;
+  min-width: 0;
+}
+
+/* Error lines take no room until there's something to say. */
+.card .error:empty {
+  display: none;
+}
+
+/* Nothing in a card may push it wider than it is. */
+.card > * {
+  min-width: 0;
 }
 
 .field.code input {
