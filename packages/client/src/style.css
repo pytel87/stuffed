@@ -286,6 +286,22 @@ button {
   color: var(--ink);
 }
 
+/* Share in the top-left corner, Leave in the top-right (where Close sits on other cards). */
+.lobby .lobby-share,
+.lobby .lobby-leave {
+  position: absolute;
+  top: -1rem;
+  z-index: 1;
+}
+
+.lobby .lobby-share {
+  left: -1rem;
+}
+
+.lobby .lobby-leave {
+  right: -1rem;
+}
+
 .lobby-share.done {
   background: #5bb46a;
 }

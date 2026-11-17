@@ -30,7 +30,9 @@ export class LobbyScreen {
       'beforeend',
       `<div class="overlay lobby" hidden>
          <div class="card">
-           <div class="room-code"><span class="code"></span><button type="button" class="round lobby-share" aria-label="Share invite">${icon('share')}</button></div>
+           <button type="button" class="round lobby-share" aria-label="Share invite">${icon('share')}</button>
+           <button type="button" class="round lobby-leave" aria-label="Leave">${icon('door')}</button>
+           <div class="room-code"><span class="code"></span></div>
            <div class="row">
              <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="Your name"></label>
              <button type="button" class="round lobby-wardrobe" aria-label="Wardrobe">${icon('hanger')}</button>
@@ -44,10 +46,7 @@ export class LobbyScreen {
              <button type="button" class="round small lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
            <p class="status"></p>
-           <div class="row">
-             <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
-             <button type="button" class="round lobby-leave" aria-label="Leave">${icon('door')}</button>
-           </div>
+           <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
          </div>
        </div>`,
     );
