@@ -2,6 +2,7 @@
 // water droplets (Super Soaker) and muzzle pops. Particles shrink out instead of fading,
 // which avoids transparency sorting.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toonMaterial } from './toon.ts';
 
 interface Particle {
@@ -23,6 +24,8 @@ class ParticlePool {
     private readonly scene: THREE.Scene,
     private readonly geometry: THREE.BufferGeometry,
     private readonly material: THREE.Material,
+    /** Lies flat on the ground (paw prints) instead of tumbling. */
+    private readonly flat = false,
   ) {}
 
   spawn(pos: THREE.Vector3, vel: THREE.Vector3, size: number, life: number, gravity: number): void {
@@ -30,7 +33,8 @@ class ParticlePool {
     mesh.visible = true;
     mesh.position.copy(pos);
     mesh.scale.setScalar(size);
-    mesh.rotation.set(Math.random() * 6, Math.random() * 6, 0);
+    if (this.flat) mesh.rotation.set(0, Math.random() * 0.4 - 0.2, 0);
+    else mesh.rotation.set(Math.random() * 6, Math.random() * 6, 0);
     this.active.push({ mesh, vel: vel.clone(), life, maxLife: life, size, gravity });
   }
 
@@ -92,6 +96,10 @@ export class Effects {
   private readonly stars: ParticlePool;
   private readonly soap: ParticlePool;
   private readonly cardboardBits: ParticlePool;
+  /** Set trails: paw prints, frog splashes, shark ripples, chicken feathers. */
+  private readonly paws: ParticlePool;
+  private readonly frogDrops: ParticlePool;
+  private readonly feathers: ParticlePool;
   private readonly juiceDrops: ParticlePool;
   private readonly waves: Shockwave[] = [];
   private readonly emitters: Emitter[] = [];
@@ -119,6 +127,15 @@ export class Effects {
     }
     this.stars = new ParticlePool(scene, new THREE.ExtrudeGeometry(star, { depth: 0.3, bevelEnabled: false }), toonMaterial('#ffd23a', { map: null }));
     this.soap = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.6 }));
+    // A paw print: a pad and three toes, flat on the ground.
+    const paw = mergeGeometries([
+      new THREE.CylinderGeometry(1, 1.1, 0.1, 14).scale(1, 1, 0.85),
+      ...[-0.75, 0, 0.75].map((x) => new THREE.CylinderGeometry(0.38, 0.4, 0.1, 10).translate(x, 0, -1.2 + Math.abs(x) * 0.35)),
+    ]);
+    this.paws = new ParticlePool(scene, paw, toonMaterial('#6b4630', { map: null }), true);
+    this.frogDrops = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#c8ff9e', toneMapped: false }));
+    const feather = new THREE.SphereGeometry(1, 8, 6).scale(0.5, 0.15, 1.6);
+    this.feathers = new ParticlePool(scene, feather, toonMaterial('#fdfbf7', { map: null }));
     this.cardboardBits = new ParticlePool(scene, new THREE.BoxGeometry(1, 0.25, 1), toonMaterial('#c9a27e', { map: null }));
     this.juiceDrops = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }));
     this.scene = scene;
@@ -134,6 +151,51 @@ export class Effects {
   dash(x: number, z: number): void {
     this.burst(this.cotton, x, 0.2, z, 0, 0, 8, 2.5, 0.09, 0.45, 0);
     this.shockwave(x, 0.06, z, 1.2, '#5bd16a');
+  }
+
+  /**
+   * A plush wearing a set (3+ parts of one animal) leaves a trail as it walks: paw prints, frog
+   * splashes, shark ripples or chicken feathers.
+   */
+  setTrail(animal: string, x: number, y: number, z: number, step: number): void {
+    switch (animal) {
+      case 'bear': {
+        // Prints alternate left and right of the path.
+        const side = step % 2 ? 0.18 : -0.18;
+        this.tmpPos.set(x + side, y + 0.06, z);
+        this.tmpVel.set(0, 0, 0);
+        this.paws.spawn(this.tmpPos, this.tmpVel, 0.13, 1.6, 0);
+        break;
+      }
+      case 'frog':
+        this.burst(this.frogDrops, x, y + 0.1, z, 0, 0, 4, 1.4, 0.08, 0.45, 9);
+        break;
+      case 'shark':
+        this.shockwave(x, y + 0.04, z, 0.7, '#4fd2ff');
+        break;
+      case 'chicken':
+        this.burst(this.feathers, x, y + 0.8, z, 0, 0, 1, 0.6, 0.09, 1.1, 0.6);
+        break;
+    }
+  }
+
+  /** A set-wearing plush bursts in its animal's style when knocked out. */
+  setKnockout(animal: string, x: number, z: number): void {
+    switch (animal) {
+      case 'bear':
+        this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.12, 1.2, 9);
+        break;
+      case 'frog':
+        this.burst(this.frogDrops, x, 0.8, z, 0, 0, 24, 5, 0.08, 1, 8);
+        break;
+      case 'shark':
+        this.shockwave(x, 0.05, z, 3, '#4fd2ff');
+        this.burst(this.soap, x, 0.8, z, 0, 0, 20, 4, 0.08, 1, 6);
+        break;
+      case 'chicken':
+        this.burst(this.feathers, x, 1, z, 0, 0, 18, 4, 0.12, 1.6, 1.5);
+        break;
+    }
   }
 
   /** Juice Box at work: an orange droplet rising off the plush now and then. */
@@ -154,6 +216,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
+    for (const a of ['bear', 'frog', 'shark', 'chicken']) this.setKnockout(a, -500, -500);
   }
 
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */
@@ -266,6 +329,9 @@ export class Effects {
     this.stars.update(dt);
     this.soap.update(dt);
     this.cardboardBits.update(dt);
+    this.paws.update(dt);
+    this.frogDrops.update(dt);
+    this.feathers.update(dt);
     this.juiceDrops.update(dt);
 
     for (let i = this.waves.length - 1; i >= 0; i--) {

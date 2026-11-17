@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Zone names and set trails (2026-11-17)
+
+- Walking into a zone shows its name for a moment under the Rinse timer.
+- Wearing a set (3+ parts of one animal) leaves a trail as you walk: bear paw prints, frog
+  splashes, shark ripples or chicken feathers; and a knockout bursts in that animal's style.
+
 ## Step 4.4: The Toss (2026-11-17)
 
 - Matches start on a giant toy blimp crossing the yard on a random line. Press Jump (or the jump

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS } from '@stuffed/sim';
+import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wornSet } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
@@ -52,6 +52,9 @@ export class GameRenderer {
   private readonly chests = new ChestViews(this.scene);
   private readonly placedWalls = new PlacedWallViews(this.scene);
   private readonly toss = new TossView(this.scene);
+  /** Set trails: distance walked since the last print, and how many prints so far. */
+  private readonly trailWalked = new Map<EntityId, number>();
+  private readonly trailSteps = new Map<EntityId, number>();
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
@@ -220,7 +223,11 @@ export class GameRenderer {
         }
         case 'eliminated': {
           const p = byId.get(e.playerId);
-          if (p) this.effects.knockout(p.pos.x, p.pos.y);
+          if (p) {
+            this.effects.knockout(p.pos.x, p.pos.y);
+            const set = wornSet(p.parts);
+            if (set) this.effects.setKnockout(set, p.pos.x, p.pos.y);
+          }
           break;
         }
         default:
@@ -337,6 +344,19 @@ export class GameRenderer {
       const z = before.z + (p.z - before.z) * alpha;
       const groundY = groundHeight(this.world, curr, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
+      // A set (3+ parts of one animal) leaves a trail while walking on the ground.
+      const set = view.root.visible && !p.drop ? wornSet(p.parts) : null;
+      if (set && Math.hypot(vel.x, vel.y) > 1.5 && z - groundY < 0.05) {
+        const walked = (this.trailWalked.get(p.id) ?? 0) + Math.hypot(vel.x, vel.y) * opts.dt;
+        if (walked >= 0.7) {
+          const step = (this.trailSteps.get(p.id) ?? 0) + 1;
+          this.trailSteps.set(p.id, step);
+          this.effects.setTrail(set, pos.x, groundY, pos.y, step);
+          this.trailWalked.set(p.id, 0);
+        } else {
+          this.trailWalked.set(p.id, walked);
+        }
+      }
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       // Riders are on board the blimp, out of sight (your own plush too).
       view.root.visible = p.drop !== 'riding' && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
