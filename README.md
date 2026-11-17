@@ -92,10 +92,12 @@ there is one address and nothing else to host.
 
 ```sh
 npx wrangler login   # once, with your Cloudflare account (wrangler whoami to check)
-pnpm deploy          # builds the client, then deploys the Worker with the client as its assets
+pnpm run deploy      # builds the client, then deploys the Worker with the client as its assets
 ```
 
-Wrangler prints the address, e.g. `https://stuffed-rooms.<your-subdomain>.workers.dev`.
+Wrangler prints the address; the current deployment is
+https://stuffed-rooms.partyhub-vs.workers.dev. (Use `pnpm run deploy`: plain `pnpm deploy` is
+a built-in pnpm command.)
 Open it, create a room and send the invite link. Deploys disconnect matches in progress, so
 deploy between games. To serve the client from somewhere else (e.g. Vercel), build it with
 `VITE_SERVER_HOST=<worker host>` and add that site to `ALLOWED_ORIGINS` in

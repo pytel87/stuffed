@@ -10,7 +10,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   plan, names and looks, and knocked-out plushies are sent only when they change for that
   player; the client keeps them and computes the zone circle from the tick. Typical update
   with 4 plushies in view: about 2.6 KB instead of 8.2 KB (about 37 KB/s per player).
-- One Worker serves the client too: `pnpm deploy` builds the client and runs
+- One Worker serves the client too: `pnpm run deploy` builds the client and runs
   `wrangler deploy --assets`. In production the client connects to the host that served it;
   the Worker always accepts its own origin.
 - Tests: snapshot round trip over a whole bot match, size, slow parts sent once.
