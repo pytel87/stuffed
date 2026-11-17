@@ -641,9 +641,8 @@ body.touch-mode .help-touch {
 }
 
 .item kbd {
-  left: 50%;
-  top: 0.1rem;
-  transform: translateX(-50%);
+  left: -0.3rem;
+  top: -0.35rem;
 }
 
 /* Ammo: a thin strip along the bottom of the card in the rarity color; it drains as you
@@ -683,30 +682,54 @@ body.touch-mode .help-touch {
   opacity: 0.35;
 }
 
+/* Item slots: a cream button ringed in the item's rarity, the key digit outside its top-left,
+   and the stack count as a small badge on its bottom-right edge. */
 .item {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 3px var(--rarity, transparent);
+  overflow: visible;
+}
+
+.item:not(.empty) {
+  background: rgba(255, 250, 243, 0.92);
+  box-shadow: inset 0 0 0 3px var(--rarity, transparent), 0 3px 0 var(--ink);
+}
+
+.item .art {
+  display: flex;
 }
 
 .item .art .icon {
-  width: 2rem;
-  height: 2rem;
+  width: 1.8rem;
+  height: 1.8rem;
 }
 
 .item .count {
   position: absolute;
-  right: 0.2rem;
-  bottom: 0.05rem;
-  font: 900 0.85rem/1 var(--font);
+  right: -0.35rem;
+  bottom: -0.3rem;
+  min-width: 1.15rem;
+  padding: 0.12rem 0.25rem;
+  border-radius: 999px;
+  background: var(--ink);
   color: #fff;
-  -webkit-text-stroke: 3px var(--ink);
-  paint-order: stroke fill;
+  font: 900 0.75rem/1 var(--font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.item .count:empty {
+  display: none;
+}
+
+/* Can't use it right now (e.g. stuffing already full): dimmed, not hidden. */
+.item.unusable:not(.empty) {
+  opacity: 0.7;
 }
 
 .item.unusable:not(.empty) .art {
-  opacity: 0.45;
+  filter: grayscale(0.6);
 }
 
 /* Floating in the scene over a chest, a weapon or the plush; placed each frame by the HUD. */
