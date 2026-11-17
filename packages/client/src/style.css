@@ -1195,7 +1195,9 @@ body.touch-mode .prompt .icon.tap {
   background: rgba(255, 250, 243, 0.95);
   border: 3px solid var(--ink);
   box-shadow: 0 4px 0 var(--ink);
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
   animation: bob 1s ease-in-out infinite;
   z-index: 7;
 }

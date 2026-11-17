@@ -1,5 +1,5 @@
 import './style.css';
-import { BACKYARD, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
+import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -102,6 +102,16 @@ const options = new Options({
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon big');
 tossHint.innerHTML = `${icon('jump', 'icon big')}<kbd>Space</kbd>`;
+// The hint is a button too: tapping (or clicking) it drops you off the blimp.
+tossHint.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  tossHint.setPointerCapture(e.pointerId);
+  input.virtualButtons |= Btn.Jump;
+});
+const releaseTossHint = () => (input.virtualButtons &= ~Btn.Jump);
+tossHint.addEventListener('pointerup', releaseTossHint);
+tossHint.addEventListener('pointercancel', releaseTossHint);
+tossHint.addEventListener('lostpointercapture', releaseTossHint);
 
 /** playing → out (card shown) → spectating (card hidden) → over (match ended), or playing → won. */
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
