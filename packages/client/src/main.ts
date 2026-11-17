@@ -132,16 +132,16 @@ let me: Player | undefined;
 /** The state drawn last frame (touch aim assist looks for targets in it). */
 let shown: GameState | null = null;
 
-// Spectating: ◀ name ▶ switches between the plushies still in the match; the house goes back
-// to the menu.
+// Spectating: ◀ name ▶ switches between the plushies still in the match; ✕ goes back to the
+// results card (Again), or to the menu when only watching.
 spectateEl.innerHTML = `<button type="button" class="round small spec-prev" aria-label="Previous">${icon('arrow', 'icon flip')}</button>
   <span class="spec-label"></span>
   <button type="button" class="round small spec-next" aria-label="Next">${icon('arrow')}</button>
-  <button type="button" class="round small spec-menu" aria-label="Menu">${icon('home')}</button>`;
+  <button type="button" class="round small spec-menu" aria-label="Back">${icon('close')}</button>`;
 const spectateLabel = spectateEl.querySelector<HTMLElement>('.spec-label')!;
 spectateEl.querySelector('.spec-prev')!.addEventListener('click', () => switchWatched(-1));
 spectateEl.querySelector('.spec-next')!.addEventListener('click', () => switchWatched(1));
-spectateEl.querySelector('.spec-menu')!.addEventListener('click', () => showMenu());
+spectateEl.querySelector('.spec-menu')!.addEventListener('click', () => stopSpectating());
 
 /** Follow the next (or previous) plush still in the match, in a stable order. */
 function switchWatched(step: 1 | -1): void {
@@ -275,6 +275,18 @@ function spectate(): void {
   endScreen.hide();
   phase = 'spectating';
   spectateEl.hidden = false;
+}
+
+/** Leaves spectating: back to your results card, or to the menu if you were only watching. */
+function stopSpectating(): void {
+  if (!me) {
+    showMenu();
+    return;
+  }
+  sound.play('click', { pitchSpread: 0 });
+  spectateEl.hidden = true;
+  phase = 'out';
+  endScreen.reopen();
 }
 
 function frame(now: number): void {

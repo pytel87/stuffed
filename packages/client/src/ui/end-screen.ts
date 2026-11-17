@@ -87,6 +87,12 @@ export class EndScreen {
     this.el.hidden = true;
   }
 
+  /** Shows the card again as it was (back from spectating). */
+  reopen(): void {
+    this.el.hidden = false;
+    this.again.focus();
+  }
+
   /** The Wardrobe button needs a profile. */
   setWardrobe(available: boolean): void {
     this.wardrobe.hidden = !available;
