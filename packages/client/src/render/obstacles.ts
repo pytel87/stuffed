@@ -10,32 +10,52 @@ const BUSH = '#3f8f4a';
 
 export interface BushView {
   circle: Circle;
-  material: THREE.MeshToonMaterial;
+  /** The leaf colors (one material per color). */
+  materials: THREE.MeshToonMaterial[];
+  /** Depth-only copies of the balls, drawn first while see-through, so only the nearest leaves show. */
+  depth: THREE.Mesh[];
+  outlines: THREE.Mesh[];
+  seeThrough: boolean;
 }
 
-function bush(circle: Circle): { object: THREE.Object3D; view: BushView } {
+/**
+ * A bush: a clump of leafy balls. `colors` gives each ball a color in turn (one for a leafy bush,
+ * several for a laundry pile).
+ */
+function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor = '#1f3f26'): { object: THREE.Object3D; view: BushView } {
   const g = new THREE.Group();
   g.position.set(circle.center.x, 0, circle.center.y);
-  const material = toonMaterial(BUSH);
-  const hull = outlineMaterial('#1f3f26');
+  const materials = colors.map((c) => toonMaterial(c));
+  const hull = outlineMaterial(outlineColor);
+  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true });
   const r = circle.radius;
   const balls: [number, number, number, number][] = [[0, 0, 1.15, r * 0.55]];
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 + 0.3;
     balls.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0.75 + (i % 2) * 0.2, r * (0.42 + (i % 3) * 0.04)]);
   }
-  for (const [x, z, y, size] of balls) {
+  const depth: THREE.Mesh[] = [];
+  const outlines: THREE.Mesh[] = [];
+  balls.forEach(([x, z, y, size], i) => {
     const geo = new THREE.IcosahedronGeometry(size, 2);
-    const ball = new THREE.Mesh(geo, material);
+    const ball = new THREE.Mesh(geo, materials[i % materials.length]!);
     ball.position.set(x, y, z);
     ball.castShadow = true;
     ball.receiveShadow = true;
+    // After the depth-only copies (renderOrder 1) when see-through.
+    ball.renderOrder = 2;
     const outline = new THREE.Mesh(geo, hull);
     outline.scale.setScalar(1.06);
     ball.add(outline);
-    g.add(ball);
-  }
-  return { object: g, view: { circle, material } };
+    outlines.push(outline);
+    const d = new THREE.Mesh(geo, depthOnly);
+    d.position.copy(ball.position);
+    d.visible = false;
+    d.renderOrder = 1;
+    depth.push(d);
+    g.add(ball, d);
+  });
+  return { object: g, view: { circle, materials, depth, outlines, seeThrough: false } };
 }
 
 export interface RoofView {
@@ -182,11 +202,16 @@ export function updateRoofs(roofs: RoofView[], localBuilding: number, debug: boo
 export function updateBushes(bushes: BushView[], localX: number, localY: number): void {
   for (const b of bushes) {
     const inside = Math.hypot(localX - b.circle.center.x, localY - b.circle.center.y) < b.circle.radius + 0.4;
-    const opacity = inside ? 0.4 : 1;
-    if (b.material.opacity === opacity) continue;
-    b.material.opacity = opacity;
-    b.material.transparent = inside;
-    b.material.depthWrite = !inside;
-    b.material.needsUpdate = true;
+    if (b.seeThrough === inside) continue;
+    b.seeThrough = inside;
+    // See-through as one even layer: the depth-only copies go first, so only the nearest leaves
+    // are tinted (no blotchy overlaps), and the outlines step aside.
+    for (const m of b.materials) {
+      m.transparent = inside;
+      m.opacity = inside ? 0.42 : 1;
+      m.needsUpdate = true;
+    }
+    for (const d of b.depth) d.visible = inside;
+    for (const o of b.outlines) o.visible = !inside;
   }
 }
