@@ -1367,6 +1367,23 @@ body.touch-mode #game {
   animation: bob 0.9s ease-in-out infinite;
 }
 
+/* Put the part in reach into the bag: left of Grab, only while a part is in reach. */
+.touch-stash {
+  right: calc(var(--safe-r) + var(--edge) + 11.2rem);
+  bottom: calc(var(--safe-b) + var(--edge) + 0.8rem);
+  background: #ffe2b8;
+}
+
+.touch-stash .icon {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+/* With the Stash button there, the small sack in the floating prompt isn't needed. */
+body.touch-mode .prompt .stash-opt {
+  display: none;
+}
+
 /* On touch screens the HUD moves to the top so thumbs keep the bottom. */
 body.touch-mode .vitals {
   left: calc(var(--safe-l) + var(--edge));

@@ -355,6 +355,7 @@ function frame(now: number): void {
   hud.update(state, me, f.alpha);
   touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));
   touch.setGrabReady(hud.grabReady);
+  touch.setStashReady(hud.stashReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
   zoneHud.update(state, me, renderer.localPlayerPos, dt);
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);

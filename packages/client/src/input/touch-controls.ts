@@ -29,6 +29,7 @@ export class TouchControls {
   private look: Stick | null = null;
   private readonly root: HTMLElement;
   private readonly grab: HTMLElement;
+  private readonly stash: HTMLElement;
 
   constructor(private readonly input: KeyboardMouseInput) {
     document.body.insertAdjacentHTML(
@@ -38,10 +39,12 @@ export class TouchControls {
          <div class="touch-zone touch-right"></div>
          <button type="button" class="touch-btn touch-jump">${icon('jump')}</button>
          <button type="button" class="touch-btn touch-grab">${icon('hand')}</button>
+         <button type="button" class="touch-btn touch-stash" hidden>${icon('stash')}</button>
        </div>`,
     );
     this.root = document.querySelector<HTMLElement>('.touch')!;
     this.grab = this.root.querySelector<HTMLElement>('.touch-grab')!;
+    this.stash = this.root.querySelector<HTMLElement>('.touch-stash')!;
     const left = this.root.querySelector<HTMLElement>('.touch-left')!;
     const right = this.root.querySelector<HTMLElement>('.touch-right')!;
 
@@ -83,6 +86,7 @@ export class TouchControls {
 
     this.hold(this.root.querySelector<HTMLElement>('.touch-jump')!, Btn.Jump);
     this.hold(this.grab, Btn.Interact);
+    this.hold(this.stash, Btn.Stash);
 
     // Touch mode turns on with the first touch and off when a real mouse moves.
     window.addEventListener('pointerdown', (e) => {
@@ -118,6 +122,16 @@ export class TouchControls {
   /** Lights up Grab when there is something to pick up or open. */
   setGrabReady(ready: boolean): void {
     this.grab.classList.toggle('ready', ready);
+  }
+
+  /** Shows the Stash button while a part is in reach (tap: into the bag, like Q). */
+  setStashReady(ready: boolean): void {
+    if (this.stash.hidden === !ready) return;
+    this.stash.hidden = !ready;
+    if (!ready) {
+      this.stash.classList.remove('down');
+      this.input.virtualButtons &= ~Btn.Stash;
+    }
   }
 
   private hold(button: HTMLElement, bit: number): void {

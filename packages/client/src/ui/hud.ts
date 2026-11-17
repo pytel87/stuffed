@@ -39,6 +39,8 @@ export class Hud {
   private readonly v = new THREE.Vector3();
   /** True when E/Grab would do something right now (lights the touch Grab button). */
   grabReady = false;
+  /** True when a part is in reach (shows the touch Stash button). */
+  stashReady = false;
 
   constructor(root: HTMLElement, input: KeyboardMouseInput) {
     root.insertAdjacentHTML(
@@ -167,6 +169,7 @@ export class Hud {
 
     const interaction = action || !me.alive ? null : findInteraction(state, me);
     this.grabReady = !!interaction;
+    this.stashReady = interaction?.kind === 'part';
     this.promptAnchor = interaction?.kind === 'chest' ? interaction.chest.pos : (interaction?.loot.pos ?? null);
     let art = '';
     let color = '#ffffff';
