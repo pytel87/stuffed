@@ -744,7 +744,7 @@ body.touch-mode .help-touch {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.3rem 0.7rem 0.3rem 0.4rem;
+  padding: 0.3rem 0.65rem;
   border-radius: 999px;
   background: rgba(255, 250, 243, 0.95);
   border: 3px solid var(--ink);
