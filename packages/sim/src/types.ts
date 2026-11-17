@@ -142,6 +142,11 @@ export interface Player {
   blindedUntil: Tick;
   /** A Juice Box keeps healing and speeding this plush up until this tick. */
   juiceUntil: Tick;
+  /**
+   * The Toss: 'riding' the blimp over the yard (hidden, waiting to drop), 'gliding' down under an
+   * umbrella (steerable, can't shoot or be hurt), or null once on the ground.
+   */
+  drop: 'riding' | 'gliding' | null;
   parts: PartLoadout;
   /** One spare part, not shown on the plush. Q swaps it with the part worn in its slot. */
   stash: Part | null;
@@ -260,6 +265,8 @@ export interface GameState {
   loot: GroundLoot[];
   /** Cardboard Walls standing right now, oldest first. */
   placedWalls: PlacedWall[];
+  /** The Toss: the blimp flies from `from` to `to` between these ticks; null without one. */
+  toss: Toss | null;
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
@@ -278,6 +285,13 @@ export interface Box {
 export type WallKind =
   | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
   | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket';
+
+export interface Toss {
+  from: Vec2;
+  to: Vec2;
+  startTick: Tick;
+  endTick: Tick;
+}
 
 /** A Cardboard Wall someone put up: a wall that breaks when shot enough and folds away in time. */
 export interface PlacedWall extends Wall {

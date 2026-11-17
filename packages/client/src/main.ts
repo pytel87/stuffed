@@ -29,6 +29,8 @@ import { ZoneHud } from './ui/zone-hud.ts';
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const hudEl = document.querySelector<HTMLElement>('#hud')!;
 const spectateEl = document.querySelector<HTMLElement>('#spectating')!;
+/** "Jump to drop" while riding the Toss blimp. */
+const tossHint = document.querySelector<HTMLElement>('#toss-hint')!;
 
 const input = new KeyboardMouseInput(canvas);
 const touch = new TouchControls(input);
@@ -97,6 +99,7 @@ const options = new Options({
   leave: showMenu,
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon big');
+tossHint.innerHTML = `${icon('jump', 'icon big')}<kbd>Space</kbd>`;
 
 /** playing → out (card shown) → spectating (card hidden) → over (match ended), or playing → won. */
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
@@ -294,6 +297,7 @@ function frame(now: number): void {
     time: now / 1000,
   });
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
+  tossHint.hidden = me?.drop !== 'riding' || isBackdrop(session);
   hitDirection.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos, me?.z ?? 0);
 
   hud.update(state, me, f.alpha);

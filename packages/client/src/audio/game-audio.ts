@@ -23,6 +23,7 @@ interface Seen {
   charging: boolean;
   bubbled: boolean;
   bagging: boolean;
+  drop: 'riding' | 'gliding' | null;
 }
 
 export class GameAudio {
@@ -130,6 +131,7 @@ export class GameAudio {
         charging: p.chargeStartTick !== null,
         bubbled: state.tick < p.bubbledUntil,
         bagging: p.action?.kind === 'useItem' && p.action.item === 'big_stuffing_bag',
+        drop: p.drop,
       };
       const before = this.seen.get(p.id);
       this.seen.set(p.id, now);
@@ -143,6 +145,9 @@ export class GameAudio {
       if (!before.charging && now.charging) s.play('band_stretch', { at: p.pos, volume: mine ? 0.6 : 0.35, pitchSpread: 0 });
       if (before.bubbled && !now.bubbled) s.play('bubble_pop', { at: p.pos, volume: 0.7 });
       if (!before.bagging && now.bagging) s.play('bag_rustle', { at: p.pos, volume: mine ? 0.7 : 0.4 });
+      // The Toss: a whoosh when you drop off the blimp, a thump when you land.
+      if (mine && before.drop === 'riding' && now.drop === 'gliding') s.play('pillow_swing', { at: p.pos, volume: 0.8, pitchSpread: 0 });
+      if (before.drop === 'gliding' && now.drop === null) s.play('land', { at: p.pos, volume: mine ? 0.8 : 0.4 });
     }
   }
 }

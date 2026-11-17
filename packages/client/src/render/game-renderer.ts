@@ -8,6 +8,7 @@ import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlacedWallViews } from './placed-walls.ts';
+import { TossView } from './toss-view.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
 import { RinseView } from './rinse-view.ts';
@@ -50,6 +51,7 @@ export class GameRenderer {
   private readonly effects = new Effects(this.scene);
   private readonly chests = new ChestViews(this.scene);
   private readonly placedWalls = new PlacedWallViews(this.scene);
+  private readonly toss = new TossView(this.scene);
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
@@ -298,6 +300,7 @@ export class GameRenderer {
     this.chests.clear();
     this.loot.clear();
     this.placedWalls.clear();
+    this.toss.clear();
     this.rig.reset();
   }
 
@@ -335,7 +338,9 @@ export class GameRenderer {
       const groundY = groundHeight(this.world, curr, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
-      view.root.visible = this.debug || !viewer || canSee(this.world, curr, viewer, p);
+      // Riders are on board the blimp, out of sight (your own plush too).
+      view.root.visible = p.drop !== 'riding' && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
+      view.setGliding(p.drop === 'gliding');
       if (p.soggy && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
         if (t <= 0) this.effects.drip(pos.x, pos.y);
@@ -372,7 +377,10 @@ export class GameRenderer {
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 
     const following = opts.followId === opts.localPlayerId;
-    this.rig.update(this.followPos, following ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround);
+    // During the Toss the camera pulls back so you can pick a landing spot.
+    const dropping = !!viewer?.drop;
+    this.rig.update(this.followPos, following && !dropping ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround, dropping ? 2.2 : 1);
+    this.toss.update(curr, curr.tick - 1 + alpha, opts.time);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
     // Keep the shadow camera centered on what the player sees.

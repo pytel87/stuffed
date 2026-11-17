@@ -1,9 +1,9 @@
 import { config } from './config.ts';
 import { ANIMALS, PART_SLOTS } from './parts.ts';
-import { pick, seedRng, shuffle } from './rng.ts';
+import { nextFloat, pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
 import { initialZone } from './systems/zone.ts';
-import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, WeaponInstance, WeaponSpec } from './types.ts';
+import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, Toss, WeaponInstance, WeaponSpec } from './types.ts';
 
 export interface CreateGameOptions {
   seed: number;
@@ -11,9 +11,11 @@ export interface CreateGameOptions {
   roster: RosterEntry[];
   /** Scales every zone duration; 1 = as configured. */
   zoneTimeScale?: number;
+  /** Start everyone on the Toss blimp instead of at spawn points. */
+  toss?: boolean;
 }
 
-export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameOptions): GameState {
+export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withToss = false }: CreateGameOptions): GameState {
   if (roster.length > map.spawns.length) {
     throw new Error(`Map ${map.id} has ${map.spawns.length} spawns for ${roster.length} players`);
   }
@@ -57,6 +59,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameO
       bubbledUntil: 0,
       blindedUntil: 0,
       juiceUntil: 0,
+      drop: null,
       parts: rollParts(rng, entry.parts),
       stash: null,
       lastInputSeq: -1,
@@ -65,6 +68,15 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameO
   });
 
   const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, opened: false, loot: pos.loot ?? 'medium' }));
+
+  const toss = withToss ? planToss(map, rng) : null;
+  if (toss) {
+    for (const p of players) {
+      p.pos = { ...toss.from };
+      p.z = config.toss.height;
+      p.drop = 'riding';
+    }
+  }
 
   return {
     tick: 0,
@@ -77,6 +89,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameO
     chests,
     loot: [],
     placedWalls: [],
+    toss,
     zone: initialZone(map, rng, zoneTimeScale),
     events: [],
     mapId: map.id,
@@ -102,4 +115,17 @@ function rollParts(rng: RngState, fixed: RosterEntry['parts'] = {}): PartLoadout
   return parts;
 }
 
-
+/** The blimp's flight: a random direction, on a line passing near the middle of the map. */
+function planToss(map: MapData, rng: RngState): Toss {
+  const t = config.toss;
+  const angle = nextFloat(rng) * Math.PI * 2;
+  const dir = { x: Math.cos(angle), y: Math.sin(angle) };
+  const off = (nextFloat(rng) * 2 - 1) * t.centerOffset;
+  const mid = { x: map.width / 2 - dir.y * off, y: map.height / 2 + dir.x * off };
+  return {
+    from: { x: mid.x - dir.x * t.reach, y: mid.y - dir.y * t.reach },
+    to: { x: mid.x + dir.x * t.reach, y: mid.y + dir.y * t.reach },
+    startTick: 0,
+    endTick: Math.round(((2 * t.reach) / t.speed) * config.tickRate),
+  };
+}

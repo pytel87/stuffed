@@ -33,7 +33,11 @@ export class CameraRig {
    * `aimOffset` is the vector from the player to the cursor's ground point; `groundY` the
    * height of the surface the player stands over (the camera rises with it, not with jumps).
    */
-  update(player: Vec2, aimOffset: Vec2, dt: number, groundY = 0): void {
+  /** Extra distance factor (the Toss zooms out); eased toward. */
+  private zoom = 1;
+
+  update(player: Vec2, aimOffset: Vec2, dt: number, groundY = 0, zoomTarget = 1): void {
+    this.zoom += (zoomTarget - this.zoom) * (1 - Math.exp(-2.5 * dt));
     const len = Math.hypot(aimOffset.x, aimOffset.y);
     const lean = Math.min(len * CAMERA.leanFactor, CAMERA.maxLean);
     const lx = len > 1e-6 ? (aimOffset.x / len) * lean : 0;
@@ -49,7 +53,7 @@ export class CameraRig {
 
     const pitch = THREE.MathUtils.degToRad(CAMERA.pitchDegrees);
     // Narrower than 16:9 (tablets, portrait): back off so you see as far to the sides.
-    const distance = CAMERA.distance * Math.max(1, Math.sqrt(16 / 9 / this.camera.aspect));
+    const distance = CAMERA.distance * Math.max(1, Math.sqrt(16 / 9 / this.camera.aspect)) * this.zoom;
     this.camera.position.set(
       this.target.x,
       this.target.y + Math.sin(pitch) * distance,

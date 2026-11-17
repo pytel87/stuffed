@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 4.4: The Toss (2026-11-17)
+
+- Matches start on a giant toy blimp crossing the yard on a random line. Press Jump (or the jump
+  button) to drop off, then glide down under a paper umbrella, steering to your landing spot;
+  anyone still aboard at the end of the line drops automatically. Riders are hidden; gliders
+  can't shoot or be hurt. The camera pulls back while you ride and glide. Bots drop at a random
+  point and steer toward a chest.
+
 ## Step 4.3: Four new items, hit direction (2026-11-17)
 
 - Big Stuffing Bag (full stuffing, 8 s), Juice Box (+5 stuffing/s for 10 s and 15% faster),

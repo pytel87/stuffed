@@ -13,7 +13,7 @@ import type { World } from '../world.ts';
  */
 export function canSee(_world: World, state: GameState, viewer: Player, target: Player): boolean {
   if (viewer.id === target.id) return true;
-  if (!target.alive) return false;
+  if (!target.alive || target.drop === 'riding') return false;
   const d = Math.hypot(target.pos.x - viewer.pos.x, target.pos.y - viewer.pos.y);
   // Glitter in the eyes: only what's very close.
   const range = state.tick < viewer.blindedUntil ? config.combat.blindVision : config.vision.range;

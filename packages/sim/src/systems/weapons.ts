@@ -111,7 +111,7 @@ function swing(world: World, state: GameState, player: Player, weapon: WeaponIns
   const reach = s.reach ?? 1.8;
   const halfArc = ((s.arcDegrees ?? 90) * DEG) / 2;
   for (const p of state.players) {
-    if (!p.alive || p.id === player.id) continue;
+    if (!p.alive || p.id === player.id || p.drop) continue;
     const dx = p.pos.x - player.pos.x;
     const dy = p.pos.y - player.pos.y;
     const d = Math.hypot(dx, dy);

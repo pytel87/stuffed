@@ -40,6 +40,11 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     const input = clean.get(player.id)!;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
+    if (player.drop) {
+      // Still on the Toss: no shooting, looting or items until you land.
+      player.heldButtons = input.buttons;
+      continue;
+    }
     if (state.tick < player.juiceUntil) {
       player.stuffing = Math.min(config.player.maxStuffing, player.stuffing + config.itemEffects.juice.regenPerSecond * DT);
     }

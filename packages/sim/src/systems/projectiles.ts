@@ -40,7 +40,7 @@ export function updateProjectiles(world: World, state: GameState): void {
     let hit: Player | null = null;
     let hitT = Infinity;
     for (const p of state.players) {
-      if (!p.alive || p.id === proj.ownerId) continue;
+      if (!p.alive || p.id === proj.ownerId || p.drop) continue;
       const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, p.pos.x, p.pos.y, p.radius + r);
       if (t === null) continue;
       const zt = proj.z + dz * t;
@@ -181,7 +181,7 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
   const s: WeaponStats = config.weapons[proj.weapon];
   const radius = s.blastRadius ?? 0;
   for (const p of state.players) {
-    if (!p.alive) continue;
+    if (!p.alive || p.drop) continue;
     const d = Math.hypot(p.pos.x - at.x, p.pos.y - at.y);
     if (d > radius + p.radius) continue;
     if (p.z > z + radius || p.z + config.player.height < z - radius) continue;

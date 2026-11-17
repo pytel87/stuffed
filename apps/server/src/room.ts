@@ -198,7 +198,7 @@ export class Room extends Server<Env> {
       ...humans.map((s) => ({ name: s.name, isBot: false, ...(s.look ? { parts: s.look } : {}) })),
       ...Array.from({ length: this.bots }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
-    const state = createGame({ seed, map: BACKYARD, roster });
+    const state = createGame({ seed, map: BACKYARD, roster, toss: true });
     const plushOf = new Map<number, EntityId>(humans.map((s, i) => [s.seat, state.players[i]!.id]));
     this.match = {
       world: createWorld(BACKYARD),

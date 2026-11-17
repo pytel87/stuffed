@@ -26,6 +26,10 @@ export function applyAim(player: Player, input: Input): void {
  * below its top (minus the step height); above that the plush passes over or stands on it.
  */
 export function movePlayer(world: World, state: GameState, player: Player, input: Input): void {
+  if (player.drop) {
+    tossMove(world, state, player, input);
+    return;
+  }
   // Trapped in a bubble: no walking or jumping (knockback still pushes the bubble around).
   const trapped = state.tick < player.bubbledUntil;
   const move = trapped ? { x: 0, y: 0 } : clampLength1(input.moveX, input.moveY);
@@ -150,7 +154,8 @@ function pushOut(player: Player, nx: number, ny: number, depth: number): boolean
  * apart equally. Pairs are visited in id order so the result is deterministic.
  */
 export function separatePlayers(world: World, state: GameState): void {
-  const alive = state.players.filter((p) => p.alive);
+  // Everyone on the blimp shares a spot; they don't push each other.
+  const alive = state.players.filter((p) => p.alive && !p.drop);
   for (let i = 0; i < alive.length; i++) {
     for (let j = i + 1; j < alive.length; j++) {
       const a = alive[i]!;
@@ -220,4 +225,40 @@ export function wading(world: World, player: Pick<Player, 'pos' | 'z'>): boolean
     if (Math.hypot(player.pos.x - pool.center.x, player.pos.y - pool.center.y) < pool.radius) return true;
   }
   return false;
+}
+
+/**
+ * The Toss. Riding: carried along the blimp's line; Jump drops you (everyone left is dropped at
+ * the end of the line). Gliding: steer under your umbrella while you sink; you land on whatever
+ * is below (the lawn, a roof, a wall top) and the match begins for you.
+ */
+function tossMove(world: World, state: GameState, player: Player, input: Input): void {
+  const t = config.toss;
+  if (player.drop === 'riding') {
+    const toss = state.toss;
+    if (toss) {
+      const k = clamp((state.tick - toss.startTick) / Math.max(1, toss.endTick - toss.startTick), 0, 1);
+      player.pos.x = toss.from.x + (toss.to.x - toss.from.x) * k;
+      player.pos.y = toss.from.y + (toss.to.y - toss.from.y) * k;
+    }
+    player.z = t.height;
+    player.vel.x = player.vel.y = player.vz = 0;
+    const pressed = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
+    if (pressed || !toss || state.tick >= toss.endTick) player.drop = 'gliding';
+    return;
+  }
+  const move = clampLength1(input.moveX, input.moveY);
+  player.vel.x += (move.x * t.glideSpeed - player.vel.x) * ACCEL_BLEND;
+  player.vel.y += (move.y * t.glideSpeed - player.vel.y) * ACCEL_BLEND;
+  player.pos.x += player.vel.x * DT;
+  player.pos.y += player.vel.y * DT;
+  player.z -= t.fallSpeed * DT;
+  resolveObstacles(world, state, player);
+  clampToMap(world, player);
+  const floor = groundHeight(world, state, player.pos, player.z);
+  if (player.z <= floor + EPS) {
+    player.z = floor;
+    player.vz = 0;
+    player.drop = null;
+  }
 }

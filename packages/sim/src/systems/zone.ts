@@ -76,7 +76,7 @@ export function updateZone(state: GameState): void {
   }
   z.current = circleAt(z, state.tick);
 
-  for (const p of state.players) if (p.alive) p.soggy = isOutside(z, p.pos);
+  for (const p of state.players) if (p.alive) p.soggy = !p.drop && isOutside(z, p.pos);
 
   // Soggy plushies lose stuffing once per second; buttons don't protect against water.
   if (state.tick % config.tickRate === 0) {

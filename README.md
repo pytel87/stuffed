@@ -72,6 +72,12 @@ common ones, and food crates more healing items. Loot lies on whatever surface i
 within reach of your feet: not the lawn below from a roof. The old 80 x 80 test map
 ([test-map.ts](packages/sim/src/maps/test-map.ts)) stays for the tests.
 
+## The Toss
+
+Every match starts on a toy blimp flying across the yard. Press Jump (Space, or the jump button
+on touch) to drop off and glide down under an umbrella, steering where you want to land. If you
+don't, you're dropped when it reaches the far side.
+
 ## Bots
 
 You play against 15 bots. For the first 20 seconds they only loot (and fight back if hurt).

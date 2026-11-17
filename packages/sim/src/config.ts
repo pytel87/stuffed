@@ -299,6 +299,23 @@ export const config = {
     bushHeight: 1.2,
   },
 
+  /**
+   * The Toss: everyone starts on a toy blimp crossing the yard and drops off when they like,
+   * gliding down under an umbrella.
+   */
+  toss: {
+    /** Blimp height and speed (units/s). */
+    height: 9,
+    speed: 13,
+    /** Half the length of its flight line, centered near the middle of the map. */
+    reach: 72,
+    /** The line passes this close to the map's center, at most. */
+    centerOffset: 16,
+    /** Gliding: steering speed and how fast you sink (units/s). */
+    glideSpeed: 9,
+    fallSpeed: 2.4,
+  },
+
   parts: {
     /**
      * Chance to keep each part you carried (found and worn, or stashed) when you're knocked out,

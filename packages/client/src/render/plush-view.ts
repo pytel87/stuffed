@@ -5,7 +5,7 @@ import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
 import { bodyColor, buildPart, type PartObject } from './placeholder-parts.ts';
 import { PlushArms } from './plush-arms.ts';
-import { OUTLINE_COLOR } from './toon.ts';
+import { OUTLINE_COLOR, toonMaterial } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 /** Where each slot's part attaches, in rig space (+z = facing direction, y = up). */
@@ -101,6 +101,8 @@ export class PlushView {
   /** A soap bubble around the plush while it's trapped. */
   private readonly bubble: THREE.Mesh;
   private bubbleAmount = 0;
+  /** A paper umbrella held up while gliding down from the Toss. */
+  private readonly umbrella: THREE.Group;
   /** The Rubber Band Rifle's aim line while drawing it. */
   private readonly beam: THREE.Mesh;
   /** Pillow Hammer swing in progress (1 → 0). */
@@ -157,6 +159,23 @@ export class PlushView {
     this.bubble.position.y = 0.85;
     this.bubble.visible = false;
     this.root.add(this.bubble);
+
+    // A paper umbrella: a shallow cone of colored panels on a stick.
+    this.umbrella = new THREE.Group();
+    const panels = ['#ff5a5a', '#ffd23a', '#3fa9f5', '#5bd16a', '#ff7ac8', '#fff6ec'];
+    panels.forEach((c, i) => {
+      const panel = new THREE.Mesh(
+        new THREE.ConeGeometry(1.1, 0.5, 6, 1, true, (i / 6) * Math.PI * 2, Math.PI / 3),
+        toonMaterial(c, { map: null, side: THREE.DoubleSide }),
+      );
+      panel.position.y = 2.35;
+      this.umbrella.add(panel);
+    });
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6), toonMaterial('#8e6036', { map: null }));
+    stick.position.y = 1.8;
+    this.umbrella.add(stick);
+    this.umbrella.visible = false;
+    this.squash.add(this.umbrella);
 
     // A thin red line from the band rifle out along the aim, brighter as it's drawn.
     this.beam = new THREE.Mesh(
@@ -231,6 +250,11 @@ export class PlushView {
     if (trapped && !this.bubble.visible) this.bubbleAmount = 0;
     this.bubble.visible = trapped;
     return popped;
+  }
+
+  /** Gliding down from the Toss under an umbrella. */
+  setGliding(gliding: boolean): void {
+    this.umbrella.visible = gliding;
   }
 
   /** How far the band rifle is drawn (0 = not charging). */

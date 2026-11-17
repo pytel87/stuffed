@@ -1125,6 +1125,34 @@ body.touch-mode .prompt .icon.tap {
   color: #8fc3ff;
 }
 
+/* Riding the Toss blimp: press Jump (or the jump button) to drop. */
+#toss-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-b) + var(--edge) + 4.5rem);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem 0.4rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 250, 243, 0.95);
+  border: 3px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+  pointer-events: none;
+  animation: bob 1s ease-in-out infinite;
+  z-index: 7;
+}
+
+#toss-hint[hidden] {
+  display: none;
+}
+
+body.touch-mode #toss-hint {
+  bottom: auto;
+  top: calc(var(--safe-t) + var(--edge) + 4.5rem);
+}
+
 #spectating {
   position: fixed;
   left: 50%;

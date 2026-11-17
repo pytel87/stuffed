@@ -97,6 +97,9 @@ interface Memory {
   burstPauseUntil: number;
   lastHealth: number;
   lastHurtTick: number;
+  /** The Toss: drop off the blimp this far along its line (0..1), and glide toward this spot. */
+  dropAt: number;
+  landing: Vec2 | null;
 }
 
 /** Drives every bot in the match. Keep one per match; it holds each bot's memory. */
@@ -141,6 +144,8 @@ export class BotController {
         burstPauseUntil: 0,
         lastHealth: bot.stuffing + bot.buttons,
         lastHurtTick: -1e9,
+        dropAt: -1,
+        landing: null,
       };
       m.aggression = nextRange(m.rng, BOT.aggression[0], BOT.aggression[1]);
       this.memory.set(bot.id, m);
@@ -161,6 +166,7 @@ export class BotController {
       cycleWeapon: false,
       useItemSlot: -1,
     };
+    if (bot.drop) return this.toss(state, bot, m, input);
     let wantJump = false;
     let goal: Vec2 | null = null;
     const health = bot.stuffing + bot.buttons;
@@ -249,6 +255,40 @@ export class BotController {
       m.jumpHeld = true;
     } else {
       m.jumpHeld = false;
+    }
+    return input;
+  }
+
+  // ---------- the Toss ----------
+
+  /** Ride the blimp to a random point of its line, drop, and glide toward the nearest chest. */
+  private toss(state: GameState, bot: Player, m: Memory, input: Input): Input {
+    if (bot.drop === 'riding') {
+      if (m.dropAt < 0) m.dropAt = nextRange(m.rng, 0.12, 0.88);
+      const t = state.toss;
+      const k = t ? (state.tick - t.startTick) / Math.max(1, t.endTick - t.startTick) : 1;
+      if (k >= m.dropAt && !m.jumpHeld) input.buttons |= Btn.Jump;
+      m.jumpHeld = (input.buttons & Btn.Jump) !== 0;
+      return input;
+    }
+    if (!m.landing) {
+      let best: Vec2 | null = null;
+      let bestD = 28;
+      for (const c of state.chests) {
+        const d = dist(bot.pos, c.pos);
+        if (!c.opened && d < bestD) {
+          best = c.pos;
+          bestD = d;
+        }
+      }
+      m.landing = best ?? { ...bot.pos };
+    }
+    const dx = m.landing.x - bot.pos.x;
+    const dy = m.landing.y - bot.pos.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 0.8) {
+      input.moveX = dx / d;
+      input.moveY = dy / d;
     }
     return input;
   }

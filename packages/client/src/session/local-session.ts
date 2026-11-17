@@ -45,7 +45,7 @@ export class LocalSession implements GameSession {
       ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: look, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
-    this.state = createGame({ seed, map, roster, zoneTimeScale });
+    this.state = createGame({ seed, map, roster, zoneTimeScale, toss: true });
     this.bots = new BotController(seed);
     this.prev = structuredClone(this.state);
     this.localPlayerId = watchOnly ? -1 : this.state.players[0]!.id;
