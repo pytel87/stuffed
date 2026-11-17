@@ -340,8 +340,9 @@ function penguinHead(outline: string): PartObject {
   beak.rotation.x = Math.PI / 2;
   beak.position.set(0, -0.06, 0.48);
   g.add(beak);
-  eye(g, -0.15, 0.08);
-  eye(g, 0.15, 0.08);
+  // Eyes sit on the white face patch, not under it.
+  eye(g, -0.13, 0.07, 0.065, 0.42);
+  eye(g, 0.13, 0.07, 0.065, 0.42);
   return g;
 }
 
@@ -360,10 +361,14 @@ function penguinBody(outline: string): PartObject {
 }
 
 function penguinLegs(outline: string): PartObject {
-  return pairOfLegs(0.16, 0.24, (hip) => {
+  return pairOfLegs(0.16, 0.34, (hip) => {
+    // Short dark legs down to big orange feet.
+    const leg = toonMesh(new THREE.CylinderGeometry(0.08, 0.09, 0.22, 12), PEN.main, { outlineColor: outline });
+    leg.position.y = -0.14;
+    hip.add(leg);
     const foot = toonMesh(sphere(0.13, 14, 10), '#f7a531', { outlineColor: outline });
     foot.scale.set(1.1, 0.35, 1.6);
-    foot.position.set(0, -0.2, 0.1);
+    foot.position.set(0, -0.29, 0.1);
     hip.add(foot);
   });
 }
