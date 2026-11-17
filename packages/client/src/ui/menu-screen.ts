@@ -27,10 +27,10 @@ export class MenuScreen {
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
              <button type="button" class="round menu-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
            </div>
-           ${botLevelHtml()}
            <div class="row">
              <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
              <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
+             ${botLevelHtml()}
            </div>
            <form class="row menu-join">
              <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Room code"></label>

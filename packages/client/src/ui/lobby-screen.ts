@@ -11,7 +11,6 @@ export class LobbyScreen {
   private readonly share: HTMLButtonElement;
   private readonly list: HTMLElement;
   private readonly botsRow: HTMLElement;
-  private readonly levelRow: HTMLElement;
   private readonly botCount: HTMLElement;
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
@@ -45,9 +44,9 @@ export class LobbyScreen {
              <b class="bot-count"></b>
              <button type="button" class="round lobby-more" aria-label="More bots">+</button>
              <span class="divider" aria-hidden="true"></span>
+             ${botLevelHtml()}
              <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
-           ${botLevelHtml()}
            <p class="status"></p>
            <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
          </div>
@@ -59,8 +58,7 @@ export class LobbyScreen {
     this.share = q('.lobby-share');
     this.list = q('.chips');
     this.botsRow = q('.bots');
-    this.levelRow = q('.bot-level');
-    bindBotLevel(this.levelRow);
+    bindBotLevel(q<HTMLButtonElement>('.bot-level'));
     this.botCount = q('.bot-count');
     this.start = q('.lobby-start');
     this.status = q('.status');
@@ -73,7 +71,8 @@ export class LobbyScreen {
       // storage blocked: keep the default
     }
     this.teamToggle.setAttribute('aria-pressed', String(this.wantedTeams));
-    this.teamToggle.addEventListener('click', () => {
+    this.teamToggle.addEventListener('click', (e) => {
+      if (e.detail > 0) this.teamToggle.blur();
       this.wantedTeams = !this.wantedTeams;
       this.teamToggle.setAttribute('aria-pressed', String(this.wantedTeams));
       try {
@@ -139,7 +138,6 @@ export class LobbyScreen {
       .map((s) => `<li class="${s.seat === c.seat ? 'me' : ''} ${s.connected ? '' : 'away'}">${icon(s.host ? 'crown' : 'person')}<span>${escapeHtml(s.name)}</span></li>`)
       .join('');
     this.botsRow.hidden = !c.isHost;
-    this.levelRow.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
     this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? 'Full' : c.isHost ? '' : 'Waiting for host…';
   }

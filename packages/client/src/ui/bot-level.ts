@@ -1,4 +1,4 @@
-// How tough the bots are: three buttons (one, two or three bars), remembered on this device.
+// How tough the bots are: one button cycling one, two or three bars, remembered on this device.
 // Shown on the title menu (solo) and in a room's lobby (the host's choice).
 import { BOT_LEVELS } from '@stuffed/sim';
 import type { BotLevel } from '@stuffed/sim';
@@ -16,29 +16,32 @@ export function savedBotLevel(): BotLevel {
   return 'normal';
 }
 
-/** The row's HTML: a bot and the three levels. */
+const LABELS: Record<BotLevel, string> = { easy: 'Easy bots', normal: 'Normal bots', hard: 'Hard bots' };
+
+/** One round button showing the level (one, two or three bars); a tap moves to the next. */
 export function botLevelHtml(): string {
-  const labels: Record<BotLevel, string> = { easy: 'Easy bots', normal: 'Normal bots', hard: 'Hard bots' };
-  return `<div class="bot-level" role="group" aria-label="Bot difficulty">${icon('bot')}${BOT_LEVELS.map(
-    (l) => `<button type="button" class="round level" data-level="${l}" aria-label="${labels[l]}">${icon(`level-${l}`)}</button>`,
-  ).join('')}</div>`;
+  return `<button type="button" class="round bot-level" aria-label="Bot difficulty"></button>`;
 }
 
-/** Wires a row made by botLevelHtml(); `onChange` hears the new level. */
-export function bindBotLevel(row: HTMLElement, onChange: (level: BotLevel) => void = () => {}): void {
-  const buttons = [...row.querySelectorAll<HTMLButtonElement>('.level')];
-  const show = (level: BotLevel) => buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.level === level)));
-  show(savedBotLevel());
-  for (const b of buttons) {
-    b.addEventListener('click', () => {
-      const level = b.dataset.level as BotLevel;
-      try {
-        localStorage.setItem(KEY, level);
-      } catch {
-        // not remembered; fine
-      }
-      show(level);
-      onChange(level);
-    });
-  }
+/** Wires a button made by botLevelHtml(); `onChange` hears the new level. */
+export function bindBotLevel(button: HTMLButtonElement, onChange: (level: BotLevel) => void = () => {}): void {
+  let level = savedBotLevel();
+  const show = () => {
+    button.innerHTML = icon(`level-${level}`);
+    button.dataset.level = level;
+    button.setAttribute('aria-label', LABELS[level]);
+  };
+  show();
+  button.addEventListener('click', (e) => {
+    // A tap or click (not the keyboard): no lingering focus ring.
+    if (e.detail > 0) button.blur();
+    level = BOT_LEVELS[(BOT_LEVELS.indexOf(level) + 1) % BOT_LEVELS.length]!;
+    try {
+      localStorage.setItem(KEY, level);
+    } catch {
+      // not remembered; fine
+    }
+    show();
+    onChange(level);
+  });
 }
