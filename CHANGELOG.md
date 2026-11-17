@@ -18,6 +18,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Spectating: a house button next to the switcher goes back to the menu.
 - Shots fired indoors no longer climb toward the roof overhead (aiming took the roof as the
   surface to aim above); they stay level unless the aimed-at spot is outside or up on something.
+- Beach balls by the pool are round and bouncy: run into one and you're bounced back with a
+  boing while the ball squashes and wobbles (gentle bumps just slide around it).
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 

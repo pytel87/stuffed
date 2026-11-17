@@ -482,6 +482,8 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       const ballMesh = toonMesh(new THREE.SphereGeometry(r, 24, 16), '#ffffff', { outline: 0.04, material: toonMaterial('#ffffff', { map: stripeTexture() }) });
       ballMesh.rotation.z = 0.5 + index;
       add(ballMesh, r);
+      // The renderer squashes it when a plush bounces off (see GameRenderer.balls).
+      g.userData.bouncy = { mesh: ballMesh, radius: r };
       break;
     }
     case 'basket': {

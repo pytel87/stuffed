@@ -223,3 +223,31 @@ describe('projectiles', () => {
     expect(sweepCircle(0, 0, 0, 0, 0.2, 0, 0.5)).toBe(0);
   });
 });
+
+describe('beach balls', () => {
+  const pool = { ...OPEN_MAP, id: 'pool', walls: [{ x: 29.2, y: 39.2, w: 1.6, h: 1.6, height: 1.6, kind: 'ball' as const }] };
+
+  it('bounce back a plush that runs into one, with a boing', () => {
+    const { world, state } = newGame(1, 2, pool);
+    const a = state.players[0]!;
+    a.pos = { x: 26, y: 40 };
+    let bounced = false;
+    for (let i = 0; i < 30 && !bounced; i++) {
+      run(world, state, 1, (id) => (id === a.id ? input({ moveX: 1 }) : idle));
+      bounced = state.events.some((e) => e.type === 'ballBounce' && e.playerId === a.id);
+    }
+    expect(bounced).toBe(true);
+    // Knocked back away from the ball (toward -x; it fades a little the same tick), never inside it.
+    expect(a.knockback.x).toBeLessThan(-config.beachBall.bounce * 0.6);
+    expect(Math.hypot(a.pos.x - 30, a.pos.y - 40)).toBeGreaterThanOrEqual(a.radius + 0.8 - 1e-6);
+  });
+
+  it('are round: a plush can slide around one instead of catching on a corner', () => {
+    const { world, state } = newGame(1, 2, pool);
+    const a = state.players[0]!;
+    // Just off the ball's corner diagonal, walking slowly enough not to bounce.
+    a.pos = { x: 28.9, y: 38.9 };
+    run(world, state, 1, (id) => (id === a.id ? idle : idle));
+    expect(Math.hypot(a.pos.x - 30, a.pos.y - 40)).toBeGreaterThanOrEqual(a.radius + 0.8 - 1e-6);
+  });
+});

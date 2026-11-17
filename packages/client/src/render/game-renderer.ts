@@ -55,6 +55,8 @@ export class GameRenderer {
   /** Set trails: distance walked since the last print, and how many prints so far. */
   private readonly trailWalked = new Map<EntityId, number>();
   private readonly trailSteps = new Map<EntityId, number>();
+  /** Beach balls: squash and wobble for a moment when a plush bounces off one. */
+  private readonly balls: { x: number; z: number; mesh: THREE.Object3D; radius: number; wobble: number }[] = [];
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
@@ -103,6 +105,10 @@ export class GameRenderer {
     this.scene.add(buildMapView(map));
     const obstacles = buildObstacles(map);
     this.scene.add(obstacles.root);
+    obstacles.root.traverse((o) => {
+      const b = o.userData.bouncy as { mesh: THREE.Object3D; radius: number } | undefined;
+      if (b) this.balls.push({ x: o.position.x, z: o.position.z, mesh: b.mesh, radius: b.radius, wobble: 0 });
+    });
     this.bushes = obstacles.bushes;
     this.roofs = obstacles.roofs;
     this.rinse = new RinseView(map);
@@ -182,6 +188,11 @@ export class GameRenderer {
           if (e.damage > 0) this.effects.stuffingHit(target.pos.x, target.pos.y, dx, dz, e.damage);
           if (e.armorDamage > 0) this.effects.armorHit(target.pos.x, target.pos.y, dx, dz, e.armorDamage);
           if (source?.weapons[source.activeSlot]?.kind === 'super_soaker') this.effects.splash(target.pos.x, target.pos.y);
+          break;
+        }
+        case 'ballBounce': {
+          const ball = this.balls.find((b) => Math.hypot(b.x - e.pos.x, b.z - e.pos.y) < 0.5);
+          if (ball) ball.wobble = 1;
           break;
         }
         case 'chestOpened': {
@@ -402,6 +413,14 @@ export class GameRenderer {
     for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
+    for (const b of this.balls) {
+      if (b.wobble <= 0) continue;
+      b.wobble = Math.max(0, b.wobble - opts.dt * 1.6);
+      // A squash that springs back and wobbles out, staying on the ground.
+      const k = 0.28 * b.wobble * Math.cos((1 - b.wobble) * 22);
+      b.mesh.scale.set(1 + k * 0.6, 1 - k, 1 + k * 0.6);
+      b.mesh.position.y = b.radius * (1 - k);
+    }
     this.rinse.update(curr.zone, opts.time, this.followPos);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);

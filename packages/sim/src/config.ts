@@ -374,6 +374,14 @@ export const config = {
     } satisfies Record<ItemKind, number>,
   },
 
+  /** Beach balls on the map: round, and they bounce back a plush that runs into them. */
+  beachBall: {
+    /** Speed (units/s) a plush is bounced away at. */
+    bounce: 9,
+    /** Slower bumps (units/s toward the ball) just push, without a bounce. */
+    minImpact: 2,
+  },
+
   loot: {
     /** Items are picked up by walking within this distance. */
     itemPickupRadius: 1,

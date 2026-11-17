@@ -2,7 +2,7 @@ import { config, DT } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
 import { Btn } from '../types.ts';
-import type { GameState, Input, Player, Vec2 } from '../types.ts';
+import type { GameState, Input, Player, Vec2, Wall } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
@@ -123,6 +123,10 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     let moved = false;
     for (const wall of wallsNear(world, x - r, y - r, x + r, y + r)) {
       if (wall.height <= feet) continue;
+      if (wall.kind === 'ball') {
+        moved = bounceOffBall(state, player, wall) || moved;
+        continue;
+      }
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
@@ -139,6 +143,29 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     }
     if (!moved) return;
   }
+}
+
+/** A beach ball is round; running into it bounces the plush back (with a boing). */
+function bounceOffBall(state: GameState, player: Player, ball: Wall): boolean {
+  const cx = ball.x + ball.w / 2;
+  const cy = ball.y + ball.h / 2;
+  const min = player.radius + Math.min(ball.w, ball.h) / 2;
+  const dx = player.pos.x - cx;
+  const dy = player.pos.y - cy;
+  const d2 = dx * dx + dy * dy;
+  if (d2 >= min * min) return false;
+  const d = Math.sqrt(d2);
+  const nx = d < 1e-9 ? 0 : dx / d;
+  const ny = d < 1e-9 ? 1 : dy / d;
+  // How fast the plush was heading into the ball.
+  const impact = -((player.vel.x + player.knockback.x) * nx + (player.vel.y + player.knockback.y) * ny);
+  pushOut(player, nx, ny, min - d);
+  if (impact >= config.beachBall.minImpact) {
+    player.knockback.x = nx * config.beachBall.bounce;
+    player.knockback.y = ny * config.beachBall.bounce;
+    state.events.push({ type: 'ballBounce', playerId: player.id, pos: { x: cx, y: cy } });
+  }
+  return true;
 }
 
 function pushOut(player: Player, nx: number, ny: number, depth: number): boolean {

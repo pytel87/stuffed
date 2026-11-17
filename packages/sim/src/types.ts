@@ -258,6 +258,8 @@ export type GameEvent =
   | { type: 'burst'; pos: Vec2; z: number; weapon: WeaponKind; radius: number }
   /** A marble bounced off a wall. */
   | { type: 'bounce'; pos: Vec2 }
+  /** A plush ran into a beach ball and got bounced back (`pos`: the ball's center). */
+  | { type: 'ballBounce'; playerId: EntityId; pos: Vec2 }
   /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
   | { type: 'bonk'; playerId: EntityId; targetId: EntityId }
   /** Dropped something on purpose. */
