@@ -7,6 +7,8 @@ export interface EndView {
   stats: [label: string, value: string][];
   /** Offer to keep watching (only while the match is still going). */
   canSpectate: boolean;
+  /** Online, only the host can start the next match; others see this instead. */
+  waitingForHost?: boolean;
 }
 
 /** The win/lose card: placement, stats, Play again (Enter) and Spectate. */
@@ -63,8 +65,11 @@ export class EndScreen {
       }),
     );
     this.spectate.hidden = !view.canSpectate;
+    const again = this.el.querySelector<HTMLButtonElement>('.end-again')!;
+    again.disabled = !!view.waitingForHost;
+    again.innerHTML = view.waitingForHost ? 'Waiting for host…' : 'Play again <kbd>Enter</kbd>';
     this.el.hidden = false;
-    this.el.querySelector<HTMLButtonElement>('.end-again')!.focus();
+    (view.waitingForHost ? this.spectate : again).focus();
   }
 
   hide(): void {

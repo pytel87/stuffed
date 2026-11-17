@@ -18,6 +18,7 @@ export interface LocalSessionOptions {
 export class LocalSession implements GameSession {
   readonly map: MapData;
   readonly localPlayerId: EntityId;
+  readonly ready = true;
   private readonly world: World;
   private state: GameState;
   private prev: GameState;

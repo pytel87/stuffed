@@ -4,11 +4,13 @@
   "type": "module",
   "packageManager": "pnpm@10.26.1",
   "scripts": {
-    "dev": "pnpm --filter @stuffed/client dev",
+    "dev": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev",
     "build": "pnpm --filter @stuffed/client build",
     "test": "pnpm --filter @stuffed/sim test",
     "typecheck": "pnpm -r typecheck",
-    "sfx": "node tools/generate-sfx.mjs"
+    "sfx": "node tools/generate-sfx.mjs",
+    "dev:lan": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev:lan",
+    "dev:solo": "pnpm --filter @stuffed/client dev"
   },
   "devDependencies": {
     "typescript": "7.0.2",

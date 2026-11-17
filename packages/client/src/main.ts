@@ -1,15 +1,19 @@
 import './style.css';
 import { config, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
+import { parseRoomCode } from '@stuffed/sim/net';
 import type { EntityId, GameState, Player, Rarity, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { GameRenderer } from './render/game-renderer.ts';
 import { LocalSession } from './session/local-session.ts';
+import { createRoom, RoomClient } from './session/room-client.ts';
+import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
 import { EndScreen, type EndView } from './ui/end-screen.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Hud } from './ui/hud.ts';
+import { LobbyScreen } from './ui/lobby-screen.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -24,9 +28,13 @@ const zoneTimeScale = Number(params.get('zonescale')) || 1;
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs (first match only).
 let seed = Number(params.get('seed')) || Date.now() >>> 0;
 
-const newSession = () => new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}) });
-let session = newSession();
-const renderer = new GameRenderer(canvas, session.map);
+const newSolo = () => new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}) });
+/** The match being shown: solo (in the browser) or online (from the server). */
+let session: GameSession | null = null;
+/** Set when playing online. */
+let room: RoomClient | null = null;
+let lobbyScreen: LobbyScreen | null = null;
+const renderer = new GameRenderer(canvas, newSolo().map);
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
 const hud = new Hud(hudEl);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
@@ -37,7 +45,7 @@ const audio = new GameAudio(sound);
 
 /** playing → out (card shown) → spectating (card hidden) → over (match ended), or playing → won. */
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
-let followId: EntityId = session.localPlayerId;
+let followId: EntityId = -1;
 /** Who knocked you out and with what, captured when it happened. */
 let knockedOutBy = '';
 
@@ -47,23 +55,62 @@ let me: Player | undefined;
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
-  // A focused button (Play again / Spectate) handles its own Enter.
-  if (e.code === 'Enter' && phase !== 'playing' && !(document.activeElement instanceof HTMLButtonElement)) playAgain();
+  // A focused button (Play again / Spectate / Start) handles its own Enter.
+  if (e.code !== 'Enter' || document.activeElement instanceof HTMLButtonElement) return;
+  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots);
+  else if (phase !== 'playing') playAgain();
 });
 
-function playAgain(): void {
-  sound.play('click', { pitchSpread: 0 });
+/** Shows a new match, solo or online. */
+function beginMatch(next: GameSession): void {
+  session = next;
+  hudEl.classList.remove('idle');
   audio.reset();
-  seed = (seed * 1664525 + 1013904223) >>> 0;
-  session = newSession();
   renderer.reset();
   endScreen.hide();
-  phase = 'playing';
-  followId = session.localPlayerId;
+  lobbyScreen?.hide();
   knockedOutBy = '';
   me = undefined;
   hudEl.classList.remove('out');
-  spectateEl.hidden = true;
+  const watching = next.localPlayerId === -1;
+  phase = watching ? 'spectating' : 'playing';
+  followId = next.localPlayerId;
+  spectateEl.hidden = !watching;
+}
+
+function playAgain(): void {
+  sound.play('click', { pitchSpread: 0 });
+  if (room) {
+    if (room.isHost) room.start(lobbyScreen?.bots ?? 7);
+    return;
+  }
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  beginMatch(newSolo());
+}
+
+/** Online: connect to a room, show its lobby, and switch to each match the host starts. */
+function joinRoom(code: string): void {
+  hudEl.classList.add('idle');
+  room = new RoomClient(code, playerName(), input);
+  lobbyScreen = new LobbyScreen(document.body, room);
+  lobbyScreen.show();
+  room.onLobby = () => {
+    if (!room || !lobbyScreen) return;
+    if (room.lobby?.phase === 'lobby' && !room.match) lobbyScreen.show();
+    else lobbyScreen.render();
+  };
+  room.onMatch = (match) => beginMatch(match);
+}
+
+function playerName(): string {
+  const fromUrl = params.get('name');
+  try {
+    const name = fromUrl ?? localStorage.getItem('stuffed.name') ?? `Plush ${100 + Math.floor(Math.random() * 900)}`;
+    localStorage.setItem('stuffed.name', name);
+    return name;
+  } catch {
+    return fromUrl ?? 'Plush';
+  }
 }
 
 function spectate(): void {
@@ -95,7 +142,15 @@ function frame(now: number): void {
     }
   }
 
+  if (!session) {
+    requestAnimationFrame(frame);
+    return;
+  }
   session.advance(dt);
+  if (!session.ready) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const f = session.frame();
   const state = f.curr;
   const events = session.takeEvents();
@@ -111,7 +166,8 @@ function frame(now: number): void {
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(state, e.byId);
   }
 
-  me = state.players.find((p) => p.id === session.localPlayerId);
+  const localId = session.localPlayerId;
+  me = state.players.find((p) => p.id === localId);
   updatePhase(state);
   sound.listener.x = renderer.cameraFocus.x;
   sound.listener.y = renderer.cameraFocus.y;
@@ -150,14 +206,34 @@ function frame(now: number): void {
 
 /** Moves between playing, knocked out, spectating and the end of the match. */
 function updatePhase(state: GameState): void {
-  if (!me) return;
   const total = state.players.length;
+  if (!me) {
+    // Watching a match you're not in: keep following someone; show the result at the end.
+    if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
+    const watched = state.players.find((p) => p.id === followId);
+    spectateEl.textContent = `Watching ${watched?.name ?? '…'} · ${state.players.filter((p) => p.alive).length} left`;
+    if (phase !== 'over' && state.status === 'ended') {
+      phase = 'over';
+      spectateEl.hidden = true;
+      const winner = state.players.find((p) => p.id === state.winnerId);
+      endScreen.show({
+        tone: 'lose',
+        title: 'Match over',
+        subtitle: winner ? `${winner.name} is the last plush standing.` : 'Nobody made it.',
+        placement: `${total} plushies`,
+        stats: [],
+        canSpectate: false,
+        waitingForHost: !!room && !room.isHost,
+      });
+    }
+    return;
+  }
 
   if (phase === 'playing' && state.status === 'ended' && state.winnerId === me.id) {
     phase = 'over';
     renderer.celebrate(me.id, state);
     sound.play('win', { pitchSpread: 0 });
-    endScreen.show(resultView(state, me, 'win', 'Last plush standing!', `You outlasted ${total - 1} other plushies.`, false));
+    endScreen.show({ ...resultView(state, me, 'win', 'Last plush standing!', `You outlasted ${total - 1} other plushies.`, false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -175,7 +251,7 @@ function updatePhase(state: GameState): void {
     spectateEl.hidden = true;
     const winner = state.players.find((p) => p.id === state.winnerId);
     const subtitle = winner ? `${winner.name} is the last plush standing. ${knockedOutBy}` : `Nobody made it. ${knockedOutBy}`;
-    endScreen.show(resultView(state, me, 'lose', 'Match over', subtitle, false));
+    endScreen.show({ ...resultView(state, me, 'lose', 'Match over', subtitle, false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -230,7 +306,7 @@ function nextAlive(state: GameState, near: { x: number; y: number }): EntityId {
       bestD = d;
     }
   }
-  return best?.id ?? session.localPlayerId;
+  return best?.id ?? -1;
 }
 
 function clock(seconds: number): string {
@@ -254,6 +330,24 @@ function loadoutFromUrl(): WeaponSpec[] | undefined {
       kind: kind as WeaponKind,
       rarity: Math.min(4, Math.max(0, Number(rarity) || 0)) as Rarity,
     }));
+}
+
+// ?room=CODE joins an online room; ?online creates one; otherwise play solo against bots.
+const roomCode = parseRoomCode(params.get('room') ?? '');
+if (roomCode) {
+  joinRoom(roomCode);
+} else if (params.has('online')) {
+  createRoom()
+    .then((code) => {
+      history.replaceState(null, '', `?room=${code}`);
+      joinRoom(code);
+    })
+    .catch((err: unknown) => {
+      spectateEl.hidden = false;
+      spectateEl.textContent = `Couldn't reach the game server: ${err instanceof Error ? err.message : String(err)}`;
+    });
+} else {
+  beginMatch(newSolo());
 }
 
 requestAnimationFrame(frame);

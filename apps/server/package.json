@@ -3,5 +3,19 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Colyseus authoritative server. Placeholder until roadmap step 2 (Online brawl)."
+  "description": "Authoritative game server: a Cloudflare Worker with one Durable Object per room.",
+  "scripts": {
+    "dev": "wrangler dev --port 1999",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json",
+    "cf-typegen": "wrangler types --strict-vars=false",
+    "dev:lan": "wrangler dev --port 1999 --ip 0.0.0.0"
+  },
+  "dependencies": {
+    "@stuffed/sim": "workspace:*",
+    "partyserver": "0.5.10"
+  },
+  "devDependencies": {
+    "wrangler": "4.164.0"
+  }
 }

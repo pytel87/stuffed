@@ -15,7 +15,16 @@ Needs Node 22.12+ (or 20.19+) and pnpm 10.
 pnpm i && pnpm dev
 ```
 
-Then open the URL Vite prints (usually http://localhost:5173).
+This starts the game client (Vite, usually http://localhost:5173) and the game server
+(Cloudflare Worker via `wrangler dev` on port 1999). Then:
+
+- **Solo:** open http://localhost:5173 and play against 15 bots in your browser.
+- **Online:** open http://localhost:5173/?online to create a room, share the link it shows
+  (`?room=CODE`), and the host presses Start. Bots fill the room up to 10 plushies.
+- **Other computers at home:** run `pnpm dev:lan` and open the client from the other machine
+  with this computer's local IP (e.g. http://192.168.1.20:5173/?room=CODE).
+
+`pnpm dev:solo` runs only the client.
 
 | Command | What it does |
 | --- | --- |
@@ -79,7 +88,7 @@ seed), and `?zonescale=0.1` to run the Rinse 10x faster. Parameters combine:
 ```
 packages/sim      Pure, deterministic game simulation. No DOM, no rendering, no Math.random.
 packages/client   three.js renderer (toon shader), input, UI. Reads sim state, sends inputs.
-apps/server       Placeholder for the Colyseus authoritative server (roadmap step 2).
+apps/server       Authoritative game server: Cloudflare Worker + one Durable Object per room.
 ```
 
 ### How the pieces fit
@@ -89,10 +98,14 @@ apps/server       Placeholder for the Colyseus authoritative server (roadmap ste
   data that never changes during a match. Randomness comes from a seeded sfc32 RNG whose state
   lives inside `GameState`, so the same seed and inputs always produce the same game.
 - **Tuning**: every gameplay number is in [packages/sim/src/config.ts](packages/sim/src/config.ts).
-- **Client**: talks only to a `GameSession` (`advance`, `frame`). Today that is
-  `LocalSession`, which runs the sim in the browser. In step 2 a Colyseus-backed session
-  implements the same interface. The renderer draws between the last two ticks
-  (interpolation), so motion is smooth at any frame rate.
+- **Client**: talks only to a `GameSession` (`advance`, `frame`). `LocalSession` runs the sim
+  in the browser (solo); `NetworkMatch` plays a match from the server. Either way the renderer
+  draws between two states (interpolation), so motion is smooth at any frame rate.
+- **Server** ([apps/server](apps/server)): a Cloudflare Worker routes `/parties/room/CODE`
+  sockets (partyserver) to that room's Durable Object. The room runs the same `step()` at 30 Hz
+  with everyone's inputs and the bots, and sends each player a snapshot of what their plush
+  can see 15 times a second. Messages are in
+  [packages/sim/src/net/protocol.ts](packages/sim/src/net/protocol.ts).
 - **Plush rig**: each player is one rig with 5 part sockets (head, body, legs, tail,
   accessory). Placeholder parts are built in code in
   [placeholder-parts.ts](packages/client/src/render/placeholder-parts.ts); real models replace

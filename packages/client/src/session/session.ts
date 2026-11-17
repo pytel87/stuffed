@@ -18,7 +18,10 @@ export interface RenderFrame {
  */
 export interface GameSession {
   readonly map: MapData;
+  /** Your plush, or -1 when you only watch. */
   readonly localPlayerId: EntityId;
+  /** False until there is something to draw (a network match waits for its first snapshot). */
+  readonly ready: boolean;
   /** Advance real time; runs as many fixed sim ticks as are due. */
   advance(dtSeconds: number): void;
   frame(): RenderFrame;

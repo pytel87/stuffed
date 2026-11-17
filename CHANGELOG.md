@@ -2,6 +2,26 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 2.1: Online rooms on Cloudflare (2026-11-17)
+
+- Game server in `apps/server`: a Cloudflare Worker with one Durable Object per room
+  (partyserver), modeled on partyhub's room server. `POST /create` hands out a free 4-letter
+  room code; sockets connect at `/parties/room/CODE`; optional origin allow-list.
+- Rooms: up to 10 plushies. Seats are kept per tab across reconnects; the first connected
+  seat is host. The host picks how many bots fill the room and starts the match; after a
+  match the host starts the next one. Late joiners watch.
+- The room runs the sim at 30 Hz with a catch-up loop, one input per player per tick (a short
+  queue; late inputs repeat what was held; after half a second without input a player stands
+  still), and the bots. Every 2 ticks each player gets a snapshot with only the plushies
+  their plush can see, plus the events since the last one. Floats are rounded in JSON.
+- Shared protocol in `@stuffed/sim/net`.
+- Client: `?online` creates a room, `?room=CODE` joins one, plain URL is solo. Lobby card
+  with the invite link, players, host badge, bot count and Start. `NetworkMatch` draws about
+  130 ms behind the newest snapshot, interpolating between snapshots, and sends inputs at
+  30 Hz. End-of-match card shows "Waiting for host…" for non-hosts.
+- `pnpm dev` runs client and server together; `pnpm dev:lan` exposes both on the home network.
+- Your own plush still moves only when the server says so; client prediction is next.
+
 ## Sound effects (2026-11-17)
 
 - 23 sound effects generated with the ElevenLabs sound-generation API from prompts in
