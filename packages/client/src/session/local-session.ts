@@ -1,5 +1,5 @@
-import { createGame, createWorld, DT, DEFAULT_PARTS, step, TEST_MAP } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, Input, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
+import { BotController, createGame, createWorld, DT, DEFAULT_PARTS, step, TEST_MAP } from '@stuffed/sim';
+import type { EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
 /** Longest real-time gap simulated in one frame; longer stalls (tab switch) are dropped. */
@@ -23,6 +23,8 @@ export class LocalSession implements GameSession {
   private prev: GameState;
   private accumulator = 0;
   private events: GameEvent[] = [];
+  /** Bots run here in single player; on the server in step 2. */
+  private readonly bots: BotController;
 
   constructor(
     private readonly input: InputSource,
@@ -35,6 +37,7 @@ export class LocalSession implements GameSession {
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale });
+    this.bots = new BotController(seed);
     this.prev = structuredClone(this.state);
     this.localPlayerId = this.state.players[0]!.id;
   }
@@ -43,7 +46,8 @@ export class LocalSession implements GameSession {
     this.accumulator += Math.min(dtSeconds, MAX_FRAME_SECONDS);
     while (this.accumulator >= DT) {
       this.prev = structuredClone(this.state);
-      const inputs = new Map<EntityId, Input>([[this.localPlayerId, this.input.sample()]]);
+      const inputs = this.bots.inputs(this.world, this.state);
+      inputs.set(this.localPlayerId, this.input.sample());
       step(this.world, this.state, inputs);
       this.events.push(...this.state.events);
       this.accumulator -= DT;

@@ -23,6 +23,14 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | `pnpm typecheck` | Strict TypeScript check of every package |
 | `pnpm build` | Production build of the client into `packages/client/dist` |
 
+## Bots
+
+You play against 15 bots. They loot chests, pick up better weapons, heal when hurt, stay
+ahead of the Rinse, jump low obstacles, and fight what they can see (with reaction time,
+imperfect aim and bursts). Their brain is in
+[packages/sim/src/bots/brain.ts](packages/sim/src/bots/brain.ts); tuning knobs are in `BOT`
+at its top. Bots only produce `Input`s, the same as a player, so the server can run them too.
+
 ## Controls
 
 | Action | Key |

@@ -2,6 +2,24 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.6: Bots (2026-11-17)
+
+- `BotController` in the sim: bots are input producers, deterministic with a per-bot seeded
+  RNG, so the server can run them unchanged.
+- Behavior: loot first (chests, better weapons, items they have room for), heal when hurt
+  and calm, head back inside when the Rinse is close, wander inside the circle otherwise.
+  Fight anyone within 6 units, anyone who just hurt them, and farther targets only when well
+  armed (scaled by a per-bot aggression); stick with a fight while the target stays visible;
+  keep a preferred distance per weapon, strafe, hop now and then, retreat to heal when low.
+  Aim with reaction time, partial leading and wobble; fire in bursts.
+- Movement: steer around tall walls, jump low ones, detour when stuck.
+- Test map: spawns spread to two rings (about 15+ units apart).
+- An all-bot 16-player match now lasts about 1.5 to 2 minutes on the test map.
+- HUD: no pickup prompt or progress bar after you're knocked out.
+- Tests: determinism, looting, no getting stuck, shooting close enemies, ignoring far ones
+  with only the starter weapon, ignoring hidden enemies, returning to the circle, a full
+  match to one winner.
+
 ## Fix: shots from the roof (2026-11-17)
 
 - Roofs are now floors and ceilings for shots: a shot fired from a roof skims it, clears

@@ -114,7 +114,7 @@ export class Hud {
       this.set(`icolor${i}`, color, (v) => s.root.style.setProperty('--rarity', v));
     });
 
-    const action = me.action;
+    const action = me.alive ? me.action : null;
     if (action) {
       const label = action.kind === 'openChest' ? 'Opening toy box' : `Using ${config.items[action.item].name}`;
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
@@ -123,7 +123,7 @@ export class Hud {
     }
     this.set('pshow', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
 
-    const interaction = action ? null : findInteraction(state, me);
+    const interaction = action || !me.alive ? null : findInteraction(state, me);
     let prompt = '';
     let promptColor = '#ffffff';
     if (interaction?.kind === 'weapon' && interaction.loot.content.type === 'weapon') {

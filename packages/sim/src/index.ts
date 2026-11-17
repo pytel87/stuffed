@@ -17,4 +17,5 @@ export { makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems
 export { sweepCircle } from './systems/projectiles.ts';
 export type { WeaponStats, RarityStats, ItemStats } from './config.ts';
 export { TEST_MAP } from './maps/test-map.ts';
+export { BotController, BOT } from './bots/brain.ts';
 export * as rng from './rng.ts';

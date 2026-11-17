@@ -6,10 +6,10 @@ import type { Building, Circle, MapData, Vec2, Wall } from '../types.ts';
 const SIZE = 80;
 const C = SIZE / 2;
 
-function ringSpawns(count: number, radius: number): Vec2[] {
+function ringSpawns(count: number, radius: number, offsetDegrees = 0): Vec2[] {
   const spawns: Vec2[] = [];
   for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2;
+    const a = (i / count) * Math.PI * 2 + (offsetDegrees * Math.PI) / 180;
     spawns.push({ x: C + Math.cos(a) * radius, y: C + Math.sin(a) * radius });
   }
   return spawns;
@@ -56,7 +56,8 @@ export const TEST_MAP: MapData = {
   bushes: [bush(30, 30), bush(50, 30), bush(30, 50), bush(50, 50), bush(18, 48), bush(62, 32), bush(48, 62), bush(32, 18)],
   /** The room's roof covers its walls and floor, level with the wall tops. */
   buildings: [roofed(33, 33, 14, 14, 1.4)],
-  spawns: [...ringSpawns(12, 28), ...ringSpawns(6, 12)],
+  /** Two rings, about 15+ apart, threaded between the walls and chests. */
+  spawns: [...ringSpawns(12, 33), ...ringSpawns(6, 18, 15)],
   chestSpawns: [
     [36.5, 36.5], [43.5, 43.5], // inside the room
     [17, 17], [63, 17], [17, 63], [63, 63], // in the book corners
