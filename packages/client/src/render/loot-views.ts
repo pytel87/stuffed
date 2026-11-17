@@ -73,6 +73,11 @@ export class ChestViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
+  clear(): void {
+    for (const view of this.views.values()) removeAndDispose(view.root);
+    this.views.clear();
+  }
+
   update(state: GameState, dt: number, time: number): void {
     const opening = new Set<EntityId>();
     for (const p of state.players) if (p.alive && p.action?.kind === 'openChest') opening.add(p.action.chestId);
@@ -189,6 +194,11 @@ export class LootViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
+  clear(): void {
+    for (const view of this.views.values()) removeAndDispose(view.root);
+    this.views.clear();
+  }
+
   update(state: GameState, dt: number, time: number): void {
     const seen = new Set<EntityId>();
     for (const loot of state.loot) {
@@ -212,11 +222,15 @@ export class LootViews {
     }
     for (const [id, view] of this.views) {
       if (seen.has(id)) continue;
-      view.root.removeFromParent();
-      view.root.traverse((o) => {
-        if (o instanceof THREE.Mesh) o.geometry.dispose();
-      });
+      removeAndDispose(view.root);
       this.views.delete(id);
     }
   }
+}
+
+function removeAndDispose(root: THREE.Object3D): void {
+  root.removeFromParent();
+  root.traverse((o) => {
+    if (o instanceof THREE.Mesh) o.geometry.dispose();
+  });
 }

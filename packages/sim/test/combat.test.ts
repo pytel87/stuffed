@@ -34,6 +34,24 @@ describe('damage and armor', () => {
     expect(b.stuffing).toBe(100);
   });
 
+  it('counts damage dealt and knockouts for the shooter', () => {
+    const { state, a, b } = duel(5);
+    b.buttons = 20;
+    applyDamage(state, b, 50, a.id);
+    expect(a.damageDealt).toBe(50);
+    applyDamage(state, b, 200, a.id); // only 70 stuffing was left
+    expect(a.damageDealt).toBe(120);
+    expect(a.knockouts).toBe(1);
+    expect(b.eliminatedBy).toBe(a.id);
+  });
+
+  it('the Rinse gets no credit', () => {
+    const { state, a, b } = duel(5);
+    applyDamage(state, b, 500, null);
+    expect(b.eliminatedBy).toBeNull();
+    expect(a.knockouts).toBe(0);
+  });
+
   it('eliminates at 0 stuffing, assigns placement and ends a 2-player match', () => {
     const { world, state, a, b } = duel(5);
     applyDamage(state, b, 150, a.id);

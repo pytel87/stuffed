@@ -4,7 +4,8 @@ A top-down cartoon battle royale. Players are patchwork stuffed-animal plushies 
 swappable parts; they loot toy chests and fight until one is left while a soapy flood
 ("The Rinse") shrinks the safe zone.
 
-This repo is at roadmap step 1, **Toy in a box**: a single-player browser prototype.
+Roadmap step 1, **Toy in a box**, is complete: a single-player browser prototype where you
+loot, fight 15 bots and outlast the Rinse. Next is step 2, **Online brawl** (Colyseus).
 
 ## Run it
 
@@ -45,6 +46,7 @@ at its top. Bots only produce `Input`s, the same as a player, so the server can 
 | Pick up a weapon | E (items are picked up by walking over them) |
 | Use an item | 3, 4, 5 |
 | Debug overlay (FPS, tick, hitboxes) | F1 |
+| Play again (after the match or a knockout) | Enter |
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the

@@ -2,6 +2,21 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.7: Win and lose (2026-11-17) — roadmap step 1 complete
+
+- Sim: players track `knockouts`, `damageDealt` (no credit for overkill) and
+  `eliminatedBy`; the Rinse gets no credit.
+- Knocked out: an "Unstitched!" card with your placement, who knocked you out and with what
+  (or the Rinse), knockouts, damage dealt and time survived. Play again (Enter) or Spectate.
+- Spectating: the camera follows whoever knocked you out, then whoever knocks them out, or the
+  nearest plush left; your HUD hides and a bar shows who you watch and how many are left.
+  What's visible follows the spectated plush's view (bushes, roofs).
+- Winning: a "Last plush standing!" card with confetti. If you were already out when the
+  match ends, the card shows who won.
+- Play again starts a fresh match with a new seed in place (no page reload): the renderer
+  clears the old match's plushies, chests, loot and projectiles and snaps the camera.
+- Tests: damage dealt, knockouts, killer, no credit for the Rinse.
+
 ## Step 1.6: Bots (2026-11-17)
 
 - `BotController` in the sim: bots are input producers, deterministic with a per-bot seeded

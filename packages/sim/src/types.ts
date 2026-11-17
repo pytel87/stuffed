@@ -89,7 +89,14 @@ export interface Player {
   buttons: number;
   alive: boolean;
   eliminatedTick: Tick | null;
+  /** Final rank: 1 for the winner, N for the first one out of N. */
   placement: number | null;
+  /** Who knocked this plush out (null = the Rinse or nobody yet). */
+  eliminatedBy: EntityId | null;
+  /** Plushies this one knocked out. */
+  knockouts: number;
+  /** Damage this plush dealt to others (stuffing and buttons). */
+  damageDealt: number;
   weapons: [WeaponInstance | null, WeaponInstance | null];
   activeSlot: 0 | 1;
   items: [ItemStack | null, ItemStack | null, ItemStack | null];

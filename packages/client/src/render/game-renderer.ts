@@ -17,6 +17,8 @@ const SUN_OFFSET = new THREE.Vector3(-8, 20, 10);
 
 export interface RenderOptions {
   localPlayerId: EntityId;
+  /** Plush the camera follows and whose view decides what's visible (you, or who you spectate). */
+  followId: EntityId;
   /** Live aim of the local player, so its facing never waits for the next tick. */
   localAim: Vec2;
   /** Player-to-cursor vector, for the camera lean. */
@@ -46,8 +48,11 @@ export class GameRenderer {
   /** Seconds until each soggy plush drips again. */
   private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
-  /** Height of the surface the local plush stands over (for the camera and aiming). */
+  /** Height of the surface the local plush stands over (for aiming). */
   private localGround = 0;
+  /** Where the followed plush was last drawn, and the surface under it (for the camera). */
+  private readonly followPos: Vec2 = { x: 0, y: 0 };
+  private followGround = 0;
   /** Interpolated position of the local player in the last rendered frame. */
   readonly localPlayerPos: Vec2 = { x: 0, y: 0 };
 
@@ -158,11 +163,33 @@ export class GameRenderer {
     }
   }
 
+  /** Confetti around a winning plush. */
+  celebrate(id: EntityId, state: GameState): void {
+    const p = state.players.find((q) => q.id === id);
+    if (!p) return;
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2;
+      this.effects.chestPop(p.pos.x + Math.cos(a) * 1.2, p.pos.y + Math.sin(a) * 1.2);
+    }
+  }
+
+  /** Clears everything from the last match (the map stays) so a new match can start. */
+  reset(): void {
+    for (const view of this.plushes.values()) view.dispose();
+    this.plushes.clear();
+    this.dripTimers.clear();
+    this.projectiles.clear();
+    this.chests.clear();
+    this.loot.clear();
+    this.rig.reset();
+  }
+
   render(frame: RenderFrame, opts: RenderOptions): void {
     const { prev, curr, alpha } = frame;
     const prevById = new Map<EntityId, Player>(prev.players.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();
-    const me = curr.players.find((p) => p.id === opts.localPlayerId);
+    // Whoever we follow decides what is visible: you, or the plush you spectate.
+    const viewer = curr.players.find((p) => p.id === opts.followId);
 
     for (const p of curr.players) {
       if (!p.alive) continue;
@@ -186,7 +213,7 @@ export class GameRenderer {
       const groundY = groundHeight(this.world, curr, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
-      view.root.visible = this.debug || !me || canSee(this.world, curr, me, p);
+      view.root.visible = this.debug || !viewer || canSee(this.world, curr, viewer, p);
       if (p.soggy && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
         if (t <= 0) this.effects.drip(pos.x, pos.y);
@@ -197,6 +224,11 @@ export class GameRenderer {
         this.localPlayerPos.x = pos.x;
         this.localPlayerPos.y = pos.y;
         this.localGround = groundY;
+      }
+      if (p.id === opts.followId) {
+        this.followPos.x = pos.x;
+        this.followPos.y = pos.y;
+        this.followGround = groundY;
       }
     }
 
@@ -212,10 +244,11 @@ export class GameRenderer {
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     this.rinse.update(curr.zone, opts.time);
-    updateBushes(this.bushes, this.localPlayerPos.x, this.localPlayerPos.y);
-    updateRoofs(this.roofs, me?.building ?? -1, this.debug, opts.dt);
+    updateBushes(this.bushes, this.followPos.x, this.followPos.y);
+    updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 
-    this.rig.update(this.localPlayerPos, opts.aimOffset, opts.dt, this.localGround);
+    const following = opts.followId === opts.localPlayerId;
+    this.rig.update(this.followPos, following ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
     // Keep the shadow camera centered on what the player sees.

@@ -24,6 +24,11 @@ export class CameraRig {
     camera.updateProjectionMatrix();
   }
 
+  /** Snap to the next target instead of gliding there (new match). */
+  reset(): void {
+    this.initialized = false;
+  }
+
   /**
    * `aimOffset` is the vector from the player to the cursor's ground point; `groundY` the
    * height of the surface the player stands over (the camera rises with it, not with jumps).

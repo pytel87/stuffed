@@ -53,6 +53,14 @@ export class ProjectileViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
+  clear(): void {
+    for (const entry of this.live.values()) {
+      entry.obj.visible = false;
+      this.free.get(entry.kind)?.push(entry.obj);
+    }
+    this.live.clear();
+  }
+
   update(prev: GameState, curr: GameState, alpha: number): void {
     const prevById = new Map<EntityId, Projectile>(prev.projectiles.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();

@@ -15,8 +15,11 @@ export function applyDamage(
   const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
   target.buttons -= armorDamage;
   const damage = amount - armorDamage;
+  const removed = armorDamage + Math.min(damage, Math.max(0, target.stuffing));
   target.stuffing -= damage;
   state.events.push({ type: 'hit', targetId: target.id, sourceId, damage, armorDamage });
+  const source = sourceId === null ? undefined : state.players.find((p) => p.id === sourceId);
+  if (source && source.id !== target.id) source.damageDealt += removed; // no credit for overkill
   if (target.stuffing <= 0) eliminate(state, target, sourceId);
 }
 
@@ -28,6 +31,9 @@ export function eliminate(state: GameState, target: Player, byId: EntityId | nul
   target.knockback = { x: 0, y: 0 };
   target.action = null;
   target.eliminatedTick = state.tick;
+  target.eliminatedBy = byId;
+  const killer = byId === null ? undefined : state.players.find((p) => p.id === byId);
+  if (killer && killer.id !== target.id) killer.knockouts++;
   // Placement = 1 + players still standing, so the first one out of 16 places 16th.
   target.placement = countAlive(state) + 1;
   state.events.push({ type: 'eliminated', playerId: target.id, byId, placement: target.placement });
