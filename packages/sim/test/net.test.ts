@@ -44,6 +44,13 @@ describe('compact snapshots', () => {
     }
     expect(decoded.chests.map((c) => c.opened)).toEqual(state.chests.map((c) => c.opened));
     expect(decoded.loot.map((l) => l.id)).toEqual(state.loot.map((l) => l.id));
+    // Sent as changes only (new, moved, gone), the list still ends up the same.
+    state.loot.forEach((l, i) => {
+      const d = decoded.loot[i]!;
+      expect(d.content).toEqual(l.content);
+      expect(d.pos.x).toBeCloseTo(l.pos.x, 2);
+      expect(d.pos.y).toBeCloseTo(l.pos.y, 2);
+    });
     expect(decoded.zone.current.radius).toBeCloseTo(state.zone.current.radius, 2);
     // Your own plush keeps its private details; others don't.
     const me = decoded.players.find((p) => p.id === you)!;

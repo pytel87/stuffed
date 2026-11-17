@@ -134,7 +134,9 @@ export interface CompactSnapshot {
   projectiles: SeenProjectile[];
   ev: GameEvent[];
   chests?: Chest[];
-  loot?: GroundLoot[];
+  /** Loot that appeared or changed (moved) since the last update, and ids that are gone. */
+  lootUp?: GroundLoot[];
+  lootGone?: EntityId[];
   walls?: PlacedWall[];
   toss?: Toss | null;
   zone?: ZonePlan;
@@ -147,7 +149,10 @@ export interface CompactSnapshot {
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>>;
+export type SnapshotMemory = Partial<Record<'chests' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>> & {
+  /** Each loot item as last sent (only what changed goes out). */
+  lootById?: Map<EntityId, string>;
+};
 
 /**
  * Builds one player's update. `visible` are the living plushies this player may see (their own
@@ -187,7 +192,6 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
   const { current: _c, ...zonePlan } = state.zone;
   const slow = {
     chests: state.chests,
-    loot: state.loot,
     walls: state.placedWalls,
     toss: state.toss,
     zone: zonePlan,
@@ -202,6 +206,25 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     memory[key] = json;
     (msg as unknown as Record<string, unknown>)[key] = slow[key];
   }
+  // Loot: only what's new or changed, and what's gone.
+  const known = (memory.lootById ??= new Map());
+  const up: GroundLoot[] = [];
+  const here = new Set<EntityId>();
+  for (const l of state.loot) {
+    here.add(l.id);
+    const json = compactJson(l);
+    if (known.get(l.id) === json) continue;
+    known.set(l.id, json);
+    up.push(l);
+  }
+  const gone: EntityId[] = [];
+  for (const lootId of known.keys()) {
+    if (here.has(lootId)) continue;
+    known.delete(lootId);
+    gone.push(lootId);
+  }
+  if (up.length > 0) msg.lootUp = up;
+  if (gone.length > 0) msg.lootGone = gone;
   return compactJson(msg);
 }
 
@@ -228,7 +251,12 @@ export function emptySnapshotParts(): SnapshotParts {
  */
 export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { state: GameState; events: GameEvent[] } | null {
   if (msg.chests) parts.chests = msg.chests;
-  if (msg.loot) parts.loot = msg.loot;
+  if (msg.lootUp || msg.lootGone) {
+    const byId = new Map(parts.loot.map((l) => [l.id, l]));
+    for (const lootId of msg.lootGone ?? []) byId.delete(lootId);
+    for (const l of msg.lootUp ?? []) byId.set(l.id, l);
+    parts.loot = [...byId.values()].sort((a, b) => a.id - b.id);
+  }
   if (msg.walls) parts.walls = msg.walls;
   if (msg.toss !== undefined) parts.toss = msg.toss;
   if (msg.zone) parts.zone = msg.zone;
