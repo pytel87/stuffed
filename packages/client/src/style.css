@@ -568,6 +568,9 @@ body.touch-mode .help-touch {
 }
 
 .loadout {
+  /* Three item slots and two weapon cards span the same width, with the same gaps. */
+  --slot: 3rem;
+  --slot-gap: 0.5rem;
   position: absolute;
   right: calc(var(--safe-r) + var(--edge));
   bottom: calc(var(--safe-b) + var(--edge));
@@ -579,7 +582,7 @@ body.touch-mode .help-touch {
 .items,
 .weapons {
   display: flex;
-  gap: 0.45rem;
+  gap: var(--slot-gap);
 }
 
 .weapon,
@@ -597,10 +600,11 @@ body.touch-mode .help-touch {
 }
 
 .weapon {
-  width: 5.6rem;
-  height: 3.6rem;
+  width: calc((3 * var(--slot) + var(--slot-gap)) / 2);
+  height: 3.4rem;
   border-radius: 1rem;
   opacity: 0.7;
+  overflow: visible;
 }
 
 .weapon.active {
@@ -611,17 +615,17 @@ body.touch-mode .help-touch {
 }
 
 .weapon .art .icon {
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 3rem;
+  height: 3rem;
 }
 
-/* Hotkey hints on the slots and the grab prompt: just the key, no keycap. */
+/* Hotkey hints: just the key, no keycap. On every slot it sits on the top-left corner. */
 .weapon kbd,
 .item kbd,
 .prompt kbd {
   position: absolute;
-  left: 0.35rem;
-  top: 0.2rem;
+  left: -0.3rem;
+  top: -0.35rem;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -639,17 +643,14 @@ body.touch-mode .help-touch {
   -webkit-text-stroke: 0;
 }
 
-.item kbd {
-  left: -0.3rem;
-  top: -0.35rem;
-}
-
 /* Ammo: a thin strip along the bottom of the card in the rarity color; it drains as you
    fire and refills while reloading. */
 .weapon .ammo {
   position: absolute;
   inset: auto 0 0 0;
   height: 0.4rem;
+  overflow: hidden;
+  border-radius: 0 0 calc(1rem - 3px) calc(1rem - 3px);
   background: rgba(42, 31, 45, 0.25);
   border-top: 2px solid var(--ink);
 }
@@ -684,8 +685,8 @@ body.touch-mode .help-touch {
 /* Item slots: a cream button ringed in the item's rarity, the key digit outside its top-left,
    and the stack count as a small badge on its bottom-right edge. */
 .item {
-  width: 3rem;
-  height: 3rem;
+  width: var(--slot);
+  height: var(--slot);
   border-radius: 50%;
   overflow: visible;
 }
@@ -1058,7 +1059,7 @@ body.touch-mode .loadout {
   right: calc(var(--safe-r) + var(--edge) + 3.8rem);
   bottom: auto;
   grid-auto-flow: column;
-  align-items: start;
+  align-items: center;
 }
 
 /* Phones held upright: ask for landscape. */
