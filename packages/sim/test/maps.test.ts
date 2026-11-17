@@ -60,6 +60,23 @@ describe('the Backyard', () => {
     expect(inWater).toBeLessThan(onLawn * 0.7);
   });
 
+  it('rarely gives the starting Cork Popper, and never a plain one', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 5, map, roster: roster(2) });
+    let corks = 0;
+    for (let i = 0; i < 600; i++) {
+      state.loot = [];
+      openChest(world, state, { id: 9000 + i, pos: { x: 64, y: 30 }, opened: false, loot: 'low' }, null);
+      const w = state.loot.find((l) => l.content.type === 'weapon');
+      if (w?.content.type === 'weapon' && w.content.weapon.kind === 'cork_popper') {
+        corks++;
+        expect(w.content.weapon.rarity).toBeGreaterThanOrEqual(1);
+      }
+    }
+    expect(corks).toBeGreaterThan(0);
+    expect(corks / 600).toBeLessThan(0.12);
+  });
+
   it('opens high-level chests with rarer loot than low-level ones', () => {
     const average = (loot: 'low' | 'high') => {
       const world = createWorld(map);

@@ -335,9 +335,12 @@ export const config = {
     openTime: 1,
     /** Max distance from a plush's center to a chest's center to open it. */
     interactRange: 1.6,
-    /** Relative odds of each weapon kind in a Toy Box. */
+    /**
+     * Relative odds of each weapon kind in a Toy Box. Everyone starts with a Cork Popper, so a
+     * chest rarely gives one (about 1 in 15), and never a plain Hand-me-down one.
+     */
     weaponWeights: {
-      cork_popper: 3.5,
+      cork_popper: 1,
       foam_dart_smg: 3,
       super_soaker: 2.5,
       rubber_band_rifle: 1.5,

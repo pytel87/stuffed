@@ -196,7 +196,9 @@ export function revive(state: GameState, p: Player, by: Player): void {
 export function openChest(world: World, state: GameState, chest: Chest, opener: Player | null): void {
   chest.opened = true;
   const kind = pickWeighted(state.rng, config.chest.weaponWeights);
-  const rarity = pickIndexWeighted(state.rng, config.chest.rarityWeights[chest.loot]) as Rarity;
+  const rolled = pickIndexWeighted(state.rng, config.chest.rarityWeights[chest.loot]) as Rarity;
+  // The starting weapon from a chest is always better than the one you have.
+  const rarity = kind === 'cork_popper' ? (Math.max(1, rolled) as Rarity) : rolled;
   const item = pickWeighted(state.rng, chest.loot === 'food' ? config.chest.foodItemWeights : config.chest.itemWeights);
   const part: Part = {
     slot: pick(state.rng, PART_SLOTS),

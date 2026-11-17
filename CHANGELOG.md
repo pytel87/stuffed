@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Chest tweaks (2026-11-18)
+
+- Chests rarely give the starting Cork Popper (about 1 in 15 instead of 1 in 5), and never a
+  plain Hand-me-down one: a chest gun is always better than the one you start with.
+- Lighter knockout burst (no cotton cloud hiding whoever's near); "Watch" and "Again" as words
+  on the results card.
+
 ## Music, smoother start, smarter bots (2026-11-17)
 
 - Background music: a music-box tune on the menu and in the lobby, a bouncier toy-band tune in

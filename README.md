@@ -199,7 +199,8 @@ chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rari
 URL, for example
 `?loadout=foam_dart_smg:2,super_soaker:4`. Kinds: `cork_popper`, `foam_dart_smg`,
 `super_soaker`, `rubber_band_rifle`, `marble_launcher`, `pillow_hammer`, `glitter_bomb`,
-`bubble_wand`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
+`bubble_wand`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind). Chests rarely hold a Cork Popper (about 1 in 15), and
+when they do it's always Store-bought or better.
 
 | Weapon | How it works |
 | --- | --- |
