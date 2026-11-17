@@ -3,11 +3,11 @@ import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
 import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 10;
-/** The server sends a snapshot every this many ticks (2 = 15 per second). */
-export const SNAPSHOT_EVERY = 2;
+/** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
+export const SNAPSHOT_EVERY = 1;
 
 /** Room codes: 4 consonants (no accidental words; no I, L, O, U, Y). About 130k codes. */
 export const ROOM_CODE_ALPHABET = 'BCDFGHJKMNPQRSTVWXZ';

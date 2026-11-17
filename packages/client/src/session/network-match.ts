@@ -14,11 +14,11 @@ import type { EntityId, GameEvent, GameState, Input, MapData, Player, Projectile
 import { decodeSnapshot, emptySnapshotParts, type CompactSnapshot } from '@stuffed/sim/net';
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
-/** How far behind the newest snapshot to draw: 2 snapshot gaps plus jitter room. */
-const DELAY_TICKS = 4;
+/** How far behind the newest snapshot to draw: a snapshot gap or two plus jitter room. */
+const DELAY_TICKS = 3;
 /** Further off than this, jump instead of easing back. */
 const RESYNC_TICKS = 15;
-const KEEP_SNAPSHOTS = 20;
+const KEEP_SNAPSHOTS = 30;
 /** Inputs remembered for replay; more than this unconfirmed means something is badly wrong. */
 const MAX_PENDING = 90;
 /** Prediction errors smaller than this are smoothed out; bigger ones snap. */
@@ -159,7 +159,8 @@ export class NetworkMatch implements GameSession {
     this.predictedPrev = structuredClone(this.predicted);
     predictPlayer(this.world, latest.state, this.predicted, input);
     this.predTick++;
-    this.moveShots(latest.state);
+    // Test them against the others as they're drawn (the server checks at that same moment).
+    this.moveShots(this.drawnState() ?? latest.state);
     this.predictShot(latest.state, input);
   }
 
@@ -213,6 +214,13 @@ export class NetworkMatch implements GameSession {
         (p) => p.alive && p.id !== this.localPlayerId && !p.drop && Math.hypot(p.pos.x - shot.pos.x, p.pos.y - shot.pos.y) < p.radius + shot.radius,
       );
     });
+  }
+
+  /** The snapshot closest to what's being drawn of the others right now. */
+  private drawnState(): GameState | null {
+    let best: Snapshot | null = null;
+    for (const s of this.snaps) if (s.tick <= this.renderTick) best = s;
+    return best?.state ?? null;
   }
 
   /** Predicted shots where they are right now, as projectiles for drawing. */

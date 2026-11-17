@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Twelve animals, no part rarity, smoother online (2026-11-17)
+
+- Bunny, Unicorn, Cat and Fox join (12 animals). Every body has its own shape now (round, pear,
+  tapered, egg, chunky, barrel, plump, pin) with a detail or two, still fitting any head, legs and
+  arms. Thicker thin legs; the bear wears a felt bow.
+- Parts have no rarity: a knocked-out player keeps each part with a flat 50% chance (the rest
+  drop); bots wear parts that build toward a set.
+- Online: lag compensation (shots are checked against where the target was on the shooter's
+  screen, up to a third of a second back); 30 updates per second (was 15) and others drawn
+  3 ticks behind (was 4); your instant shots stop on what you see. Protocol version 3.
+- Weaker bots; a players-left counter by the Rinse timer; the touch jump hint is a plain round
+  button.
+
 ## Four more animals (2026-11-17)
 
 - Dino (crest, toothy snout, back plates, stompy clawed feet, spiky tail), Owl (ear tufts, big
