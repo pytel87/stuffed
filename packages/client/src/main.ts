@@ -25,6 +25,7 @@ import { MenuScreen } from './ui/menu-screen.ts';
 import { Options } from './ui/options.ts';
 import { Wardrobe } from './ui/wardrobe.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
+import { ZoneNames } from './ui/zone-names.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const hudEl = document.querySelector<HTMLElement>('#hud')!;
@@ -65,6 +66,7 @@ const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
+const zoneNames = new ZoneNames(hudEl);
 const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu);
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
@@ -142,6 +144,7 @@ function beginMatch(next: GameSession): void {
   knockedOutBy = '';
   soloReported = false;
   hitDirection.clear();
+  zoneNames.reset();
   endScreen.setKept(null);
   me = undefined;
   hudEl.classList.remove('out');
@@ -305,6 +308,7 @@ function frame(now: number): void {
   touch.setGrabReady(hud.grabReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
   zoneHud.update(state, me, renderer.localPlayerPos, dt);
+  zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   debug.update(dt, {
     seed,
     tick: state.tick,

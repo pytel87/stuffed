@@ -330,10 +330,12 @@ export interface ChestSpawn extends Vec2 {
   loot?: LootLevel;
 }
 
-/** A named area, for labels and for the renderer's decorations. */
+/** A named area, for the name banner when you walk in. */
 export interface MapZone {
   name: string;
   center: Vec2;
+  /** Roughly how far from the center it reaches. */
+  radius: number;
 }
 
 /** Static map data. Not part of GameState: it never changes during a match. */

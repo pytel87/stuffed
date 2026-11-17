@@ -1059,6 +1059,31 @@ body.touch-mode .prompt .icon.tap {
   color: #fff;
 }
 
+/* "Picnic Plateau": the zone you just walked into, under the Rinse timer. */
+.zone-name {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-t) + var(--edge) + 3.4rem);
+  transform: translateX(-50%);
+  padding: 0.25rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 250, 243, 0.92);
+  border: 3px solid var(--ink);
+  font: 900 1.05rem/1.2 var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.zone-name.pop {
+  animation: banner-pop 320ms ease-out, fade-late 2.4s linear forwards;
+}
+
+@keyframes fade-late {
+  0%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .banner {
   position: absolute;
   left: 50%;

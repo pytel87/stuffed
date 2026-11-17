@@ -182,13 +182,13 @@ const grounds: Ground[] = [
 ];
 
 const zones: MapZone[] = [
-  { name: 'Treehouse', center: { x: 28, y: 27 } },
-  { name: 'Tool Shed', center: { x: 97, y: 25 } },
-  { name: 'Kiddie Pool', center: POOL.center },
-  { name: 'Picnic Plateau', center: { x: 98, y: 99 } },
-  { name: 'Sandbox Desert', center: { x: 30, y: 99 } },
-  { name: 'Veggie Jungle', center: { x: 16, y: 63 } },
-  { name: 'The House', center: { x: 64, y: 64 } },
+  { name: 'Treehouse', center: { x: 28, y: 27 }, radius: 12 },
+  { name: 'Tool Shed', center: { x: 97, y: 25 }, radius: 13 },
+  { name: 'Kiddie Pool', center: POOL.center, radius: 13 },
+  { name: 'Picnic Plateau', center: { x: 98, y: 99 }, radius: 16 },
+  { name: 'Sandbox Desert', center: { x: 30, y: 99 }, radius: 18 },
+  { name: 'Veggie Jungle', center: { x: 16, y: 63 }, radius: 16 },
+  { name: 'The House', center: { x: 64, y: 64 }, radius: 14 },
 ];
 
 /** True if a plush could stand here: inside the map, clear of walls (with a margin) and out of the pool. */
