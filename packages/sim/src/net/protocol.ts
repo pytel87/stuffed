@@ -35,7 +35,7 @@ export type ClientMessage =
   /** One per client tick (30 per second) while playing. */
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
-  | { t: 'start'; bots: number; teams?: boolean; level?: BotLevel }
+  | { t: 'start'; bots: number; teams?: boolean; level?: BotLevel; mapId?: string }
   /** Change your name in the lobby. */
   | { t: 'rename'; name: string }
   /** Your look changed in the Wardrobe: the room re-reads your profile for the next match. */

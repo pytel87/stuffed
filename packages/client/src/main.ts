@@ -20,6 +20,7 @@ import { Help } from './ui/help.ts';
 import { HitDirection } from './ui/hit-direction.ts';
 import { TeammateArrows } from './ui/teammate-arrows.ts';
 import { savedBotLevel } from './ui/bot-level.ts';
+import { savedMap } from './ui/map-choice.ts';
 import { Hud } from './ui/hud.ts';
 import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
@@ -38,6 +39,7 @@ const tossHint = document.querySelector<HTMLElement>('#toss-hint')!;
 const input = new KeyboardMouseInput(canvas);
 const touch = new TouchControls(input);
 /** For touch aim assist (who can be seen); rebuilt when a match is on another map. */
+/** The current map's world (touch aim assist checks sight with it). */
 let world = createWorld(BACKYARD);
 const params = new URLSearchParams(location.search);
 const loadout = loadoutFromUrl();
@@ -49,9 +51,9 @@ let seed = Number(params.get('seed')) || Date.now() >>> 0;
 /** This device's profile: your collection and the look you start in. */
 const profiles = new ProfileStore();
 const newSolo = () =>
-  new LocalSession(input, { seed, zoneTimeScale, botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
+  new LocalSession(input, { seed, zoneTimeScale, map: savedMap(), botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
 /** Bots only, behind the title menu and the lobby. */
-const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true });
+const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true, map: savedMap() });
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
 let mode: 'menu' | 'solo' | 'online' = 'menu';
 /** The match being shown: solo (in the browser), online (from the server) or the menu backdrop. */
@@ -93,6 +95,9 @@ const menu = new MenuScreen(document.body, playerName(), {
   join: (name, code) => {
     saveName(name);
     joinRoom(code);
+  },
+  mapChanged: () => {
+    if (mode === 'menu') beginMatch(newBackdrop());
   },
   wardrobe: () => openWardrobe(menu, () => {
     if (mode === 'menu') menu.show();
@@ -196,7 +201,7 @@ window.addEventListener('keydown', (e) => {
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
   uiClick();
-  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel());
+  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel(), savedMap().id);
   else if (phase !== 'playing') playAgain();
 });
 
@@ -208,6 +213,8 @@ function isBackdrop(s: GameSession | null): boolean {
 /** Shows a new match: solo, online, or the bots-only backdrop. */
 function beginMatch(next: GameSession): void {
   session = next;
+  renderer.setMap(next.map);
+  world = createWorld(next.map);
   hudEl.classList.toggle('idle', isBackdrop(next));
   audio.reset();
   renderer.reset();
@@ -242,7 +249,7 @@ function showMenu(): void {
 
 function playAgain(): void {
   if (room) {
-    if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel());
+    if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel(), savedMap().id);
     return;
   }
   seed = (seed * 1664525 + 1013904223) >>> 0;

@@ -352,15 +352,6 @@ button {
   height: 1.6rem;
 }
 
-/* A thin line between the bot count and the team toggle. */
-.bots .divider {
-  align-self: stretch;
-  width: 2px;
-  margin: 0.2rem 0.3rem;
-  border-radius: 1px;
-  background: rgba(42, 31, 45, 0.18);
-}
-
 /* Team mode toggle: light blue when on, faded when off. */
 .bots .lobby-team[aria-pressed='true'] {
   background: #dbe9ff;
@@ -1949,5 +1940,14 @@ body.touch-mode .gear {
 }
 
 .bot-level:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.map-choice .icon {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.map-choice:focus:not(:focus-visible) {
   outline: none;
 }

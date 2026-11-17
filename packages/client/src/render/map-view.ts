@@ -2,7 +2,7 @@
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
 import type { Circle, Ground, MapData } from '@stuffed/sim';
-import { checkerTexture, dirtTexture, lawnTexture, plankTexture, sandTexture, stoneTexture, tiled } from './props.ts';
+import { checkerTexture, dirtTexture, lawnTexture, plankTexture, rugTexture, sandTexture, stoneTexture, tiled } from './props.ts';
 import { toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
@@ -17,10 +17,14 @@ export function buildMapView(map: MapData): THREE.Group {
   // No fence around the yard: the lawn just goes on (the Rinse is the edge of play).
   const lw = w + 2 * LAWN_BEYOND;
   const lh = h + 2 * LAWN_BEYOND;
-  const lawnTex = tiled(lawnTexture(), lw / 8, lh / 8);
+  // The Bedroom: wooden floorboards instead of the lawn.
+  const indoors = map.theme === 'bedroom';
+  const lawnMat = indoors
+    ? toonMaterial('#f3d9b6', { map: tiled(plankTexture(), lw / 2.4, lh / 9) })
+    : toonMaterial('#ffffff', { map: tiled(lawnTexture(), lw / 8, lh / 8) });
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
   // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), toonMaterial('#ffffff', { map: lawnTex }));
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), lawnMat);
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
@@ -28,7 +32,7 @@ export function buildMapView(map: MapData): THREE.Group {
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
-  g.add(grassTufts(map));
+  if (!indoors) g.add(grassTufts(map));
   return g;
 }
 
@@ -65,6 +69,14 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
       g.add(stone);
     }
     return g;
+  }
+  if (ground.kind === 'rug') {
+    // A round braided rug, an oval filling the box.
+    const rug = new THREE.Mesh(new THREE.CircleGeometry(0.5, 48).rotateX(-Math.PI / 2), toonMaterial('#ffffff', { map: rugTexture() }));
+    rug.scale.set(box.w, 1, box.h);
+    rug.position.set(cx, 0.015, cz);
+    rug.receiveShadow = true;
+    return rug;
   }
   const geometry = new THREE.PlaneGeometry(box.w, box.h, Math.ceil(box.w / 8), Math.ceil(box.h / 8)).rotateX(-Math.PI / 2);
   const material =

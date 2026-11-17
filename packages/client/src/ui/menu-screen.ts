@@ -1,5 +1,7 @@
+import type { MapData } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import { bindBotLevel, botLevelHtml } from './bot-level.ts';
+import { bindMapChoice, mapChoiceHtml } from './map-choice.ts';
 import { icon } from './icons.ts';
 
 export interface MenuActions {
@@ -7,6 +9,8 @@ export interface MenuActions {
   create: (name: string) => void;
   join: (name: string, code: string) => void;
   wardrobe: () => void;
+  /** A different map picked (the backdrop switches to it). */
+  mapChanged?: (map: MapData) => void;
 }
 
 /** Title menu: your name, Solo, Room (create), and a code field to join. */
@@ -30,6 +34,7 @@ export class MenuScreen {
            <div class="row">
              <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
              <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
+             ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>
            <form class="row menu-join">
@@ -50,6 +55,7 @@ export class MenuScreen {
     const name = () => this.name.value.trim().slice(0, 16) || 'Plush';
     this.el.querySelector('.menu-solo')!.addEventListener('click', () => actions.solo(name()));
     bindBotLevel(this.el.querySelector('.bot-level')!);
+    bindMapChoice(this.el.querySelector('.map-choice')!, (map) => actions.mapChanged?.(map));
     this.el.querySelector('.menu-create')!.addEventListener('click', () => actions.create(name()));
     this.el.querySelector('.menu-wardrobe')!.addEventListener('click', () => actions.wardrobe());
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {

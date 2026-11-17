@@ -368,12 +368,12 @@ export interface Wall extends Box {
 export interface Building extends Box {
   height: number;
   /** Roof look only. */
-  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table';
+  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk';
 }
 
 /** A patch of ground drawn differently (no effect on play). */
 export interface Ground {
-  kind: 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor';
+  kind: 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor' | 'rug';
   box?: Box;
   circle?: Circle;
 }
@@ -394,6 +394,8 @@ export interface MapZone {
 /** Static map data. Not part of GameState: it never changes during a match. */
 export interface MapData {
   id: string;
+  /** How it looks: a lawn with leafy bushes, or a bedroom floor with laundry piles. */
+  theme?: 'backyard' | 'bedroom';
   width: number;
   height: number;
   walls: Wall[];

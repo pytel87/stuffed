@@ -72,6 +72,13 @@ common ones, and food crates more healing items. Loot lies on whatever surface i
 within reach of your feet: not the lawn below from a roof. The old 80 x 80 test map
 ([test-map.ts](packages/sim/src/maps/test-map.ts)) stays for the tests.
 
+## The Bedroom
+
+The second map ([bedroom.ts](packages/sim/src/maps/bedroom.ts)), picked with the map button (a
+tree or a bed) on the title menu or in the lobby: a kid's bedroom at toy scale. Hide under the
+Bed or climb onto it from the toy box, climb the Desk by its chair, take the Block Castle's keep,
+crawl into the Toy Corner's toy box, and hide in the laundry piles.
+
 ## The Toss
 
 Every match starts on a toy blimp flying across the yard. Press Jump (Space, or the jump button

@@ -1,6 +1,7 @@
 import { MAX_PLAYERS } from '@stuffed/sim/net';
 import type { RoomClient } from '../session/room-client.ts';
 import { bindBotLevel, botLevelHtml } from './bot-level.ts';
+import { bindMapChoice, mapChoiceHtml } from './map-choice.ts';
 import { escapeHtml } from './escape.ts';
 import { icon } from './icons.ts';
 
@@ -11,6 +12,7 @@ export class LobbyScreen {
   private readonly share: HTMLButtonElement;
   private readonly list: HTMLElement;
   private readonly botsRow: HTMLElement;
+  private readonly optionsRow: HTMLElement;
   private readonly botCount: HTMLElement;
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
@@ -43,7 +45,9 @@ export class LobbyScreen {
              <button type="button" class="round lobby-less" aria-label="Fewer bots">−</button>
              <b class="bot-count"></b>
              <button type="button" class="round lobby-more" aria-label="More bots">+</button>
-             <span class="divider" aria-hidden="true"></span>
+           </div>
+           <div class="bots lobby-options">
+             ${mapChoiceHtml()}
              ${botLevelHtml()}
              <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
@@ -59,6 +63,8 @@ export class LobbyScreen {
     this.list = q('.chips');
     this.botsRow = q('.bots');
     bindBotLevel(q<HTMLButtonElement>('.bot-level'));
+    bindMapChoice(q<HTMLButtonElement>('.map-choice'));
+    this.optionsRow = q('.lobby-options');
     this.botCount = q('.bot-count');
     this.start = q('.lobby-start');
     this.status = q('.status');
@@ -138,6 +144,7 @@ export class LobbyScreen {
       .map((s) => `<li class="${s.seat === c.seat ? 'me' : ''} ${s.connected ? '' : 'away'}">${icon(s.host ? 'crown' : 'person')}<span>${escapeHtml(s.name)}</span></li>`)
       .join('');
     this.botsRow.hidden = !c.isHost;
+    this.optionsRow.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
     this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? 'Full' : c.isHost ? '' : 'Waiting for host…';
   }

@@ -65,17 +65,20 @@ export class GameRenderer {
   /** Beach balls rolling around. */
   private readonly balls = new BallViews(this.scene);
   /** Beach ball goals: nets and scoreboards. */
-  private readonly goals: GoalViews;
+  private goals!: GoalViews;
   /** Team mode: where knocked-out teammates can be re-stitched. */
   private readonly reviveMarkers = new ReviveMarkers(this.scene);
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
   private readonly hit = new THREE.Vector3();
-  private readonly world: World;
-  private readonly bushes: BushView[];
-  private readonly roofs: RoofView[];
-  private readonly rinse: RinseView;
+  private world!: World;
+  private bushes: BushView[] = [];
+  private roofs: RoofView[] = [];
+  private rinse!: RinseView;
+  /** Everything that belongs to the map (rebuilt when a match is on another map). */
+  private readonly mapLayer = new THREE.Group();
+  private mapId = '';
   /** Seconds until each soggy plush drips again. */
   private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
@@ -113,18 +116,32 @@ export class GameRenderer {
     this.sun.shadow.normalBias = 0.02;
     this.scene.add(this.sun, this.sun.target);
 
-    this.scene.add(buildMapView(map));
-    const obstacles = buildObstacles(map);
-    this.scene.add(obstacles.root);
-    this.goals = new GoalViews(this.scene, map);
-    this.bushes = obstacles.bushes;
-    this.roofs = obstacles.roofs;
-    this.rinse = new RinseView(map);
-    this.scene.add(this.rinse.mesh);
-    this.world = createWorld(map);
+    this.scene.add(this.mapLayer);
+    this.setMap(map);
     this.warmUp();
     this.resize();
     window.addEventListener('resize', () => this.resize());
+  }
+
+  /** Builds the map's ground, props, bushes, roofs, goals and water (once per map change). */
+  setMap(map: MapData): void {
+    if (map.id === this.mapId) return;
+    this.mapId = map.id;
+    for (const child of [...this.mapLayer.children]) {
+      this.mapLayer.remove(child);
+      child.traverse((o) => {
+        if (o instanceof THREE.Mesh) o.geometry.dispose();
+      });
+    }
+    this.mapLayer.add(buildMapView(map));
+    const obstacles = buildObstacles(map);
+    this.mapLayer.add(obstacles.root);
+    this.goals = new GoalViews(this.mapLayer, map);
+    this.bushes = obstacles.bushes;
+    this.roofs = obstacles.roofs;
+    this.rinse = new RinseView(map);
+    this.mapLayer.add(this.rinse.mesh);
+    this.world = createWorld(map);
   }
 
   /** The canvas size the drawing buffer and camera were last set up for. */

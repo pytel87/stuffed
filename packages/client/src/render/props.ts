@@ -247,6 +247,55 @@ export const crateTexture = () =>
     g.stroke();
   });
 
+/** A round braided rug: rings of soft colors. */
+export const rugTexture = () =>
+  canvasTexture('rug', 256, (g, s) => {
+    const colors = ['#f2a7a0', '#fbe3b5', '#9fc7e8', '#fbe3b5', '#c9b2e6', '#fbe3b5', '#a8d8a8'];
+    g.fillStyle = '#fbe3b5';
+    g.fillRect(0, 0, s, s);
+    const rings = 14;
+    for (let i = 0; i < rings; i++) {
+      g.fillStyle = colors[i % colors.length]!;
+      g.beginPath();
+      g.ellipse(s / 2, s / 2, (s / 2) * (1 - i / rings), (s / 2) * (1 - i / rings), 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    // braid stitches round each ring
+    g.strokeStyle = 'rgba(90, 60, 50, 0.18)';
+    g.lineWidth = 1.5;
+    for (let i = 0; i < rings; i++) {
+      g.beginPath();
+      g.ellipse(s / 2, s / 2, (s / 2) * (1 - i / rings) - 2, (s / 2) * (1 - i / rings) - 2, 0, 0, Math.PI * 2);
+      g.setLineDash([4, 4]);
+      g.stroke();
+    }
+  });
+
+/** A patchwork quilt for the bed. */
+export const quiltTexture = () =>
+  canvasTexture('quilt', 128, (g, s) => {
+    const colors = ['#f6a5c0', '#9fc7e8', '#fde39a', '#b9e3a8', '#d7c2f0', '#ffc9a3'];
+    const n = 4;
+    const cell = s / n;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        g.fillStyle = colors[(x * 2 + y * 3) % colors.length]!;
+        g.fillRect(x * cell, y * cell, cell, cell);
+      }
+    }
+    g.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    g.lineWidth = 2;
+    g.setLineDash([5, 4]);
+    for (let i = 1; i < n; i++) {
+      g.beginPath();
+      g.moveTo(i * cell, 0);
+      g.lineTo(i * cell, s);
+      g.moveTo(0, i * cell);
+      g.lineTo(s, i * cell);
+      g.stroke();
+    }
+  });
+
 export const checkerTexture = (a = '#e25b5b', b = '#fff6ec') =>
   canvasTexture(`checker${a}${b}`, 64, (g, s) => {
     g.fillStyle = b;

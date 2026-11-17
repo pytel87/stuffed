@@ -45,6 +45,9 @@ const paths: Record<string, string> = {
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
   // a stitched heart with a needle: re-stitch a teammate
   revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff7aa8"/><path d="M8 12.5h1.6M11.2 12.5h1.6M14.4 12.5H16" stroke-width="1.6"/><path d="M17 3.5l3.5 3.5" stroke-width="1.6"/>`,
+  // the maps: a tree (the Backyard) and a bed (the Bedroom)
+  'map-backyard': `<rect x="10.5" y="13" width="3" height="8" rx="1" fill="#a0693f"/><circle cx="12" cy="9.5" r="6.5" fill="#5bb46a"/><path d="M3 21h18" stroke-width="1.8"/>`,
+  'map-bedroom': `<rect x="3" y="7" width="3" height="13" rx="1" fill="#a0693f"/><rect x="3" y="13" width="18" height="5" rx="1.5" fill="#f6a5c0"/><rect x="6.5" y="10" width="5" height="3" rx="1.2" fill="#fff"/><path d="M21 18v2" stroke-width="1.8"/>`,
   // signal bars: how tough the bots are
   'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
   'level-normal': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#f7c331"/><rect x="10" y="11" width="4" height="9" rx="1" fill="#f7c331"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,

@@ -37,7 +37,7 @@ interface Board {
 export class GoalViews {
   private readonly boards: Board[] = [];
 
-  constructor(scene: THREE.Scene, map: MapData) {
+  constructor(scene: THREE.Object3D, map: MapData) {
     const net = netTexture();
     for (const goal of map.goals ?? []) {
       scene.add(this.frame(goal, net));
@@ -91,7 +91,7 @@ export class GoalViews {
     return g;
   }
 
-  private board(scene: THREE.Scene, goal: Goal): Board {
+  private board(scene: THREE.Object3D, goal: Goal): Board {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 128;
     const texture = new THREE.CanvasTexture(canvas);

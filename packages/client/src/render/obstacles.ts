@@ -2,7 +2,7 @@
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
-import { buildWall, corrugatedTexture, ginghamTexture, plankTexture, tiled, tileTexture } from './props.ts';
+import { buildWall, corrugatedTexture, ginghamTexture, plankTexture, quiltTexture, tiled, tileTexture } from './props.ts';
 import { feltTexture, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
 const OUTLINE = 0.045;
@@ -120,6 +120,32 @@ function roof(b: Building): RoofView {
       }
       break;
     }
+    case 'bed': {
+      // A patchwork quilt, a pillow at the headboard end and a teddy on it.
+      lid(toonMaterial('#ffffff', { map: tiled(quiltTexture(), w / 6, d / 6) }));
+      const pillow = on(new THREE.Mesh(new THREE.BoxGeometry(w * 0.32, 0.35, 2.4), flat('#fffaf3')), -w / 4, top + 0.17, -d / 2 + 1.6);
+      pillow.castShadow = true;
+      const pillow2 = on(new THREE.Mesh(new THREE.BoxGeometry(w * 0.32, 0.35, 2.4), flat('#fffaf3')), w / 4, top + 0.17, -d / 2 + 1.6);
+      pillow2.castShadow = true;
+      on(new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, 0.06, d * 0.25), flat('#fffaf3')), 0, top + 0.03, -d / 2 + d * 0.33);
+      break;
+    }
+    case 'desk': {
+      // A wooden desktop with a sheet of paper, crayons and a little lamp.
+      lid(toonMaterial('#d9a46a', { map: tiled(plankTexture(), w / 2, d / 4) }));
+      on(new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 4), flat('#ffffff')), -w / 5, top + 0.011, 0).rotation.y = 0.2;
+      ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a'].forEach((c, i) => {
+        const crayon = on(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 8), flat(c)), 1 + i * 0.35, top + 0.1, 1.2);
+        crayon.rotation.z = Math.PI / 2;
+        crayon.rotation.y = 0.3;
+      });
+      const lampBase = on(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 16), flat('#5d9cf5')), w / 2 - 2, top + 0.1, -d / 2 + 1.6);
+      lampBase.castShadow = true;
+      const lampShade = on(new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.9, 16, 1, true), flat('#fde39a')), w / 2 - 2, top + 1.4, -d / 2 + 1.6);
+      lampShade.castShadow = true;
+      on(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), flat('#5d9cf5')), w / 2 - 2, top + 0.65, -d / 2 + 1.6);
+      break;
+    }
     case 'table': {
       // Blue gingham with a red hem, so it doesn't look like the blanket under the table.
       lid(toonMaterial('#ffffff', { map: tiled(ginghamTexture(), w / 1.2, d / 1.2) }));
@@ -161,14 +187,20 @@ function underRoof(wall: Wall, map: MapData): Wall {
   return wall;
 }
 
+/** Laundry piles in the Bedroom: socks, shirts and towels in a heap. */
+const LAUNDRY = ['#e2574c', '#5d9cf5', '#f7c331', '#9b7bd8', '#5bd16a', '#ff9cbf', '#fffaf3'];
+
 export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushView[]; roofs: RoofView[] } {
   const root = new THREE.Group();
   // Beach balls roll around: they're drawn from the match state (ball-views.ts).
   map.walls.forEach((b, i) => {
     if (b.kind !== 'ball') root.add(buildWall(underRoof(b, map), i));
   });
-  const bushes = map.bushes.map((c) => {
-    const { object, view } = bush(c);
+  const indoors = map.theme === 'bedroom';
+  const bushes = map.bushes.map((c, i) => {
+    // Each pile starts at a different color so neighbors don't match.
+    const colors = indoors ? [...LAUNDRY.slice(i % LAUNDRY.length), ...LAUNDRY.slice(0, i % LAUNDRY.length)] : undefined;
+    const { object, view } = bush(c, colors, indoors ? OUTLINE_COLOR : undefined);
     root.add(object);
     return view;
   });

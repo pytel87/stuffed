@@ -2,6 +2,16 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## The Bedroom (2026-11-17)
+
+- A second map, 112 x 112: a kid's bedroom on wooden floorboards. The Bed (hide underneath or
+  climb on from the toy box), the Desk (climb up by the chair), a Block Castle with a keep in
+  the middle, the Toy Corner with a big open toy box, the Bookshelf, and the Rug with beach
+  balls. Laundry piles are the hiding spots.
+- A map button (a tree or a bed) on the title menu next to Solo and Room, and in the lobby for
+  the host; remembered on the device. The menu's backdrop switches to the chosen map.
+- Hiding in a bush (or laundry pile) looks cleaner: one even see-through layer, no inner rings.
+
 ## Beach ball goals (2026-11-17)
 
 - Two goals by the Kiddie Pool (north and south, opening toward it), with nets and a floating
