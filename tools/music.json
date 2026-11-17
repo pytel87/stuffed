@@ -1,0 +1,13 @@
+{
+  "$comment": "Background music for STUFFED. `pnpm music` generates any missing track with the ElevenLabs music API (needs ELEVEN_LABS_API_KEY in .env.local); `pnpm music --force name` regenerates one. Files land in packages/client/public/music/<name>.mp3 and are committed.",
+  "tracks": {
+    "menu": {
+      "prompt": "Gentle, cozy instrumental loop for a kids' toy game menu: music box, soft glockenspiel, plucked ukulele and warm felt piano, playful and calm, like a toy chest opening in a sunny bedroom. No vocals. Loops seamlessly.",
+      "seconds": 60
+    },
+    "match": {
+      "prompt": "Light, bouncy instrumental loop for a cartoon battle game with plush toys: pizzicato strings, xylophone, toy piano, kazoo accents and soft bongos, upbeat but not intense, mischievous and fun. No vocals. Loops seamlessly.",
+      "seconds": 90
+    }
+  }
+}

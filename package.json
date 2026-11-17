@@ -11,7 +11,8 @@
     "sfx": "node tools/generate-sfx.mjs",
     "dev:lan": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev:lan",
     "dev:solo": "pnpm --filter @stuffed/client dev",
-    "deploy": "pnpm build && pnpm --filter @stuffed/server run deploy"
+    "deploy": "pnpm build && pnpm --filter @stuffed/server run deploy",
+    "music": "node tools/generate-music.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

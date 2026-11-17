@@ -30,6 +30,7 @@ const paths: Record<string, string> = {
   // ui
   gear: `<circle cx="12" cy="12" r="3" fill="#fff"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/><circle cx="12" cy="12" r="6.5"/>`,
   sound: `<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4Z" fill="#fff"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>`,
+  music: `<path d="M9 17V6l10-2v11"/><circle cx="7" cy="17" r="2.6" fill="#fff"/><circle cx="17" cy="15" r="2.6" fill="#fff"/>`,
   mute: `<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4Z" fill="#fff"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>`,
   fullscreen: `<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>`,
   help: `<circle cx="12" cy="12" r="9" fill="#fff"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><circle cx="12" cy="17" r="1" fill="${INK}" stroke="none"/>`,

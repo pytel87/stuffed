@@ -3,6 +3,7 @@ import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzl
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
+import { Music } from './audio/music.ts';
 import { Sound } from './audio/sound.ts';
 import { KeyboardMouseInput } from './input/keyboard-mouse.ts';
 import { TouchControls } from './input/touch-controls.ts';
@@ -121,6 +122,7 @@ wardrobe.onLookChanged = () => room?.lookChanged();
 void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 const audio = new GameAudio(sound);
+const music = new Music(sound, import.meta.env.BASE_URL);
 /** The soft button click. */
 const uiClick = () => sound.play('click', { pitchSpread: 0, volume: 0.8 });
 // Every button on the cards, the options and the spectate bar clicks (not the in-match HUD).
@@ -137,6 +139,8 @@ renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === ses
 const help = new Help();
 const options = new Options({
   toggleSound: () => sound.toggleMute(),
+  toggleMusic: () => music.toggle(),
+  isMusicOn: () => music.isOn,
   isMuted: () => sound.isMuted,
   help: () => help.show(),
   leave: showMenu,
@@ -217,6 +221,8 @@ function beginMatch(next: GameSession): void {
   renderer.setMap(next.map);
   world = createWorld(next.map);
   hudEl.classList.toggle('idle', isBackdrop(next));
+  // The music-box tune behind the menu and lobby; the bouncier one in a match.
+  music.play(isBackdrop(next) ? 'menu' : 'match');
   audio.reset();
   renderer.reset();
   endScreen.hide();

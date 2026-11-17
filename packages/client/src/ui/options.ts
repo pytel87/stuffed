@@ -2,6 +2,9 @@ import { icon } from './icons.ts';
 
 export interface OptionsActions {
   toggleSound: () => boolean;
+  /** Music on or off (sound effects stay). */
+  toggleMusic: () => boolean;
+  isMusicOn: () => boolean;
   isMuted: () => boolean;
   help: () => void;
   leave: () => void;
@@ -20,6 +23,7 @@ export class Options {
       `<button type="button" class="gear" aria-label="Options">${icon('gear')}</button>
        <div class="sheet" hidden>
          <button type="button" class="round opt-sound" aria-label="Sound"></button>
+         <button type="button" class="round opt-music" aria-label="Music"></button>
          ${canFullscreen ? `<button type="button" class="round opt-full" aria-label="Fullscreen">${icon('fullscreen')}</button>` : ''}
          <button type="button" class="round opt-help" aria-label="Controls">${icon('help')}</button>
          <button type="button" class="round opt-leave" aria-label="Leave">${icon('home')}</button>
@@ -37,6 +41,16 @@ export class Options {
     const gear = document.querySelector<HTMLButtonElement>('.gear')!;
     this.sheet = document.querySelector<HTMLElement>('.sheet')!;
     this.sound = this.sheet.querySelector('.opt-sound')!;
+    const music = this.sheet.querySelector<HTMLButtonElement>('.opt-music')!;
+    const renderMusic = () => {
+      music.innerHTML = icon('music');
+      music.classList.toggle('off', !actions.isMusicOn());
+    };
+    renderMusic();
+    music.addEventListener('click', () => {
+      actions.toggleMusic();
+      renderMusic();
+    });
     this.leave = this.sheet.querySelector('.opt-leave')!;
     this.renderSound();
 

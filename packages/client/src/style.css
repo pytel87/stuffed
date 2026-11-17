@@ -2039,3 +2039,11 @@ body.touch-mode .gear {
 .map-choice:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Music off: the note faded with a line through it. */
+.opt-music.off {
+  opacity: 0.55;
+  background:
+    linear-gradient(135deg, transparent 47%, var(--ink) 47%, var(--ink) 53%, transparent 53%),
+    var(--cream);
+}

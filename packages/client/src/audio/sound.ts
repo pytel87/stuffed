@@ -58,6 +58,14 @@ export class Sound {
     return this.muted;
   }
 
+  /** The audio context and the master volume (for the music), once audio has started. */
+  get output(): { ctx: AudioContext; master: GainNode } | null {
+    return this.ctx && this.master ? { ctx: this.ctx, master: this.master } : null;
+  }
+
+  /** Called once audio may play (after the first tap or key). */
+  onStart: (() => void) | null = null;
+
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 1;
@@ -121,6 +129,7 @@ export class Sound {
     this.master.connect(this.ctx.destination);
     void this.ctx.resume();
     for (const name of SOUNDS) void this.load(name);
+    this.onStart?.();
   }
 
   private async load(name: SoundName): Promise<void> {
