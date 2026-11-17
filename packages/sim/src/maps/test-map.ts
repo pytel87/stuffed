@@ -49,5 +49,14 @@ export const TEST_MAP: MapData = {
   /** The room's roof covers its walls and floor. */
   buildings: [box(33, 33, 14, 14)],
   spawns: [...ringSpawns(12, 28), ...ringSpawns(6, 12)],
-  chestSpawns: [],
+  chestSpawns: [
+    [36.5, 36.5], [43.5, 43.5], // inside the room
+    [17, 17], [63, 17], [17, 63], [63, 63], // in the book corners
+    [27.5, 25], [52.5, 25], [27.5, 55], [52.5, 55], // beside blocks
+    [40, 24], [40, 56], [24, 40], [56, 40],
+    [10, 10], [70, 10], [10, 70], [70, 70],
+    [8, 50], [72, 30], [30, 8], [50, 72],
+    [20, 30], [60, 50], [50, 20], [30, 60],
+    [40, 4], [4, 40], [76, 40], [40, 76],
+  ].map(([x, y]) => ({ x: x!, y: y! })),
 };

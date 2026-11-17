@@ -45,6 +45,31 @@ export function pick<T>(s: RngState, items: readonly T[]): T {
   return item;
 }
 
+/** Picks a key with probability proportional to its weight. Keys are visited in insertion order. */
+export function pickWeighted<K extends string>(s: RngState, weights: Readonly<Record<K, number>>): K {
+  const entries = Object.entries(weights) as [K, number][];
+  let total = 0;
+  for (const [, w] of entries) total += w;
+  let roll = nextFloat(s) * total;
+  for (const [key, w] of entries) {
+    roll -= w;
+    if (roll < 0) return key;
+  }
+  return entries[entries.length - 1]![0];
+}
+
+/** Index in [0, weights.length) with probability proportional to its weight. */
+export function pickIndexWeighted(s: RngState, weights: readonly number[]): number {
+  let total = 0;
+  for (const w of weights) total += w;
+  let roll = nextFloat(s) * total;
+  for (let i = 0; i < weights.length; i++) {
+    roll -= weights[i]!;
+    if (roll < 0) return i;
+  }
+  return weights.length - 1;
+}
+
 /** Fisher-Yates shuffle in place. */
 export function shuffle<T>(s: RngState, items: T[]): T[] {
   for (let i = items.length - 1; i > 0; i--) {

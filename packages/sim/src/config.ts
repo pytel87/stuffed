@@ -1,7 +1,7 @@
 // Every gameplay number lives here so balancing never means hunting through systems.
 // Distances are in world units: a plush is 1 unit wide (radius 0.5). Times are in seconds
 // unless a name says otherwise; systems convert to ticks with secondsToTicks().
-import type { WeaponKind, WeaponSpec } from './types.ts';
+import type { ItemKind, Rarity, WeaponKind, WeaponSpec } from './types.ts';
 
 export interface WeaponStats {
   readonly name: string;
@@ -71,6 +71,27 @@ const weapons = {
   },
 } as const satisfies Record<WeaponKind, WeaponStats>;
 
+export interface ItemStats {
+  readonly name: string;
+  /** Seconds to use; you move at items.useMoveMultiplier speed meanwhile. */
+  readonly useTime: number;
+  readonly stuffing: number;
+  readonly buttons: number;
+  /** Heals stop at this much stuffing (a Cotton Puff only patches you up to 75). */
+  readonly stuffingCap: number;
+  readonly maxStack: number;
+  /** How many a chest drops in one stack. */
+  readonly chestCount: number;
+  /** Ground glow color tier; items' effects do not scale with rarity. */
+  readonly rarity: Rarity;
+}
+
+const items = {
+  cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, buttons: 0, stuffingCap: 75, maxStack: 5, chestCount: 2, rarity: 0 },
+  sewing_kit: { name: 'Sewing Kit', useTime: 4, stuffing: 50, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 2 },
+  button_pack: { name: 'Button Pack', useTime: 2, stuffing: 0, buttons: 25, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 1 },
+} as const satisfies Record<ItemKind, ItemStats>;
+
 export interface RarityStats {
   readonly name: string;
   readonly color: string;
@@ -124,7 +145,35 @@ export const config = {
     bushRevealDistance: 1.5,
   },
 
+  chest: {
+    /** Chests are solid; plushies bump into them. */
+    radius: 0.6,
+    /** Seconds E must be held. */
+    openTime: 1,
+    /** Max distance from a plush's center to a chest's center to open it. */
+    interactRange: 1.6,
+    /** Relative odds of each weapon kind in a Toy Box. */
+    weaponWeights: { cork_popper: 4, foam_dart_smg: 3.5, super_soaker: 2.5 } satisfies Record<WeaponKind, number>,
+    /** Relative odds of each rarity (Hand-me-down .. One-of-a-Kind). */
+    rarityWeights: [50, 28, 15, 6, 1],
+    itemWeights: { cotton_puff: 4.5, sewing_kit: 2, button_pack: 3.5 } satisfies Record<ItemKind, number>,
+  },
+
+  loot: {
+    /** Items are picked up by walking within this distance. */
+    itemPickupRadius: 1,
+    /** Weapons are picked up with E within this distance. */
+    weaponPickupRange: 1.6,
+    /** Loot lands this far from the chest or the knocked-out plush. */
+    dropDistance: 1.4,
+    radius: 0.4,
+  },
+
+  /** Movement speed multiplier while using an item. */
+  itemUseMoveMultiplier: 0.5,
+
   weapons,
+  items,
   rarity,
 } as const;
 

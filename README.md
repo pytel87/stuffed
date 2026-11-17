@@ -32,10 +32,14 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | Shoot | Left click (hold) |
 | Switch weapon | 1, 2 or mouse wheel |
 | Reload | R |
+| Open a toy chest | Hold E (1 s) |
+| Pick up a weapon | E (items are picked up by walking over them) |
+| Use an item | 3, 4, 5 |
 | Debug overlay (FPS, tick, hitboxes) | F1 |
 
-Until chests exist you start with a Cork Popper and a Super Soaker. To try other weapons
-and rarities, add `?loadout=kind:rarity,kind:rarity` to the URL, for example
+Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
+chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the
+URL, for example
 `?loadout=foam_dart_smg:2,super_soaker:4`. Kinds: `cork_popper`, `foam_dart_smg`,
 `super_soaker`; rarity 0 (Hand-me-down) to 4 (One-of-a-Kind).
 

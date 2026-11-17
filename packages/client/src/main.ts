@@ -15,7 +15,8 @@ const input = new KeyboardMouseInput(canvas);
 const params = new URLSearchParams(location.search);
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs.
 const seed = Number(params.get('seed')) || Date.now() >>> 0;
-const session = new LocalSession(input, { seed, loadout: loadoutFromUrl() });
+const loadout = loadoutFromUrl();
+const session = new LocalSession(input, { seed, ...(loadout ? { loadout } : {}) });
 const renderer = new GameRenderer(canvas, session.map);
 const debug = new DebugOverlay(debugEl, (on) => renderer.setDebug(on));
 const hud = new Hud(document.querySelector<HTMLElement>('#hud')!);
@@ -69,7 +70,7 @@ function frame(now: number): void {
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
 
   me = f.curr.players.find((p) => p.id === session.localPlayerId);
-  hud.update(f.curr, me);
+  hud.update(f.curr, me, f.alpha);
   debug.update(dt, {
     seed,
     tick: f.curr.tick,
@@ -79,6 +80,7 @@ function frame(now: number): void {
     bush: me?.inBush ? 'hidden' : '-',
     roof: me && me.building !== -1 ? `building ${me.building}` : '-',
     proj: f.curr.projectiles.length,
+    loot: `${f.curr.loot.length} on ground, ${f.curr.chests.filter((c) => !c.opened).length} chests closed`,
     zone: 'not started',
   });
 
@@ -86,12 +88,12 @@ function frame(now: number): void {
 }
 
 /**
- * Until chests exist you start with a Cork Popper and a Super Soaker. Try others with
- * ?loadout=foam_dart_smg:2,super_soaker:4 (kind:rarity, rarity 0-4).
+ * Everyone starts with the sim's starting loadout. To test a weapon without finding it,
+ * use ?loadout=foam_dart_smg:2,super_soaker:4 (kind:rarity, rarity 0-4).
  */
-function loadoutFromUrl(): WeaponSpec[] {
+function loadoutFromUrl(): WeaponSpec[] | undefined {
   const param = params.get('loadout');
-  if (!param) return [{ kind: 'cork_popper', rarity: 0 }, { kind: 'super_soaker', rarity: 2 }];
+  if (!param) return undefined;
   return param
     .split(',')
     .slice(0, 2)

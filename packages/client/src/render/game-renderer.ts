@@ -5,6 +5,7 @@ import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { buildMapView } from './map-view.ts';
+import { ChestViews, LootViews } from './loot-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
@@ -32,6 +33,8 @@ export class GameRenderer {
   private readonly plushes = new Map<EntityId, PlushView>();
   private readonly projectiles = new ProjectileViews(this.scene);
   private readonly effects = new Effects(this.scene);
+  private readonly chests = new ChestViews(this.scene);
+  private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
   private readonly hit = new THREE.Vector3();
@@ -118,6 +121,21 @@ export class GameRenderer {
           if (source?.weapons[source.activeSlot]?.kind === 'super_soaker') this.effects.splash(target.pos.x, target.pos.y);
           break;
         }
+        case 'chestOpened': {
+          const chest = state.chests.find((c) => c.id === e.chestId);
+          if (chest) this.effects.chestPop(chest.pos.x, chest.pos.y);
+          break;
+        }
+        case 'pickup': {
+          const p = byId.get(e.playerId);
+          if (p) this.effects.pickup(p.pos.x, p.pos.y);
+          break;
+        }
+        case 'itemUsed': {
+          const p = byId.get(e.playerId);
+          if (p) this.effects.itemUsed(p.pos.x, p.pos.y, e.item === 'button_pack');
+          break;
+        }
         case 'impact':
           this.effects.impact(e.pos.x, e.pos.y, e.weapon === 'super_soaker');
           break;
@@ -174,6 +192,8 @@ export class GameRenderer {
     }
 
     this.projectiles.update(prev, curr, alpha);
+    this.chests.update(curr, opts.dt, opts.time);
+    this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     updateBushes(this.bushes, this.localPlayerPos.x, this.localPlayerPos.y);
     updateRoofs(this.roofs, me?.building ?? -1, this.debug, opts.dt);

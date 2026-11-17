@@ -2,6 +2,27 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 1.4: Chests and loot (2026-11-17)
+
+- Sim: 30 toy chests on the test map; they are solid. Hold E for 1 s within range to open
+  one (releasing E, walking away, shooting or swapping cancels). It drops one weapon (kind
+  and rarity rolled from config weights, rarity odds 50/28/15/6/1) and one item stack,
+  tossed to either side of the opener.
+- Pickup: walk over items to take them (stacking up to each item's max in 3 slots);
+  press E near a weapon to take it into an empty slot or swap it with the active one.
+- Items on keys 3-5: Cotton Puff (+15 stuffing, max 75, 1 s), Sewing Kit (+50, 4 s),
+  Button Pack (+25 buttons, 2 s). You move at half speed while using one; shooting or
+  swapping cancels it; useless items (e.g. healing at full) don't start.
+- Knocked-out plushies drop every weapon and item they carried.
+- Everyone starts with a Hand-me-down Cork Popper (`?loadout=` still overrides).
+- Client: toy-box chests with a lid that rattles while opening and swings open, loot that
+  pops in, floats and spins over a rarity-colored glow and ring (a light beam from Limited
+  Edition up), item models, confetti and pickup effects, HUD item slots, an E prompt
+  naming the weapon and rarity, and a progress bar for opening and using.
+- Tests: opening, cancelling, solidity, rarity odds, weapon pickup and swap, item pickup
+  and stacking, healing caps, use time, slowdown, knockout drops, chest placement; the
+  determinism test now presses E and uses items.
+
 ## Step 1.3: Walls and collision (2026-11-17)
 
 - Sim: walls as boxes in a static spatial hash. Plushies slide along walls (substepped, so

@@ -1,8 +1,8 @@
 import { createGame, createWorld, NEUTRAL_INPUT, step, TEST_MAP } from '../src/index.ts';
 import type { EntityId, GameState, Input, MapData, RosterEntry } from '../src/index.ts';
 
-/** The test map's size and spawns with no walls or bushes, so tests control the terrain. */
-export const OPEN_MAP: MapData = { ...TEST_MAP, id: 'open', walls: [], bushes: [], buildings: [] };
+/** The test map's size and spawns with no walls, bushes, roofs or chests, so tests control the terrain. */
+export const OPEN_MAP: MapData = { ...TEST_MAP, id: 'open', walls: [], bushes: [], buildings: [], chestSpawns: [] };
 
 export function roster(count: number): RosterEntry[] {
   return Array.from({ length: count }, (_, i) => ({ name: i === 0 ? 'you' : `bot ${i}`, isBot: i > 0 }));

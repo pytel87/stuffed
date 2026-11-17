@@ -107,6 +107,23 @@ export class Effects {
     else this.burst(this.cotton, x, 0.6, z, 0, 0, 3, 1.5, 0.06, 0.35, 3);
   }
 
+  /** A toy box pops open: confetti buttons and a puff of fluff. */
+  chestPop(x: number, z: number): void {
+    for (const pool of this.buttons) this.burst(pool, x, 0.8, z, 0, 0, 4, 3, 0.06, 0.9, 9);
+    this.burst(this.cotton, x, 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
+  }
+
+  /** Something picked up: a small puff where it was. */
+  pickup(x: number, z: number): void {
+    this.burst(this.cotton, x, 0.6, z, 0, 0, 4, 1.5, 0.05, 0.35, 0);
+  }
+
+  /** Item finished: fluff for healing, buttons for armor, swirling up around the plush. */
+  itemUsed(x: number, z: number, armor: boolean): void {
+    if (armor) for (const pool of this.buttons) this.burst(pool, x, 0.5, z, 0, 0, 3, 1.5, 0.06, 0.7, -2);
+    else this.burst(this.cotton, x, 0.4, z, 0, 0, 10, 1.5, 0.07, 0.8, -3);
+  }
+
   /** A plush bursts into a pile of fluff when Unstitched. */
   knockout(x: number, z: number): void {
     this.burst(this.cotton, x, 0.7, z, 0, 0, 36, 5, 0.14, 1.4, 6);

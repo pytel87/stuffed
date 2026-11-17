@@ -17,8 +17,9 @@ function scriptedInputs(seed: number) {
         moveY: rng.nextRange(r, -1, 1),
         aimX: rng.nextRange(r, -1, 1),
         aimY: rng.nextRange(r, -1, 1),
-        buttons: rng.nextFloat(r) < 0.5 ? Btn.Fire : 0,
+        buttons: (rng.nextFloat(r) < 0.5 ? Btn.Fire : 0) | (rng.nextFloat(r) < 0.4 ? Btn.Interact : 0),
         cycleWeapon: rng.nextFloat(r) < 0.1,
+        useItemSlot: rng.nextFloat(r) < 0.05 ? 0 : -1,
       });
       cache.set(key, inp);
     }

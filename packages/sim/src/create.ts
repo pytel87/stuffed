@@ -45,8 +45,11 @@ export function createGame({ seed, map, roster }: CreateGameOptions): GameState 
       revealedUntilTick: 0,
       parts: rollParts(rng, entry.parts),
       lastInputSeq: -1,
+      heldButtons: 0,
     };
   });
+
+  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, opened: false }));
 
   return {
     tick: 0,
@@ -56,7 +59,7 @@ export function createGame({ seed, map, roster }: CreateGameOptions): GameState 
     winnerId: null,
     players,
     projectiles: [],
-    chests: [],
+    chests,
     loot: [],
     zone: initialZone(map),
     events: [],

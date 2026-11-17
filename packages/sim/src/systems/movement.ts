@@ -16,9 +16,9 @@ export function applyAim(player: Player, input: Input): void {
   if (aim) player.aim = aim;
 }
 
-export function movePlayer(world: World, player: Player, input: Input): void {
+export function movePlayer(world: World, state: GameState, player: Player, input: Input): void {
   const move = clampLength1(input.moveX, input.moveY);
-  const speed = config.player.moveSpeed;
+  const speed = config.player.moveSpeed * (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
   player.vel.y += (move.y * speed - player.vel.y) * ACCEL_BLEND;
 
@@ -28,30 +28,45 @@ export function movePlayer(world: World, player: Player, input: Input): void {
   for (let i = 0; i < steps; i++) {
     player.pos.x += dx / steps;
     player.pos.y += dy / steps;
-    resolveWalls(world, player);
+    resolveObstacles(world, state, player);
   }
   player.knockback.x *= KNOCKBACK_KEEP;
   player.knockback.y *= KNOCKBACK_KEEP;
   clampToMap(world, player);
 }
 
-/** Pushes the player out of any wall it overlaps and removes velocity into those walls (sliding). */
-export function resolveWalls(world: World, player: Player): void {
+/**
+ * Pushes the player out of any wall or chest it overlaps and removes velocity into them, so
+ * the plush slides along instead of sticking.
+ */
+export function resolveObstacles(world: World, state: GameState, player: Player): void {
   const r = player.radius;
   for (let pass = 0; pass < WALL_PASSES; pass++) {
     const { x, y } = player.pos;
     let moved = false;
     for (const i of world.walls.query(x - r, y - r, x + r, y + r)) {
       const push = circleBoxPush(player.pos.x, player.pos.y, r, world.map.walls[i]!);
-      if (!push) continue;
-      player.pos.x += push.nx * push.depth;
-      player.pos.y += push.ny * push.depth;
-      removeInto(player.vel, push.nx, push.ny);
-      removeInto(player.knockback, push.nx, push.ny);
-      moved = true;
+      if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
+    }
+    for (const chest of state.chests) {
+      const dx = player.pos.x - chest.pos.x;
+      const dy = player.pos.y - chest.pos.y;
+      const min = r + config.chest.radius;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2);
+      moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
     }
     if (!moved) return;
   }
+}
+
+function pushOut(player: Player, nx: number, ny: number, depth: number): boolean {
+  player.pos.x += nx * depth;
+  player.pos.y += ny * depth;
+  removeInto(player.vel, nx, ny);
+  removeInto(player.knockback, nx, ny);
+  return true;
 }
 
 /**
@@ -83,8 +98,8 @@ export function separatePlayers(world: World, state: GameState): void {
       a.pos.y -= dy * half;
       b.pos.x += dx * half;
       b.pos.y += dy * half;
-      resolveWalls(world, a);
-      resolveWalls(world, b);
+      resolveObstacles(world, state, a);
+      resolveObstacles(world, state, b);
       clampToMap(world, a);
       clampToMap(world, b);
     }

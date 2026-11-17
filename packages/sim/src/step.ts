@@ -1,5 +1,7 @@
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { checkWinner } from './systems/damage.ts';
+import { updateItemUse } from './systems/items.ts';
+import { autoPickupItems, dropEverything, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
@@ -24,18 +26,27 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     if (raw) player.lastInputSeq = input.seq;
     clean.set(player.id, input);
     applyAim(player, input);
-    movePlayer(world, player, input);
+    movePlayer(world, state, player, input);
   }
   separatePlayers(world, state);
 
   for (const player of state.players) {
     if (!player.alive) continue;
+    const input = clean.get(player.id)!;
     player.inBush = insideBush(world, player.pos.x, player.pos.y);
     player.building = buildingAt(world, player.pos.x, player.pos.y);
-    updateWeapons(world, state, player, clean.get(player.id)!);
+    updateWeapons(world, state, player, input);
+    updateInteraction(world, state, player, input);
+    updateItemUse(state, player, input);
+    autoPickupItems(state, player);
+    player.heldButtons = input.buttons;
   }
 
   updateProjectiles(world, state);
+  // Knocked-out plushies burst and drop whatever they still hold.
+  for (const player of state.players) {
+    if (!player.alive && (player.weapons.some(Boolean) || player.items.some(Boolean))) dropEverything(world, state, player);
+  }
   checkWinner(state);
   return state;
 }

@@ -58,8 +58,8 @@ export interface ItemStack {
 }
 
 export type PlayerAction =
-  | { kind: 'openChest'; chestId: EntityId; endTick: Tick }
-  | { kind: 'useItem'; slot: number; endTick: Tick };
+  | { kind: 'openChest'; chestId: EntityId; startTick: Tick; endTick: Tick }
+  | { kind: 'useItem'; slot: number; item: ItemKind; startTick: Tick; endTick: Tick };
 
 export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 /** Cosmetic part ids per slot. Never affects stats or hitboxes. */
@@ -91,6 +91,8 @@ export interface Player {
   revealedUntilTick: Tick;
   parts: PartLoadout;
   lastInputSeq: number;
+  /** Buttons held last tick, to detect presses (E to pick up). */
+  heldButtons: number;
 }
 
 export interface Projectile {
@@ -145,6 +147,7 @@ export type GameEvent =
   | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
+  | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
   /** A projectile stopped against a wall. */
   | { type: 'impact'; pos: Vec2; weapon: WeaponKind };
