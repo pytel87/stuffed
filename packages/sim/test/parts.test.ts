@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BotController, Btn, carriedParts, config, createGame, fullSet, PART_SLOTS, rollKeeps, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
+import { applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, rollKeeps, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -111,25 +111,46 @@ describe('skin parts', () => {
     expect(partsOnGround(state)).toHaveLength(1);
   });
 
-  it('knocked out: found parts and the stash drop, your own look does not', () => {
-    const { world, state, p } = solo();
-    p.parts.head = { animal: 'shark', rarity: 3, found: true };
-    p.parts.legs = { animal: 'frog', rarity: 1, found: true };
-    p.stash = shark('tail', 4);
-    applyDamage(state, p, 1000, null);
+  it('knocked out: each found part is either kept or dropped, never both; your own look stays', () => {
+    let sawKept = false;
+    let sawDropped = false;
+    for (let seed = 1; seed <= 20; seed++) {
+      const world = createWorld(OPEN_MAP);
+      const state = createGame({ seed, map: OPEN_MAP, roster: [{ name: 'you', isBot: false }, { name: 'bot', isBot: true }] });
+      const p = state.players[0]!;
+      p.pos = { x: 20, y: 40 };
+      const look = p.parts.body;
+      p.parts.head = { animal: 'shark', rarity: 2, found: true };
+      p.parts.legs = { animal: 'frog', rarity: 0, found: true };
+      p.stash = shark('tail', 1);
+      applyDamage(state, p, 1000, null);
+      run(world, state, 1, () => idle);
+      const event = state.events.find((e) => e.type === 'partsDropped');
+      if (event?.type !== 'partsDropped') throw new Error('no partsDropped event');
+      const onGround = partsOnGround(state).map((l) => (l.content.type === 'part' ? l.content.part : null));
+      expect(onGround).toEqual(event.dropped);
+      expect(event.kept.length + event.dropped.length).toBe(3);
+      // Hand-me-down parts are always kept.
+      expect(event.kept).toContainEqual({ slot: 'legs', animal: 'frog', rarity: 0 });
+      expect(p.stash).toBeNull();
+      expect(p.parts.body).toEqual(look);
+      sawKept ||= event.kept.some((k) => k.rarity > 0);
+      sawDropped ||= event.dropped.length > 0;
+      // Nothing more drops on later ticks.
+      run(world, state, 3, () => idle);
+      expect(partsOnGround(state)).toHaveLength(event.dropped.length);
+    }
+    expect(sawKept && sawDropped).toBe(true);
+  });
+
+  it('bots keep nothing: everything they found drops', () => {
+    const world = createWorld(OPEN_MAP);
+    const state = createGame({ seed: 1, map: OPEN_MAP, roster: [{ name: 'you', isBot: false }, { name: 'bot', isBot: true }] });
+    const bot = state.players[1]!;
+    bot.parts.head = { animal: 'shark', rarity: 0, found: true };
+    applyDamage(state, bot, 1000, null);
     run(world, state, 1, () => idle);
-    const dropped = partsOnGround(state).map((l) => (l.content.type === 'part' ? l.content.part : null));
-    expect(dropped).toHaveLength(3);
-    expect(dropped).toContainEqual(shark('head', 3));
-    expect(dropped).toContainEqual({ slot: 'legs', animal: 'frog', rarity: 1 });
-    expect(dropped).toContainEqual(shark('tail', 4));
-    expect(p.stash).toBeNull();
-    const event = state.events.find((e) => e.type === 'partsDropped');
-    expect(event).toMatchObject({ playerId: p.id });
-    expect(event?.type === 'partsDropped' && event.parts).toHaveLength(3);
-    // Nothing more drops on later ticks.
-    run(world, state, 3, () => idle);
-    expect(partsOnGround(state)).toHaveLength(3);
+    expect(partsOnGround(state)).toHaveLength(1);
   });
 
   it('what you carry home: found parts you wear, and the stash', () => {

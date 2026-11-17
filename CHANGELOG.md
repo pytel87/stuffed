@@ -2,6 +2,21 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Keep or drop, never both; dropping things; bots that don't spin (2026-11-17)
+
+- Knocked out: each part you carried is rolled once by its keep chance; kept ones go to your
+  collection, the rest drop for others. (Before, everything dropped and you could also keep a
+  copy.) Bots keep nothing.
+- Online: kept parts are saved and shown the moment you're knocked out, and a match ends once no
+  real player is left (no waiting for the bots).
+- Drop things: long press (or right-click) a weapon, item or stash slot; G drops your weapon. You
+  can't take something back for 2 s; others can.
+- Touch: a Stash button next to Grab while a part is in reach; the part prompt reads
+  hand | part | bag.
+- Bots: pathfinding around buildings and in through doors; no more spinning at walls, at roof
+  edges (they chase where an enemy was for a moment) or at the water's edge.
+- Online: fewer snap-backs (the server keeps up to 15 queued inputs; small corrections slide).
+
 ## Online feel and hints (2026-11-17)
 
 - Phones: grass is cut into patches that are skipped when off screen, and phones get about half

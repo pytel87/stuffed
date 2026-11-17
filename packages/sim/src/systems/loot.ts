@@ -2,7 +2,7 @@
 import { config, secondsToTicks } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { ANIMALS, PART_SLOTS } from '../parts.ts';
-import { pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
+import { nextFloat, pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
@@ -272,22 +272,32 @@ export function hasDrops(player: Player): boolean {
 }
 
 /**
- * Unstitched plushies burst and drop everything they carried in a ring around them: weapons,
- * items, the stash and every part they found this match (their own look stays theirs).
+ * Unstitched plushies burst and drop what they carried in a ring around them: weapons, items,
+ * and the parts they found this match (and their stash) that they don't keep. Each part is
+ * rolled once by its rarity's keep chance: kept parts go home with the player, the rest drop for
+ * others to take. A part is never both kept and dropped. Their own starting look stays theirs.
  */
 export function dropEverything(world: World, state: GameState, player: Player): void {
   const drops: LootContent[] = [];
   for (const w of player.weapons) if (w) drops.push({ type: 'weapon', weapon: { ...w, reloadEndTick: null } });
   for (const s of player.items) if (s) drops.push({ type: 'item', item: { ...s } });
+  const carried: Part[] = [];
   for (const slot of PART_SLOTS) {
     const worn = player.parts[slot];
     if (!worn.found) continue;
-    drops.push({ type: 'part', part: { slot, animal: worn.animal, rarity: worn.rarity } });
+    carried.push({ slot, animal: worn.animal, rarity: worn.rarity });
     worn.found = false;
   }
-  if (player.stash) drops.push({ type: 'part', part: player.stash });
-  const parts = drops.flatMap((d) => (d.type === 'part' ? [d.part] : []));
-  if (parts.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, parts });
+  if (player.stash) carried.push(player.stash);
+  const kept: Part[] = [];
+  const dropped: Part[] = [];
+  for (const part of carried) {
+    // Bots have no collection: everything they carried drops.
+    const keep = !player.isBot && nextFloat(state.rng) < (config.parts.keepChance[part.rarity] ?? 0);
+    (keep ? kept : dropped).push(part);
+  }
+  for (const part of dropped) drops.push({ type: 'part', part });
+  if (carried.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, kept, dropped });
   player.weapons = [null, null];
   player.items = [null, null, null];
   player.stash = null;

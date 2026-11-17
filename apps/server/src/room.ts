@@ -56,7 +56,7 @@ interface Match {
   lastInputTick: Map<EntityId, number>;
   events: GameEvent[];
   endedAtTick: number | null;
-  /** Parts each plush dropped when it was knocked out (what it can keep). */
+  /** Parts each knocked-out plush kept (rolled by the sim when it was knocked out). */
   dropped: Map<EntityId, Part[]>;
   /** Seats whose kept parts were already rolled and saved this match. */
   kept: Set<number>;
@@ -304,7 +304,7 @@ export class Room extends Server<Env> {
     }
     step(m.world, m.state, inputs);
     m.events.push(...m.state.events);
-    for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.parts);
+    for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.kept);
     // A player knocked out finds out right away which parts they keep.
     for (const e of m.state.events) {
       if (e.type !== 'eliminated') continue;
@@ -337,9 +337,11 @@ export class Room extends Server<Env> {
     const plush = m.state.players.find((p) => p.id === id);
     if (!seat.profileId || !plush || m.kept.has(seat.seat)) return;
     m.kept.add(seat.seat);
+    // Knocked out: the sim already rolled what they keep (the rest dropped in the match).
+    // Still standing at the end: the winner keeps everything; anyone else (a match ended early)
+    // rolls now.
     const won = m.state.winnerId === plush.id;
-    const carried = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
-    const kept = rollKeeps(carried, won, Math.random);
+    const kept = plush.alive ? rollKeeps(carriedParts(plush), won, Math.random) : (m.dropped.get(plush.id) ?? []);
     try {
       await addParts(this.env.DB, seat.profileId, kept);
     } catch (err) {

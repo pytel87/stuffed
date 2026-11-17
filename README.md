@@ -150,11 +150,12 @@ five parts of one animal glows in that animal's color. Parts never change stats 
 ### Keeping parts: profiles and the Wardrobe
 
 Each device gets a profile on its first visit (no sign-up): a random token in the browser, and
-a random Hand-me-down look that is also its first five parts. After a match you keep the parts
-you carried (found and still worn, or stashed): the winner keeps all of them, everyone else
-each part by chance: Hand-me-down 100%, Store-bought 60%, Collector 35%, Limited Edition 15%,
-One-of-a-Kind 5%. The results card shows what you kept. Online, the room rolls and saves this;
-solo matches report their result to the server from the browser.
+a random Hand-me-down look that is also its first five parts. The winner keeps every
+part they carried (found and still worn, or stashed). When you're knocked out, each part you
+carried is rolled once: kept by chance (Hand-me-down 100%, Store-bought 60%, Collector 35%,
+Limited Edition 15%, One-of-a-Kind 5%), and if not kept, it drops on the ground for others to
+grab. A part is never both kept and dropped. The results card shows what you kept. Online, the
+room saves this; solo matches report it to the server from the browser.
 
 The hanger next to your name on the title menu opens the Wardrobe: flip through the parts you
 own for each slot to choose the look you start every match in. It also shows the profile's

@@ -330,8 +330,8 @@ function frame(now: number): void {
     if (e.type === 'shot' && mine?.alive && !mine.drop && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
       hitDirection.addShot(e.pos, e.playerId);
     }
-    // Solo: what you carried when knocked out decides what you can keep.
-    if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.parts, false);
+    // Solo: the parts you kept when knocked out (already rolled by the game) go to your collection.
+    if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.kept, true);
   }
 
   me = state.players.find((p) => p.id === localId);

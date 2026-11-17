@@ -233,8 +233,11 @@ export type GameEvent =
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
-  /** A knocked-out plush dropped the parts it had found (and its stash). */
-  | { type: 'partsDropped'; playerId: EntityId; parts: Part[] }
+  /**
+   * A knocked-out plush's found parts (and stash): each was rolled once, by its rarity's keep
+   * chance. `kept` go to the player's collection; `dropped` fall to the ground for others.
+   */
+  | { type: 'partsDropped'; playerId: EntityId; kept: Part[]; dropped: Part[] }
   /** Put on a part (from the ground or the stash) or stashed one. */
   | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
