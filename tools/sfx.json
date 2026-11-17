@@ -15,7 +15,7 @@
       "seconds": 0.7
     },
     "hit_stuffing": {
-      "prompt": "a soft plush stuffed animal getting hit: muffled fabric thump with a fluffy cotton poof",
+      "prompt": "a punch landing on a big soft plush teddy bear: deep muffled pillowy thump with a soft fabric puff",
       "seconds": 0.5
     },
     "hit_armor": {
@@ -23,7 +23,7 @@
       "seconds": 0.5
     },
     "impact": {
-      "prompt": "a cork bouncing off a cardboard box: short dull thud",
+      "prompt": "a soft foam ball hitting a fluffy cushion: muffled pillowy thud",
       "seconds": 0.5
     },
     "splash": {
@@ -31,23 +31,23 @@
       "seconds": 0.5
     },
     "knockout": {
-      "prompt": "a plush toy bursting at the seams: quick fabric rip and a big poof of cotton stuffing, comedic",
+      "prompt": "a plush toy popping open at the seams: a soft fabric rip, then a big fluffy whoomp of cotton stuffing bursting out, comedic",
       "seconds": 1.2
     },
     "chest_rattle": {
-      "prompt": "a wooden toy box lid rattling and wiggling as someone pries it open",
+      "prompt": "a small padded toy chest lid being jiggled open: a few soft muffled cushioned taps building up, gentle and cute",
       "seconds": 1.0
     },
     "chest_open": {
-      "prompt": "a toy box lid popping open with a bright cheerful sparkly jingle",
-      "seconds": 1.2
+      "prompt": "a padded toy box lid popping open with a soft fluffy poof and a gentle sparkly chime",
+      "seconds": 1.0
     },
     "pickup_weapon": {
-      "prompt": "picking up a plastic toy blaster: plastic grab click and short swish",
+      "prompt": "grabbing a soft foam toy blaster: squishy grab and a soft fabric swish",
       "seconds": 0.5
     },
     "pickup_item": {
-      "prompt": "picking up a small soft item: gentle soft pop",
+      "prompt": "squeezing a small plush toy: soft squishy squeeze with a tiny cute squeak",
       "seconds": 0.5
     },
     "heal": {
@@ -63,15 +63,15 @@
       "seconds": 0.6
     },
     "swap": {
-      "prompt": "quick plastic toy gun swap: short rustle and click",
+      "prompt": "pulling a soft toy out of a fabric pouch: quick cloth rustle and a soft pat",
       "seconds": 0.5
     },
     "jump": {
-      "prompt": "a small soft cartoon boing for a squishy plush jumping",
+      "prompt": "a squishy plush toy hopping up: soft springy squeak-boing",
       "seconds": 0.5
     },
     "land": {
-      "prompt": "a soft plush toy landing on grass: light padded thump",
+      "prompt": "a plush toy plopping onto a soft cushion: gentle fluffy flump",
       "seconds": 0.5
     },
     "rinse_rising": {
@@ -91,7 +91,7 @@
       "seconds": 1.8
     },
     "click": {
-      "prompt": "soft toy button click for a menu",
+      "prompt": "pressing a soft felt button: muffled cushioned tap",
       "seconds": 0.5
     },
     "band_twang": {

@@ -28,12 +28,16 @@ interface Seen {
 
 export class GameAudio {
   private readonly seen = new Map<EntityId, Seen>();
+  /** Chest rattles still playing, to cut short when the opening stops early. */
+  private readonly rattles = new Map<EntityId, () => void>();
 
   constructor(private readonly sound: Sound) {}
 
   /** Forget per-player history (new match). */
   reset(): void {
     this.seen.clear();
+    for (const stop of this.rattles.values()) stop();
+    this.rattles.clear();
   }
 
   update(events: GameEvent[], state: GameState, localId: EntityId): void {
@@ -141,7 +145,11 @@ export class GameAudio {
       if (before.vz < 0 && now.vz === 0) s.play('land', { at: p.pos, volume: mine ? 0.6 : 0.35 });
       if (!before.reloading && now.reloading) s.play('reload', { at: p.pos, volume: mine ? 0.7 : 0.4 });
       if (before.slot !== now.slot && mine) s.play('swap', { at: p.pos, volume: 0.6 });
-      if (!before.opening && now.opening) s.play('chest_rattle', { at: p.pos, volume: mine ? 0.7 : 0.4 });
+      if (!before.opening && now.opening) this.rattles.set(p.id, s.play('chest_rattle', { at: p.pos, volume: mine ? 0.7 : 0.4 }));
+      if (before.opening && !now.opening) {
+        this.rattles.get(p.id)?.();
+        this.rattles.delete(p.id);
+      }
       if (!before.charging && now.charging) s.play('band_stretch', { at: p.pos, volume: mine ? 0.6 : 0.35, pitchSpread: 0 });
       if (before.bubbled && !now.bubbled) s.play('bubble_pop', { at: p.pos, volume: 0.7 });
       if (!before.bagging && now.bagging) s.play('bag_rustle', { at: p.pos, volume: mine ? 0.7 : 0.4 });

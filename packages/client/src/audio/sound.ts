@@ -19,6 +19,7 @@ const HEARING = 28;
 const PAN_WIDTH = 16;
 const MAX_VOICES = 5;
 const MUTE_KEY = 'stuffed.muted';
+const NOTHING = () => {};
 
 export interface PlayOptions {
   /** World position; omitted = non-positional (UI, announcements). */
@@ -68,10 +69,11 @@ export class Sound {
     return this.muted;
   }
 
-  play(name: SoundName, { at, volume = 1, pitchSpread = 0.1 }: PlayOptions = {}): void {
+  /** Plays a sound; the returned function fades it out early (a no-op once it has ended). */
+  play(name: SoundName, { at, volume = 1, pitchSpread = 0.1 }: PlayOptions = {}): () => void {
     const ctx = this.ctx;
     const buffer = this.buffers.get(name);
-    if (!ctx || !this.master || !buffer || this.muted) return;
+    if (!ctx || !this.master || !buffer || this.muted) return NOTHING;
 
     let gain = volume;
     let pan = 0;
@@ -79,13 +81,13 @@ export class Sound {
       const dx = at.x - this.listener.x;
       const dy = at.y - this.listener.y;
       const d = Math.hypot(dx, dy);
-      if (d >= HEARING) return;
+      if (d >= HEARING) return NOTHING;
       gain *= (1 - d / HEARING) ** 1.6;
       pan = Math.max(-1, Math.min(1, dx / PAN_WIDTH));
     }
-    if (gain < 0.02) return;
+    if (gain < 0.02) return NOTHING;
     const playing = this.voices.get(name) ?? 0;
-    if (playing >= MAX_VOICES) return;
+    if (playing >= MAX_VOICES) return NOTHING;
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -96,8 +98,19 @@ export class Sound {
     p.pan.value = pan;
     source.connect(g).connect(p).connect(this.master);
     this.voices.set(name, playing + 1);
-    source.onended = () => this.voices.set(name, Math.max(0, (this.voices.get(name) ?? 1) - 1));
+    let ended = false;
+    source.onended = () => {
+      ended = true;
+      this.voices.set(name, Math.max(0, (this.voices.get(name) ?? 1) - 1));
+    };
     source.start();
+    return () => {
+      if (ended) return;
+      const now = ctx.currentTime;
+      g.gain.setValueAtTime(g.gain.value, now);
+      g.gain.linearRampToValueAtTime(0, now + 0.08);
+      source.stop(now + 0.1);
+    };
   }
 
   private start(): void {
