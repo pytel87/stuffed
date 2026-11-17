@@ -239,7 +239,9 @@ export class Wardrobe {
     // (phones in landscape) fit 3 rows, so they spread to up to 6 columns instead.
     const short = window.innerHeight <= 480;
     const rows = short ? 3 : 4;
-    this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 4, Math.max(1, Math.ceil(owned.length / rows)))));
+    // Sized for the slot with the most parts, so the card keeps its width when switching slots.
+    const most = Math.max(...PART_SLOTS.map((sl) => this.owned(sl).length));
+    this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 4, Math.max(1, Math.ceil(most / rows)))));
     this.picker.innerHTML = owned
       .map(
         (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${p.animal}">${partIcon(slot, p.animal)}</button>`,
