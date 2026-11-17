@@ -237,27 +237,49 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
   const flat = (color: string) => toonMaterial(color, { map: null });
   switch (d.kind) {
     case 'track': {
-      // Two rails round an oval, with wooden sleepers across.
+      // A dark felt strip under the track, red sleepers across it and two steel rails, all with
+      // dark edges so the track reads clearly on the wooden floor.
       const rx = d.rx ?? 8;
       const ry = d.ry ?? 5;
-      // A thin tube along each oval (scaling a ring would stretch the rail's thickness too).
-      for (const off of [-0.45, 0.45]) {
-        const points = Array.from({ length: 96 }, (_, i) => {
-          const a = (i / 96) * Math.PI * 2;
-          return new THREE.Vector3(Math.cos(a) * (rx + off), 0.12, Math.sin(a) * (ry + off));
-        });
-        const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, true), 192, 0.07, 6, true), flat('#9aa6b8'));
-        g.add(rail);
+      const oval = (off: number, y: number) =>
+        new THREE.CatmullRomCurve3(
+          Array.from({ length: 120 }, (_, i) => {
+            const a = (i / 120) * Math.PI * 2;
+            return new THREE.Vector3(Math.cos(a) * (rx + off), y, Math.sin(a) * (ry + off));
+          }),
+          true,
+        );
+      // The felt strip: a flat ring between two ovals.
+      const inner = oval(-1.05, 0).getSpacedPoints(240);
+      const outer = oval(1.05, 0).getSpacedPoints(240);
+      const pos: number[] = [];
+      for (let i = 0; i < 240; i++) {
+        const [a0, a1, b0, b1] = [inner[i]!, inner[i + 1]!, outer[i]!, outer[i + 1]!];
+        pos.push(a0.x, 0.02, a0.z, b0.x, 0.02, b0.z, a1.x, 0.02, a1.z, a1.x, 0.02, a1.z, b0.x, 0.02, b0.z, b1.x, 0.02, b1.z);
       }
-      const n = Math.round((Math.PI * (rx + ry)) / 0.9);
+      const stripGeo = new THREE.BufferGeometry();
+      stripGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      stripGeo.computeVertexNormals();
+      const strip = new THREE.Mesh(stripGeo, toonMaterial('#3d4a6b', { side: THREE.DoubleSide }));
+      strip.receiveShadow = true;
+      g.add(strip);
+      const n = Math.round((Math.PI * (rx + ry)) / 0.85);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
-        const sleeper = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, 0.3), flat('#b07a4a'));
-        sleeper.position.set(Math.cos(a) * rx, 0.05, Math.sin(a) * ry);
+        const sleeper = toonMesh(new THREE.BoxGeometry(1.5, 0.1, 0.32), '#e2574c', { outline: 0.06 });
+        sleeper.material = toonMaterial('#e2574c', { map: null });
+        sleeper.position.set(Math.cos(a) * rx, 0.07, Math.sin(a) * ry);
         // Across the track: along the outward direction of the oval.
         sleeper.rotation.y = -Math.atan2(Math.sin(a) * rx, Math.cos(a) * ry);
         sleeper.receiveShadow = true;
         g.add(sleeper);
+      }
+      // Rails: a thin tube along each oval (scaling a ring would stretch its thickness too), with
+      // a dark hull for an outline.
+      for (const off of [-0.45, 0.45]) {
+        const curve = oval(off, 0.16);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 240, 0.085, 8, true), flat('#cfd6e2')));
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 240, 0.12, 8, true), new THREE.MeshBasicMaterial({ color: '#2a1f2d', side: THREE.BackSide })));
       }
       break;
     }
