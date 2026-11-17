@@ -1128,6 +1128,15 @@ body.touch-mode .prompt .icon.tap {
   will-change: transform, opacity;
 }
 
+/* A shot fired nearby (not at you): thinner and amber. */
+.hit-arc.shot {
+  width: 9rem;
+  height: 9rem;
+  border-width: 0.3rem;
+  border-top-color: #ffc23a;
+  filter: drop-shadow(0 0 0.3rem rgba(255, 194, 58, 0.7));
+}
+
 #floaters {
   position: fixed;
   inset: 0;

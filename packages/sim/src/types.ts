@@ -221,7 +221,8 @@ export interface Zone {
 }
 
 export type GameEvent =
-  | { type: 'shot'; playerId: EntityId; weapon: WeaponKind }
+  /** `pos`: where the shooter stood (so you can tell where shots come from, even unseen). */
+  | { type: 'shot'; playerId: EntityId; weapon: WeaponKind; pos: Vec2 }
   /** `from`: where the damage came from (back along the shot, a burst's middle, the swinger), for a direction hint. */
   | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number; from?: Vec2 }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }

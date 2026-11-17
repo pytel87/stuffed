@@ -113,7 +113,7 @@ export interface SeenPlayer extends Pick<
 export type WeaponLook = Pick<WeaponInstance, 'kind' | 'rarity' | 'reloadEndTick'>;
 
 /** A projectile as drawn. */
-export type SeenProjectile = Pick<Projectile, 'id' | 'weapon' | 'rarity' | 'pos' | 'vel' | 'z'>;
+export type SeenProjectile = Pick<Projectile, 'id' | 'ownerId' | 'weapon' | 'rarity' | 'pos' | 'vel' | 'z'>;
 
 export type ZonePlan = Omit<Zone, 'current'>;
 
@@ -171,7 +171,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     nextId: state.nextId,
     ...(me ? { me } : {}),
     others,
-    projectiles: state.projectiles.map((q) => ({ id: q.id, weapon: q.weapon, rarity: q.rarity, pos: q.pos, vel: q.vel, z: q.z })),
+    projectiles: state.projectiles.map((q) => ({ id: q.id, ownerId: q.ownerId, weapon: q.weapon, rarity: q.rarity, pos: q.pos, vel: q.vel, z: q.z })),
     ev: events,
   };
   const { current: _c, ...zonePlan } = state.zone;
@@ -254,7 +254,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     status: msg.status,
     winnerId: msg.winnerId,
     players: players.filter((p) => !(p.alive && fallenIds.has(p.id))),
-    projectiles: msg.projectiles.map((q) => ({ ...q, ownerId: 0, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
+    projectiles: msg.projectiles.map((q) => ({ ...q, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
     chests: parts.chests,
     loot: parts.loot,
     placedWalls: parts.walls,

@@ -2,6 +2,17 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Online feel and hints (2026-11-17)
+
+- Your own shots show the moment you fire online (Cork Popper, Foam Dart SMG, Super Soaker,
+  Bubble Wand): drawn here until they hit something, while the server's copies are hidden; the
+  muzzle puff and sound play at once too. Damage still comes from the server. Snapshots now say
+  who fired each projectile.
+- Shots fired within 24 units of you show a softer amber arc toward the shooter (seen or not);
+  hits on you keep the red one.
+- Gliding plushies leave a trail of cotton puffs and sparkles. Bear paw prints point the way the
+  bear walks.
+
 ## Zone names and set trails (2026-11-17)
 
 - Walking into a zone shows its name for a moment under the Rinse timer.

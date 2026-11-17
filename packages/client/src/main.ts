@@ -270,6 +270,7 @@ function frame(now: number): void {
   const events = session.takeEvents();
   renderer.playEvents(events, state);
   zoneHud.events(events);
+  const localId = session.localPlayerId;
   for (const e of events) {
     if (e.type === 'hit' && e.sourceId === session.localPlayerId) {
       const target = state.players.find((p) => p.id === e.targetId);
@@ -280,11 +281,15 @@ function frame(now: number): void {
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(state, e.byId);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
+    // Someone firing nearby (seen or not): a softer arc toward them.
+    const mine = state.players.find((p) => p.id === localId);
+    if (e.type === 'shot' && mine?.alive && !mine.drop && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
+      hitDirection.addShot(e.pos, e.playerId);
+    }
     // Solo: what you carried when knocked out decides what you can keep.
     if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.parts, false);
   }
 
-  const localId = session.localPlayerId;
   me = state.players.find((p) => p.id === localId);
   updatePhase(state);
   sound.listener.x = renderer.cameraFocus.x;
@@ -438,6 +443,9 @@ function spectateBar(state: GameState, watched: Player | undefined): string {
   const left = state.players.filter((p) => p.alive).length;
   return `${icon('eye')}<span>${escapeHtml(watched?.name ?? '…')}</span>${icon('person')}<b>${left}</b>`;
 }
+
+/** Shots fired within this distance of you show a hint arc toward the shooter. */
+const SHOT_HINT_RANGE = 24;
 
 /** Aim assist reach for touch: enemies within this angle and distance pull the aim onto them. */
 const ASSIST_ANGLE = (15 * Math.PI) / 180;

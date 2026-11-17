@@ -28,12 +28,13 @@ class ParticlePool {
     private readonly flat = false,
   ) {}
 
-  spawn(pos: THREE.Vector3, vel: THREE.Vector3, size: number, life: number, gravity: number): void {
+  /** `yaw`: for flat particles, which way they face (radians); random otherwise. */
+  spawn(pos: THREE.Vector3, vel: THREE.Vector3, size: number, life: number, gravity: number, yaw?: number): void {
     const mesh = this.free.pop() ?? this.create();
     mesh.visible = true;
     mesh.position.copy(pos);
     mesh.scale.setScalar(size);
-    if (this.flat) mesh.rotation.set(0, Math.random() * 0.4 - 0.2, 0);
+    if (this.flat) mesh.rotation.set(0, yaw ?? Math.random() * Math.PI * 2, 0);
     else mesh.rotation.set(Math.random() * 6, Math.random() * 6, 0);
     this.active.push({ mesh, vel: vel.clone(), life, maxLife: life, size, gravity });
   }
@@ -157,14 +158,15 @@ export class Effects {
    * A plush wearing a set (3+ parts of one animal) leaves a trail as it walks: paw prints, frog
    * splashes, shark ripples or chicken feathers.
    */
-  setTrail(animal: string, x: number, y: number, z: number, step: number): void {
+  setTrail(animal: string, x: number, y: number, z: number, step: number, dirX = 0, dirZ = 1): void {
     switch (animal) {
       case 'bear': {
-        // Prints alternate left and right of the path.
+        // Prints point the way the bear walks, alternating left and right of its path.
         const side = step % 2 ? 0.18 : -0.18;
-        this.tmpPos.set(x + side, y + 0.06, z);
+        this.tmpPos.set(x - dirZ * side, y + 0.06, z + dirX * side);
         this.tmpVel.set(0, 0, 0);
-        this.paws.spawn(this.tmpPos, this.tmpVel, 0.13, 1.6, 0);
+        // The print's toes are on its -z side.
+        this.paws.spawn(this.tmpPos, this.tmpVel, 0.13, 1.6, 0, Math.atan2(-dirX, -dirZ));
         break;
       }
       case 'frog':
@@ -196,6 +198,17 @@ export class Effects {
         this.burst(this.feathers, x, 1, z, 0, 0, 18, 4, 0.12, 1.6, 1.5);
         break;
     }
+  }
+
+  /** Gliding down from the Toss: little cotton puffs and sparkles streaming behind. */
+  glideTrail(x: number, y: number, z: number): void {
+    this.tmpPos.set(x + (Math.random() - 0.5) * 0.4, y + 0.6, z + (Math.random() - 0.5) * 0.4);
+    this.tmpVel.set(0, 0.3, 0);
+    this.cotton.spawn(this.tmpPos, this.tmpVel, 0.12, 0.9, 0);
+    const pool = this.glitter[Math.floor(Math.random() * this.glitter.length)]!;
+    this.tmpPos.set(x + (Math.random() - 0.5) * 1.2, y + 1.6 + Math.random() * 0.8, z + (Math.random() - 0.5) * 1.2);
+    this.tmpVel.set(0, 0.6, 0);
+    pool.spawn(this.tmpPos, this.tmpVel, 0.06, 0.8, 0);
   }
 
   /** Juice Box at work: an orange droplet rising off the plush now and then. */

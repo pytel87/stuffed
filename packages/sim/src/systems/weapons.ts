@@ -126,7 +126,7 @@ function swing(world: World, state: GameState, player: Player, weapon: WeaponIns
     applyDamage(state, p, weaponDamage(weapon), player.id, { from: { x: player.pos.x, y: player.pos.y } });
     state.events.push({ type: 'bonk', playerId: player.id, targetId: p.id });
   }
-  state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
+  state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind, pos: { x: player.pos.x, y: player.pos.y } });
 }
 
 function handleSwap(state: GameState, player: Player, input: Input): void {
@@ -178,7 +178,7 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
 
   if (stats.mode === 'throw') {
     lob(world, state, player, weapon, muzzle, speed, damage);
-    state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
+    state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind, pos: { x: player.pos.x, y: player.pos.y } });
     return;
   }
 
@@ -210,7 +210,7 @@ function fire(world: World, state: GameState, player: Player, weapon: WeaponInst
       ...(stats.bounces ? { bounces: stats.bounces } : {}),
     });
   }
-  state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind });
+  state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind, pos: { x: player.pos.x, y: player.pos.y } });
 }
 
 /**

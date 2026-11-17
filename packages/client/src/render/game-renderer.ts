@@ -337,6 +337,7 @@ export class GameRenderer {
       if (view.setBubbled(curr.tick < p.bubbledUntil)) this.effects.bubblePop(p.pos.x, p.z + 0.85, p.pos.y);
       if (curr.tick < p.juiceUntil && Math.random() < opts.dt * 6) this.effects.juice(p.pos.x, p.z, p.pos.y);
 
+
       const before = prevById.get(p.id) ?? p;
       const pos = lerp2(before.pos, p.pos, alpha);
       const vel = lerp2(before.vel, p.vel, alpha);
@@ -344,6 +345,7 @@ export class GameRenderer {
       const z = before.z + (p.z - before.z) * alpha;
       const groundY = groundHeight(this.world, curr, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
+      if (p.drop === 'gliding' && view.root.visible && Math.random() < opts.dt * 14) this.effects.glideTrail(pos.x, z, pos.y);
       // A set (3+ parts of one animal) leaves a trail while walking on the ground.
       const set = view.root.visible && !p.drop ? wornSet(p.parts) : null;
       if (set && Math.hypot(vel.x, vel.y) > 1.5 && z - groundY < 0.05) {
@@ -351,7 +353,8 @@ export class GameRenderer {
         if (walked >= 0.7) {
           const step = (this.trailSteps.get(p.id) ?? 0) + 1;
           this.trailSteps.set(p.id, step);
-          this.effects.setTrail(set, pos.x, groundY, pos.y, step);
+          const speed = Math.hypot(vel.x, vel.y);
+          this.effects.setTrail(set, pos.x, groundY, pos.y, step, vel.x / speed, vel.y / speed);
           this.trailWalked.set(p.id, 0);
         } else {
           this.trailWalked.set(p.id, walked);

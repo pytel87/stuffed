@@ -5,8 +5,12 @@
 // Your own plush is predicted: every input moves it here at once (same code as the server), and
 // every snapshot says which inputs the server has applied; the client takes that confirmed
 // state, re-applies the inputs still in flight, and smooths away any small difference.
-import { config, createWorld, DT, getMap, predictPlayer } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, Input, MapData, Player, World } from '@stuffed/sim';
+//
+// Your own shots are predicted too (for the straight-shooting weapons): they leave the muzzle
+// the moment you fire and are drawn here, while the server's copies of them are hidden. Damage
+// and hits still come from the server.
+import { Btn, config, createWorld, DT, getMap, muzzlePosition, predictPlayer, raycastWalls, secondsToTicks } from '@stuffed/sim';
+import type { EntityId, GameEvent, GameState, Input, MapData, Player, Projectile, Rarity, Vec2, WeaponKind, World } from '@stuffed/sim';
 import { decodeSnapshot, emptySnapshotParts, type CompactSnapshot } from '@stuffed/sim/net';
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
@@ -21,6 +25,26 @@ const MAX_PENDING = 90;
 const SMOOTH_LIMIT = 3;
 /** How fast a smoothed correction fades (1/s). */
 const CORRECTION_RATE = 12;
+
+/** Weapons whose shots fly straight and simple enough to draw before the server confirms them. */
+function predictable(kind: WeaponKind): boolean {
+  const s = config.weapons[kind];
+  return (s.mode ?? 'auto') === 'auto' && !s.bounces && !s.blastRadius;
+}
+
+/** One of your shots, drawn before the server's copy exists. */
+interface PredictedShot {
+  id: number;
+  weapon: WeaponKind;
+  rarity: Rarity;
+  prev: Vec2;
+  pos: Vec2;
+  vel: Vec2;
+  z: number;
+  radius: number;
+  /** In prediction ticks (one per input sent). */
+  expire: number;
+}
 
 interface Snapshot {
   tick: number;
@@ -47,6 +71,14 @@ export class NetworkMatch implements GameSession {
   private predictedPrev: Player | null = null;
   /** Visual offset left over from a reconciliation; fades to zero. */
   private readonly correction = { x: 0, y: 0, z: 0 };
+  /** Your predicted shots in flight, and the inputs that fired shots the server hasn't seen yet. */
+  private shots: PredictedShot[] = [];
+  private unconfirmedShots: number[] = [];
+  /** Counts inputs sent (the local clock for predicted shots). */
+  private predTick = 0;
+  private lastShotTick = -1e9;
+  private nextShotId = -1;
+  private localEvents: GameEvent[] = [];
 
   constructor(
     you: EntityId | null,
@@ -87,9 +119,12 @@ export class NetworkMatch implements GameSession {
     if (!me?.alive) {
       this.predicted = this.predictedPrev = null;
       this.pending = [];
+      this.shots = [];
+      this.unconfirmedShots = [];
       return;
     }
     this.pending = this.pending.filter((i) => i.seq > me.lastInputSeq);
+    this.unconfirmedShots = this.unconfirmedShots.filter((seq) => seq > me.lastInputSeq);
     const fresh = structuredClone(me);
     for (const input of this.pending) predictPlayer(this.world, state, fresh, input);
 
@@ -123,6 +158,84 @@ export class NetworkMatch implements GameSession {
     if (this.pending.length > MAX_PENDING) this.pending.shift();
     this.predictedPrev = structuredClone(this.predicted);
     predictPlayer(this.world, latest.state, this.predicted, input);
+    this.predTick++;
+    this.moveShots(latest.state);
+    this.predictShot(latest.state, input);
+  }
+
+  /**
+   * Fires a predicted shot when the server would: Fire held, the weapon ready (by the same fire
+   * rate, counted here) and ammo left after the shots it hasn't confirmed yet.
+   */
+  private predictShot(state: GameState, input: Input): void {
+    const me = this.predicted;
+    const server = state.players.find((p) => p.id === this.localPlayerId);
+    if (!me || !server || !(input.buttons & Btn.Fire) || me.drop || state.tick < server.bubbledUntil) return;
+    const weapon = server.weapons[server.activeSlot];
+    if (!weapon || !predictable(weapon.kind) || weapon.reloadEndTick !== null) return;
+    if (weapon.ammo - this.unconfirmedShots.length <= 0) return;
+    const s = config.weapons[weapon.kind];
+    if (this.predTick - this.lastShotTick < Math.max(1, secondsToTicks(s.fireInterval))) return;
+    this.lastShotTick = this.predTick;
+    this.unconfirmedShots.push(input.seq);
+
+    const aim = me.aim;
+    const tip = muzzlePosition(me.pos, aim, weapon.kind);
+    const base = Math.atan2(aim.y, aim.x);
+    const cone = (s.spreadDegrees * Math.PI) / 180;
+    for (let i = 0; i < s.pellets; i++) {
+      const even = s.pellets > 1 ? (i / (s.pellets - 1) - 0.5) * cone : 0;
+      const jitter = (Math.random() - 0.5) * (s.pellets > 1 ? cone / s.pellets : cone);
+      const a = base + even + jitter;
+      this.shots.push({
+        id: this.nextShotId--,
+        weapon: weapon.kind,
+        rarity: weapon.rarity,
+        prev: { ...tip },
+        pos: { ...tip },
+        vel: { x: Math.cos(a) * s.projectileSpeed, y: Math.sin(a) * s.projectileSpeed },
+        z: me.z + config.combat.shotHeight,
+        radius: s.projectileRadius,
+        expire: this.predTick + Math.max(1, secondsToTicks(s.range / s.projectileSpeed)),
+      });
+    }
+    this.localEvents.push({ type: 'shot', playerId: me.id, weapon: weapon.kind, pos: { x: me.pos.x, y: me.pos.y } });
+  }
+
+  /** Moves predicted shots; they stop at walls, at a plush, or at the end of their range. */
+  private moveShots(state: GameState): void {
+    this.shots = this.shots.filter((shot) => {
+      shot.prev = { ...shot.pos };
+      shot.pos = { x: shot.pos.x + shot.vel.x * DT, y: shot.pos.y + shot.vel.y * DT };
+      if (this.predTick >= shot.expire) return false;
+      if (raycastWalls(this.world, shot.prev, shot.pos, shot.radius, shot.z - shot.radius) !== null) return false;
+      return !state.players.some(
+        (p) => p.alive && p.id !== this.localPlayerId && !p.drop && Math.hypot(p.pos.x - shot.pos.x, p.pos.y - shot.pos.y) < p.radius + shot.radius,
+      );
+    });
+  }
+
+  /** Predicted shots where they are right now, as projectiles for drawing. */
+  private shotsNow(): Projectile[] {
+    const t = this.inputAcc / DT;
+    return this.shots.map((s) => {
+      const z = s.z;
+      return {
+        id: s.id,
+        ownerId: this.localPlayerId,
+        weapon: s.weapon,
+        rarity: s.rarity,
+        pos: { x: s.prev.x + (s.pos.x - s.prev.x) * t, y: s.prev.y + (s.pos.y - s.prev.y) * t },
+        vel: s.vel,
+        z,
+        vz: 0,
+        zEnd: z,
+        radius: s.radius,
+        damage: 0,
+        knockback: 0,
+        expireTick: 0,
+      };
+    });
   }
 
   advance(dtSeconds: number): void {
@@ -173,8 +286,14 @@ export class NetworkMatch implements GameSession {
     const alpha = span > 0 ? Math.min(1, Math.max(0, (this.renderTick - prev.tick) / span)) : 0;
     const me = this.predictedNow(curr.state);
     if (!me) return { prev: prev.state, curr: curr.state, alpha };
-    // Your plush is drawn where prediction puts it now, not in the past with everyone else.
-    const withMe = (s: GameState): GameState => ({ ...s, players: s.players.map((p) => (p.id === me.id ? me : p)) });
+    // Your plush is drawn where prediction puts it now, not in the past with everyone else, and
+    // so are your shots (in place of the server's copies of them).
+    const mine = this.shotsNow();
+    const withMe = (s: GameState): GameState => ({
+      ...s,
+      players: s.players.map((p) => (p.id === me.id ? me : p)),
+      projectiles: [...s.projectiles.filter((q) => q.ownerId !== me.id || !predictable(q.weapon)), ...mine],
+    });
     return { prev: withMe(prev.state), curr: withMe(curr.state), alpha };
   }
 
@@ -198,8 +317,14 @@ export class NetworkMatch implements GameSession {
   }
 
   takeEvents(): GameEvent[] {
-    const out = this.events;
+    // Your predicted shots already made their muzzle puff and sound; skip the server's echo.
+    const me = this.localPlayerId;
+    const out = [
+      ...this.events.filter((e) => !(e.type === 'shot' && e.playerId === me && predictable(e.weapon))),
+      ...this.localEvents,
+    ];
     this.events = [];
+    this.localEvents = [];
     return out;
   }
 }
