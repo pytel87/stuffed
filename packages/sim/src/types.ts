@@ -74,7 +74,9 @@ export interface ItemStack {
 
 export type PlayerAction =
   | { kind: 'openChest'; chestId: EntityId; startTick: Tick; endTick: Tick }
-  | { kind: 'useItem'; slot: number; item: ItemKind; startTick: Tick; endTick: Tick };
+  | { kind: 'useItem'; slot: number; item: ItemKind; startTick: Tick; endTick: Tick }
+  /** Team mode: re-stitching a knocked-out teammate. */
+  | { kind: 'revive'; targetId: EntityId; startTick: Tick; endTick: Tick };
 
 export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 /** Every animal has one part for each slot. */
@@ -252,6 +254,8 @@ export type GameEvent =
   /** Put on a part (from the ground or the stash) or stashed one. */
   | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
+  /** Team mode: a knocked-out plush re-stitched by a teammate. */
+  | { type: 'revived'; playerId: EntityId; byId: EntityId }
   /** The Rinse started rising, or closed completely. */
   | { type: 'zone'; stage: Zone['stage'] }
   /** A projectile stopped against a wall. */

@@ -5,6 +5,7 @@ import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { BallViews } from './ball-views.ts';
+import { ReviveMarkers } from './revive-markers.ts';
 import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
@@ -58,6 +59,8 @@ export class GameRenderer {
   private readonly trailSteps = new Map<EntityId, number>();
   /** Beach balls rolling around. */
   private readonly balls = new BallViews(this.scene);
+  /** Team mode: where knocked-out teammates can be re-stitched. */
+  private readonly reviveMarkers = new ReviveMarkers(this.scene);
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
@@ -231,6 +234,11 @@ export class GameRenderer {
           if (target) this.effects.bonk(target.pos.x, target.pos.y);
           break;
         }
+        case 'revived': {
+          const p = byId.get(e.playerId);
+          if (p) this.effects.revive(p.pos.x, p.pos.y);
+          break;
+        }
         case 'eliminated': {
           const p = byId.get(e.playerId);
           if (p) {
@@ -319,6 +327,7 @@ export class GameRenderer {
     this.placedWalls.clear();
     this.toss.clear();
     this.balls.clear();
+    this.reviveMarkers.clear();
     this.rig.reset();
   }
 
@@ -411,6 +420,7 @@ export class GameRenderer {
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
+    this.reviveMarkers.update(curr, viewer, opts.time);
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));
     this.rinse.update(curr.zone, opts.time, this.followPos, zoom);

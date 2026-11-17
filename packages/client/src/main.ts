@@ -18,6 +18,7 @@ import { escapeHtml } from './ui/escape.ts';
 import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Help } from './ui/help.ts';
 import { HitDirection } from './ui/hit-direction.ts';
+import { TeammateArrows } from './ui/teammate-arrows.ts';
 import { Hud } from './ui/hud.ts';
 import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
@@ -65,6 +66,7 @@ const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
+const mateArrows = new TeammateArrows(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const zoneNames = new ZoneNames(hudEl);
 const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu, () => wardrobe.show());
@@ -368,6 +370,7 @@ function frame(now: number): void {
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
   tossHint.hidden = me?.drop !== 'riding' || isBackdrop(session);
   hitDirection.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos, me?.z ?? 0);
+  mateArrows.update(isBackdrop(session) ? null : state, state.players.find((p) => p.id === followId), renderer.camera, canvas.clientWidth, canvas.clientHeight);
 
   hud.update(state, me, f.alpha);
   touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));
@@ -435,6 +438,17 @@ function updatePhase(state: GameState): void {
         waitingForHost: !!room && !room.isHost,
       });
     }
+    return;
+  }
+
+  // Re-stitched by a teammate: back in the game.
+  if ((phase === 'out' || phase === 'spectating') && me.alive && state.status === 'playing') {
+    phase = 'playing';
+    endScreen.hide();
+    spectateEl.hidden = true;
+    hudEl.classList.remove('out');
+    followId = me.id;
+    knockedOutBy = '';
     return;
   }
 

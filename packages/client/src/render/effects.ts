@@ -330,6 +330,13 @@ export class Effects {
     for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant']) this.setKnockout(a, -500, -500);
   }
 
+  /** A plush re-stitched by a teammate: a puff of stuffing and a pink sparkle. */
+  revive(x: number, z: number): void {
+    this.burst(this.cotton, x, 0.6, z, 0, 0, 14, 3, 0.1, 0.8, 2);
+    this.burst(this.glitter[0]!, x, 1, z, 0, 0, 16, 3, 0.07, 1.2, -0.5);
+    this.shockwave(x, 0.06, z, 1.6, '#ff7aa8');
+  }
+
   /** A marble bursts: a ring rolling out over the ground and glass bits flying. */
   marbleBurst(x: number, y: number, z: number, radius: number): void {
     this.shockwave(x, y + 0.05, z, radius, '#ffffff');

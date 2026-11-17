@@ -43,6 +43,8 @@ const paths: Record<string, string> = {
   bot: `<rect x="5" y="8" width="14" height="11" rx="3" fill="#fff"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.5" cy="13" r="1.3" fill="${INK}" stroke="none"/><circle cx="14.5" cy="13" r="1.3" fill="${INK}" stroke="none"/>`,
   crown: `<path d="M4 18l1-10 4.5 4L12 6l2.5 6L19 8l1 10Z" fill="#f7c331"/>`,
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
+  // a stitched heart with a needle: re-stitch a teammate
+  revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff7aa8"/><path d="M8 12.5h1.6M11.2 12.5h1.6M14.4 12.5H16" stroke-width="1.6"/><path d="M17 3.5l3.5 3.5" stroke-width="1.6"/>`,
   // two plushies side by side: team mode
   team: `<circle cx="8" cy="9" r="3.2" fill="#5d9cf5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/><circle cx="16" cy="9" r="3.2" fill="#5d9cf5"/><path d="M10.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/>`,
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0Z" fill="#f7c331"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7l-.8-3h-5.4Z"/>`,

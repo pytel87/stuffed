@@ -38,8 +38,9 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   recordPoses(world, state.players, state.tick);
 
   for (const player of state.players) {
-    if (!player.alive) continue;
-    const input = clean.get(player.id)!;
+    const input = clean.get(player.id);
+    // (A plush re-stitched by a teammate this tick has no input yet: it acts from the next.)
+    if (!player.alive || !input) continue;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
     if (player.drop) {

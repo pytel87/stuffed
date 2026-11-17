@@ -82,6 +82,11 @@ export class GameAudio {
           if (p) s.play('knockout', { at: p.pos, volume: 1 });
           break;
         }
+        case 'revived': {
+          const p = byId.get(e.playerId);
+          if (p) s.play('heal', { at: p.pos, volume: 1, pitchSpread: 0 });
+          break;
+        }
         case 'chestOpened': {
           const c = state.chests.find((ch) => ch.id === e.chestId);
           if (c) s.play('chest_open', { at: c.pos, volume: 0.8 });

@@ -19,6 +19,8 @@ export type Interaction =
   | { kind: 'weapon'; loot: GroundLoot }
   | { kind: 'part'; loot: GroundLoot; part: Part }
   | { kind: 'chest'; chest: Chest }
+  /** Team mode: a knocked-out teammate to re-stitch. */
+  | { kind: 'revive'; target: Player }
   | null;
 
 /** Loot (or a chest base) at height `z` is within vertical reach of this plush. */
@@ -67,6 +69,20 @@ export function dropFromSlot(world: World, state: GameState, player: Player, slo
 }
 
 export function findInteraction(state: GameState, player: Player): Interaction {
+  // A teammate to re-stitch comes first (their dropped things lie all around them).
+  if (player.team !== 0) {
+    let mate: Player | null = null;
+    let mateD: number = config.team.reviveRange;
+    for (const p of state.players) {
+      if (p.team !== player.team || p.id === player.id || !revivable(state, p) || Math.abs(p.z - player.z) > 1) continue;
+      const d = dist(player.pos, p.pos);
+      if (d <= mateD) {
+        mate = p;
+        mateD = d;
+      }
+    }
+    if (mate) return { kind: 'revive', target: mate };
+  }
   let best: GroundLoot | null = null;
   let bestD: number = config.loot.weaponPickupRange;
   for (const loot of state.loot) {
@@ -106,6 +122,16 @@ export function updateInteraction(world: World, state: GameState, player: Player
   const stashPressed = (input.buttons & Btn.Stash) !== 0 && (player.heldButtons & Btn.Stash) === 0;
 
   const action = player.action;
+  if (action?.kind === 'revive') {
+    const mate = state.players.find((p) => p.id === action.targetId);
+    if (!held || !mate || !revivable(state, mate) || dist(player.pos, mate.pos) > config.team.reviveRange) {
+      player.action = null;
+    } else if (state.tick >= action.endTick) {
+      player.action = null;
+      revive(state, mate, player);
+    }
+    return;
+  }
   if (action?.kind === 'openChest') {
     const chest = state.chests.find((c) => c.id === action.chestId);
     if (!held || !chest || chest.opened || dist(player.pos, chest.pos) > config.chest.interactRange) {
@@ -130,7 +156,40 @@ export function updateInteraction(world: World, state: GameState, player: Player
   else if (target?.kind === 'part') wearPart(world, state, player, target.loot, target.part);
   else if (target?.kind === 'chest') {
     player.action = { kind: 'openChest', chestId: target.chest.id, startTick: state.tick, endTick: state.tick + OPEN_TICKS };
+  } else if (target?.kind === 'revive') {
+    player.action = { kind: 'revive', targetId: target.target.id, startTick: state.tick, endTick: state.tick + secondsToTicks(config.team.reviveTime) };
   }
+}
+
+/** Team mode: a knocked-out plush a teammate can still re-stitch (match on, within the window). */
+export function revivable(state: GameState, p: Player): boolean {
+  return (
+    state.status === 'playing' &&
+    !p.alive &&
+    p.team !== 0 &&
+    p.eliminatedTick !== null &&
+    state.tick - p.eliminatedTick <= secondsToTicks(config.team.reviveWindow)
+  );
+}
+
+/** Re-stitched by a teammate: back in, where they fell, with some stuffing and their starting weapons. */
+export function revive(state: GameState, p: Player, by: Player): void {
+  p.alive = true;
+  p.stuffing = config.team.reviveStuffing;
+  p.buttons = 0;
+  const [a, b] = config.player.startingLoadout;
+  p.weapons = [a ? makeWeapon(a.kind, a.rarity) : null, b ? makeWeapon(b.kind, b.rarity) : null];
+  p.activeSlot = 0;
+  p.items = [null, null, null];
+  p.vel = { x: 0, y: 0 };
+  p.knockback = { x: 0, y: 0 };
+  p.vz = 0;
+  p.action = null;
+  p.chargeStartTick = null;
+  p.eliminatedTick = null;
+  p.eliminatedBy = null;
+  p.placement = null;
+  state.events.push({ type: 'revived', playerId: p.id, byId: by.id });
 }
 
 /** A Toy Box drops a weapon, an item stack and a skin part around whoever opened it. */

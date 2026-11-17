@@ -374,6 +374,18 @@ export const config = {
     } satisfies Record<ItemKind, number>,
   },
 
+  /** Team mode. */
+  team: {
+    /** Seconds a knocked-out plush can still be re-stitched by a teammate. */
+    reviveWindow: 30,
+    /** Seconds of holding E beside them to re-stitch them. */
+    reviveTime: 3,
+    /** How close the teammate must stand. */
+    reviveRange: 1.8,
+    /** Stuffing they come back with (and their starting weapons). */
+    reviveStuffing: 50,
+  },
+
   /**
    * Beach balls: run into one and it rolls off (and you bounce back a little); shots knock it
    * too. They roll off walls, chests and each other and slow down on the grass.

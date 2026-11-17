@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Teammate arrows and re-stitching (2026-11-17)
+
+- Off-screen teammates show as a badge with their head at the screen edge, pointing to them.
+- A knocked-out teammate can be re-stitched for 30 s: hold E beside their pink ring and heart
+  for 3 s and they're back where they fell (50 stuffing, starting weapon). Their badge pulses
+  pink meanwhile. Online, parts they carry after coming back are saved again when they next go
+  out.
+
 ## Team mode (2026-11-17)
 
 - Online rooms: a team button in the lobby (on by default) puts every real player on one team

@@ -5,7 +5,7 @@ export { predictPlayer, step } from './step.ts';
 export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee } from './systems/visibility.ts';
 export { groundHeight } from './systems/movement.ts';
-export { findInteraction, addToSlots, spawnLoot, type Interaction } from './systems/loot.ts';
+export { findInteraction, addToSlots, revivable, spawnLoot, type Interaction } from './systems/loot.ts';
 export { canUseItem } from './systems/items.ts';
 export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft } from './systems/zone.ts';
 export { segmentBoxT, circleBoxPush } from './collision/geometry.ts';

@@ -308,6 +308,13 @@ export class Room extends Server<Env> {
     step(m.world, m.state, inputs);
     m.events.push(...m.state.events);
     for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.kept);
+    // Re-stitched by a teammate: what they carry from now on is saved again when they next go out.
+    for (const e of m.state.events) {
+      if (e.type !== 'revived') continue;
+      const seat = this.seats.find((s) => m.plushOf.get(s.seat) === e.playerId);
+      if (seat) m.kept.delete(seat.seat);
+      m.dropped.delete(e.playerId);
+    }
     // A player knocked out finds out right away which parts they keep.
     for (const e of m.state.events) {
       if (e.type !== 'eliminated') continue;

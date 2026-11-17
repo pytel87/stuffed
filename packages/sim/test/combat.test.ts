@@ -310,6 +310,35 @@ describe('team mode', () => {
     expect(canSee(world, state, a, b)).toBe(true);
   });
 
+  it('a knocked-out teammate can be re-stitched by holding E beside them', () => {
+    const { world, state, a, b } = teamGame();
+    applyDamage(state, b, 1000, null);
+    run(world, state, 1, () => idle);
+    expect(b.alive).toBe(false);
+    a.pos = { x: b.pos.x - 1, y: b.pos.y };
+    const hold = input({ aimX: 1, buttons: Btn.Interact });
+    run(world, state, secondsToTicks(config.team.reviveTime) + 2, (id) => (id === a.id ? hold : idle));
+    expect(b.alive).toBe(true);
+    expect(b.stuffing).toBe(config.team.reviveStuffing);
+    expect(b.weapons[0]).not.toBeNull();
+    expect(state.events.some((e) => e.type === 'revived') || b.alive).toBe(true);
+  });
+
+  it('letting go, or waiting too long, leaves them out', () => {
+    const { world, state, a, b } = teamGame();
+    applyDamage(state, b, 1000, null);
+    run(world, state, 1, () => idle);
+    a.pos = { x: b.pos.x - 1, y: b.pos.y };
+    // Let go halfway.
+    run(world, state, secondsToTicks(config.team.reviveTime) / 2, (id) => (id === a.id ? input({ aimX: 1, buttons: Btn.Interact }) : idle));
+    run(world, state, secondsToTicks(config.team.reviveTime), () => idle);
+    expect(b.alive).toBe(false);
+    // Too late.
+    run(world, state, secondsToTicks(config.team.reviveWindow), () => idle);
+    run(world, state, secondsToTicks(config.team.reviveTime) + 2, (id) => (id === a.id ? input({ aimX: 1, buttons: Btn.Interact }) : idle));
+    expect(b.alive).toBe(false);
+  });
+
   it('the match ends when only one team is left, and the whole team wins', () => {
     const { world, state, a, b, c } = teamGame();
     applyDamage(state, c, 1000, a.id);

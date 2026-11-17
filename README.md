@@ -94,6 +94,12 @@ pillow swings pass through), always see each other (through bushes and roofs, wi
 on the ground under them), and win together when only the team is left: "Team wins!" for
 everyone on it, even those already knocked out. Knocked out, you watch a teammate first.
 
+Teammates off the screen show as a badge with their head at the screen's edge, pointing toward
+them. A knocked-out teammate leaves a pink ring and a floating stitched heart (their team sees
+it) for 30 seconds: stand beside it and hold E (or the hand button) for 3 seconds to re-stitch
+them right there, with half their stuffing and a starting weapon. Their badge turns pink and
+pulses while there's still time.
+
 ## Controls
 
 | Action | Key |

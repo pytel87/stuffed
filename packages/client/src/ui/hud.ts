@@ -156,11 +156,12 @@ export class Hud {
 
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
-    this.progressChest = chest?.pos ?? null;
+    const mate = action?.kind === 'revive' ? state.players.find((p) => p.id === action.targetId) : undefined;
+    this.progressChest = chest?.pos ?? mate?.pos ?? null;
     if (action) {
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
-      // Opening a chest: just the bar over it (the chest is right there). Using an item: its picture too.
-      this.set('pa', action.kind === 'openChest' ? '' : action.item, (v) => {
+      // Opening a chest or re-stitching a teammate: just the bar over them. Using an item: its picture too.
+      this.set('pa', action.kind === 'useItem' ? action.item : '', (v) => {
         this.progressArt.innerHTML = v ? icon(v) : '';
         this.progressArt.hidden = !v;
       });
@@ -171,7 +172,8 @@ export class Hud {
     const interaction = action || !me.alive ? null : findInteraction(state, me);
     this.grabReady = !!interaction;
     this.stashReady = interaction?.kind === 'part';
-    this.promptAnchor = interaction?.kind === 'chest' ? interaction.chest.pos : (interaction?.loot.pos ?? null);
+    this.promptAnchor =
+      interaction?.kind === 'chest' ? interaction.chest.pos : interaction?.kind === 'revive' ? interaction.target.pos : (interaction?.loot.pos ?? null);
     let art = '';
     let color = '#ffffff';
     if (interaction?.kind === 'weapon' && interaction.loot.content.type === 'weapon') {
@@ -185,12 +187,15 @@ export class Hud {
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
+    } else if (interaction?.kind === 'revive') {
+      // Hold to re-stitch a teammate: needle and thread.
+      art = 'revive';
     }
     this.set('pr', art, (v) => {
       const [kind, slot, animal] = v.split(':');
       this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
       this.prompt.hidden = v === '';
-      this.prompt.classList.toggle('hold', kind === 'chest');
+      this.prompt.classList.toggle('hold', kind === 'chest' || kind === 'revive');
       // Parts can be worn (E) or stashed (Q).
       this.promptStash.hidden = kind !== 'part';
     });
