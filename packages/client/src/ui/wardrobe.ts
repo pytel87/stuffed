@@ -50,7 +50,13 @@ export class Wardrobe {
              <div class="wardrobe-picker"></div>
            </div>
            <div class="wardrobe-code" hidden>
-             ${icon('code')}<b class="code"></b>
+             <h2>${icon('code', 'icon large')}</h2>
+             <p class="code-hint">Your code: type it on another phone or tablet to play with the same plush and parts.</p>
+             <div class="code-box">
+               <b class="code"></b>
+               <button type="button" class="round code-copy" aria-label="Copy code">${icon('copy')}</button>
+             </div>
+             <p class="code-hint">Got a code from another device?</p>
              <form class="row restore">
                <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="Recovery code"></label>
                <button type="submit" class="round primary" aria-label="Use code">${icon('arrow')}</button>
@@ -67,11 +73,24 @@ export class Wardrobe {
     this.preview = new Preview(this.el.querySelector('.wardrobe-preview')!);
     this.gallery = this.el.querySelector('.gallery')!;
     this.galleryToggle = this.el.querySelector('.gallery-toggle')!;
-    this.galleryToggle.addEventListener('click', () => this.showGallery(this.gallery.hidden === true));
-    // The recovery code (to open this profile on another device) stays tucked away until asked for.
-    this.el.querySelector('.code-toggle')!.addEventListener('click', () => {
-      const code = this.el.querySelector<HTMLElement>('.wardrobe-code')!;
-      code.hidden = !code.hidden;
+    this.galleryToggle.addEventListener('click', (e) => {
+      if (e.detail > 0) this.galleryToggle.blur();
+      this.showGallery(this.gallery.hidden === true);
+    });
+    // The recovery code (to open this profile on another device): its own view, in place of the
+    // dressing up, until the key (now a hanger) is tapped again.
+    const codeToggle = this.el.querySelector<HTMLButtonElement>('.code-toggle')!;
+    codeToggle.addEventListener('click', (e) => {
+      if (e.detail > 0) codeToggle.blur();
+      this.showCode(this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden === true);
+    });
+    const copy = this.el.querySelector<HTMLButtonElement>('.code-copy')!;
+    copy.addEventListener('click', (e) => {
+      if (e.detail > 0) copy.blur();
+      void navigator.clipboard?.writeText(this.code.textContent ?? '').then(() => {
+        copy.innerHTML = icon('check');
+        setTimeout(() => (copy.innerHTML = icon('copy')), 1200);
+      });
     });
     this.tabs = Object.fromEntries(
       PART_SLOTS.map((slot) => {
@@ -126,11 +145,24 @@ export class Wardrobe {
     this.preview.start();
   }
 
+  /** Switches between dressing up and the recovery code view. */
+  private showCode(on: boolean): void {
+    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = !on;
+    this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
+    this.galleryToggle.hidden = on;
+    const toggle = this.el.querySelector<HTMLElement>('.code-toggle')!;
+    toggle.innerHTML = icon(on ? 'hanger' : 'code');
+    toggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Recovery code');
+    this.message.textContent = '';
+  }
+
   /** Switches between dressing up and the gallery of all the animals. */
   private showGallery(on: boolean): void {
     this.gallery.hidden = !on;
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
-    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = true;
+    this.showCode(false);
+    this.galleryToggle.hidden = false;
+    this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
     this.el.querySelector<HTMLElement>('.code-toggle')!.hidden = on;
     this.galleryToggle.innerHTML = icon(on ? 'hanger' : 'gallery');
     this.galleryToggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Gallery');

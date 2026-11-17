@@ -712,32 +712,60 @@ button {
 }
 
 .wardrobe-code {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  /* Clear of the key button in the corner. */
-  padding-left: 1.4rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+  width: min(22rem, 100%);
+  margin: 0 auto;
 }
 
-.wardrobe-code .code {
-  font: 900 1.2rem/1 var(--mono);
-  letter-spacing: 0.08em;
+.wardrobe-code h2 {
+  margin: 0;
+  line-height: 0;
+}
+
+.code-hint {
+  margin: 0;
+  font: 700 0.95rem/1.3 var(--font);
+  color: #6b5d73;
+}
+
+/* Your code, big, in a ticket-like box, with a copy button. */
+.code-box {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.2rem;
+  border-radius: 1.1rem;
+  border: 3px dashed var(--ink);
+  background: #fff3c4;
+}
+
+.code-box .code {
+  font: 900 1.8rem/1 var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--ink);
   user-select: all;
 }
 
 .wardrobe-code .restore {
-  margin-left: auto;
+  width: 100%;
 }
 
 .wardrobe-code .restore .field {
-  min-height: 2.6rem;
-  width: 9.5rem;
+  flex: 1;
+  min-height: 3.2rem;
 }
 
 .wardrobe-code .restore input {
   width: 100%;
   font-family: var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.wardrobe .code-toggle:focus:not(:focus-visible),
+.wardrobe .gallery-toggle:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Phones in landscape: shorter preview. */
