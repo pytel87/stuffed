@@ -1640,16 +1640,25 @@ body.touch-mode .loadout {
   transform: none;
 }
 
+/* No bar on touch: the stuffing number (red and pulsing when low), buttons and the stash. */
 body.touch-mode .vitals {
   order: 1;
-  flex: 0 1 15rem;
-  min-width: 0;
+  flex: none;
   width: auto;
   height: var(--row);
 }
 
 body.touch-mode .vitals .track {
-  min-width: 2.5rem;
+  display: none;
+}
+
+body.touch-mode .vitals .num {
+  min-width: 0;
+}
+
+body.touch-mode .vitals.low .num {
+  color: #ff8a80;
+  animation: pulse 0.9s ease-in-out infinite;
 }
 
 body.touch-mode .zone {

@@ -10,6 +10,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - The top HUD is one row with every center on one line: on touch screens stuffing, the Rinse
   timer and players-left count (one pill now), items, weapons and the gear; on desktop the pill
   lines up with the gear.
+- On touch screens the stuffing bar is gone: just the number (red and pulsing when low), the
+  buttons and the stash.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 
