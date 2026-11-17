@@ -1215,6 +1215,20 @@ body.touch-mode #toss-hint {
   bottom: calc(var(--safe-b) + var(--edge));
 }
 
+#spectating .spec-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 7rem;
+  justify-content: center;
+}
+
+#spectating .round.small {
+  width: 2.2rem;
+  height: 2.2rem;
+  box-shadow: 0 2px 0 var(--ink);
+}
+
 #spectating {
   position: fixed;
   left: 50%;
@@ -1223,12 +1237,14 @@ body.touch-mode #toss-hint {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 1rem 0.35rem 0.5rem;
+  padding: 0.3rem;
   border-radius: 999px;
   background: rgba(255, 250, 243, 0.95);
   border: 3px solid var(--ink);
   font: 800 1rem/1.2 var(--font);
   white-space: nowrap;
+  pointer-events: auto;
+  z-index: 7;
 }
 
 #debug {

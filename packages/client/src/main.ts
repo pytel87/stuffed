@@ -132,11 +132,34 @@ let me: Player | undefined;
 /** The state drawn last frame (touch aim assist looks for targets in it). */
 let shown: GameState | null = null;
 
+// Spectating: ◀ name ▶ switches between the plushies still in the match.
+spectateEl.innerHTML = `<button type="button" class="round small spec-prev" aria-label="Previous">${icon('arrow', 'icon flip')}</button>
+  <span class="spec-label"></span>
+  <button type="button" class="round small spec-next" aria-label="Next">${icon('arrow')}</button>`;
+const spectateLabel = spectateEl.querySelector<HTMLElement>('.spec-label')!;
+spectateEl.querySelector('.spec-prev')!.addEventListener('click', () => switchWatched(-1));
+spectateEl.querySelector('.spec-next')!.addEventListener('click', () => switchWatched(1));
+
+/** Follow the next (or previous) plush still in the match, in a stable order. */
+function switchWatched(step: 1 | -1): void {
+  if (!shown || spectateEl.hidden) return;
+  const alive = shown.players.filter((p) => p.alive && p.id !== session?.localPlayerId).sort((a, b) => a.id - b.id);
+  if (alive.length === 0) return;
+  const at = alive.findIndex((p) => p.id === followId);
+  followId = alive[(at + step + alive.length) % alive.length]!.id;
+  sound.play('click', { pitchSpread: 0 });
+}
+
 window.addEventListener('keydown', (e) => {
   // Typing a name or code: no hotkeys.
   const active = document.activeElement;
   if (active instanceof HTMLInputElement) return;
   if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
+  // Spectating: arrows (or A / D) switch who you watch.
+  if (!spectateEl.hidden && !e.repeat) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') switchWatched(-1);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') switchWatched(1);
+  }
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
   if (lobbyScreen?.visible) room?.start(lobbyScreen.bots);
@@ -378,7 +401,7 @@ function updatePhase(state: GameState): void {
     // Watching a match you're not in: keep following someone; show the result at the end.
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
     const watched = state.players.find((p) => p.id === followId);
-    spectateEl.innerHTML = spectateBar(state, watched);
+    spectateLabel.innerHTML = spectateBar(state, watched);
     if (phase !== 'over' && state.status === 'ended') {
       phase = 'over';
       spectateEl.hidden = true;
@@ -430,7 +453,7 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'spectating') {
     const watched = state.players.find((p) => p.id === followId);
-    spectateEl.innerHTML = spectateBar(state, watched);
+    spectateLabel.innerHTML = spectateBar(state, watched);
   }
 }
 
