@@ -17,10 +17,11 @@ export function updateProjectiles(world: World, state: GameState): void {
     if (state.tick >= proj.expireTick) continue;
     const dx = proj.vel.x * DT;
     const dy = proj.vel.y * DT;
-    // Height along this tick's path: z at t is proj.z + dz * t.
-    const zNext = proj.vz > 0 ? Math.min(proj.z + proj.vz * DT, proj.zEnd) : Math.max(proj.z + proj.vz * DT, proj.zEnd);
-    const dz = zNext - proj.z;
     const r = proj.radius;
+    // Height along this tick's path: z at t is proj.z + dz * t.
+    let zNext = proj.vz > 0 ? Math.min(proj.z + proj.vz * DT, proj.zEnd) : Math.max(proj.z + proj.vz * DT, proj.zEnd);
+    zNext = clampToRoofs(world, proj.pos.x, proj.pos.y, proj.z, zNext, r);
+    const dz = zNext - proj.z;
     const lowest = Math.min(proj.z, zNext) - r;
 
     let hit: Player | null = null;
@@ -30,7 +31,8 @@ export function updateProjectiles(world: World, state: GameState): void {
       const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, p.pos.x, p.pos.y, p.radius + r);
       if (t === null) continue;
       const zt = proj.z + dz * t;
-      if (zt + r < p.z || zt - r > p.z + config.player.height) continue; // passes over or under
+      // Passes under or over (just touching the feet, e.g. under a roof someone stands on, misses).
+      if (zt + r <= p.z + 1e-9 || zt - r >= p.z + config.player.height - 1e-9) continue;
       if (t < hitT) {
         hit = p;
         hitT = t;
@@ -77,6 +79,20 @@ export function updateProjectiles(world: World, state: GameState): void {
     survivors.push(proj);
   }
   state.projectiles = survivors;
+}
+
+/**
+ * Roofs are floors and ceilings for shots: over a roof, a shot above it can't sink through it
+ * (it skims the roof and clears the walls before dipping toward its target), and a shot
+ * under it can't rise through it.
+ */
+function clampToRoofs(world: World, x: number, y: number, z: number, zNext: number, r: number): number {
+  for (const b of world.map.buildings) {
+    if (x < b.x || x > b.x + b.w || y < b.y || y > b.y + b.h) continue;
+    if (z - r >= b.height - 1e-9) zNext = Math.max(zNext, b.height + r);
+    else zNext = Math.min(zNext, b.height - r);
+  }
+  return zNext;
 }
 
 /**

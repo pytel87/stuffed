@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Fix: shots from the roof (2026-11-17)
+
+- Roofs are now floors and ceilings for shots: a shot fired from a roof skims it, clears
+  the room's walls and only then dips toward its target (it used to sink into the room and
+  hit the far wall from inside); a shot fired under a roof can't rise through it.
+- A shot that only touches a plush's feet (e.g. skimming under a roof someone stands on)
+  no longer counts as a hit.
+
 ## Step 1.5c: Jumping and heights (2026-11-17)
 
 - Space jumps (apex about 1.5, about 0.6 s in the air; exact constant-gravity integration).

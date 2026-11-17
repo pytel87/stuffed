@@ -163,6 +163,34 @@ describe('shots and heights', () => {
     expect(g.b.stuffing).toBe(100);
   });
 
+  it('a shot from the roof skims it and hits a plush on the ground outside', () => {
+    // A roofed room from x 14 to 26 with walls on its edges; the shooter stands on the roof.
+    const walls: Wall[] = [
+      { x: 14, y: 30, w: 1, h: 20, height: 1.4 },
+      { x: 25, y: 30, w: 1, h: 20, height: 1.4 },
+    ];
+    const g = duel(mapWith(walls, [{ x: 14, y: 30, w: 12, h: 20, height: 1.4 }]), 10);
+    g.a.z = 1.4;
+    run(g.world, g.state, 1, (id) => (id === g.a.id ? fireAt(10) : idle));
+    let impacts = 0;
+    for (let t = 0; t < 30; t++) {
+      run(g.world, g.state, 1, () => idle);
+      impacts += g.state.events.filter((e) => e.type === 'impact').length;
+    }
+    expect(impacts).toBe(0);
+    expect(g.b.stuffing).toBeLessThan(100);
+  });
+
+  it('a shot from under a roof cannot rise through it', () => {
+    const roof = { x: 14, y: 30, w: 12, h: 20, height: 1.4 };
+    const g = duel(mapWith([], [roof]), 4);
+    g.b.z = 1.4; // standing on the roof right above
+    g.b.pos = { x: 23, y: 40 };
+    run(g.world, g.state, 1, (id) => (id === g.a.id ? fireAt(3) : idle));
+    run(g.world, g.state, 30, () => idle);
+    expect(g.b.stuffing).toBe(100);
+  });
+
   it('shooting up at a plush on a ledge hits from range', () => {
     const ledge: Wall = { x: 27, y: 38, w: 3, h: 4, height: 1.2 };
     const g = duel(mapWith([ledge]), 8.5);
