@@ -42,8 +42,9 @@ export class LobbyScreen {
            </div>
            <ul class="chips"></ul>
            <div class="bots">
+             <span class="bot-label">${icon('bot')}</span>
              <button type="button" class="round lobby-less" aria-label="Fewer bots">−</button>
-             <span class="bot-number">${icon('bot')}<b class="bot-count"></b></span>
+             <span class="bot-number"><b class="bot-count"></b></span>
              <button type="button" class="round lobby-more" aria-label="More bots">+</button>
            </div>
            <div class="bots lobby-options">

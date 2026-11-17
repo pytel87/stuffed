@@ -360,9 +360,23 @@ button {
   gap: 0.2rem;
 }
 
-.bots .bot-number .icon {
-  width: 1.2rem;
-  height: 1.2rem;
+/* The bot icon sits left of the − button, outside the grid, so the columns stay put. */
+.bots {
+  position: relative;
+}
+
+.bots .bot-label {
+  position: absolute;
+  top: 50%;
+  /* The grid is 3 x 3.2rem + 2 x 1.4rem = 12.4rem wide, centered. */
+  right: calc(50% + 6.2rem + 0.6rem);
+  transform: translateY(-50%);
+  display: flex;
+}
+
+.bots .bot-label .icon {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
 .bots > .icon {
