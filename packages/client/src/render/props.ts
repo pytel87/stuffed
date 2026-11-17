@@ -534,6 +534,26 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       add(ballMesh, r);
       break;
     }
+    case 'train': {
+      // A toy train car: a painted body on wheels; the first one is the engine with a chimney.
+      const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a'];
+      const color = colors[index % colors.length]!;
+      const long = b.h > b.w;
+      add(outlinedBox(b.w * 0.9, H * 0.6, b.h * 0.9, toonMaterial(color, { map: null })), H * 0.45);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+        const wheel = toonMesh(new THREE.CylinderGeometry(0.28, 0.28, 0.16, 14), '#2a1f2d', { outline: false });
+        wheel.rotation.z = long ? Math.PI / 2 : 0;
+        if (!long) wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(long ? (sx * b.w) / 2 : (sx * b.w) / 3, 0.28, long ? (sz * b.h) / 3 : (sz * b.h) / 2);
+        g.add(wheel);
+      }
+      if (H > 1.4) {
+        const chimney = toonMesh(new THREE.CylinderGeometry(0.22, 0.3, 0.6, 12), '#2a1f2d', { outline: 0.1 });
+        chimney.position.set(0, H * 0.75 + 0.3, long ? -b.h * 0.25 : 0);
+        g.add(chimney);
+      }
+      break;
+    }
     case 'goal': {
       // A side or the back of a beach ball goal: thin white tubes along its top and bottom and a
       // post at each end, so the net (goal-views.ts) shows through. The wall itself stays solid.

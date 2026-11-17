@@ -11,6 +11,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - A map button (a tree or a bed) on the title menu next to Solo and Room, and in the lobby for
   the host; remembered on the device. The menu's backdrop switches to the chosen map.
 - Hiding in a bush (or laundry pile) looks cleaner: one even see-through layer, no inner rings.
+- A fuller Bedroom: a train set (a track loop with a three-car train) between the bed and the
+  desk, a dollhouse to hide in (its roof a lookout, up from a toy drum), a nightstand, and
+  blocks, books, drums and boxes across the floor; plus clutter just for looks (crayons,
+  drawings, socks, puzzle pieces, marbles, toy cars).
+- Solo, Room and Start are plain words (no icons).
 
 ## Beach ball goals (2026-11-17)
 

@@ -7,7 +7,7 @@
 //   Bookshelf (SW)     long shelves and book piles; low loot
 //   Block Castle (C)   alphabet-block walls with doorways and a keep in the middle
 // Coordinates: x to the right, y down the screen.
-import type { Building, ChestSpawn, Circle, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 112;
 const C = SIZE / 2;
@@ -73,12 +73,37 @@ const shelf: Wall[] = [
   book(11, 82, 2, 1.6), book(12, 94, 1.6, 2, 1.6), book(21.5, 86, 2, 1.6), book(22, 100, 3, 1.6, 0.8), book(32, 84, 1.6, 3),
 ];
 
+// ---------- The Train (N, between the bed and the desk) ----------
+// A track loop with a little train of three cars parked on its west side.
+const TRACK = { x: 56, y: 19, rx: 12, ry: 7 };
+const train = w('train', 1.3);
+const trains: Wall[] = [train(43.2, 13.5, 1.6, 2.6, 1.6), train(43.2, 16.6, 1.6, 2.6), train(43.2, 19.7, 1.6, 2.6)];
+
+// ---------- The Dollhouse (E) ----------
+// A little house with a door on the west side; its roof is a lookout (climb from the drum).
+const DOLLHOUSE: Building = { x: 92, y: 50, w: 11, h: 9, height: 2.6, kind: 'house' };
+const dollhouse: Wall[] = [
+  w('brick', 2.6)(92, 50, 11, 0.6), w('brick', 2.6)(92, 58.4, 11, 0.6), w('brick', 2.6)(102.4, 50, 0.6, 9),
+  w('brick', 2.6)(92, 50, 0.6, 2.8), w('brick', 2.6)(92, 56.2, 0.6, 2.8),
+  bucket(89.5, 60.5, 1.6, 1.6, 1.3), // a toy drum to climb onto the roof from
+];
+
+// ---------- Toys all over the floor (cover between the areas) ----------
+const scattered: Wall[] = [
+  crate(34, 6.5, 2.4, 2.4, 1.6), // the nightstand
+  block(38, 44, 2, 2), block(40, 44, 2, 2, 1.2), block(72, 40, 2, 2), block(74.5, 41, 2, 2, 1.2),
+  block(36, 66, 2, 2), block(74, 70, 2, 2, 1.4), block(26, 34, 2, 2, 1.4), block(84, 70, 2, 2),
+  book(8, 40, 3, 2, 1.4), book(102, 70, 2, 3), book(66, 92, 3, 2, 0.8), book(24, 66, 2, 3),
+  bucket(20, 50, 1.6, 1.6), bucket(64, 38, 1.6, 1.6), bucket(30, 104, 1.6, 1.6),
+  cardboard(70, 100, 5, 0.6), cardboard(74.4, 100, 0.6, 5), crate(80, 104, 2, 2),
+];
+
 // ---------- The Rug (S) ----------
 const RUG = { x: 38, y: 74, w: 26, h: 22 };
 const rugToys: Wall[] = [ball(44, 80, 1.6, 1.6), ball(56, 88, 1.6, 1.6)];
 
-const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...rugToys];
-const buildings: Building[] = [BED, DESK, KEEP, TOYBOX];
+const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...rugToys, ...trains, ...dollhouse, ...scattered];
+const buildings: Building[] = [BED, DESK, KEEP, TOYBOX, DOLLHOUSE];
 
 const bushes: Circle[] = [
   // laundry piles: hide in them
@@ -88,7 +113,7 @@ const bushes: Circle[] = [
 
 const chestSpawns: ChestSpawn[] = [
   // under the bed and the desk, in the castle keep and the toy box
-  chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'),
+  chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'), chest(97.5, 54.5, 'high'),
   // castle yard
   chest(49.5, 60.5), chest(61.5, 49.5),
   // bookshelf
@@ -100,6 +125,23 @@ const chestSpawns: ChestSpawn[] = [
   chest(78, 76, 'low'), chest(8, 56, 'low'), chest(104, 50, 'low'), chest(56, 8, 'low'), chest(56, 106, 'low'), chest(104, 106, 'low'), chest(8, 106, 'low'),
 ];
 
+// Floor clutter, just for looks.
+const decor: Decor[] = [{ kind: 'track', x: TRACK.x, y: TRACK.y, rx: TRACK.rx, ry: TRACK.ry }];
+{
+  // Spread with a fixed pattern (the same every match), kept off furniture.
+  const kinds: Decor['kind'][] = ['crayon', 'paper', 'sock', 'puzzle', 'marbles', 'car', 'crayon', 'crayon'];
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 90 && decor.length < 60; i++) {
+    const p = { x: 6 + rand() * (SIZE - 12), y: 6 + rand() * (SIZE - 12) };
+    const turn = rand() * Math.PI * 2;
+    const kind = kinds[i % kinds.length]!;
+    const clear = [...walls, ...buildings].every((b) => p.x < b.x - 1.2 || p.x > b.x + b.w + 1.2 || p.y < b.y - 1.2 || p.y > b.y + b.h + 1.2);
+    const onTrack = Math.abs(Math.hypot((p.x - TRACK.x) / TRACK.rx, (p.y - TRACK.y) / TRACK.ry) - 1) < 0.25;
+    if (clear && !onTrack) decor.push({ kind, x: p.x, y: p.y, turn });
+  }
+}
+
 const grounds: Ground[] = [{ kind: 'rug', box: RUG }, { kind: 'rug', box: { x: 49, y: 49, w: 14, h: 14 } }];
 
 const zones: MapZone[] = [
@@ -109,6 +151,8 @@ const zones: MapZone[] = [
   { name: 'The Rug', center: { x: 51, y: 85 }, radius: 13 },
   { name: 'Bookshelf', center: { x: 18, y: 90 }, radius: 14 },
   { name: 'Block Castle', center: { x: C, y: C }, radius: 12 },
+  { name: 'Train Set', center: { x: TRACK.x, y: TRACK.y }, radius: 11 },
+  { name: 'Dollhouse', center: { x: 97, y: 54 }, radius: 9 },
 ];
 
 /** True if a plush could stand here: inside the map and clear of walls and roofs (with a margin). */
@@ -148,4 +192,5 @@ export const BEDROOM: MapData = {
   chestSpawns,
   grounds,
   zones,
+  decor,
 };

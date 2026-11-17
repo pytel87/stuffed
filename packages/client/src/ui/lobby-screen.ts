@@ -52,7 +52,7 @@ export class LobbyScreen {
              <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
            <p class="status"></p>
-           <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
+           <button type="button" class="big primary lobby-start"><span>Start</span></button>
          </div>
        </div>`,
     );

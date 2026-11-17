@@ -1,8 +1,9 @@
 // Static map visuals: felt lawn (no fence: it carries on past the edges), ground patches (sand, dirt, a picnic blanket,
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
-import type { Circle, Ground, MapData } from '@stuffed/sim';
+import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
 import { checkerTexture, dirtTexture, lawnTexture, plankTexture, rugTexture, sandTexture, stoneTexture, tiled } from './props.ts';
+import { mergeStatic } from './merge-static.ts';
 import { toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
@@ -33,6 +34,7 @@ export function buildMapView(map: MapData): THREE.Group {
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
   if (!indoors) g.add(grassTufts(map));
+  for (const d of map.decor ?? []) g.add(decorItem(d, mapRandom(map, Math.round(d.x * 13 + d.y * 7))));
   return g;
 }
 
@@ -187,5 +189,156 @@ function grassTufts(map: MapData): THREE.Group {
     mesh.computeBoundingSphere();
     g.add(mesh);
   }
+  return g;
+}
+
+const CRAYONS = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#9b7bd8', '#ff9cbf', '#f28a2c'];
+
+let drawingTex: THREE.CanvasTexture | null = null;
+/** A child's drawing: a sun, a house and grass. */
+function drawingTexture(): THREE.CanvasTexture {
+  if (drawingTex) return drawingTex;
+  const c = document.createElement('canvas');
+  c.width = 96;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, 96, 128);
+  g.lineWidth = 4;
+  g.lineCap = 'round';
+  g.fillStyle = '#f7c331';
+  g.beginPath();
+  g.arc(72, 24, 12, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = '#e2574c';
+  g.strokeRect(22, 62, 40, 34);
+  g.beginPath();
+  g.moveTo(18, 64);
+  g.lineTo(42, 40);
+  g.lineTo(66, 64);
+  g.stroke();
+  g.strokeStyle = '#5bd16a';
+  g.beginPath();
+  for (let x = 6; x < 92; x += 8) {
+    g.moveTo(x, 114);
+    g.lineTo(x + 3, 104);
+  }
+  g.stroke();
+  drawingTex = new THREE.CanvasTexture(c);
+  drawingTex.colorSpace = THREE.SRGBColorSpace;
+  return drawingTex;
+}
+
+/** Floor clutter: drawn only, nothing to bump into. */
+function decorItem(d: Decor, rand: () => number): THREE.Object3D {
+  const g = new THREE.Group();
+  g.position.set(d.x, 0, d.y);
+  g.rotation.y = d.turn ?? 0;
+  const flat = (color: string) => toonMaterial(color, { map: null });
+  switch (d.kind) {
+    case 'track': {
+      // Two rails round an oval, with wooden sleepers across.
+      const rx = d.rx ?? 8;
+      const ry = d.ry ?? 5;
+      // A thin tube along each oval (scaling a ring would stretch the rail's thickness too).
+      for (const off of [-0.45, 0.45]) {
+        const points = Array.from({ length: 96 }, (_, i) => {
+          const a = (i / 96) * Math.PI * 2;
+          return new THREE.Vector3(Math.cos(a) * (rx + off), 0.12, Math.sin(a) * (ry + off));
+        });
+        const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, true), 192, 0.07, 6, true), flat('#9aa6b8'));
+        g.add(rail);
+      }
+      const n = Math.round((Math.PI * (rx + ry)) / 0.9);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const sleeper = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, 0.3), flat('#b07a4a'));
+        sleeper.position.set(Math.cos(a) * rx, 0.05, Math.sin(a) * ry);
+        // Across the track: along the outward direction of the oval.
+        sleeper.rotation.y = -Math.atan2(Math.sin(a) * rx, Math.cos(a) * ry);
+        sleeper.receiveShadow = true;
+        g.add(sleeper);
+      }
+      break;
+    }
+    case 'crayon': {
+      const color = CRAYONS[Math.floor(rand() * CRAYONS.length)]!;
+      const body = toonMesh(new THREE.CylinderGeometry(0.11, 0.11, 0.9, 10), color, { outline: 0.12 });
+      body.rotation.z = Math.PI / 2;
+      body.position.y = 0.11;
+      g.add(body);
+      const tip = toonMesh(new THREE.ConeGeometry(0.11, 0.22, 10), color, { outline: false });
+      tip.rotation.z = -Math.PI / 2;
+      tip.position.set(0.56, 0.11, 0);
+      g.add(tip);
+      const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.4, 10), flat('#fffaf3'));
+      wrap.rotation.z = Math.PI / 2;
+      wrap.position.set(-0.1, 0.11, 0);
+      g.add(wrap);
+      break;
+    }
+    case 'paper': {
+      const sheet = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2).rotateX(-Math.PI / 2), toonMaterial('#ffffff', { map: drawingTexture() }));
+      sheet.position.y = 0.02;
+      sheet.receiveShadow = true;
+      g.add(sheet);
+      break;
+    }
+    case 'sock': {
+      const color = CRAYONS[Math.floor(rand() * CRAYONS.length)]!;
+      const leg = toonMesh(new THREE.CapsuleGeometry(0.22, 0.7, 4, 10), color, { outline: 0.08 });
+      leg.rotation.z = Math.PI / 2;
+      leg.scale.y = 1;
+      leg.scale.z = 0.5;
+      leg.position.y = 0.12;
+      g.add(leg);
+      const foot = toonMesh(new THREE.CapsuleGeometry(0.22, 0.35, 4, 10), color, { outline: 0.08 });
+      foot.scale.z = 0.5;
+      foot.position.set(0.55, 0.12, 0.25);
+      g.add(foot);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.12, 12), flat('#fffaf3'));
+      stripe.rotation.z = Math.PI / 2;
+      stripe.scale.z = 0.52;
+      stripe.position.set(-0.35, 0.12, 0);
+      g.add(stripe);
+      break;
+    }
+    case 'puzzle': {
+      for (let i = 0; i < 3; i++) {
+        const piece = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.55), flat(CRAYONS[(i * 2 + Math.floor(rand() * 7)) % CRAYONS.length]!));
+        piece.position.set((rand() - 0.5) * 1.4, 0.03, (rand() - 0.5) * 1.4);
+        piece.rotation.y = rand() * Math.PI;
+        piece.receiveShadow = true;
+        g.add(piece);
+      }
+      break;
+    }
+    case 'marbles': {
+      const glass = ['#ff5a5a', '#3fa9f5', '#5bd16a', '#f7c331'];
+      for (let i = 0; i < 4; i++) {
+        const m = toonMesh(new THREE.SphereGeometry(0.16, 12, 10), glass[i % glass.length]!, { outline: 0.1 });
+        m.position.set((rand() - 0.5) * 1.6, 0.16, (rand() - 0.5) * 1.6);
+        g.add(m);
+      }
+      break;
+    }
+    case 'car': {
+      const color = CRAYONS[Math.floor(rand() * CRAYONS.length)]!;
+      const body = toonMesh(new THREE.BoxGeometry(1.1, 0.3, 0.6), color, { outline: 0.06 });
+      body.position.y = 0.3;
+      g.add(body);
+      const cab = toonMesh(new THREE.BoxGeometry(0.55, 0.25, 0.5), '#d4f4ff', { outline: 0.08 });
+      cab.position.set(-0.05, 0.55, 0);
+      g.add(cab);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12), flat('#2a1f2d'));
+        wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(sx * 0.35, 0.15, sz * 0.32);
+        g.add(wheel);
+      }
+      break;
+    }
+  }
+  mergeStatic(g);
   return g;
 }

@@ -337,7 +337,7 @@ export interface Box {
 /** How a wall looks. The sim only cares about its box and height. */
 export type WallKind =
   | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
-  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal';
+  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal' | 'train';
 
 export interface Toss {
   from: Vec2;
@@ -410,6 +410,20 @@ export interface MapData {
   goals?: Goal[];
   grounds?: Ground[];
   zones?: MapZone[];
+  /** Things lying on the floor just for looks (no effect on play). */
+  decor?: Decor[];
+}
+
+/** A bit of floor clutter, drawn only: crayons, drawings, socks, a train track... */
+export interface Decor {
+  kind: 'track' | 'crayon' | 'paper' | 'sock' | 'puzzle' | 'marbles' | 'car';
+  x: number;
+  y: number;
+  /** Turn (radians). */
+  turn?: number;
+  /** The track: its half-width and half-depth. */
+  rx?: number;
+  ry?: number;
 }
 
 export interface RosterEntry {

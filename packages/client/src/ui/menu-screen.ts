@@ -32,8 +32,8 @@ export class MenuScreen {
              <button type="button" class="round menu-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
            </div>
            <div class="row">
-             <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
-             <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
+             <button type="button" class="big primary menu-solo"><span>Solo</span></button>
+             <button type="button" class="big menu-create"><span>Room</span></button>
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>
