@@ -1,4 +1,4 @@
-// Skin parts: sixteen animals, each with a part for every slot. Parts are cosmetic only.
+// Skin parts: twenty animals, each with a part for every slot. Parts are cosmetic only.
 import { config } from './config.ts';
 import { pickWeighted } from './rng.ts';
 import type { Animal, Part, PartLoadout, PartSlot, Player, Rarity, RngState } from './types.ts';
@@ -6,6 +6,7 @@ import type { Animal, Part, PartLoadout, PartSlot, Player, Rarity, RngState } fr
 export const ANIMALS: readonly Animal[] = [
   'bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin',
   'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant',
+  'turtle', 'hedgehog', 'koala', 'octopus',
 ];
 
 /**
@@ -14,9 +15,9 @@ export const ANIMALS: readonly Animal[] = [
  * `config.parts.animalWeights`.
  */
 export const ANIMAL_RARITY: Record<Animal, Rarity> = {
-  bear: 1, frog: 1, chicken: 1, bunny: 1, cat: 1, pig: 1,
-  shark: 2, owl: 2, penguin: 2, fox: 2, panda: 2,
-  dino: 3, axolotl: 3, lion: 3, elephant: 3,
+  bear: 1, frog: 1, chicken: 1, bunny: 1, cat: 1, pig: 1, turtle: 1,
+  shark: 2, owl: 2, penguin: 2, fox: 2, panda: 2, hedgehog: 2, koala: 2,
+  dino: 3, axolotl: 3, lion: 3, elephant: 3, octopus: 3,
   unicorn: 4,
 };
 

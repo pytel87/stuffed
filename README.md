@@ -162,13 +162,13 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### Parts (Patchwork)
 
-Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of sixteen
+Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of twenty
 animals, in four rarities (the ring under a part on the ground shows which, as do the stars in
 the gallery):
 
-- Common (green): Bear, Frog, Chicken, Bunny, Cat, Pig
-- Rare (blue): Shark, Owl, Penguin, Fox, Panda
-- Epic (purple): Dino, Axolotl, Lion, Elephant
+- Common (green): Bear, Frog, Chicken, Bunny, Cat, Pig, Turtle
+- Rare (blue): Shark, Owl, Penguin, Fox, Panda, Hedgehog, Koala
+- Epic (purple): Dino, Axolotl, Lion, Elephant, Octopus
 - Legendary (gold): Unicorn
 
 Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
@@ -189,7 +189,7 @@ room saves this; solo matches report it to the server from the browser.
 The hanger next to your name on the title menu opens the Wardrobe: tap a slot (head, body,
 legs, tail, accessory), then any part you own for it, to choose the look you start every match
 in. The gallery button in its corner
-shows all sixteen animals in full, commonest first, with the parts you own lit up; tap an owned
+shows all twenty animals in full, commonest first, with the parts you own lit up; tap an owned
 part to wear it, or a complete (gold) set to wear all five. The key button in its corner shows
 the profile's recovery code: typing it into the Wardrobe on another device puts the same
 profile there too.

@@ -245,6 +245,80 @@ function elephantBody(outline: string): THREE.Object3D {
   return b.group;
 }
 
+function turtleBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.turtle;
+  const b = shapedBody({ shape: 'round', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.26, bellyY: -0.04, stitch: '#c9b56a' });
+  // A domed shell on the back with hexagon plates.
+  const shell = toonMesh(new THREE.SphereGeometry(0.42, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), '#8a5a3c', { outlineColor: outline });
+  // Sticking well out of the back: base inside the body, dome behind it.
+  const SHELL_Z = -0.22;
+  const SHELL_DEPTH = 0.75;
+  shell.rotation.x = -Math.PI / 2;
+  shell.scale.set(1.05, SHELL_DEPTH, 1.05);
+  shell.position.set(0, -0.02, SHELL_Z);
+  b.group.add(shell);
+  for (const [x, y] of [[0, 0], [-0.2, 0.15], [0.2, 0.15], [-0.2, -0.17], [0.2, -0.17], [0, 0.3], [0, -0.3]] as const) {
+    const plate = new THREE.Mesh(new THREE.CircleGeometry(0.09, 6), flat('#b07a4a'));
+    const k = Math.max(0, 1 - (x * x + y * y) / (0.44 * 0.44));
+    plate.position.set(x, y - 0.02, SHELL_Z - SHELL_DEPTH * 0.42 * Math.sqrt(k) - 0.012);
+    // Facing out of the dome.
+    plate.lookAt(plate.position.clone().add(new THREE.Vector3(x * 1.5, y * 1.5, -1)));
+    b.group.add(plate);
+  }
+  return b.group;
+}
+
+function hedgehogBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.hedgehog;
+  const b = shapedBody({ shape: 'pear', main: c.main, belly: c.belly, outline, bellyW: 0.26, bellyH: 0.26, bellyY: -0.06 });
+  // Spikes all over the back.
+  for (let row = 0; row < 5; row++) {
+    const y = 0.28 - row * 0.15;
+    const r = b.radiusAt(y);
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI * (0.62 + (i / 5) * 0.76) + (row % 2) * 0.12;
+      const n = new THREE.Vector3(Math.cos(a), 0.15, Math.sin(a) * DEPTH).normalize();
+      const spike = toonMesh(new THREE.ConeGeometry(0.06, 0.2, 6), '#6b4630', { outline: 0.12, outlineColor: outline });
+      spike.position.set(Math.cos(a) * r, y, Math.sin(a) * r * DEPTH);
+      spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+      b.group.add(spike);
+    }
+  }
+  return b.group;
+}
+
+function koalaBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.koala;
+  const b = shapedBody({ shape: 'plump', main: c.main, belly: c.belly, outline, bellyW: 0.27, bellyH: 0.28, bellyY: -0.04, stitch: '#c3c9d1' });
+  // A eucalyptus leaf badge.
+  const leaf = toonMesh(new THREE.SphereGeometry(0.06, 10, 8), '#6fae7b', { outline: 0.1, outlineColor: outline });
+  leaf.scale.set(0.6, 1.5, 0.3);
+  leaf.rotation.z = 0.6;
+  leaf.position.copy(b.surface(0.22, 0.2, 0.015));
+  b.group.add(leaf);
+  return b.group;
+}
+
+function octopusBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.octopus;
+  const b = shapedBody({ shape: 'egg', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.25, bellyY: -0.05 });
+  // Spots, and a little anchor on the chest.
+  for (const [x, y, r] of [[-0.28, 0.1, 0.05], [0.3, -0.05, 0.06], [-0.2, -0.22, 0.045], [0.18, 0.26, 0.04]] as const) {
+    const spot = toonMesh(new THREE.SphereGeometry(r, 10, 8), darken(c.main, 0.15).getStyle(), { outline: false });
+    spot.scale.z = 0.3;
+    spot.position.copy(b.surface(x, y, -0.005));
+    b.group.add(spot);
+  }
+  const anchor = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14, Math.PI), flat('#3d7ff2'));
+  anchor.rotation.z = Math.PI;
+  anchor.position.copy(b.surface(0, -0.02, 0.02));
+  b.group.add(anchor);
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.02), flat('#3d7ff2'));
+  shaft.position.copy(b.surface(0, 0.03, 0.02));
+  b.group.add(shaft);
+  return b.group;
+}
+
 export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   bear: bearBody,
   frog: frogBody,
@@ -262,4 +336,8 @@ export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   pig: pigBody,
   lion: lionBody,
   elephant: elephantBody,
+  turtle: turtleBody,
+  hedgehog: hedgehogBody,
+  koala: koalaBody,
+  octopus: octopusBody,
 };

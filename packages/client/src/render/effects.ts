@@ -211,6 +211,19 @@ export class Effects {
       case 'lion':
         if (step % 2 === 0) this.burst(this.glitter[1]!, x, y + 0.3, z, 0, 0, 2, 0.7, 0.06, 0.7, -0.5);
         break;
+      case 'turtle':
+        // Slow little ripples.
+        if (step % 2 === 0) this.shockwave(x, y + 0.04, z, 0.6, '#8fe07a');
+        break;
+      case 'hedgehog':
+        if (step % 2 === 0) this.burst(this.leaves, x, y + 0.3, z, 0, 0, 1, 0.5, 0.06, 0.8, 1);
+        break;
+      case 'koala':
+        if (step % 3 === 0) this.burst(this.leaves, x, y + 0.9, z, 0, 0, 1, 0.4, 0.07, 1.2, 0.4);
+        break;
+      case 'octopus':
+        this.burst(this.soap, x, y + 0.3, z, 0, 0, 2, 0.6, 0.05, 0.8, -1.5);
+        break;
       case 'elephant':
         // A spray from the trunk now and then.
         if (step % 3 === 0) this.burst(this.water, x + dirX * 0.4, y + 1.1, z + dirZ * 0.4, dirX * 0.4, dirZ * 0.4, 4, 1, 0.05, 0.6, 6);
@@ -278,6 +291,21 @@ export class Effects {
         this.burst(this.stars, x, 1.2, z, 0, 0, 8, 3, 0.12, 1, 4);
         this.burst(this.glitter[1]!, x, 1, z, 0, 0, 14, 4, 0.07, 1.2, 1);
         break;
+      case 'turtle':
+        this.shockwave(x, 0.05, z, 1.8, '#8fe07a');
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 18, 4, 0.1, 1.2, 5);
+        break;
+      case 'hedgehog':
+        this.burst(this.leaves, x, 1, z, 0, 0, 18, 4, 0.1, 1.4, 1.5);
+        break;
+      case 'koala':
+        this.burst(this.leaves, x, 1, z, 0, 0, 16, 3, 0.11, 1.6, 1);
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 12, 3, 0.1, 1.2, 4);
+        break;
+      case 'octopus':
+        this.burst(this.soap, x, 0.8, z, 0, 0, 26, 4, 0.09, 1.1, -1);
+        this.burst(this.mudDrops, x, 0.8, z, 0, 0, 10, 4, 0.07, 1, 8);
+        break;
       case 'elephant':
         this.burst(this.water, x, 1, z, 0, 0, 26, 4, 0.08, 1, 8);
         this.shockwave(x, 0.05, z, 1.6, '#9ccfff');
@@ -327,7 +355,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
-    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant']) this.setKnockout(a, -500, -500);
+    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant', 'turtle', 'hedgehog', 'koala', 'octopus']) this.setKnockout(a, -500, -500);
   }
 
   /** A plush re-stitched by a teammate: a puff of stuffing and a pink sparkle. */

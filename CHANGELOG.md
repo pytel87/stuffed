@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Twenty animals (2026-11-17)
+
+- Turtle (common: shell with hexagon plates, red bandana), Hedgehog (rare: spikes, a toadstool
+  on top), Koala (rare: fluffy ears, big nose, a sleepy nightcap) and Octopus (epic: a domed
+  head, eight wiggly tentacles, sailor hat). Each with its set glow, trail and knockout burst.
+
 ## The Bedroom (2026-11-17)
 
 - A second map, 112 x 112: a kid's bedroom on wooden floorboards. The Bed (hide underneath or
