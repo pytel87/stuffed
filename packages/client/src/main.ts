@@ -19,6 +19,7 @@ import { FloatingNumbers } from './ui/floating-numbers.ts';
 import { Help } from './ui/help.ts';
 import { HitDirection } from './ui/hit-direction.ts';
 import { TeammateArrows } from './ui/teammate-arrows.ts';
+import { savedBotLevel } from './ui/bot-level.ts';
 import { Hud } from './ui/hud.ts';
 import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
@@ -48,7 +49,7 @@ let seed = Number(params.get('seed')) || Date.now() >>> 0;
 /** This device's profile: your collection and the look you start in. */
 const profiles = new ProfileStore();
 const newSolo = () =>
-  new LocalSession(input, { seed, zoneTimeScale, ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
+  new LocalSession(input, { seed, zoneTimeScale, botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
 /** Bots only, behind the title menu and the lobby. */
 const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true });
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
@@ -183,7 +184,7 @@ window.addEventListener('keydown', (e) => {
   }
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
-  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams);
+  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel());
   else if (phase !== 'playing') playAgain();
 });
 
@@ -231,7 +232,7 @@ function showMenu(): void {
 function playAgain(): void {
   sound.play('click', { pitchSpread: 0 });
   if (room) {
-    if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true);
+    if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel());
     return;
   }
   seed = (seed * 1664525 + 1013904223) >>> 0;

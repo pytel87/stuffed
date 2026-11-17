@@ -1,7 +1,8 @@
 // One Durable Object per room. It holds the lobby (seats for up to MAX_PLAYERS people) and,
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
-import { BACKYARD, BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
+import type { BotLevel } from '@stuffed/sim';
+import { BACKYARD, BOT_LEVELS, BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -76,6 +77,8 @@ export class Room extends Server<Env> {
   private bots = DEFAULT_BOTS;
   /** Team mode: every real player on one team against the bots. */
   private teams = false;
+  /** How tough the bots are (the host's choice). */
+  private level: BotLevel = 'normal';
   private match: Match | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTime = 0;
@@ -108,7 +111,7 @@ export class Room extends Server<Env> {
       case 'input':
         return this.input(conn, msg.i);
       case 'start':
-        return this.startRequest(conn, msg.bots, msg.teams === true);
+        return this.startRequest(conn, msg.bots, msg.teams === true, msg.level);
       case 'rename':
         return this.rename(conn, msg.name);
       case 'look': {
@@ -201,13 +204,14 @@ export class Room extends Server<Env> {
     this.broadcast(JSON.stringify(this.lobbyMessage()));
   }
 
-  private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean): void {
+  private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean, level: unknown): void {
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase === 'playing') return;
     const humans = this.seats.filter((s) => s.connId !== null);
     this.bots = Math.max(0, Math.min(MAX_PLAYERS - humans.length, Math.trunc(Number(bots) || 0)));
     this.teams = teams;
+    this.level = (BOT_LEVELS as readonly unknown[]).includes(level) ? (level as BotLevel) : 'normal';
     this.startMatch(humans);
   }
 
@@ -222,7 +226,7 @@ export class Room extends Server<Env> {
     this.match = {
       world: createWorld(BACKYARD),
       state,
-      bots: new BotController(seed),
+      bots: new BotController(seed, this.level),
       plushOf,
       queued: new Map(),
       last: new Map(),

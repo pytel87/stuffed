@@ -1,4 +1,5 @@
 import { parseRoomCode } from '@stuffed/sim/net';
+import { bindBotLevel, botLevelHtml } from './bot-level.ts';
 import { icon } from './icons.ts';
 
 export interface MenuActions {
@@ -26,6 +27,7 @@ export class MenuScreen {
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
              <button type="button" class="round menu-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
            </div>
+           ${botLevelHtml()}
            <div class="row">
              <button type="button" class="big primary menu-solo">${icon('play')}<span>Solo</span></button>
              <button type="button" class="big menu-create">${icon('plus')}<span>Room</span></button>
@@ -47,6 +49,7 @@ export class MenuScreen {
 
     const name = () => this.name.value.trim().slice(0, 16) || 'Plush';
     this.el.querySelector('.menu-solo')!.addEventListener('click', () => actions.solo(name()));
+    bindBotLevel(this.el.querySelector('.bot-level')!);
     this.el.querySelector('.menu-create')!.addEventListener('click', () => actions.create(name()));
     this.el.querySelector('.menu-wardrobe')!.addEventListener('click', () => actions.wardrobe());
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {

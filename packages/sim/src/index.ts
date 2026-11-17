@@ -20,5 +20,5 @@ export { TEST_MAP } from './maps/test-map.ts';
 export { BACKYARD } from './maps/backyard.ts';
 export { MAPS, getMap } from './maps/index.ts';
 export { wading } from './systems/movement.ts';
-export { BotController, BOT } from './bots/brain.ts';
+export { BotController, BOT, BOT_LEVELS, type BotLevel } from './bots/brain.ts';
 export * as rng from './rng.ts';

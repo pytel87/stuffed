@@ -84,7 +84,9 @@ You play against 15 bots. For the first 20 seconds they only loot (and fight bac
 After that they pick up better weapons and parts, heal when hurt, stay ahead of the Rinse, jump
 low obstacles, and fight what they can see (with reaction time, imperfect aim and bursts). Their brain is in
 [packages/sim/src/bots/brain.ts](packages/sim/src/bots/brain.ts); tuning knobs are in `BOT`
-at its top. Bots only produce `Input`s, the same as a player, so the server can run them too.
+at its top. Bots only produce `Input`s, the same as a player, so the server can run them too. Three
+levels (easy, normal, hard; the bars on the menu and in the lobby) scale their reaction time,
+aim, lead, burst pauses and how far they look for a fight (`BOT_LEVELS` / `LEVEL` in brain.ts).
 
 ## Team mode
 

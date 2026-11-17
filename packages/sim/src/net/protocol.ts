@@ -1,6 +1,7 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
+import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
 
 export const PROTOCOL_VERSION = 4;
@@ -34,7 +35,7 @@ export type ClientMessage =
   /** One per client tick (30 per second) while playing. */
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
-  | { t: 'start'; bots: number; teams?: boolean }
+  | { t: 'start'; bots: number; teams?: boolean; level?: BotLevel }
   /** Change your name in the lobby. */
   | { t: 'rename'; name: string }
   /** Your look changed in the Wardrobe: the room re-reads your profile for the next match. */

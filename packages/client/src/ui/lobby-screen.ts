@@ -1,5 +1,6 @@
 import { MAX_PLAYERS } from '@stuffed/sim/net';
 import type { RoomClient } from '../session/room-client.ts';
+import { bindBotLevel, botLevelHtml } from './bot-level.ts';
 import { escapeHtml } from './escape.ts';
 import { icon } from './icons.ts';
 
@@ -10,6 +11,7 @@ export class LobbyScreen {
   private readonly share: HTMLButtonElement;
   private readonly list: HTMLElement;
   private readonly botsRow: HTMLElement;
+  private readonly levelRow: HTMLElement;
   private readonly botCount: HTMLElement;
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
@@ -45,6 +47,7 @@ export class LobbyScreen {
              <span class="divider" aria-hidden="true"></span>
              <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
+           ${botLevelHtml()}
            <p class="status"></p>
            <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
          </div>
@@ -56,6 +59,8 @@ export class LobbyScreen {
     this.share = q('.lobby-share');
     this.list = q('.chips');
     this.botsRow = q('.bots');
+    this.levelRow = q('.bot-level');
+    bindBotLevel(this.levelRow);
     this.botCount = q('.bot-count');
     this.start = q('.lobby-start');
     this.status = q('.status');
@@ -134,6 +139,7 @@ export class LobbyScreen {
       .map((s) => `<li class="${s.seat === c.seat ? 'me' : ''} ${s.connected ? '' : 'away'}">${icon(s.host ? 'crown' : 'person')}<span>${escapeHtml(s.name)}</span></li>`)
       .join('');
     this.botsRow.hidden = !c.isHost;
+    this.levelRow.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
     this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? 'Full' : c.isHost ? '' : 'Waiting for host…';
   }

@@ -1941,3 +1941,28 @@ body.touch-mode .gear {
   height: 1.8rem;
   stroke-width: 3;
 }
+
+/* Bot difficulty: a bot and three buttons; the chosen one is lifted out in yellow. */
+.bot-level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.bot-level > .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.bot-level .level[aria-pressed='false'] {
+  opacity: 0.5;
+}
+
+.bot-level .level[aria-pressed='true'] {
+  background: #fff3c4;
+}
+
+.bot-level .level:focus:not(:focus-visible) {
+  outline: none;
+}

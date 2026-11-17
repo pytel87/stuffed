@@ -2,7 +2,7 @@
 // current NetworkMatch with snapshots. Reconnects by itself; a per-room token gets your seat back.
 import PartySocket from 'partysocket';
 import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from '@stuffed/sim/net';
-import type { Input, Part } from '@stuffed/sim';
+import type { BotLevel, Input, Part } from '@stuffed/sim';
 import { NetworkMatch } from './network-match.ts';
 import type { InputSource } from './session.ts';
 
@@ -96,8 +96,8 @@ export class RoomClient {
     return !!this.lobby?.seats.some((s) => s.seat === this.seat && s.host);
   }
 
-  start(bots: number, teams = false): void {
-    this.send({ t: 'start', bots, teams });
+  start(bots: number, teams = false, level: BotLevel = 'normal'): void {
+    this.send({ t: 'start', bots, teams, level });
   }
 
   /** Your look changed in the Wardrobe: the next match starts you in it. */

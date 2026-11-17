@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Bot difficulty (2026-11-17)
+
+- Easy, normal or hard bots (one, two or three bars), on the title menu for solo and in a room's
+  lobby for the host; remembered on the device. Easy bots react slower, aim wider, lead less,
+  pause longer between bursts and look for fights closer by; hard bots the other way.
+
 ## Polish (2026-11-17)
 
 - Dino back plates stand out of the back; the cat's tabby stripes lie on the body.

@@ -69,6 +69,29 @@ export const BOT = {
   calmAfter: 1.5,
 } as const;
 
+/** How tough the bots are. Normal is BOT as above; the others scale its knobs. */
+export type BotLevel = 'easy' | 'normal' | 'hard';
+export const BOT_LEVELS: readonly BotLevel[] = ['easy', 'normal', 'hard'];
+
+interface LevelTuning {
+  /** Multiplies the reaction time (slower to start shooting). */
+  reaction: number;
+  /** Multiplies the aim wobble. */
+  aimError: number;
+  /** Multiplies how much they lead moving targets. */
+  lead: number;
+  /** Multiplies the pauses between bursts. */
+  pause: number;
+  /** Multiplies how far they'll go looking for a fight. */
+  engage: number;
+}
+
+const LEVEL: Record<BotLevel, LevelTuning> = {
+  easy: { reaction: 1.6, aimError: 1.6, lead: 0.4, pause: 1.6, engage: 0.75 },
+  normal: { reaction: 1, aimError: 1, lead: 1, pause: 1, engage: 1 },
+  hard: { reaction: 0.6, aimError: 0.6, lead: 1.8, pause: 0.6, engage: 1.15 },
+};
+
 const T = config.tickRate;
 const DEG = Math.PI / 180;
 
@@ -118,7 +141,14 @@ interface Memory {
 export class BotController {
   private readonly memory = new Map<EntityId, Memory>();
 
-  constructor(private readonly seed: number) {}
+  private readonly level: LevelTuning;
+
+  constructor(
+    private readonly seed: number,
+    level: BotLevel = 'normal',
+  ) {
+    this.level = LEVEL[level] ?? LEVEL.normal;
+  }
 
   /** One Input per living bot for this tick. */
   inputs(world: World, state: GameState): Map<EntityId, Input> {
@@ -338,12 +368,13 @@ export class BotController {
   private pickTarget(world: World, state: GameState, bot: Player, m: Memory): Player | null {
     // Stick with the current fight while the target stays visible and in range.
     const current = m.targetId === null ? undefined : state.players.find((p) => p.id === m.targetId);
-    if (current?.alive && dist(bot.pos, current.pos) <= BOT.engageRange && canSee(world, state, bot, current)) return current;
+    const engage = BOT.engageRange * this.level.engage;
+    if (current?.alive && dist(bot.pos, current.pos) <= engage && canSee(world, state, bot, current)) return current;
 
     const hurt = state.tick - m.lastHurtTick < BOT.hurtMemory * T;
     if (!hurt && state.tick < BOT.truce * T * state.zone.timeScale) return null;
     const armed = bot.weapons.some((w) => w !== null && (w.kind !== 'cork_popper' || w.rarity > 0));
-    const reach = hurt ? BOT.engageRange : armed ? Math.max(BOT.threatRange, BOT.engageRange * m.aggression) : BOT.threatRange;
+    const reach = hurt ? engage : armed ? Math.max(BOT.threatRange, engage * m.aggression) : BOT.threatRange;
     let best: Player | null = null;
     let bestD: number = reach;
     for (const p of state.players) {
@@ -355,7 +386,7 @@ export class BotController {
     }
     if (best && best.id !== m.targetId) {
       m.targetId = best.id;
-      m.fireFromTick = state.tick + Math.round(nextRange(m.rng, BOT.reaction[0], BOT.reaction[1]) * T);
+      m.fireFromTick = state.tick + Math.round(nextRange(m.rng, BOT.reaction[0], BOT.reaction[1]) * this.level.reaction * T);
     }
     return best;
   }
@@ -364,7 +395,7 @@ export class BotController {
   private inBurst(state: GameState, m: Memory): boolean {
     if (state.tick >= m.burstPauseUntil) {
       m.burstUntil = state.tick + Math.round(nextRange(m.rng, BOT.burst[0], BOT.burst[1]) * T);
-      m.burstPauseUntil = m.burstUntil + Math.round(nextRange(m.rng, BOT.burstPause[0], BOT.burstPause[1]) * T);
+      m.burstPauseUntil = m.burstUntil + Math.round(nextRange(m.rng, BOT.burstPause[0], BOT.burstPause[1]) * this.level.pause * T);
     }
     return state.tick < m.burstUntil;
   }
@@ -390,9 +421,9 @@ export class BotController {
   private aimAt(state: GameState, bot: Player, enemy: Player, weapon: WeaponInstance | null, m: Memory, input: Input): void {
     const d = dist(bot.pos, enemy.pos);
     const speed = weapon ? config.weapons[weapon.kind].projectileSpeed : 25;
-    const lead = speed > 0 ? (d / speed) * BOT.leadFactor : 0;
+    const lead = speed > 0 ? (d / speed) * Math.min(1, BOT.leadFactor * this.level.lead) : 0;
     if (state.tick >= m.aimOffsetUntil) {
-      const r = (BOT.aimError * d) / 10;
+      const r = (BOT.aimError * this.level.aimError * d) / 10;
       const a = nextFloat(m.rng) * Math.PI * 2;
       const k = Math.sqrt(nextFloat(m.rng));
       m.aimOffset = { x: Math.cos(a) * r * k, y: Math.sin(a) * r * k };

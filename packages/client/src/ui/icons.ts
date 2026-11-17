@@ -45,6 +45,10 @@ const paths: Record<string, string> = {
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
   // a stitched heart with a needle: re-stitch a teammate
   revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff7aa8"/><path d="M8 12.5h1.6M11.2 12.5h1.6M14.4 12.5H16" stroke-width="1.6"/><path d="M17 3.5l3.5 3.5" stroke-width="1.6"/>`,
+  // signal bars: how tough the bots are
+  'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
+  'level-normal': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#f7c331"/><rect x="10" y="11" width="4" height="9" rx="1" fill="#f7c331"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
+  'level-hard': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#e2574c"/><rect x="10" y="11" width="4" height="9" rx="1" fill="#e2574c"/><rect x="16" y="6" width="4" height="14" rx="1" fill="#e2574c"/>`,
   // two plushies side by side: team mode
   team: `<circle cx="8" cy="9" r="3.2" fill="#5d9cf5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/><circle cx="16" cy="9" r="3.2" fill="#5d9cf5"/><path d="M10.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/>`,
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0Z" fill="#f7c331"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7l-.8-3h-5.4Z"/>`,

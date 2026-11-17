@@ -1,5 +1,5 @@
 import { BACKYARD, BotController, createGame, createWorld, DT, step } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
+import type { BotLevel, EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
 
 /** Your plush's look in solo play without a profile (bots get random ones). */
 const YOUR_LOOK: RosterEntry['parts'] = { head: 'bear', body: 'bear', legs: 'chicken', tail: 'bear', accessory: 'frog' };
@@ -20,6 +20,8 @@ export interface LocalSessionOptions {
   watchOnly?: boolean;
   /** Your starting look (from your profile). */
   look?: RosterEntry['parts'];
+  /** How tough the bots are. */
+  botLevel?: BotLevel;
 }
 
 export class LocalSession implements GameSession {
@@ -37,7 +39,7 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK }: LocalSessionOptions,
+    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK, botLevel = 'normal' }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
@@ -46,7 +48,7 @@ export class LocalSession implements GameSession {
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale, toss: true });
-    this.bots = new BotController(seed);
+    this.bots = new BotController(seed, botLevel);
     this.prev = structuredClone(this.state);
     this.localPlayerId = watchOnly ? -1 : this.state.players[0]!.id;
   }
