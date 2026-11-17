@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import type { MapData, Vec2, Zone } from '@stuffed/sim';
 
-/** Roughly how far from the camera's focus the screen reaches (world units), plus margin. */
+/** Roughly how far from the camera's focus the screen reaches (world units, plus margin) at the
+ *  usual camera distance; farther out (the Toss) it reaches proportionally farther. */
 const VIEW_REACH = 32;
 
 const WATER_HEIGHT = 0.12;
@@ -70,10 +71,13 @@ export class RinseView {
     this.mesh.renderOrder = 2;
   }
 
-  /** `view` is where the camera looks; the full-screen water shader is skipped when no water is in view. */
-  update(zone: Zone, time: number, view: Vec2): void {
+  /**
+   * `view` is where the camera looks and `zoom` how far out it is (1 = usual); the full-screen
+   * water shader is skipped when no water is in view.
+   */
+  update(zone: Zone, time: number, view: Vec2, zoom = 1): void {
     const c = zone.current;
-    this.mesh.visible = Math.hypot(view.x - c.center.x, view.y - c.center.y) + VIEW_REACH > c.radius;
+    this.mesh.visible = Math.hypot(view.x - c.center.x, view.y - c.center.y) + VIEW_REACH * zoom > c.radius;
     if (!this.mesh.visible) return;
     const u = this.uniforms;
     u.uCenter.value.set(zone.current.center.x, zone.current.center.y);

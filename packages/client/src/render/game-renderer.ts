@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wornSet } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
-import { CameraRig } from './camera-rig.ts';
+import { CAMERA, CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
 import { BallViews } from './ball-views.ts';
 import { buildMapView } from './map-view.ts';
@@ -410,7 +410,9 @@ export class GameRenderer {
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
-    this.rinse.update(curr.zone, opts.time, this.followPos);
+    // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
+    const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));
+    this.rinse.update(curr.zone, opts.time, this.followPos, zoom);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 
