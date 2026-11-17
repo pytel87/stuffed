@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import type { Animal } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
-import { shapedBody } from './body-shapes.ts';
+import { DEPTH, shapedBody } from './body-shapes.ts';
 import { darken, toonMaterial, toonMesh } from './toon.ts';
 
 const flat = (c: string) => toonMaterial(c, { map: null });
@@ -73,13 +73,13 @@ function chickenBody(outline: string): THREE.Object3D {
 function dinoBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.dino;
   const b = shapedBody({ shape: 'chunky', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.25, bellyY: -0.06 });
-  // Big back plates down the spine.
-  for (const [y, size] of [[0.3, 0.13], [0.12, 0.15], [-0.07, 0.13], [-0.23, 0.1]] as const) {
-    const plate = toonMesh(new THREE.ConeGeometry(size, size * 1.6, 4), '#f0a93b', { outline: 0.1, outlineColor: outline });
+  // Big back plates down the spine, standing out of the back.
+  for (const [y, size] of [[0.26, 0.17], [0.08, 0.2], [-0.1, 0.18], [-0.26, 0.14]] as const) {
+    const plate = toonMesh(new THREE.ConeGeometry(size, size * 1.8, 4), '#f0a93b', { outline: 0.1, outlineColor: outline });
     plate.scale.set(0.35, 1, 1);
-    const p = b.surface(0, y, -0.02, true);
-    plate.position.copy(p);
-    plate.rotation.x = -1.2 + (0.3 - y);
+    plate.position.copy(b.surface(0, y, 0.05, true));
+    // Pointing back and a little up (out of the curve of the back).
+    plate.rotation.x = -1.15 - y * 0.6;
     b.group.add(plate);
   }
   return b.group;
@@ -162,15 +162,17 @@ function unicornBody(outline: string): THREE.Object3D {
 function catBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.cat;
   const b = shapedBody({ shape: 'pear', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.24, bellyY: -0.08 });
-  // Tabby stripes round the back.
-  for (const y of [0.22, 0.06, -0.1]) {
-    for (const s of [-1, 1]) {
-      const stripe = toonMesh(new THREE.BoxGeometry(0.2, 0.04, 0.03), darken(c.main, 0.25).getStyle(), { outline: false });
-      const p = b.surface(s * 0.2, y, 0.0, true);
-      stripe.position.copy(p);
-      stripe.rotation.y = s * 0.6;
-      b.group.add(stripe);
-    }
+  // Tabby stripes: bands hugging the curve of the back.
+  for (const y of [0.22, 0.04, -0.14]) {
+    // Mostly sunk into the body, and tall: a painted-on stripe, not a belt.
+    const r = b.radiusAt(y) - 0.008;
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(r, 0.02, 6, 24, 1.6).rotateX(Math.PI / 2).rotateY(Math.PI / 2 + 0.8),
+      flat(darken(c.main, 0.22).getStyle()),
+    );
+    band.scale.set(1, 2.2, DEPTH);
+    band.position.y = y;
+    b.group.add(band);
   }
   return b.group;
 }

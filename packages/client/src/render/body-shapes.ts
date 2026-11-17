@@ -25,7 +25,8 @@ const PROFILES: Record<BodyShape, [number, number][]> = {
   bell: [[0, -0.37], [0.4, -0.36], [0.48, -0.27], [0.44, -0.1], [0.38, 0.1], [0.3, 0.29], [0, 0.4]],
 };
 
-const DEPTH = 0.9;
+/** Bodies are this much flatter front to back. */
+export const DEPTH = 0.9;
 
 export interface ShapedBody {
   group: THREE.Group;
