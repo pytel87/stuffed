@@ -120,3 +120,18 @@ describe('Bubble Wand', () => {
     expect(g.other.pos.x).toBeGreaterThan(x + 2);
   });
 });
+
+describe('empty weapons', () => {
+  it('firing an empty weapon reloads it, and switching to an empty one does too', () => {
+    const g = duel('cork_popper', 20);
+    g.you.weapons = [makeWeapon('cork_popper', 0), makeWeapon('foam_dart_smg', 0)];
+    g.you.weapons[0]!.ammo = 0;
+    g.play(1, fire);
+    expect(g.you.weapons[0]!.reloadEndTick).not.toBeNull();
+
+    g.you.weapons[1]!.ammo = 0;
+    g.play(1, { weaponSlot: 1 });
+    expect(g.you.activeSlot).toBe(1);
+    expect(g.you.weapons[1]!.reloadEndTick).not.toBeNull();
+  });
+});

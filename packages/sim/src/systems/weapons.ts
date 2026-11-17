@@ -66,8 +66,13 @@ export function updateWeapons(world: World, state: GameState, player: Player, in
     player.chargeStartTick = null;
   }
 
-  const ready = weapon.reloadEndTick === null && weapon.ammo > 0 && state.tick >= weapon.nextFireTick;
   const held = (input.buttons & Btn.Fire) !== 0;
+  // Trying to fire an empty weapon reloads it (a reload cancelled by switching away left it empty).
+  if (reloads && held && weapon.ammo === 0 && weapon.reloadEndTick === null) {
+    weapon.reloadEndTick = state.tick + reloadTicks(weapon);
+    player.chargeStartTick = null;
+  }
+  const ready = weapon.reloadEndTick === null && weapon.ammo > 0 && state.tick >= weapon.nextFireTick;
 
   if (s.mode === 'charge') {
     // Hold to draw the band back; it fires when you let go.
@@ -142,6 +147,9 @@ function handleSwap(state: GameState, player: Player, input: Input): void {
   const next = player.weapons[slot]!;
   next.nextFireTick = Math.max(next.nextFireTick, state.tick + SWAP_TICKS);
   player.action = null;
+  // Switching to an empty weapon starts its reload.
+  const s = config.weapons[next.kind];
+  if (next.ammo === 0 && !s.consumable && s.mode !== 'melee') next.reloadEndTick = state.tick + reloadTicks(next);
 }
 
 /**

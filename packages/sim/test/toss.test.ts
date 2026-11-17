@@ -67,6 +67,10 @@ describe('the Toss', () => {
     const landedBy = state.toss!.endTick + Math.ceil((config.toss.height / config.toss.fallSpeed) * 30) + 5;
     while (state.tick < landedBy) step(world, state, bots.inputs(world, state));
     for (const p of state.players) expect(p.drop).toBeNull();
+    // Nobody is left standing on a roof after a little while (they'd be stuck and hard to hit).
+    for (let t = 0; t < 30 * 20; t++) step(world, state, bots.inputs(world, state));
+    const onRoofs = state.players.filter((p) => p.alive && p.z > 1.5);
+    expect(onRoofs.length).toBeLessThanOrEqual(1);
     // They spread out rather than all landing in one spot.
     const xs = state.players.map((p) => Math.round(p.pos.x / 10));
     expect(new Set(xs).size).toBeGreaterThan(3);

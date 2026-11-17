@@ -8,7 +8,7 @@ import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
-import type { EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
+import type { Box, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
 
 export const BOT = {
@@ -166,7 +166,7 @@ export class BotController {
       cycleWeapon: false,
       useItemSlot: -1,
     };
-    if (bot.drop) return this.toss(state, bot, m, input);
+    if (bot.drop) return this.toss(world, state, bot, m, input);
     let wantJump = false;
     let goal: Vec2 | null = null;
     const health = bot.stuffing + bot.buttons;
@@ -228,8 +228,12 @@ export class BotController {
       const best = bot.weapons[bot.activeSlot] ?? bot.weapons[0] ?? bot.weapons[1];
       if (best && best.ammo < config.weapons[best.kind].magazine / 2 && best.reloadEndTick === null) input.buttons |= Btn.Reload;
 
+      const roof = bot.z > 1.5 ? roofUnder(world, bot.pos) : null;
       if (zoneUrgent) {
         goal = zone.center;
+      } else if (roof) {
+        // Up on a roof with nothing to fight: walk off the nearest edge (chests are down below).
+        goal = offEdge(roof, bot.pos);
       } else if (calm && this.tryHeal(bot, input)) {
         goal = null; // stand still while healing
       } else {
@@ -262,7 +266,7 @@ export class BotController {
   // ---------- the Toss ----------
 
   /** Ride the blimp to a random point of its line, drop, and glide toward the nearest chest. */
-  private toss(state: GameState, bot: Player, m: Memory, input: Input): Input {
+  private toss(world: World, state: GameState, bot: Player, m: Memory, input: Input): Input {
     if (bot.drop === 'riding') {
       if (m.dropAt < 0) m.dropAt = nextRange(m.rng, 0.12, 0.88);
       const t = state.toss;
@@ -276,7 +280,9 @@ export class BotController {
       let bestD = 28;
       for (const c of state.chests) {
         const d = dist(bot.pos, c.pos);
-        if (!c.opened && d < bestD) {
+        // Chests under a roof would land the bot on top of the roof instead.
+        const covered = underAnyRoof(world, c.pos);
+        if (!c.opened && !covered && d < bestD) {
           best = c.pos;
           bestD = d;
         }
@@ -421,7 +427,8 @@ export class BotController {
       bestD = d;
     }
     for (const chest of state.chests) {
-      if (chest.opened) continue;
+      // Not from up on a roof: walk off it first (the wander goal takes the bot down).
+      if (chest.opened || bot.z > config.chest.height + config.loot.reachHeight) continue;
       const d = dist(bot.pos, chest.pos) + 4; // loot on the ground first
       if (d < bestD) {
         goal = chest.pos;
@@ -521,4 +528,26 @@ function unit(x: number, y: number): Vec2 {
 /** Bots dress up: they put on any part rarer than the one they wear in that slot. */
 function wantsPart(bot: Player, part: Part): boolean {
   return part.rarity > bot.parts[part.slot].rarity;
+}
+
+/** Inside a roofed building's area (a house, the shed, under the treehouse or the table). */
+function underAnyRoof(world: World, p: Vec2): boolean {
+  return world.map.buildings.some((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
+}
+
+function roofUnder(world: World, p: Vec2): Box | null {
+  return world.map.buildings.find((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) ?? null;
+}
+
+/** A point just past the building edge nearest to `p`. */
+function offEdge(b: Box, p: Vec2): Vec2 {
+  const out = 2;
+  const options: [number, Vec2][] = [
+    [p.x - b.x, { x: b.x - out, y: p.y }],
+    [b.x + b.w - p.x, { x: b.x + b.w + out, y: p.y }],
+    [p.y - b.y, { x: p.x, y: b.y - out }],
+    [b.y + b.h - p.y, { x: p.x, y: b.y + b.h + out }],
+  ];
+  options.sort((a, b2) => a[0] - b2[0]);
+  return options[0]![1];
 }
