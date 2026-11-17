@@ -361,12 +361,7 @@ button {
   background: rgba(42, 31, 45, 0.18);
 }
 
-/* Team mode toggle, the same size as − and +: light blue when on, faded when off. */
-.bots .lobby-team .icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
+/* Team mode toggle: light blue when on, faded when off. */
 .bots .lobby-team[aria-pressed='true'] {
   background: #dbe9ff;
 }

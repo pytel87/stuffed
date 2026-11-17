@@ -39,11 +39,11 @@ export class LobbyScreen {
            </div>
            <ul class="chips"></ul>
            <div class="bots">${icon('bot')}
-             <button type="button" class="round small lobby-less" aria-label="Fewer bots">−</button>
+             <button type="button" class="round lobby-less" aria-label="Fewer bots">−</button>
              <b class="bot-count"></b>
-             <button type="button" class="round small lobby-more" aria-label="More bots">+</button>
+             <button type="button" class="round lobby-more" aria-label="More bots">+</button>
              <span class="divider" aria-hidden="true"></span>
-             <button type="button" class="round small lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
+             <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
            </div>
            <p class="status"></p>
            <button type="button" class="big primary lobby-start">${icon('play')}<span>Start</span></button>
