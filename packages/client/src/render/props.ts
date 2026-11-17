@@ -486,8 +486,21 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       break;
     }
     case 'goal': {
-      // A white post or back bar of a beach ball goal (the net and crossbar: goal-views.ts).
-      add(outlinedBox(b.w, H, b.h, toonMaterial('#fdfbf7', { map: null })), H / 2);
+      // A side or the back of a beach ball goal: thin white tubes along its top and bottom and a
+      // post at each end, so the net (goal-views.ts) shows through. The wall itself stays solid.
+      const white = toonMaterial('#fdfbf7', { map: null });
+      const long = b.w > b.h;
+      const length = Math.max(b.w, b.h);
+      for (const y of [0.06, H - 0.08]) {
+        const rail = toonMesh(new THREE.CylinderGeometry(0.08, 0.08, length, 10), '#fdfbf7', { outline: false, material: white });
+        rail.rotation.set(long ? 0 : Math.PI / 2, 0, long ? Math.PI / 2 : 0);
+        add(rail, y);
+      }
+      for (const end of [-1, 1]) {
+        const post = toonMesh(new THREE.CylinderGeometry(0.1, 0.1, H, 10), '#fdfbf7', { outline: 0.06, material: white });
+        post.position.set(long ? (end * (length - 0.2)) / 2 : 0, H / 2, long ? 0 : (end * (length - 0.2)) / 2);
+        g.add(post);
+      }
       break;
     }
     case 'basket': {

@@ -1,4 +1,4 @@
-// Beach ball goals: a crossbar, a net and a floating scoreboard over each one (the posts and
+// Beach ball goals: a crossbar, nets (top, back and sides) and a floating scoreboard over each one (the posts and
 // back bar are map walls, drawn with the rest of the props). The score pops when it goes up.
 import * as THREE from 'three';
 import type { GameState, Goal, MapData } from '@stuffed/sim';
@@ -78,9 +78,16 @@ export class GoalViews {
     roof.rotation.x = -Math.PI / 2 + (goal.opens === 'south' ? -0.25 : 0.25);
     (roof.material as THREE.MeshBasicMaterial).map!.repeat.set(4, 2);
     g.add(roof);
-    const backNet = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, HEIGHT - 0.4), netMat);
-    backNet.position.set((x0 + x1) / 2, (HEIGHT - 0.4) / 2, back);
+    // Net all round: the back and both sides, from the ground up to the roof net.
+    const backNet = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, HEIGHT - 0.25), netMat);
+    backNet.position.set((x0 + x1) / 2, (HEIGHT - 0.25) / 2, back);
     g.add(backNet);
+    for (const x of [x0 + 0.02, x1 - 0.02]) {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(depth, HEIGHT - 0.25), netMat);
+      side.rotation.y = Math.PI / 2;
+      side.position.set(x, (HEIGHT - 0.25) / 2, (front + back) / 2);
+      g.add(side);
+    }
     return g;
   }
 
