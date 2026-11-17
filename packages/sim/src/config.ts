@@ -374,12 +374,27 @@ export const config = {
     } satisfies Record<ItemKind, number>,
   },
 
-  /** Beach balls on the map: round, and they bounce back a plush that runs into them. */
+  /**
+   * Beach balls: run into one and it rolls off (and you bounce back a little); shots knock it
+   * too. They roll off walls, chests and each other and slow down on the grass.
+   */
   beachBall: {
     /** Speed (units/s) a plush is bounced away at. */
-    bounce: 9,
-    /** Slower bumps (units/s toward the ball) just push, without a bounce. */
+    bounce: 5,
+    /** Slower bumps (units/s toward the ball) just nudge it along, without a bounce. */
     minImpact: 2,
+    /** A kick: the ball leaves at this much of the plush's speed into it, plus `kickBase`. */
+    kickFactor: 1.6,
+    kickBase: 3,
+    /** A shot hitting it adds this speed along the shot. */
+    shotPush: 3,
+    maxSpeed: 16,
+    /** How quickly rolling slows (1/s). */
+    friction: 0.8,
+    /** Speed kept bouncing off a wall, chest or another ball. */
+    restitution: 0.75,
+    /** Walls lower than this it rolls over (low borders, the lawn's edges). */
+    minWallHeight: 0.25,
   },
 
   loot: {

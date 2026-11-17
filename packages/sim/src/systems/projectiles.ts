@@ -1,7 +1,8 @@
 import { config, DT, secondsToTicks, type WeaponStats } from '../config.ts';
 import { segmentBoxT } from '../collision/geometry.ts';
-import type { Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
+import type { Ball, Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
 import { poseAt, raycastWalls, wallsNear, type World } from '../world.ts';
+import { pushBall } from './balls.ts';
 import { applyDamage } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
@@ -72,18 +73,34 @@ export function updateProjectiles(world: World, state: GameState): void {
         wallHit = { box: wall };
       }
     }
+    /** A beach ball hit first (it gets knocked along the shot). */
+    let ballHit: Ball | null = null;
+    for (const ball of state.balls) {
+      if (lowest >= ball.radius * 2) continue;
+      const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, ball.pos.x, ball.pos.y, ball.radius + r);
+      if (t !== null && t < wallT && proj.z + dz * t - r < ball.radius * 2) {
+        wallT = t;
+        wallHit = { chest: ball.pos };
+        ballHit = ball;
+      }
+    }
     if (lowest < config.chest.height) {
       for (const chest of state.chests) {
         const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, chest.pos.x, chest.pos.y, config.chest.radius + r);
         if (t !== null && t < wallT && proj.z + dz * t - r < config.chest.height) {
           wallT = t;
           wallHit = { chest: chest.pos };
+          ballHit = null;
         }
       }
     }
     if (wallT !== Infinity && wallT <= hitT) {
       const at = { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT };
       const zAt = proj.z + dz * wallT;
+      if (ballHit) {
+        const len = Math.hypot(proj.vel.x, proj.vel.y) || 1;
+        pushBall(ballHit, proj.vel.x / len, proj.vel.y / len, config.beachBall.shotPush);
+      }
       // A Cardboard Wall takes the hit and breaks once it's had enough.
       if (wallHit && 'box' in wallHit && 'health' in wallHit.box) {
         const placed = wallHit.box as PlacedWall;

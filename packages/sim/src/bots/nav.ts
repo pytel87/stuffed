@@ -28,7 +28,8 @@ function gridFor(map: MapData): Grid {
   const rows = Math.ceil(map.height / CELL);
   const blocked = new Uint8Array(cols * rows);
   for (const w of map.walls) {
-    if (w.height < TALL) continue;
+    // Beach balls roll out of the way; only fixed walls block a path.
+    if (w.height < TALL || w.kind === 'ball') continue;
     const x0 = Math.max(0, Math.floor((w.x - CLEARANCE) / CELL));
     const x1 = Math.min(cols - 1, Math.floor((w.x + w.w + CLEARANCE) / CELL));
     const y0 = Math.max(0, Math.floor((w.y - CLEARANCE) / CELL));

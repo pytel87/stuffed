@@ -1,9 +1,9 @@
 // Messages between browser and game server (JSON over WebSocket). Shared so both sides agree.
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
-import type { Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
+import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 10;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -137,10 +137,12 @@ export interface CompactSnapshot {
   zone?: ZonePlan;
   roster?: RosterEntry[];
   fallen?: Player[];
+  /** Beach balls, when any moved since the last update. */
+  balls?: Ball[];
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen', string>>;
+export type SnapshotMemory = Partial<Record<'chests' | 'loot' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls', string>>;
 
 /**
  * Builds one player's update. `visible` are the living plushies this player may see (their own
@@ -185,6 +187,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     zone: zonePlan,
     roster: state.players.map((p): RosterEntry => ({ id: p.id, name: p.name, isBot: p.isBot, parts: p.parts, radius: p.radius })),
     fallen: state.players.filter((p) => !p.alive),
+    balls: state.balls,
   };
   for (const key of Object.keys(slow) as (keyof typeof slow)[]) {
     const json = compactJson(slow[key]);
@@ -204,10 +207,11 @@ export interface SnapshotParts {
   zone: ZonePlan | null;
   roster: Map<EntityId, RosterEntry>;
   fallen: Player[];
+  balls: Ball[];
 }
 
 export function emptySnapshotParts(): SnapshotParts {
-  return { chests: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [] };
+  return { chests: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [] };
 }
 
 /**
@@ -222,6 +226,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   if (msg.zone) parts.zone = msg.zone;
   if (msg.roster) parts.roster = new Map(msg.roster.map((r) => [r.id, r]));
   if (msg.fallen) parts.fallen = msg.fallen;
+  if (msg.balls) parts.balls = msg.balls;
   if (!parts.zone) return null;
 
   const fallenIds = new Set(parts.fallen.map((p) => p.id));
@@ -260,6 +265,8 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     chests: parts.chests,
     loot: parts.loot,
     placedWalls: parts.walls,
+    // Copies: client prediction may nudge them; the next update says where they really are.
+    balls: parts.balls.map((b) => ({ ...b, pos: { ...b.pos }, vel: { ...b.vel } })),
     toss: parts.toss,
     zone,
     events: [],

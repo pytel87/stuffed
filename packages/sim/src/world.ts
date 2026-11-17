@@ -6,6 +6,8 @@ import type { EntityId, MapData, PlacedWall, Vec2, Wall } from './types.ts';
 
 export interface World {
   map: MapData;
+  /** The map's fixed walls (beach balls aren't: they roll, in GameState.balls). */
+  solid: Wall[];
   walls: StaticBoxHash;
   /**
    * Cardboard Walls standing right now: the match state's list, pointed to by step() (and by
@@ -27,7 +29,8 @@ export interface Pose {
 const HISTORY = 16;
 
 export function createWorld(map: MapData): World {
-  return { map, walls: new StaticBoxHash(map.walls), placed: [], history: new Map() };
+  const solid = map.walls.filter((w) => w.kind !== 'ball');
+  return { map, solid, walls: new StaticBoxHash(solid), placed: [], history: new Map() };
 }
 
 /** Remembers where every living plush is this tick. */
@@ -55,7 +58,7 @@ export function poseAt(world: World, id: EntityId, tick: number): Pose | null {
 /** Map walls and placed walls overlapping the box (min/max corners). */
 export function wallsNear(world: World, minX: number, minY: number, maxX: number, maxY: number): Wall[] {
   const found: Wall[] = [];
-  for (const i of world.walls.query(minX, minY, maxX, maxY)) found.push(world.map.walls[i]!);
+  for (const i of world.walls.query(minX, minY, maxX, maxY)) found.push(world.solid[i]!);
   for (const w of world.placed) {
     if (w.x <= maxX && w.x + w.w >= minX && w.y <= maxY && w.y + w.h >= minY) found.push(w);
   }

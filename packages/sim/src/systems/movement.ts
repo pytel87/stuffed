@@ -2,8 +2,9 @@ import { config, DT } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
 import { Btn } from '../types.ts';
-import type { GameState, Input, Player, Vec2, Wall } from '../types.ts';
+import type { Ball, GameState, Input, Player, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
+import { pushBall } from './balls.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -123,10 +124,6 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     let moved = false;
     for (const wall of wallsNear(world, x - r, y - r, x + r, y + r)) {
       if (wall.height <= feet) continue;
-      if (wall.kind === 'ball') {
-        moved = bounceOffBall(state, player, wall) || moved;
-        continue;
-      }
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
@@ -141,17 +138,21 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
         moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
       }
     }
+    for (const ball of state.balls) {
+      if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
+    }
     if (!moved) return;
   }
 }
 
-/** A beach ball is round; running into it bounces the plush back (with a boing). */
-function bounceOffBall(state: GameState, player: Player, ball: Wall): boolean {
-  const cx = ball.x + ball.w / 2;
-  const cy = ball.y + ball.h / 2;
-  const min = player.radius + Math.min(ball.w, ball.h) / 2;
-  const dx = player.pos.x - cx;
-  const dy = player.pos.y - cy;
+/**
+ * Running into a beach ball kicks it away (and the plush bounces back a little, with a boing);
+ * a gentle bump just nudges it along.
+ */
+function kickBall(state: GameState, player: Player, ball: Ball): boolean {
+  const dx = player.pos.x - ball.pos.x;
+  const dy = player.pos.y - ball.pos.y;
+  const min = player.radius + ball.radius;
   const d2 = dx * dx + dy * dy;
   if (d2 >= min * min) return false;
   const d = Math.sqrt(d2);
@@ -160,10 +161,14 @@ function bounceOffBall(state: GameState, player: Player, ball: Wall): boolean {
   // How fast the plush was heading into the ball.
   const impact = -((player.vel.x + player.knockback.x) * nx + (player.vel.y + player.knockback.y) * ny);
   pushOut(player, nx, ny, min - d);
-  if (impact >= config.beachBall.minImpact) {
-    player.knockback.x = nx * config.beachBall.bounce;
-    player.knockback.y = ny * config.beachBall.bounce;
-    state.events.push({ type: 'ballBounce', playerId: player.id, pos: { x: cx, y: cy } });
+  const B = config.beachBall;
+  if (impact >= B.minImpact) {
+    pushBall(ball, -nx, -ny, impact * B.kickFactor + B.kickBase);
+    player.knockback.x = nx * B.bounce;
+    player.knockback.y = ny * B.bounce;
+    state.events.push({ type: 'ballBounce', playerId: player.id, ballId: ball.id, pos: { x: ball.pos.x, y: ball.pos.y } });
+  } else if (impact > 0) {
+    pushBall(ball, -nx, -ny, impact * 1.1);
   }
   return true;
 }

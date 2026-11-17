@@ -143,7 +143,10 @@ function underRoof(wall: Wall, map: MapData): Wall {
 
 export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushView[]; roofs: RoofView[] } {
   const root = new THREE.Group();
-  map.walls.forEach((b, i) => root.add(buildWall(underRoof(b, map), i)));
+  // Beach balls roll around: they're drawn from the match state (ball-views.ts).
+  map.walls.forEach((b, i) => {
+    if (b.kind !== 'ball') root.add(buildWall(underRoof(b, map), i));
+  });
   const bushes = map.bushes.map((c) => {
     const { object, view } = bush(c);
     root.add(object);

@@ -1,5 +1,6 @@
 import { config, DT } from './config.ts';
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
+import { updateBalls } from './systems/balls.ts';
 import { checkWinner } from './systems/damage.ts';
 import { expireWalls, updateItemUse } from './systems/items.ts';
 import { autoPickupItems, dropEverything, dropFromSlot, hasDrops, updateInteraction } from './systems/loot.ts';
@@ -64,6 +65,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     player.heldButtons = input.buttons;
   }
 
+  updateBalls(world, state);
   updateProjectiles(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.

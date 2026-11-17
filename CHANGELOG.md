@@ -19,8 +19,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   watching, to the menu.
 - Shots fired indoors no longer climb toward the roof overhead (aiming took the roof as the
   surface to aim above); they stay level unless the aimed-at spot is outside or up on something.
-- Beach balls by the pool are round and bouncy: run into one and you're bounced back with a
-  boing while the ball squashes and wobbles (gentle bumps just slide around it).
+- Beach balls roll: run into one and it rolls off (you bounce back a little, with a boing, and
+  it squashes); a gentle bump nudges it along and shots knock it too. They bounce off walls,
+  chests, plushies and each other, slow down on the grass and faster in the pool. They're part
+  of the match state now (online: sent when they move; protocol version 4), and bots path
+  through where they started.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 

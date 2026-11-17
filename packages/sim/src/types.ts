@@ -259,7 +259,7 @@ export type GameEvent =
   /** A marble bounced off a wall. */
   | { type: 'bounce'; pos: Vec2 }
   /** A plush ran into a beach ball and got bounced back (`pos`: the ball's center). */
-  | { type: 'ballBounce'; playerId: EntityId; pos: Vec2 }
+  | { type: 'ballBounce'; playerId: EntityId; ballId: number; pos: Vec2 }
   /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
   | { type: 'bonk'; playerId: EntityId; targetId: EntityId }
   /** Dropped something on purpose. */
@@ -287,12 +287,22 @@ export interface GameState {
   loot: GroundLoot[];
   /** Cardboard Walls standing right now, oldest first. */
   placedWalls: PlacedWall[];
+  /** Beach balls rolling around (the map's 'ball' walls become these at the start). */
+  balls: Ball[];
   /** The Toss: the blimp flies from `from` to `to` between these ticks; null without one. */
   toss: Toss | null;
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
   mapId: string;
+}
+
+/** A beach ball: rolls when a plush runs into it or a shot hits it. `id` is its index. */
+export interface Ball {
+  id: number;
+  pos: Vec2;
+  vel: Vec2;
+  radius: number;
 }
 
 /** Axis-aligned box, min corner + size. */

@@ -260,7 +260,8 @@ export const checkerTexture = (a = '#e25b5b', b = '#fff6ec') =>
     g.fillRect(0, s / 2, s / 2, s / 2);
   });
 
-const stripeTexture = () =>
+/** Beach ball stripes. */
+export const stripeTexture = () =>
   canvasTexture('ballStripes', 128, (g, s) => {
     const colors = ['#ff5a5a', '#fff8ef', '#3fa9f5', '#fff8ef', '#ffd23a', '#fff8ef'];
     colors.forEach((c, i) => {
@@ -482,8 +483,6 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       const ballMesh = toonMesh(new THREE.SphereGeometry(r, 24, 16), '#ffffff', { outline: 0.04, material: toonMaterial('#ffffff', { map: stripeTexture() }) });
       ballMesh.rotation.z = 0.5 + index;
       add(ballMesh, r);
-      // The renderer squashes it when a plush bounces off (see GameRenderer.balls).
-      g.userData.bouncy = { mesh: ballMesh, radius: r };
       break;
     }
     case 'basket': {

@@ -227,27 +227,43 @@ describe('projectiles', () => {
 describe('beach balls', () => {
   const pool = { ...OPEN_MAP, id: 'pool', walls: [{ x: 29.2, y: 39.2, w: 1.6, h: 1.6, height: 1.6, kind: 'ball' as const }] };
 
-  it('bounce back a plush that runs into one, with a boing', () => {
+  it('roll away when a plush runs into one, and the plush bounces back with a boing', () => {
     const { world, state } = newGame(1, 2, pool);
     const a = state.players[0]!;
+    const ball = state.balls[0]!;
+    expect(ball.pos).toEqual({ x: 30, y: 40 });
     a.pos = { x: 26, y: 40 };
     let bounced = false;
     for (let i = 0; i < 30 && !bounced; i++) {
       run(world, state, 1, (id) => (id === a.id ? input({ moveX: 1 }) : idle));
-      bounced = state.events.some((e) => e.type === 'ballBounce' && e.playerId === a.id);
+      bounced = state.events.some((e) => e.type === 'ballBounce' && e.playerId === a.id && e.ballId === ball.id);
     }
     expect(bounced).toBe(true);
-    // Knocked back away from the ball (toward -x; it fades a little the same tick), never inside it.
-    expect(a.knockback.x).toBeLessThan(-config.beachBall.bounce * 0.6);
-    expect(Math.hypot(a.pos.x - 30, a.pos.y - 40)).toBeGreaterThanOrEqual(a.radius + 0.8 - 1e-6);
+    expect(ball.vel.x).toBeGreaterThan(config.beachBall.kickBase);
+    expect(a.knockback.x).toBeLessThan(0);
+    // It rolls on, slows down and stops.
+    run(world, state, 30 * 8, () => idle);
+    expect(ball.pos.x).toBeGreaterThan(35);
+    expect(ball.vel).toEqual({ x: 0, y: 0 });
   });
 
-  it('are round: a plush can slide around one instead of catching on a corner', () => {
+  it('bounce off walls instead of rolling through them', () => {
+    const walled = { ...pool, walls: [...pool.walls, { x: 34, y: 30, w: 1, h: 20, height: 2 }] };
+    const { world, state } = newGame(1, 2, walled);
+    const ball = state.balls[0]!;
+    ball.vel = { x: 14, y: 0 };
+    run(world, state, 30, () => idle);
+    expect(ball.pos.x).toBeLessThan(34 - ball.radius + 1e-6);
+    expect(ball.vel.x).toBeLessThanOrEqual(0);
+  });
+
+  it('get knocked along by shots', () => {
     const { world, state } = newGame(1, 2, pool);
     const a = state.players[0]!;
-    // Just off the ball's corner diagonal, walking slowly enough not to bounce.
-    a.pos = { x: 28.9, y: 38.9 };
-    run(world, state, 1, (id) => (id === a.id ? idle : idle));
-    expect(Math.hypot(a.pos.x - 30, a.pos.y - 40)).toBeGreaterThanOrEqual(a.radius + 0.8 - 1e-6);
+    a.pos = { x: 24, y: 40 };
+    a.weapons = [makeWeapon('cork_popper', 0), null];
+    run(world, state, 1, (id) => (id === a.id ? fire : idle));
+    run(world, state, 15, () => idle);
+    expect(state.balls[0]!.pos.x).toBeGreaterThan(30);
   });
 });
