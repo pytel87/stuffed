@@ -49,6 +49,8 @@ export interface Input {
   cycleWeapon: boolean;
   /** Request to start using the item in slot 0..2; -1 for none. */
   useItemSlot: -1 | 0 | 1 | 2;
+  /** Request to drop something: weapon slot 0..1, item slot 2..4, the stash 5; -1 or absent for none. */
+  dropSlot?: number;
 }
 
 export interface WeaponInstance {
@@ -197,6 +199,9 @@ export interface GroundLoot {
   pos: Vec2;
   /** Height of the surface it lies on (the lawn, a roof, a crate top). */
   z: number;
+  /** Dropped by this plush, who can't pick it up again before `pickupFromTick`. */
+  droppedBy?: EntityId;
+  pickupFromTick?: Tick;
   rarity: Rarity;
   content: LootContent;
 }
@@ -243,6 +248,8 @@ export type GameEvent =
   | { type: 'bounce'; pos: Vec2 }
   /** A Pillow Hammer swing landed on someone (the swing itself is a 'shot'). */
   | { type: 'bonk'; playerId: EntityId; targetId: EntityId }
+  /** Dropped something on purpose. */
+  | { type: 'dropped'; playerId: EntityId; lootId: EntityId }
   /** A Bouncy Ball dash. */
   | { type: 'dash'; playerId: EntityId }
   /** A Cardboard Wall went up, or was shot down. */

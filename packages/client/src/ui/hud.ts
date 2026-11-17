@@ -78,31 +78,28 @@ export class Hud {
     this.stash = q('.stash-slot');
     this.stashArt = q('.stash-slot .art');
     // Tapping the stash option (or the stash slot) is the same as pressing Q.
-    for (const el of [this.promptStash, this.stash]) {
-      el.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        input.stash();
-      });
-    }
+    this.promptStash.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      input.stash();
+    });
+    // The stash slot: tap to wear the stashed part; long press (or right-click) drops it.
+    pressable(this.stash, () => input.stash(), () => input.drop(5));
     this.progress = q('.progress');
     this.progressArt = q('.progress .art');
     this.progressFill = q('.progress .fill');
 
     this.weapons = [0, 1].map((i) => {
       const el = q(`.weapon[data-slot="${i}"]`);
-      el.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        if (el.classList.contains('active')) input.reload();
-        else input.selectWeapon(i as 0 | 1);
-      });
+      pressable(
+        el,
+        () => (el.classList.contains('active') ? input.reload() : input.selectWeapon(i as 0 | 1)),
+        () => input.drop(i),
+      );
       return { root: el, art: q('.art', el), ammo: q('.ammo > i', el) };
     });
     this.items = [0, 1, 2].map((i) => {
       const el = q(`.item[data-item="${i}"]`);
-      el.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        input.useItem(i as 0 | 1 | 2);
-      });
+      pressable(el, () => input.useItem(i as 0 | 1 | 2), () => input.drop(2 + i));
       return { root: el, art: q('.art', el), count: q('.count', el) };
     });
   }
@@ -219,4 +216,43 @@ export class Hud {
     this.cache.set(key, value);
     apply(value);
   }
+}
+
+/** Holding a slot this long drops what's in it. */
+const LONG_PRESS_MS = 450;
+
+/**
+ * A HUD slot: a tap does `tap`; a long press (or right-click) does `long` (drop it). The slot
+ * shrinks while held so you can feel the long press coming.
+ */
+function pressable(el: HTMLElement, tap: () => void, long: () => void): void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let fired = false;
+  const cancel = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    el.classList.remove('pressing');
+  };
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (e.button === 2) return; // right-click: handled by contextmenu
+    fired = false;
+    el.classList.add('pressing');
+    timer = setTimeout(() => {
+      fired = true;
+      cancel();
+      if (!el.classList.contains('empty')) long();
+    }, LONG_PRESS_MS);
+  });
+  el.addEventListener('pointerup', () => {
+    const wasPressing = timer !== null;
+    cancel();
+    if (wasPressing && !fired) tap();
+  });
+  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!el.classList.contains('empty')) long();
+  });
 }

@@ -21,6 +21,7 @@ export class KeyboardMouseInput implements InputSource {
   private weaponSlot: Input['weaponSlot'] = -1;
   private cycleWeapon = false;
   private useItemSlot: Input['useItemSlot'] = -1;
+  private dropSlot = -1;
   /** On-screen stick movement, -1..1 per axis. */
   readonly virtualMove: Vec2 = { x: 0, y: 0 };
   /** On-screen buttons currently held (Btn bits). */
@@ -38,6 +39,8 @@ export class KeyboardMouseInput implements InputSource {
       if (e.code === 'Digit3') this.useItemSlot = 0;
       if (e.code === 'Digit4') this.useItemSlot = 1;
       if (e.code === 'Digit5') this.useItemSlot = 2;
+      // G drops the weapon in your hand.
+      if (e.code === 'KeyG' && !e.repeat) this.dropSlot = this.heldSlot;
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => {
@@ -82,6 +85,14 @@ export class KeyboardMouseInput implements InputSource {
     this.useItemSlot = slot;
   }
 
+  /** Drop a weapon (slot 0-1), an item stack (2-4) or the stashed part (5). */
+  drop(slot: number): void {
+    this.dropSlot = slot;
+  }
+
+  /** Which weapon slot you hold, as last told by the game (for G). */
+  heldSlot: 0 | 1 = 0;
+
   reload(): void {
     this.tapButtons |= Btn.Reload;
   }
@@ -113,10 +124,12 @@ export class KeyboardMouseInput implements InputSource {
       weaponSlot: this.weaponSlot,
       cycleWeapon: this.cycleWeapon,
       useItemSlot: this.useItemSlot,
+      dropSlot: this.dropSlot,
     };
     this.weaponSlot = -1;
     this.cycleWeapon = false;
     this.useItemSlot = -1;
+    this.dropSlot = -1;
     this.tapButtons = 0;
     return input;
   }

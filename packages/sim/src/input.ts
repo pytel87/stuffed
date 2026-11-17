@@ -27,5 +27,6 @@ export function sanitizeInput(input: Input): Input {
     weaponSlot: slot,
     cycleWeapon: input.cycleWeapon === true,
     useItemSlot: item,
+    dropSlot: Number.isInteger(input.dropSlot) && input.dropSlot! >= 0 && input.dropSlot! <= 5 ? input.dropSlot : -1,
   };
 }

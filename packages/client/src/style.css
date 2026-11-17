@@ -820,6 +820,14 @@ body.touch-mode .help-touch {
   -webkit-text-stroke: 0;
 }
 
+/* Held down: shrinks toward a long-press drop. */
+.weapon.pressing,
+.item.pressing,
+.stash-slot.pressing {
+  transform: scale(0.88);
+  transition: transform 450ms linear;
+}
+
 /* Ammo: a thin strip along the bottom of the card in the rarity color; it drains as you
    fire and refills while reloading. */
 .weapon .ammo {
@@ -1379,9 +1387,11 @@ body.touch-mode #game {
   height: 2.4rem;
 }
 
-/* With the Stash button there, the small sack in the floating prompt isn't needed. */
+/* On touch the prompt reads hand | part | bag, matching the Grab and Stash buttons. */
 body.touch-mode .prompt .stash-opt {
-  display: none;
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 /* On touch screens the HUD moves to the top so thumbs keep the bottom. */

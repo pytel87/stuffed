@@ -381,6 +381,9 @@ export const config = {
      * up (or opened): from a roof you can't reach what lies on the lawn below.
      */
     reachHeight: 0.8,
+    /** Something dropped on purpose lands this far in front, and its dropper can't take it back for this long. */
+    dropAhead: 1.2,
+    dropLockSeconds: 2,
     /** Loot lands this far from the chest or the knocked-out plush. */
     dropDistance: 1.4,
     radius: 0.4,

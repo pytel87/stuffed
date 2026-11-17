@@ -26,11 +26,51 @@ function inReach(player: Player, z: number): boolean {
   return Math.abs(player.z - z) <= config.loot.reachHeight;
 }
 
+/** Just dropped by this plush: it can't take it back yet (so walking over it doesn't). */
+function lockedFor(state: GameState, player: Player, loot: GroundLoot): boolean {
+  return loot.droppedBy === player.id && state.tick < (loot.pickupFromTick ?? 0);
+}
+
+/**
+ * Drops a weapon (slot 0-1), a whole item stack (2-4) or the stashed part (5) in front of the
+ * plush. Holding nothing after dropping your weapon switches to the other one.
+ */
+export function dropFromSlot(world: World, state: GameState, player: Player, slot: number): void {
+  let content: LootContent | null = null;
+  if (slot === 0 || slot === 1) {
+    const w = player.weapons[slot];
+    if (w) {
+      content = { type: 'weapon', weapon: { ...w, reloadEndTick: null } };
+      player.weapons[slot] = null;
+      player.chargeStartTick = null;
+      const other: 0 | 1 = slot === 0 ? 1 : 0;
+      if (player.activeSlot === slot && player.weapons[other]) player.activeSlot = other;
+    }
+  } else if (slot >= 2 && slot <= 4) {
+    const stack = player.items[slot - 2];
+    if (stack) {
+      content = { type: 'item', item: { ...stack } };
+      player.items[slot - 2] = null;
+      if (player.action?.kind === 'useItem' && player.action.slot === slot - 2) player.action = null;
+    }
+  } else if (slot === 5 && player.stash) {
+    content = { type: 'part', part: player.stash };
+    player.stash = null;
+  }
+  if (!content) return;
+  const ahead = config.loot.dropAhead;
+  const at = { x: player.pos.x + player.aim.x * ahead, y: player.pos.y + player.aim.y * ahead };
+  const loot = spawnLoot(world, state, at, content, player.z);
+  loot.droppedBy = player.id;
+  loot.pickupFromTick = state.tick + secondsToTicks(config.loot.dropLockSeconds);
+  state.events.push({ type: 'dropped', playerId: player.id, lootId: loot.id });
+}
+
 export function findInteraction(state: GameState, player: Player): Interaction {
   let best: GroundLoot | null = null;
   let bestD: number = config.loot.weaponPickupRange;
   for (const loot of state.loot) {
-    if (loot.content.type === 'item' || !inReach(player, loot.z)) continue;
+    if (loot.content.type === 'item' || !inReach(player, loot.z) || lockedFor(state, player, loot)) continue;
     const d = dist(player.pos, loot.pos);
     if (d <= bestD) {
       best = loot;
@@ -194,7 +234,7 @@ function swapStash(state: GameState, player: Player): void {
 /** Items are picked up by walking over them, as long as there is room in the 3 item slots. */
 export function autoPickupItems(state: GameState, player: Player): void {
   for (const loot of [...state.loot]) {
-    if (loot.content.type !== 'item' || !inReach(player, loot.z)) continue;
+    if (loot.content.type !== 'item' || !inReach(player, loot.z) || lockedFor(state, player, loot)) continue;
     if (dist(player.pos, loot.pos) > config.loot.itemPickupRadius) continue;
     const stack = loot.content.item;
     const left = addToSlots(player.items, stack);

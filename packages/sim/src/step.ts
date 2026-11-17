@@ -2,7 +2,7 @@ import { config, DT } from './config.ts';
 import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { checkWinner } from './systems/damage.ts';
 import { expireWalls, updateItemUse } from './systems/items.ts';
-import { autoPickupItems, dropEverything, hasDrops, updateInteraction } from './systems/loot.ts';
+import { autoPickupItems, dropEverything, dropFromSlot, hasDrops, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateWeapons } from './systems/weapons.ts';
@@ -57,6 +57,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     }
     updateWeapons(world, state, player, input);
     updateInteraction(world, state, player, input);
+    if (input.dropSlot !== undefined && input.dropSlot >= 0) dropFromSlot(world, state, player, input.dropSlot);
     updateItemUse(state, player, input);
     autoPickupItems(state, player);
     player.heldButtons = input.buttons;

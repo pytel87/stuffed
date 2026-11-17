@@ -354,6 +354,7 @@ function frame(now: number): void {
 
   hud.update(state, me, f.alpha);
   touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));
+  if (me) input.heldSlot = me.activeSlot;
   touch.setGrabReady(hud.grabReady);
   touch.setStashReady(hud.stashReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);

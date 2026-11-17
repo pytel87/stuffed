@@ -120,3 +120,36 @@ describe('Cardboard Wall', () => {
     expect(g.you.action).toBeNull();
   });
 });
+
+describe('dropping', () => {
+  it('drops a weapon, an item stack or the stash in front of you; you can take it back after a moment', () => {
+    const g = holding('juice_box', 2);
+    g.you.weapons = [makeWeapon('cork_popper', 0), makeWeapon('foam_dart_smg', 2)];
+    g.you.stash = { slot: 'head', animal: 'shark', rarity: 3 };
+    g.play(1, { dropSlot: 0 });
+    expect(g.you.weapons[0]).toBeNull();
+    expect(g.you.activeSlot).toBe(1); // holding the other one now
+    g.play(1, { dropSlot: 2 });
+    expect(g.you.items[0]).toBeNull();
+    g.play(1, { dropSlot: 5 });
+    expect(g.you.stash).toBeNull();
+    expect(g.state.loot).toHaveLength(3);
+    for (const l of g.state.loot) expect(l.pos.x).toBeGreaterThan(20.8); // ahead (aiming +x)
+
+    // Standing on the juice: not picked back up until the lock runs out.
+    g.you.pos = { ...g.state.loot.find((l) => l.content.type === 'item')!.pos };
+    g.play(10);
+    expect(g.you.items[0]).toBeNull();
+    g.play(secondsToTicks(config.loot.dropLockSeconds));
+    expect(g.you.items.some((s) => s?.kind === 'juice_box')).toBe(true);
+  });
+
+  it('someone else can pick it up right away', () => {
+    const g = holding('juice_box', 2);
+    g.play(1, { dropSlot: 2 });
+    const juice = g.state.loot[0]!;
+    g.other.pos = { ...juice.pos };
+    g.play(1);
+    expect(g.other.items.some((s) => s?.kind === 'juice_box')).toBe(true);
+  });
+});
