@@ -60,7 +60,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1 }: CreateGameO
     };
   });
 
-  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, opened: false }));
+  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, opened: false, loot: pos.loot ?? 'medium' }));
 
   return {
     tick: 0,

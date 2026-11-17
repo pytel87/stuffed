@@ -30,7 +30,8 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   const speed =
     config.player.moveSpeed *
     (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1) *
-    (player.soggy ? config.player.soggySpeedMultiplier : 1);
+    (player.soggy ? config.player.soggySpeedMultiplier : 1) *
+    (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
   player.vel.y += (move.y * speed - player.vel.y) * ACCEL_BLEND;
 
@@ -207,4 +208,13 @@ function removeInto(v: { x: number; y: number }, nx: number, ny: number): void {
     v.x -= nx * dot;
     v.y -= ny * dot;
   }
+}
+
+/** Standing in a pool's shallow water (not jumping over it). */
+export function wading(world: World, player: Pick<Player, 'pos' | 'z'>): boolean {
+  if (player.z > 0.05) return false;
+  for (const pool of world.map.pools ?? []) {
+    if (Math.hypot(player.pos.x - pool.center.x, player.pos.y - pool.center.y) < pool.radius) return true;
+  }
+  return false;
 }

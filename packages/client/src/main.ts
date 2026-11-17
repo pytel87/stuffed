@@ -1,5 +1,5 @@
 import './style.css';
-import { canSee, carriedParts, config, createWorld, muzzlePosition, TEST_MAP, zoneSecondsLeft } from '@stuffed/sim';
+import { BACKYARD, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -30,8 +30,8 @@ const spectateEl = document.querySelector<HTMLElement>('#spectating')!;
 
 const input = new KeyboardMouseInput(canvas);
 const touch = new TouchControls(input);
-/** For touch aim assist (who can be seen); the map is the same in every match. */
-const world = createWorld(TEST_MAP);
+/** For touch aim assist (who can be seen); rebuilt when a match is on another map. */
+let world = createWorld(BACKYARD);
 const params = new URLSearchParams(location.search);
 const loadout = loadoutFromUrl();
 // ?zonescale=0.1 runs the Rinse 10x faster for testing.

@@ -63,9 +63,9 @@ describe('chests', () => {
   it('roll rarity close to the configured odds', () => {
     const r = rng.seedRng(11);
     const counts = [0, 0, 0, 0, 0];
-    for (let i = 0; i < 20_000; i++) counts[rng.pickIndexWeighted(r, config.chest.rarityWeights)]!++;
-    const total = config.chest.rarityWeights.reduce((a, b) => a + b, 0);
-    config.chest.rarityWeights.forEach((w, i) => expect(counts[i]! / 20_000).toBeCloseTo(w / total, 1));
+    for (let i = 0; i < 20_000; i++) counts[rng.pickIndexWeighted(r, config.chest.rarityWeights.medium)]!++;
+    const total = config.chest.rarityWeights.medium.reduce((a, b) => a + b, 0);
+    config.chest.rarityWeights.medium.forEach((w, i) => expect(counts[i]! / 20_000).toBeCloseTo(w / total, 1));
   });
 });
 
@@ -73,7 +73,7 @@ describe('weapon pickup', () => {
   function withWeaponOnGround(slots: Player['weapons']) {
     const g = solo(OPEN_MAP);
     g.p.weapons = slots;
-    g.state.loot.push({ id: 999, pos: { x: 21.5, y: 40 }, rarity: 3, content: { type: 'weapon', weapon: makeWeapon('foam_dart_smg', 3) } });
+    g.state.loot.push({ id: 999, pos: { x: 21.5, y: 40 }, z: 0, rarity: 3, content: { type: 'weapon', weapon: makeWeapon('foam_dart_smg', 3) } });
     return g;
   }
 
@@ -103,7 +103,7 @@ describe('weapon pickup', () => {
 describe('items', () => {
   function withItems(kind: 'cotton_puff' | 'sewing_kit' | 'button_pack', count: number) {
     const g = solo(OPEN_MAP);
-    g.state.loot.push({ id: 999, pos: { x: 21, y: 40 }, rarity: 0, content: { type: 'item', item: { kind, count } } });
+    g.state.loot.push({ id: 999, pos: { x: 21, y: 40 }, z: 0, rarity: 0, content: { type: 'item', item: { kind, count } } });
     return g;
   }
 

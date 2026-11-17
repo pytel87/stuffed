@@ -5,7 +5,7 @@
 // Your own plush is predicted: every input moves it here at once (same code as the server), and
 // every snapshot says which inputs the server has applied; the client takes that confirmed
 // state, re-applies the inputs still in flight, and smooths away any small difference.
-import { config, createWorld, DT, predictPlayer, TEST_MAP } from '@stuffed/sim';
+import { config, createWorld, DT, getMap, predictPlayer } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, MapData, Player, World } from '@stuffed/sim';
 import { decodeSnapshot, emptySnapshotParts, type CompactSnapshot } from '@stuffed/sim/net';
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
@@ -30,7 +30,7 @@ interface Snapshot {
 }
 
 export class NetworkMatch implements GameSession {
-  readonly map: MapData = TEST_MAP;
+  readonly map: MapData;
   /** -1 when you only watch this match. */
   readonly localPlayerId: EntityId;
   private readonly snaps: Snapshot[] = [];
@@ -52,8 +52,10 @@ export class NetworkMatch implements GameSession {
     you: EntityId | null,
     private readonly input: InputSource,
     private readonly sendInput: (input: Input) => void,
+    mapId: string,
   ) {
     this.localPlayerId = you ?? -1;
+    this.map = getMap(mapId);
     this.world = createWorld(this.map);
   }
 

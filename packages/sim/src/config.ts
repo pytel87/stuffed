@@ -1,7 +1,7 @@
 // Every gameplay number lives here so balancing never means hunting through systems.
 // Distances are in world units: a plush is 1 unit wide (radius 0.5). Times are in seconds
 // unless a name says otherwise; systems convert to ticks with secondsToTicks().
-import type { ItemKind, Rarity, WeaponKind, WeaponSpec } from './types.ts';
+import type { ItemKind, LootLevel, Rarity, WeaponKind, WeaponSpec } from './types.ts';
 
 export interface WeaponStats {
   readonly name: string;
@@ -123,6 +123,8 @@ export const config = {
     acceleration: 16,
     /** Speed multiplier while outside the safe zone ("soggy"). */
     soggySpeedMultiplier: 0.8,
+    /** Wading in a pool (Kiddie Pool). */
+    wadeSpeedMultiplier: 0.6,
     /** Knockback decay rate (1/s). */
     knockbackDecay: 8,
     /** Top of the plush above its feet; bullets and other plushies use it. */
@@ -178,9 +180,16 @@ export const config = {
     interactRange: 1.6,
     /** Relative odds of each weapon kind in a Toy Box. */
     weaponWeights: { cork_popper: 4, foam_dart_smg: 3.5, super_soaker: 2.5 } satisfies Record<WeaponKind, number>,
-    /** Relative odds of each rarity (Hand-me-down .. One-of-a-Kind). */
-    rarityWeights: [50, 28, 15, 6, 1],
+    /** Relative odds of each rarity (Hand-me-down .. One-of-a-Kind), by the chest's loot level. */
+    rarityWeights: {
+      low: [64, 25, 9, 2, 0],
+      medium: [50, 28, 15, 6, 1],
+      high: [30, 32, 24, 11, 3],
+      food: [50, 28, 15, 6, 1],
+    } satisfies Record<LootLevel, readonly number[]>,
     itemWeights: { cotton_puff: 4.5, sewing_kit: 2, button_pack: 3.5 } satisfies Record<ItemKind, number>,
+    /** Food crates (picnic) favor healing. */
+    foodItemWeights: { cotton_puff: 5, sewing_kit: 4, button_pack: 1 } satisfies Record<ItemKind, number>,
   },
 
   loot: {
@@ -188,6 +197,11 @@ export const config = {
     itemPickupRadius: 1,
     /** Weapons and parts are picked up with E (or stashed with Q) within this distance. */
     weaponPickupRange: 1.6,
+    /**
+     * How far above or below a plush's feet loot (and a chest's base) can be and still be picked
+     * up (or opened): from a roof you can't reach what lies on the lawn below.
+     */
+    reachHeight: 0.8,
     /** Loot lands this far from the chest or the knocked-out plush. */
     dropDistance: 1.4,
     radius: 0.4,

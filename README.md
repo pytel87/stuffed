@@ -50,6 +50,28 @@ pnpm sfx --force cork_pop    # regenerates one (e.g. after editing its prompt)
 Playback is plain Web Audio ([audio/sound.ts](packages/client/src/audio/sound.ts)): sounds
 are heard from the camera, fade with distance, pan left/right and vary slightly in pitch.
 
+## The Backyard
+
+Matches are played on the Backyard
+([packages/sim/src/maps/backyard.ts](packages/sim/src/maps/backyard.ts)), 128 x 128: a house in
+the middle with a door on every side and a rain barrel to climb onto its roof, and six zones
+around it:
+
+| Zone | Where | What's there | Chests |
+| --- | --- | --- | --- |
+| Treehouse | north-west | a plank platform on a trunk; hop up the crates; hide underneath | high |
+| Tool Shed | north-east | tight plank rooms with doorways; a crate up to the roof | high |
+| Kiddie Pool | east | shallow water slows you to 60%; a chest in the middle | medium |
+| Picnic Plateau | south-east | a giant table to climb via the benches; hide under it | food (more healing) |
+| Sandbox Desert | south-west | open sand, sandcastles, a bucket; long sightlines | medium |
+| Veggie Jungle | west | planter rows to hop over, leafy bushes | low |
+
+Chests have a loot level: high-level ones give rarer weapons and parts, low-level ones more
+common ones, and food crates more healing items. Loot lies on whatever surface it landed on
+(a plush knocked out on a roof drops its things there), and you can only pick up or open what's
+within reach of your feet: not the lawn below from a roof. The old 80 x 80 test map
+([test-map.ts](packages/sim/src/maps/test-map.ts)) stays for the tests.
+
 ## Bots
 
 You play against 15 bots. For the first 20 seconds they only loot (and fight back if hurt).

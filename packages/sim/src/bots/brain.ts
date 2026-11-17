@@ -359,6 +359,8 @@ export class BotController {
   }
 
   private useful(bot: Player, loot: GroundLoot): boolean {
+    // Bots don't climb: loot on a roof or crate top above them is out of reach.
+    if (Math.abs(loot.z - bot.z) > config.loot.reachHeight) return false;
     const c = loot.content;
     if (c.type === 'weapon') return this.wants(bot, loot);
     if (c.type === 'part') return wantsPart(bot, c.part);

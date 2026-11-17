@@ -2,6 +2,23 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Step 4.1: The Backyard map (2026-11-17)
+
+- The first real map, 128 x 128: a house with four doors, rooms and a rain barrel up to its roof,
+  and six zones around it: Treehouse (a platform reached by crate steps), Tool Shed (tight plank
+  rooms), Kiddie Pool (water slows you to 60%), Picnic Plateau (a table to climb via the benches),
+  Sandbox Desert (open sand and sandcastles) and Veggie Jungle (planters and bushes). Spawns on
+  two rings, kept clear of walls and water.
+- Chests have a loot level (low, medium, high, food); high gives rarer loot, food more healing.
+- Walls and roofs have a look of their own: brick, planks, crates, a barrel, a tree trunk,
+  benches, sandcastles, a bucket, planters, beach balls, a picnic basket; tiled, tin, plank and
+  tablecloth roofs. Ground patches: sand, dirt, a picnic blanket, wooden floors, stepping stones.
+  A kiddie pool with an inflatable rim and a rubber duck.
+- Fixed: you could pick up loot (and open chests) on the level below, e.g. from a roof. Loot now
+  lies on the surface it landed on and pickups need it within reach of your feet.
+- Tests: map sanity (spawns and chests clear of walls), wading, loot levels, climbing the
+  treehouse and the house roof, roof reach, drops on a roof, and a full bot match on the map.
+
 ## Step 3.2: Keeping parts: profiles and the Wardrobe (2026-11-17)
 
 - A profile per device, created on the first visit: a random token in the browser (the server

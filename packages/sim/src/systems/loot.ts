@@ -6,6 +6,7 @@ import { pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
 import type { World } from '../world.ts';
+import { groundHeight } from './movement.ts';
 import { makeWeapon } from './weapons.ts';
 
 const OPEN_TICKS = secondsToTicks(config.chest.openTime);
@@ -20,11 +21,16 @@ export type Interaction =
   | { kind: 'chest'; chest: Chest }
   | null;
 
+/** Loot (or a chest base) at height `z` is within vertical reach of this plush. */
+function inReach(player: Player, z: number): boolean {
+  return Math.abs(player.z - z) <= config.loot.reachHeight;
+}
+
 export function findInteraction(state: GameState, player: Player): Interaction {
   let best: GroundLoot | null = null;
   let bestD: number = config.loot.weaponPickupRange;
   for (const loot of state.loot) {
-    if (loot.content.type === 'item') continue;
+    if (loot.content.type === 'item' || !inReach(player, loot.z)) continue;
     const d = dist(player.pos, loot.pos);
     if (d <= bestD) {
       best = loot;
@@ -36,6 +42,8 @@ export function findInteraction(state: GameState, player: Player): Interaction {
 
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
+  // A chest opens from the ground beside it or standing on it, not from a roof above.
+  if (player.z > config.chest.height + config.loot.reachHeight) return null;
   for (const c of state.chests) {
     if (c.opened) continue;
     const d = dist(player.pos, c.pos);
@@ -89,12 +97,12 @@ export function updateInteraction(world: World, state: GameState, player: Player
 export function openChest(world: World, state: GameState, chest: Chest, opener: Player | null): void {
   chest.opened = true;
   const kind = pickWeighted(state.rng, config.chest.weaponWeights);
-  const rarity = pickIndexWeighted(state.rng, config.chest.rarityWeights) as Rarity;
-  const item = pickWeighted(state.rng, config.chest.itemWeights);
+  const rarity = pickIndexWeighted(state.rng, config.chest.rarityWeights[chest.loot]) as Rarity;
+  const item = pickWeighted(state.rng, chest.loot === 'food' ? config.chest.foodItemWeights : config.chest.itemWeights);
   const part: Part = {
     slot: pick(state.rng, PART_SLOTS),
     animal: pick(state.rng, ANIMALS),
-    rarity: pickIndexWeighted(state.rng, config.chest.rarityWeights) as Rarity,
+    rarity: pickIndexWeighted(state.rng, config.chest.rarityWeights[chest.loot]) as Rarity,
   };
 
   // Drops land to either side of the opener (60 degrees off their direction), not under them.
@@ -112,12 +120,17 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   state.events.push({ type: 'chestOpened', chestId: chest.id, playerId: opener?.id ?? 0 });
 }
 
-export function spawnLoot(world: World, state: GameState, at: Vec2, content: LootContent): GroundLoot {
+/**
+ * Puts loot down at `at`, on whatever surface is there at or below `fromZ` (a plush knocked out
+ * on a roof drops its things on the roof; past the edge they fall to the lawn).
+ */
+export function spawnLoot(world: World, state: GameState, at: Vec2, content: LootContent, fromZ = 0): GroundLoot {
   const pos = { x: at.x, y: at.y };
-  pushOutOfWalls(world, pos, config.loot.radius);
+  pushOutOfWalls(world, pos, config.loot.radius, groundHeight(world, state, pos, fromZ));
+  const z = groundHeight(world, state, pos, fromZ);
   const rarity =
     content.type === 'weapon' ? content.weapon.rarity : content.type === 'part' ? content.part.rarity : config.items[content.item.kind].rarity;
-  const loot: GroundLoot = { id: state.nextId++, pos, rarity, content };
+  const loot: GroundLoot = { id: state.nextId++, pos, z, rarity, content };
   state.loot.push(loot);
   return loot;
 }
@@ -141,7 +154,7 @@ function pickUpWeapon(world: World, state: GameState, player: Player, loot: Grou
   player.action = null;
   if (old) {
     old.reloadEndTick = null;
-    spawnLoot(world, state, loot.pos, { type: 'weapon', weapon: old });
+    spawnLoot(world, state, loot.pos, { type: 'weapon', weapon: old }, loot.z);
   }
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: weapon.kind });
 }
@@ -151,7 +164,7 @@ function wearPart(world: World, state: GameState, player: Player, loot: GroundLo
   removeLoot(state, loot.id);
   const old = player.parts[part.slot];
   player.parts[part.slot] = { animal: part.animal, rarity: part.rarity, found: true };
-  if (old.found) spawnLoot(world, state, loot.pos, { type: 'part', part: { slot: part.slot, animal: old.animal, rarity: old.rarity } });
+  if (old.found) spawnLoot(world, state, loot.pos, { type: 'part', part: { slot: part.slot, animal: old.animal, rarity: old.rarity } }, loot.z);
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: 'part' });
   state.events.push({ type: 'wear', playerId: player.id, part, stashed: false });
 }
@@ -159,7 +172,7 @@ function wearPart(world: World, state: GameState, player: Player, loot: GroundLo
 /** Puts the part in the stash; a part already there drops where the new one lay. */
 function stashPart(world: World, state: GameState, player: Player, loot: GroundLoot, part: Part): void {
   removeLoot(state, loot.id);
-  if (player.stash) spawnLoot(world, state, loot.pos, { type: 'part', part: player.stash });
+  if (player.stash) spawnLoot(world, state, loot.pos, { type: 'part', part: player.stash }, loot.z);
   player.stash = { ...part };
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: 'part' });
   state.events.push({ type: 'wear', playerId: player.id, part, stashed: true });
@@ -181,7 +194,7 @@ function swapStash(state: GameState, player: Player): void {
 /** Items are picked up by walking over them, as long as there is room in the 3 item slots. */
 export function autoPickupItems(state: GameState, player: Player): void {
   for (const loot of [...state.loot]) {
-    if (loot.content.type !== 'item') continue;
+    if (loot.content.type !== 'item' || !inReach(player, loot.z)) continue;
     if (dist(player.pos, loot.pos) > config.loot.itemPickupRadius) continue;
     const stack = loot.content.item;
     const left = addToSlots(player.items, stack);
@@ -241,7 +254,7 @@ export function dropEverything(world: World, state: GameState, player: Player): 
   drops.forEach((content, i) => {
     const a = (i / drops.length) * Math.PI * 2;
     const r = config.loot.dropDistance * 0.8;
-    spawnLoot(world, state, { x: player.pos.x + Math.cos(a) * r, y: player.pos.y + Math.sin(a) * r }, content);
+    spawnLoot(world, state, { x: player.pos.x + Math.cos(a) * r, y: player.pos.y + Math.sin(a) * r }, content, player.z);
   });
 }
 
@@ -249,11 +262,14 @@ function removeLoot(state: GameState, id: number): void {
   state.loot = state.loot.filter((l) => l.id !== id);
 }
 
-function pushOutOfWalls(world: World, pos: Vec2, r: number): void {
+/** Moves loot out of walls that stand above the surface it lies on (`z`); lower ones it rests on. */
+function pushOutOfWalls(world: World, pos: Vec2, r: number, z: number): void {
   for (let pass = 0; pass < 3; pass++) {
     let moved = false;
     for (const i of world.walls.query(pos.x - r, pos.y - r, pos.x + r, pos.y + r)) {
-      const push = circleBoxPush(pos.x, pos.y, r, world.map.walls[i]!);
+      const wall = world.map.walls[i]!;
+      if (wall.height <= z + config.player.stepHeight) continue;
+      const push = circleBoxPush(pos.x, pos.y, r, wall);
       if (!push) continue;
       pos.x += push.nx * push.depth;
       pos.y += push.ny * push.depth;

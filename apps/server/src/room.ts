@@ -1,7 +1,7 @@
 // One Durable Object per room. It holds the lobby (seats for up to MAX_PLAYERS people) and,
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
-import { BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, rollKeeps, step, TEST_MAP } from '@stuffed/sim';
+import { BACKYARD, BotController, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, rollKeeps, step } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -198,10 +198,10 @@ export class Room extends Server<Env> {
       ...humans.map((s) => ({ name: s.name, isBot: false, ...(s.look ? { parts: s.look } : {}) })),
       ...Array.from({ length: this.bots }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
-    const state = createGame({ seed, map: TEST_MAP, roster });
+    const state = createGame({ seed, map: BACKYARD, roster });
     const plushOf = new Map<number, EntityId>(humans.map((s, i) => [s.seat, state.players[i]!.id]));
     this.match = {
-      world: createWorld(TEST_MAP),
+      world: createWorld(BACKYARD),
       state,
       bots: new BotController(seed),
       plushOf,

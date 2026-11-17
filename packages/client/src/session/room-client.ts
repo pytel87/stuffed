@@ -123,7 +123,7 @@ export class RoomClient {
         this.onLobby();
         break;
       case 'start':
-        this.match = new NetworkMatch(msg.you, this.input, (i: Input) => this.send({ t: 'input', i }));
+        this.match = new NetworkMatch(msg.you, this.input, (i: Input) => this.send({ t: 'input', i }), msg.mapId);
         this.onMatch(this.match);
         break;
       case 'snap':

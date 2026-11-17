@@ -158,10 +158,14 @@ export interface Projectile {
   expireTick: Tick;
 }
 
+/** How good a chest's loot is: rarer at 'high'; 'food' favors healing items. */
+export type LootLevel = 'low' | 'medium' | 'high' | 'food';
+
 export interface Chest {
   id: EntityId;
   pos: Vec2;
   opened: boolean;
+  loot: LootLevel;
 }
 
 export type LootContent =
@@ -172,6 +176,8 @@ export type LootContent =
 export interface GroundLoot {
   id: EntityId;
   pos: Vec2;
+  /** Height of the surface it lies on (the lawn, a roof, a crate top). */
+  z: number;
   rarity: Rarity;
   content: LootContent;
 }
@@ -238,9 +244,16 @@ export interface Box {
   h: number;
 }
 
+/** How a wall looks. The sim only cares about its box and height. */
+export type WallKind =
+  | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
+  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket';
+
 /** A solid box standing on the ground. Plushies can jump onto and over walls low enough. */
 export interface Wall extends Box {
   height: number;
+  /** Look only; without it the renderer picks one from the height. */
+  kind?: WallKind;
 }
 
 /**
@@ -249,6 +262,26 @@ export interface Wall extends Box {
  */
 export interface Building extends Box {
   height: number;
+  /** Roof look only. */
+  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table';
+}
+
+/** A patch of ground drawn differently (no effect on play). */
+export interface Ground {
+  kind: 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor';
+  box?: Box;
+  circle?: Circle;
+}
+
+/** Where a chest stands and how good its loot is (medium when omitted). */
+export interface ChestSpawn extends Vec2 {
+  loot?: LootLevel;
+}
+
+/** A named area, for labels and for the renderer's decorations. */
+export interface MapZone {
+  name: string;
+  center: Vec2;
 }
 
 /** Static map data. Not part of GameState: it never changes during a match. */
@@ -261,7 +294,11 @@ export interface MapData {
   /** Roofed areas. Walls do not block sight; bushes and roofs hide plushies. */
   buildings: Building[];
   spawns: Vec2[];
-  chestSpawns: Vec2[];
+  chestSpawns: ChestSpawn[];
+  /** Shallow water: plushies wading in it move slower. */
+  pools?: Circle[];
+  grounds?: Ground[];
+  zones?: MapZone[];
 }
 
 export interface RosterEntry {

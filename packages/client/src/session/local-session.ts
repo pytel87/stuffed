@@ -1,4 +1,4 @@
-import { BotController, createGame, createWorld, DT, step, TEST_MAP } from '@stuffed/sim';
+import { BACKYARD, BotController, createGame, createWorld, DT, step } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, RosterEntry, WeaponSpec, World } from '@stuffed/sim';
 
 /** Your plush's look in solo play without a profile (bots get random ones). */
@@ -37,7 +37,7 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = TEST_MAP, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK }: LocalSessionOptions,
+    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
