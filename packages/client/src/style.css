@@ -534,7 +534,6 @@ body.touch-mode .help-touch {
   height: 45%;
   background: #5d9cf5;
   border-bottom: 2px solid var(--ink);
-  border-radius: 0 999px 999px 0;
 }
 
 .vitals.low .stuffing {
