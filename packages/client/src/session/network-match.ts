@@ -303,6 +303,9 @@ export class NetworkMatch implements GameSession {
     const q = this.predictedPrev;
     const server = state.players.find((pl) => pl.id === this.localPlayerId);
     if (!p || !q || !server?.alive) return null;
+    // On the Toss blimp you go where it goes: drawn from the server's states like everyone else
+    // (predicting along its line from the newest snapshot's tick would jump with every snapshot).
+    if (server.drop === 'riding') return null;
     const t = this.inputAcc / DT;
     return {
       ...server,

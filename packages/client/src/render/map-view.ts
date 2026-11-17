@@ -124,32 +124,56 @@ function mapRandom(map: MapData, salt: number): () => number {
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 }
 
-function grassTufts(map: MapData): THREE.InstancedMesh {
+/** Grass is cut into square patches so the ones off screen aren't drawn at all. */
+const GRASS_PATCH = 24;
+
+/**
+ * Decorative grass tufts (three blades each), one instanced mesh per patch of lawn. Phones get
+ * fewer of them.
+ */
+function grassTufts(map: MapData): THREE.Group {
   const rand = mapRandom(map, 1);
+  const handheld = matchMedia('(pointer: coarse)').matches;
   const span = { w: map.width + 2 * DECOR_BEYOND, h: map.height + 2 * DECOR_BEYOND };
-  const count = Math.round(span.w * span.h * 0.25);
+  const count = Math.round(span.w * span.h * (handheld ? 0.14 : 0.25));
   const blade = new THREE.ConeGeometry(0.07, 0.45, 4).translate(0, 0.22, 0);
-  const mesh = new THREE.InstancedMesh(blade, toonMaterial('#5fa552', { map: null }), count * 3);
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  const euler = new THREE.Euler();
-  const s = new THREE.Vector3();
-  const p = new THREE.Vector3();
-  let i = 0;
+  const material = toonMaterial('#5fa552', { map: null });
+  // Sort the tufts into patches first.
+  const cols = Math.ceil(span.w / GRASS_PATCH);
+  const rows = Math.ceil(span.h / GRASS_PATCH);
+  const patches: { x: number; z: number; scale: number }[][] = Array.from({ length: cols * rows }, () => []);
   for (let n = 0; n < count; n++) {
     const x = rand() * span.w - DECOR_BEYOND;
     const z = rand() * span.h - DECOR_BEYOND;
     const scale = 0.7 + rand() * 0.6;
     if (!onBareLawn(map, x, z)) continue;
-    for (const dx of [-0.07, 0, 0.07]) {
-      euler.set(0, 0, dx * 4);
-      q.setFromEuler(euler);
-      s.setScalar(scale);
-      p.set(x + dx, 0, z);
-      mesh.setMatrixAt(i++, m.compose(p, q, s));
-    }
+    const c = Math.min(cols - 1, Math.floor((x + DECOR_BEYOND) / GRASS_PATCH));
+    const r = Math.min(rows - 1, Math.floor((z + DECOR_BEYOND) / GRASS_PATCH));
+    patches[r * cols + c]!.push({ x, z, scale });
   }
-  mesh.count = i;
-  mesh.receiveShadow = true;
-  return mesh;
+  const g = new THREE.Group();
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const euler = new THREE.Euler();
+  const s = new THREE.Vector3();
+  const p = new THREE.Vector3();
+  for (const tufts of patches) {
+    if (tufts.length === 0) continue;
+    const mesh = new THREE.InstancedMesh(blade, material, tufts.length * 3);
+    let i = 0;
+    for (const t of tufts) {
+      for (const dx of [-0.07, 0, 0.07]) {
+        euler.set(0, 0, dx * 4);
+        q.setFromEuler(euler);
+        s.setScalar(t.scale);
+        p.set(t.x + dx, 0, t.z);
+        mesh.setMatrixAt(i++, m.compose(p, q, s));
+      }
+    }
+    mesh.receiveShadow = true;
+    // Bounds of this patch's blades, so the camera can skip it when it's off screen.
+    mesh.computeBoundingSphere();
+    g.add(mesh);
+  }
+  return g;
 }

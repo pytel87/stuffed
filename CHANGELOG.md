@@ -4,6 +4,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Online feel and hints (2026-11-17)
 
+- Phones: grass is cut into patches that are skipped when off screen, and phones get about half
+  as much; triangles per frame in a typical view dropped from about 134k to 45-52k.
+- Fixed: online, your plush could jitter while riding the Toss blimp (it was predicted along
+  the line from each new snapshot); it's now drawn like everyone else's until you drop.
+
 - Your own shots show the moment you fire online (Cork Popper, Foam Dart SMG, Super Soaker,
   Bubble Wand): drawn here until they hit something, while the server's copies are hidden; the
   muzzle puff and sound play at once too. Damage still comes from the server. Snapshots now say
