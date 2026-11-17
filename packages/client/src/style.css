@@ -1484,6 +1484,11 @@ body.touch-mode #toss-hint {
   box-shadow: 0 2px 0 var(--ink);
 }
 
+/* Back to the menu, a little apart from the switcher. */
+#spectating .spec-menu {
+  margin-left: 0.6rem;
+}
+
 #spectating {
   position: fixed;
   left: 50%;
@@ -1769,9 +1774,8 @@ body.touch-mode .gear {
 }
 
 /* The knocker's weapon on the result card, underlined in its rarity color. */
-.end .sub .rarity {
-  display: inline-flex;
-  padding-bottom: 0.15rem;
-  box-shadow: inset 0 -0.2rem 0 var(--rarity);
-  border-radius: 0.2rem;
+/* The weapon that got you: just its picture. */
+.end .sub .killer-weapon {
+  width: 2.4rem;
+  height: 2.4rem;
 }

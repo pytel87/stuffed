@@ -132,13 +132,16 @@ let me: Player | undefined;
 /** The state drawn last frame (touch aim assist looks for targets in it). */
 let shown: GameState | null = null;
 
-// Spectating: ◀ name ▶ switches between the plushies still in the match.
+// Spectating: ◀ name ▶ switches between the plushies still in the match; the house goes back
+// to the menu.
 spectateEl.innerHTML = `<button type="button" class="round small spec-prev" aria-label="Previous">${icon('arrow', 'icon flip')}</button>
   <span class="spec-label"></span>
-  <button type="button" class="round small spec-next" aria-label="Next">${icon('arrow')}</button>`;
+  <button type="button" class="round small spec-next" aria-label="Next">${icon('arrow')}</button>
+  <button type="button" class="round small spec-menu" aria-label="Menu">${icon('home')}</button>`;
 const spectateLabel = spectateEl.querySelector<HTMLElement>('.spec-label')!;
 spectateEl.querySelector('.spec-prev')!.addEventListener('click', () => switchWatched(-1));
 spectateEl.querySelector('.spec-next')!.addEventListener('click', () => switchWatched(1));
+spectateEl.querySelector('.spec-menu')!.addEventListener('click', () => showMenu());
 
 /** Follow the next (or previous) plush still in the match, in a stable order. */
 function switchWatched(step: 1 | -1): void {
@@ -477,14 +480,14 @@ function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: s
 }
 
 /**
- * Who knocked you out, as icons: their weapon (in its rarity color) and name, or the water.
+ * Who knocked you out: a picture of their weapon and their name, or the water.
  * Online, a hidden attacker (in a bush, say) isn't in your state: their name still shows.
  */
 function describeKiller(s: GameSession, state: GameState, byId: EntityId | null): string {
   if (byId === null) return icon('water');
   const killer = state.players.find((p) => p.id === byId);
   const weapon = killer?.weapons[killer.activeSlot];
-  const art = weapon ? `<span class="rarity" style="--rarity:${config.rarity[weapon.rarity].color}">${icon(weapon.kind)}</span>` : '';
+  const art = weapon ? icon(weapon.kind, 'icon killer-weapon') : '';
   return `${art}<span>${escapeHtml(s.playerName(byId))}</span>`;
 }
 

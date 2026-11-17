@@ -14,6 +14,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   buttons and the stash.
 - Wardrobe: the part picker is only as big as the parts you own (no empty box), and the
   recovery code hides behind a key button in the corner.
+- The knockout card shows just a picture of the weapon that got you (no rarity underline).
+- Spectating: a house button next to the switcher goes back to the menu.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 
