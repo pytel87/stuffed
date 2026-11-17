@@ -69,7 +69,12 @@ const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floa
 const mateArrows = new TeammateArrows(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const zoneNames = new ZoneNames(hudEl);
-const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu, () => wardrobe.show());
+const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu, () =>
+  // Back to the results card, unless the next match started meanwhile.
+  openWardrobe(endScreen, () => {
+    if (phase === 'over' || phase === 'out') endScreen.reopen();
+  }),
+);
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
     saveName(name);
@@ -88,9 +93,18 @@ const menu = new MenuScreen(document.body, playerName(), {
     saveName(name);
     joinRoom(code);
   },
-  wardrobe: () => wardrobe.show(),
+  wardrobe: () => openWardrobe(menu, () => {
+    if (mode === 'menu') menu.show();
+  }),
 });
 const wardrobe = new Wardrobe(profiles);
+
+/** One card at a time: the card the Wardrobe opens from steps aside until it closes. */
+function openWardrobe(from: { hide(): void }, back: () => void): void {
+  from.hide();
+  wardrobe.onClosed = back;
+  wardrobe.show();
+}
 profiles.onChange = () => {
   menu.setWardrobe(!!profiles.profile);
   endScreen.setWardrobe(!!profiles.profile);
@@ -244,12 +258,18 @@ function joinRoom(code: string): void {
       saveName(name);
       room?.rename(name);
     },
-    profiles.profile ? () => wardrobe.show() : null,
+    profiles.profile
+      ? () =>
+          openWardrobe(lobbyScreen!, () => {
+            if (room?.lobby?.phase === 'lobby' && !room.match) lobbyScreen?.show();
+          })
+      : null,
   );
   lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;
-    if (room.lobby?.phase === 'lobby' && !room.match) lobbyScreen.show();
+    // (Not over the Wardrobe: the lobby comes back when it closes.)
+    if (room.lobby?.phase === 'lobby' && !room.match && !wardrobe.visible) lobbyScreen.show();
     else lobbyScreen.render();
   };
   room.onMatch = (match) => beginMatch(match);

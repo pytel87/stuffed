@@ -27,6 +27,8 @@ export class Wardrobe {
   private look: Look | null = null;
   /** Called after a new look is saved. */
   onLookChanged: () => void = () => {};
+  /** Called when it closes (the card it was opened from comes back). */
+  onClosed: (() => void) | null = null;
   /** Every animal's full set, with the parts you own lit up (what to chase). */
   private readonly gallery: HTMLElement;
   private readonly galleryToggle: HTMLButtonElement;
@@ -159,8 +161,12 @@ export class Wardrobe {
   }
 
   hide(): void {
+    if (this.el.hidden) return;
     this.el.hidden = true;
     this.preview.stop();
+    const back = this.onClosed;
+    this.onClosed = null;
+    back?.();
   }
 
   /** Owned parts for a slot, commonest animals first (as in the gallery). */

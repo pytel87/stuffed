@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Polish (2026-11-17)
+
+- Dino back plates stand out of the back; the cat's tabby stripes lie on the body.
+- Results card: Wardrobe and Menu in the top corners, Again (and Watch, equal width) across the
+  bottom; no stray focus ring. Lobby: Share and Leave in the top corners.
+- One card at a time: opening the Wardrobe from the menu, lobby or results card hides that card
+  until the Wardrobe closes (no more stacked cards).
+
 ## Teammate arrows and re-stitching (2026-11-17)
 
 - Off-screen teammates show as a badge with their head at the screen edge, pointing to them.
