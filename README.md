@@ -71,7 +71,7 @@ at its top. Bots only produce `Input`s, the same as a player, so the server can 
 | Open a toy chest | Hold E (1 s) |
 | Pick up a weapon | E (items are picked up by walking over them) |
 | Use an item | 3, 4, 5 |
-| Debug overlay (FPS, tick, hitboxes) | F1 |
+| Debug overlay (FPS, draw calls, frame time, tick, hitboxes) | F1 |
 | Play again (after the match or a knockout) | Enter |
 | Mute / unmute sound | M |
 
@@ -84,6 +84,16 @@ URL, for example
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current
 seed), and `?zonescale=0.1` to run the Rinse 10x faster. Parameters combine:
 `?seed=7&zonescale=0.1&loadout=foam_dart_smg:3`.
+
+## Smoothness
+
+The sim ticks 30 times a second but everything is drawn at your display's frame rate,
+interpolated between ticks. If it still looks choppy, press F1 and check `fps`:
+
+- **Exactly 30:** the browser is capping it. Chrome's Energy Saver (on battery, or Settings →
+  Performance) and Safari's Low Power Mode limit pages to 30 fps; plug in or turn it off.
+- **Below 50 and uneven:** the GPU is struggling. The game lowers its render resolution
+  automatically (`gpu … x1.5` in F1); `?quality=high` keeps full resolution.
 
 ## Layout
 

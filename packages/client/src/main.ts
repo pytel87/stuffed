@@ -39,7 +39,8 @@ let session: GameSession | null = null;
 /** Set when playing online. */
 let room: RoomClient | null = null;
 let lobbyScreen: LobbyScreen | null = null;
-const renderer = new GameRenderer(canvas, newSolo().map);
+// ?quality=high keeps full resolution even if the frame rate drops.
+const renderer = new GameRenderer(canvas, newSolo().map, params.get('quality') === 'high');
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
 const hud = new Hud(hudEl);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
@@ -181,6 +182,7 @@ function spectate(): void {
 }
 
 function frame(now: number): void {
+  const frameStart = performance.now();
   // The first rAF timestamp can be earlier than performance.now() at startup: never go negative.
   const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
   last = now;
@@ -259,8 +261,20 @@ function frame(now: number): void {
     zone: `${state.zone.stage} ${zoneSecondsLeft(state.zone, state.tick).toFixed(1)}s r=${state.zone.current.radius.toFixed(1)}`,
     soggy: me?.soggy ? 'yes' : '-',
     phase,
+    gpu: `${renderer.stats.calls} calls, ${(renderer.stats.triangles / 1000).toFixed(0)}k tris, x${renderer.stats.pixelRatio}, ${renderer.stats.programs} shaders`,
+    cpu: `${(performance.now() - frameStart).toFixed(1)} ms/frame`,
   });
 
+  const spent = performance.now() - frameStart;
+  if (spent > 100 && debug.visible) {
+    // Which settings differ between the newest shader and the closest older one of its kind?
+    const keys = renderer.programNames.map((k) => k.split(','));
+    const newest = keys.at(-1) ?? [];
+    const diffs = keys.slice(0, -1).filter((k) => k[0] === newest[0] && k.length === newest.length)
+      .map((k) => newest.map((v, i) => (v !== k[i] ? `#${i}:${k[i]}->${v}` : '')).filter(Boolean).join(' '))
+      .sort((a, b) => a.length - b.length);
+    console.warn(`slow frame: ${spent.toFixed(0)} ms, newest shader differs: ${diffs[0] ?? newest.slice(0, 8).join(',')}`);
+  }
   requestAnimationFrame(frame);
 }
 

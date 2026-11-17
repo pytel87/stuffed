@@ -53,6 +53,11 @@ export class ProjectileViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
+  /** One of each projectile, for shader warm-up. */
+  samples(): THREE.Object3D[] {
+    return (['cork_popper', 'foam_dart_smg', 'super_soaker'] as const).map((kind) => buildProjectile(kind));
+  }
+
   clear(): void {
     for (const entry of this.live.values()) {
       entry.obj.visible = false;

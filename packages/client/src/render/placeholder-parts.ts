@@ -2,6 +2,7 @@
 // slot's socket on the plush rig (see PlushView), exactly like the real models will be,
 // so a real part replaces its placeholder without touching the rig.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { PartSlot } from '@stuffed/sim';
 import { lighten, darken, toonMaterial, toonMesh } from './toon.ts';
 
@@ -68,18 +69,19 @@ function body(color: string, outline: string): PartObject {
   belly.scale.set(1, 1.05, 0.45);
   belly.position.set(0, -0.02, 0.33);
   ball.add(belly);
-  // running stitch around the belly patch
-  const stitchGeo = new THREE.BoxGeometry(0.05, 0.014, 0.014);
-  const stitchMat = toonMaterial(darken(color, 0.25), { map: null });
+  // running stitch around the belly patch, merged into one mesh (one draw call, not 16)
+  const pieces: THREE.BufferGeometry[] = [];
+  const place = new THREE.Matrix4();
+  const turn = new THREE.Quaternion();
   for (let i = 0; i < 16; i++) {
     const a = (i / 16) * Math.PI * 2;
     const x = Math.cos(a) * 0.25;
     const y = Math.sin(a) * 0.25 * 1.05 - 0.02;
-    const st = new THREE.Mesh(stitchGeo, stitchMat);
-    st.position.set(x, y, Math.sqrt(Math.max(0, BODY_RADIUS ** 2 - x * x - y * y)) + 0.006);
-    st.rotation.z = a + Math.PI / 2;
-    ball.add(st);
+    const z = Math.sqrt(Math.max(0, BODY_RADIUS ** 2 - x * x - y * y)) + 0.006;
+    turn.setFromAxisAngle(new THREE.Vector3(0, 0, 1), a + Math.PI / 2);
+    pieces.push(new THREE.BoxGeometry(0.05, 0.014, 0.014).applyMatrix4(place.compose(new THREE.Vector3(x, y, z), turn, new THREE.Vector3(1, 1, 1))));
   }
+  ball.add(new THREE.Mesh(mergeGeometries(pieces), toonMaterial(darken(color, 0.25), { map: null })));
   return g;
 }
 

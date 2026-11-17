@@ -123,6 +123,7 @@ export class PlushView {
     if (this.parts.body !== parts.body) this.arms.setColor(bodyColor(parts.body));
     this.parts = { ...parts };
     this.collectMaterials();
+    this.trimShadows();
   }
 
   setWeapon(kind: WeaponKind | null, rarity: Rarity): void {
@@ -136,6 +137,7 @@ export class PlushView {
     if (kind) this.weaponSocket.add(buildWeapon(kind, rarity, this.outlineColor));
     this.arms.setGrip(kind);
     this.collectMaterials();
+    this.trimShadows();
   }
 
   /** Kick the weapon back after a shot. */
@@ -206,6 +208,15 @@ export class PlushView {
     this.flashTime = Math.max(0, this.flashTime - dt);
     for (const mat of this.toonMaterials) mat.emissive.setScalar(flash * 0.7);
     return landed;
+  }
+
+  /** Tiny parts (eyes, stitches, teeth, buttons) cast no shadow: invisible, but each costs a draw. */
+  private trimShadows(): void {
+    this.root.traverse((o) => {
+      if (!(o instanceof THREE.Mesh) || !o.castShadow) return;
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      if (o.geometry.boundingSphere!.radius < 0.12) o.castShadow = false;
+    });
   }
 
   private collectMaterials(): void {

@@ -1,7 +1,10 @@
 // The Rinse: soapy water outside the safe circle (wobbling foam edge, ripples, bubbles).
 // One shader on a big plane; plushies wade in it.
 import * as THREE from 'three';
-import type { MapData, Zone } from '@stuffed/sim';
+import type { MapData, Vec2, Zone } from '@stuffed/sim';
+
+/** Roughly how far from the camera's focus the screen reaches (world units), plus margin. */
+const VIEW_REACH = 32;
 
 const WATER_HEIGHT = 0.12;
 
@@ -66,7 +69,11 @@ export class RinseView {
     this.mesh.renderOrder = 2;
   }
 
-  update(zone: Zone, time: number): void {
+  /** `view` is where the camera looks; the full-screen water shader is skipped when no water is in view. */
+  update(zone: Zone, time: number, view: Vec2): void {
+    const c = zone.current;
+    this.mesh.visible = Math.hypot(view.x - c.center.x, view.y - c.center.y) + VIEW_REACH > c.radius;
+    if (!this.mesh.visible) return;
     const u = this.uniforms;
     u.uCenter.value.set(zone.current.center.x, zone.current.center.y);
     u.uRadius.value = zone.current.radius;

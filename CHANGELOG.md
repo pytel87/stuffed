@@ -2,6 +2,20 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Smoother frames (2026-11-17)
+
+- Adaptive resolution: if frames average slower than ~48 fps, the render resolution steps
+  down (2x → 1.75 → … → 1x on Retina screens). `?quality=high` keeps full resolution.
+- About 25% fewer draw calls: belly stitches merged (one mesh instead of 16 per plush), lawn
+  felt patches merged by color, tiny parts (eyes, stitches, teeth) no longer cast shadows.
+- The full-screen water shader is skipped while no water is in view.
+- No more mid-match freezes the first time something appears: at startup every plush part,
+  weapon, loot look, projectile, particle and see-through material is drawn once so its
+  shader is compiled and linked (measured: a 600 ms stall when the first crowned bot came
+  into view is gone).
+- F1 shows draw calls, triangles, render scale, shader count and JS time per frame, and logs
+  frames slower than 100 ms with the newest shader.
+
 ## Step 2.3: Title menu and lobby (2026-11-17)
 
 - Title menu: your name (remembered), Play solo, Create a room, Join with a 4-letter code.

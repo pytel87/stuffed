@@ -73,6 +73,11 @@ export class ChestViews {
 
   constructor(private readonly scene: THREE.Scene) {}
 
+  /** One open chest, for shader warm-up. */
+  samples(): THREE.Object3D[] {
+    return [buildChest({ id: 0, pos: { x: 0, y: 0 }, opened: true }).root];
+  }
+
   clear(): void {
     for (const view of this.views.values()) removeAndDispose(view.root);
     this.views.clear();
@@ -193,6 +198,17 @@ export class LootViews {
   private readonly views = new Map<EntityId, LootView>();
 
   constructor(private readonly scene: THREE.Scene) {}
+
+  /** One of every loot look (each weapon with a beam, each item), for shader warm-up. */
+  samples(): THREE.Object3D[] {
+    const weapons = (['cork_popper', 'foam_dart_smg', 'super_soaker'] as const).map((kind) =>
+      buildLoot({ id: 0, pos: { x: 0, y: 0 }, rarity: 4, content: { type: 'weapon', weapon: { kind, rarity: 4, ammo: 0, nextFireTick: 0, reloadEndTick: null } } }),
+    );
+    const items = (['cotton_puff', 'sewing_kit', 'button_pack'] as const).map((kind) =>
+      buildLoot({ id: 0, pos: { x: 0, y: 0 }, rarity: 0, content: { type: 'item', item: { kind, count: 1 } } }),
+    );
+    return [...weapons, ...items].map((v) => v.root);
+  }
 
   clear(): void {
     for (const view of this.views.values()) removeAndDispose(view.root);

@@ -1,5 +1,6 @@
 // Static map visuals: felt lawn, boundary hedge and decorative grass. Built once per match.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { MapData } from '@stuffed/sim';
 import { feltTexture, toonMaterial, toonMesh } from './toon.ts';
 
@@ -56,28 +57,33 @@ function mapRandom(map: MapData, salt: number): () => number {
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 }
 
-/** Sewn-on felt patches in other greens, so movement reads against the ground. */
+/**
+ * Sewn-on felt patches in other greens, so movement reads against the ground. Merged into one
+ * mesh per color plus one for all the stitch rings: a handful of draw calls instead of ~200.
+ */
 function feltPatches(map: MapData): THREE.Group {
   const rand = mapRandom(map, 7);
   const g = new THREE.Group();
   const colors = ['#86cc72', '#71b860', '#8fd27a', '#6fb35f'];
+  const byColor = colors.map(() => [] as THREE.BufferGeometry[]);
+  const rings: THREE.BufferGeometry[] = [];
   const count = Math.round((map.width * map.height) / 60);
   for (let i = 0; i < count; i++) {
     const r = 1.2 + rand() * 2.8;
     const x = rand() * map.width;
     const z = rand() * map.height;
-    const color = colors[Math.floor(rand() * colors.length)]!;
-    const patch = new THREE.Mesh(new THREE.CircleGeometry(r, 28).rotateX(-Math.PI / 2), toonMaterial(color));
-    patch.position.set(x, 0.004 + i * 1e-5, z);
+    const c = Math.floor(rand() * colors.length);
+    // A tiny height step per patch keeps overlapping patches from flickering.
+    byColor[c]!.push(new THREE.CircleGeometry(r, 28).rotateX(-Math.PI / 2).translate(x, 0.004 + i * 1e-5, z));
+    rings.push(new THREE.RingGeometry(r - 0.12, r - 0.08, 40, 1).rotateX(-Math.PI / 2).translate(x, 0.006 + i * 1e-5, z));
+  }
+  byColor.forEach((geos, c) => {
+    if (!geos.length) return;
+    const patch = new THREE.Mesh(mergeGeometries(geos), toonMaterial(colors[c]!));
     patch.receiveShadow = true;
     g.add(patch);
-    const stitches = new THREE.Mesh(
-      new THREE.RingGeometry(r - 0.12, r - 0.08, 40, 1).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: '#5a9a4c', transparent: true, opacity: 0.7 }),
-    );
-    stitches.position.set(x, 0.006 + i * 1e-5, z);
-    g.add(stitches);
-  }
+  });
+  g.add(new THREE.Mesh(mergeGeometries(rings), new THREE.MeshBasicMaterial({ color: '#5a9a4c', transparent: true, opacity: 0.7 })));
   return g;
 }
 

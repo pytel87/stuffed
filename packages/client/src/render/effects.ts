@@ -79,6 +79,13 @@ export class Effects {
     this.water = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), toonMaterial('#7fd0f7', { map: null }));
   }
 
+  /** Spawns one of every particle far off the map so their shaders compile at startup. */
+  warmUp(): void {
+    this.knockout(-500, -500);
+    this.armorHit(-500, -500, 0, 0, 5);
+    this.splash(-500, -500);
+  }
+
   /** Stuffing knocked out of a plush, sprayed away from the hit direction. */
   stuffingHit(x: number, z: number, dirX: number, dirZ: number, amount: number): void {
     const n = Math.min(10, 2 + Math.round(amount / 4));

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { canSee, config, createWorld, groundHeight, muzzlePosition } from '@stuffed/sim';
+import { canSee, config, createWorld, groundHeight, muzzlePosition, PART_CATALOG, PART_SLOTS } from '@stuffed/sim';
 import type { EntityId, GameEvent, GameState, MapData, Player, Vec2, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CameraRig } from './camera-rig.ts';
@@ -10,10 +10,21 @@ import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
 import { RinseView } from './rinse-view.ts';
+import { buildPart } from './placeholder-parts.ts';
+import { toonMaterial } from './toon.ts';
+import { buildWeapon } from './weapon-models.ts';
 
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
 const SUN_OFFSET = new THREE.Vector3(-8, 20, 10);
+/**
+ * Adaptive resolution: if frames average slower than this (seconds), render fewer pixels.
+ * Retina screens start at 2x; each step drops 0.25 down to 1x.
+ */
+const SLOW_FRAME = 1 / 48;
+const QUALITY_STEP = 0.25;
+const QUALITY_SAMPLES = 90;
+const QUALITY_COOLDOWN = 2.5;
 
 export interface RenderOptions {
   localPlayerId: EntityId;
@@ -48,6 +59,9 @@ export class GameRenderer {
   /** Seconds until each soggy plush drips again. */
   private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
+  private pixelRatio: number;
+  private readonly frameTimes: number[] = [];
+  private qualityCooldown = QUALITY_COOLDOWN;
   /** Height of the surface the local plush stands over (for aiming). */
   private localGround = 0;
   /** Where the followed plush was last drawn, and the surface under it (for the camera). */
@@ -56,9 +70,15 @@ export class GameRenderer {
   /** Interpolated position of the local player in the last rendered frame. */
   readonly localPlayerPos: Vec2 = { x: 0, y: 0 };
 
-  constructor(private readonly canvas: HTMLCanvasElement, map: MapData) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  /** `fixedQuality`: keep full resolution even when frames are slow (?quality=high). */
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    map: MapData,
+    private readonly fixedQuality = false,
+  ) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.setClearColor('#8ccdee');
@@ -79,6 +99,7 @@ export class GameRenderer {
     this.rinse = new RinseView(map);
     this.scene.add(this.rinse.mesh);
     this.world = createWorld(map);
+    this.warmUp();
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -89,6 +110,22 @@ export class GameRenderer {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+  }
+
+  /** What the last frame cost the GPU: draw calls and triangles (for the F1 overlay). */
+  /** Names of the compiled shader programs, newest last (to spot mid-match compiles). */
+  get programNames(): string[] {
+    return (this.renderer.info.programs ?? []).map((p) => p.cacheKey);
+  }
+
+  get stats(): { calls: number; triangles: number; pixelRatio: number; programs: number } {
+    const info = this.renderer.info.render;
+    return {
+      calls: info.calls,
+      triangles: info.triangles,
+      pixelRatio: this.renderer.getPixelRatio(),
+      programs: this.renderer.info.programs?.length ?? 0,
+    };
   }
 
   setDebug(on: boolean): void {
@@ -178,6 +215,51 @@ export class GameRenderer {
     }
   }
 
+  /**
+   * Compiles every shader variant up front so the first time something appears mid-match
+   * doesn't stall a frame for a shader compile: every plush part and weapon, loot glows and
+   * beams, projectiles, particles, an open chest, and a see-through felt (bushes you stand in).
+   */
+  private warmUp(): void {
+    const samples = new THREE.Group();
+    for (const slot of PART_SLOTS) for (const id of PART_CATALOG[slot]) samples.add(buildPart(slot, id, '#2a1f2d'));
+    for (const kind of ['cork_popper', 'foam_dart_smg', 'super_soaker'] as const) samples.add(buildWeapon(kind, 4, '#2a1f2d'));
+    samples.add(new THREE.Mesh(new THREE.SphereGeometry(1), toonMaterial('#3f8f4a', { transparent: true, opacity: 0.4 })));
+    samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
+    // Spread them out in a grid at the map center, where the shadow camera can see them too.
+    samples.children.forEach((o, i) => o.position.set(40 + (i % 8) * 1.5 - 6, 0.5, 40 + Math.floor(i / 8) * 1.5 - 6));
+    this.scene.add(samples);
+    this.effects.warmUp();
+    this.renderer.compile(this.scene, this.camera);
+
+    // A shader is only fully linked when it first draws (three.js then waits for the driver), so
+    // draw everything once to the screen itself, shadows included, before the first real frame
+    // replaces it. (An offscreen target would use different, linear-color shader variants.)
+    const eye = new THREE.PerspectiveCamera(60, this.camera.aspect, 0.5, 200);
+    eye.position.set(40, 30, 52);
+    eye.lookAt(40, 0, 40);
+    this.sun.target.position.set(40, 0, 40);
+    this.sun.position.set(40, 0, 40).add(SUN_OFFSET);
+    this.renderer.render(this.scene, eye);
+    this.scene.remove(samples);
+  }
+
+  /** Lowers the render resolution while frames are slow (never below 1x). */
+  private adaptQuality(dt: number): void {
+    if (this.fixedQuality || dt <= 0 || this.pixelRatio <= 1) return;
+    this.qualityCooldown -= dt;
+    this.frameTimes.push(dt);
+    if (this.frameTimes.length > QUALITY_SAMPLES) this.frameTimes.shift();
+    if (this.qualityCooldown > 0 || this.frameTimes.length < QUALITY_SAMPLES) return;
+    const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+    if (avg <= SLOW_FRAME) return;
+    this.pixelRatio = Math.max(1, this.pixelRatio - QUALITY_STEP);
+    this.renderer.setPixelRatio(this.pixelRatio);
+    this.resize();
+    this.frameTimes.length = 0;
+    this.qualityCooldown = QUALITY_COOLDOWN;
+  }
+
   /** Clears everything from the last match (the map stays) so a new match can start. */
   reset(): void {
     for (const view of this.plushes.values()) view.dispose();
@@ -248,7 +330,7 @@ export class GameRenderer {
     this.chests.update(curr, opts.dt, opts.time);
     this.loot.update(curr, opts.dt, opts.time);
     this.effects.update(opts.dt);
-    this.rinse.update(curr.zone, opts.time);
+    this.rinse.update(curr.zone, opts.time, this.followPos);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 
@@ -261,6 +343,7 @@ export class GameRenderer {
     this.sun.position.copy(this.rig.target).add(SUN_OFFSET);
 
     this.renderer.render(this.scene, this.camera);
+    this.adaptQuality(opts.dt);
   }
 }
 
