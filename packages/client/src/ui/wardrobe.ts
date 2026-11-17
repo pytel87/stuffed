@@ -38,6 +38,7 @@ export class Wardrobe {
          <div class="card">
            <button type="button" class="round close" aria-label="Close">${icon('close')}</button>
            <button type="button" class="round gallery-toggle" aria-label="Gallery">${icon('gallery')}</button>
+           <button type="button" class="round code-toggle" aria-label="Recovery code">${icon('code')}</button>
            <div class="gallery" hidden></div>
            <div class="wardrobe-body">
              <canvas class="wardrobe-preview"></canvas>
@@ -46,7 +47,7 @@ export class Wardrobe {
              </div>
              <div class="wardrobe-picker"></div>
            </div>
-           <div class="wardrobe-code">
+           <div class="wardrobe-code" hidden>
              ${icon('code')}<b class="code"></b>
              <form class="row restore">
                <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="Recovery code"></label>
@@ -65,6 +66,11 @@ export class Wardrobe {
     this.gallery = this.el.querySelector('.gallery')!;
     this.galleryToggle = this.el.querySelector('.gallery-toggle')!;
     this.galleryToggle.addEventListener('click', () => this.showGallery(this.gallery.hidden === true));
+    // The recovery code (to open this profile on another device) stays tucked away until asked for.
+    this.el.querySelector('.code-toggle')!.addEventListener('click', () => {
+      const code = this.el.querySelector<HTMLElement>('.wardrobe-code')!;
+      code.hidden = !code.hidden;
+    });
     this.tabs = Object.fromEntries(
       PART_SLOTS.map((slot) => {
         const tab = this.el.querySelector<HTMLButtonElement>(`.wardrobe-slot[data-slot="${slot}"]`)!;
@@ -122,7 +128,8 @@ export class Wardrobe {
   private showGallery(on: boolean): void {
     this.gallery.hidden = !on;
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
-    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = on;
+    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = true;
+    this.el.querySelector<HTMLElement>('.code-toggle')!.hidden = on;
     this.galleryToggle.innerHTML = icon(on ? 'hanger' : 'gallery');
     this.galleryToggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Gallery');
     this.el.querySelector('.card')!.classList.toggle('showing-gallery', on);
@@ -189,7 +196,10 @@ export class Wardrobe {
       tab.classList.toggle('selected', slot === this.selected);
     }
     const slot = this.selected;
-    this.picker.innerHTML = this.owned(slot)
+    const owned = this.owned(slot);
+    // Only as wide as it needs: up to 4 columns, 4 rows before it scrolls.
+    this.picker.style.setProperty('--cols', String(Math.min(4, Math.max(1, Math.ceil(owned.length / 4)))));
+    this.picker.innerHTML = owned
       .map(
         (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${p.animal}">${partIcon(slot, p.animal)}</button>`,
       )

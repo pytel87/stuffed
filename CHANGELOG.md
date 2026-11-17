@@ -12,6 +12,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   lines up with the gear.
 - On touch screens the stuffing bar is gone: just the number (red and pulsing when low), the
   buttons and the stash.
+- Wardrobe: the part picker is only as big as the parts you own (no empty box), and the
+  recovery code hides behind a key button in the corner.
 
 ## Wardrobe picker, plushier sounds (2026-11-17)
 

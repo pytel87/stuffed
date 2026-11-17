@@ -417,6 +417,14 @@ button {
   z-index: 1;
 }
 
+/* The recovery code button, bottom-left (the code row opens under the plush). */
+.wardrobe .code-toggle {
+  position: absolute;
+  bottom: -1rem;
+  left: -1rem;
+  z-index: 1;
+}
+
 /* The gallery: every animal's full set; owned parts lit, missing ones faded. */
 .wardrobe .card.showing-gallery {
   width: min(46rem, 100%);
@@ -543,18 +551,20 @@ button {
 }
 
 .wardrobe .card {
-  width: min(44rem, 100%);
+  width: auto;
+  max-width: 100%;
 }
 
 .wardrobe-body {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) auto minmax(9rem, 1.3fr);
+  grid-template-columns: auto auto auto;
   gap: 0.9rem;
   align-items: center;
 }
 
 .wardrobe-preview {
-  width: 100%;
+  width: 17rem;
+  max-width: 100%;
   height: 15rem;
   border-radius: 1rem;
   background: radial-gradient(circle at 50% 70%, #d8f0c8, #a9d996);
@@ -594,14 +604,12 @@ button {
 /* Every part you own for the selected slot; tap one to wear it. */
 .wardrobe-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.9rem, 1fr));
-  align-content: start;
+  grid-template-columns: repeat(var(--cols, 1), 2.9rem);
+  align-content: center;
   gap: 0.4rem;
-  height: 15rem;
+  max-height: 15rem;
   overflow-y: auto;
   padding: 0.3rem;
-  border-radius: 1rem;
-  background: rgba(42, 31, 45, 0.06);
 }
 
 .wardrobe-picker .pick {
@@ -659,6 +667,8 @@ button {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  /* Clear of the key button in the corner. */
+  padding-left: 1.4rem;
 }
 
 .wardrobe-code .code {
@@ -683,9 +693,12 @@ button {
 
 /* Phones in landscape: shorter preview. */
 @media (max-height: 480px) {
-  .wardrobe-preview,
-  .wardrobe-picker {
+  .wardrobe-preview {
+    width: 14rem;
     height: 11rem;
+  }
+  .wardrobe-picker {
+    max-height: 11rem;
   }
   .wardrobe-slots {
     gap: 0.2rem;
@@ -713,12 +726,17 @@ button {
   .wardrobe-body {
     grid-template-columns: 1fr;
   }
+  .wardrobe-preview {
+    width: 100%;
+  }
   .wardrobe-slots {
     grid-auto-flow: column;
     justify-content: center;
   }
   .wardrobe-picker {
-    height: 9rem;
+    max-height: 9rem;
+    justify-content: center;
+    grid-template-columns: repeat(auto-fill, 2.9rem);
   }
 }
 

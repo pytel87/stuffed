@@ -167,8 +167,9 @@ The hanger next to your name on the title menu opens the Wardrobe: tap a slot (h
 legs, tail, accessory), then any part you own for it, to choose the look you start every match
 in. The gallery button in its corner
 shows all sixteen animals in full, commonest first, with the parts you own lit up; tap an owned
-part to wear it, or a complete (gold) set to wear all five. It also shows the profile's
-recovery code: typing it into the Wardrobe on another device puts the same profile there too.
+part to wear it, or a complete (gold) set to wear all five. The key button in its corner shows
+the profile's recovery code: typing it into the Wardrobe on another device puts the same
+profile there too.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the
