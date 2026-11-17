@@ -52,9 +52,9 @@ are heard from the camera, fade with distance, pan left/right and vary slightly 
 
 ## Bots
 
-You play against 15 bots. They loot chests, pick up better weapons, heal when hurt, stay
-ahead of the Rinse, jump low obstacles, and fight what they can see (with reaction time,
-imperfect aim and bursts). Their brain is in
+You play against 15 bots. For the first 20 seconds they only loot (and fight back if hurt).
+After that they pick up better weapons and parts, heal when hurt, stay ahead of the Rinse, jump
+low obstacles, and fight what they can see (with reaction time, imperfect aim and bursts). Their brain is in
 [packages/sim/src/bots/brain.ts](packages/sim/src/bots/brain.ts); tuning knobs are in `BOT`
 at its top. Bots only produce `Input`s, the same as a player, so the server can run them too.
 
@@ -116,8 +116,8 @@ animals: Bear, Frog, Shark and Chicken. Each chest also pops a part, floating ov
 rarity color. E puts it on. Q puts it in your one stash slot instead (it shows next to your
 stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
 When you're knocked out, the parts you found and your stash drop for others to take; your own
-starting look never drops. Bots put on any part rarer than what they wear. Parts never change
-stats or hitboxes.
+starting look never drops. Bots put on any part rarer than what they wear. A plush wearing all
+five parts of one animal glows in that animal's color. Parts never change stats or hitboxes.
 
 Everyone starts with a Hand-me-down Cork Popper; better weapons and items come from toy
 chests. To test a weapon without finding it, add `?loadout=kind:rarity,kind:rarity` to the

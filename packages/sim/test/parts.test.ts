@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BotController, Btn, config, createGame, PART_SLOTS, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
+import { applyDamage, BotController, Btn, config, createGame, fullSet, PART_SLOTS, secondsToTicks, spawnLoot, step, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -125,6 +125,14 @@ describe('skin parts', () => {
     expect(wornSet(p.parts)).toBe('bear');
     p.parts.tail.animal = 'chicken';
     expect(wornSet(p.parts)).toBeNull();
+  });
+
+  it('all five parts of one animal make a full set', () => {
+    const { p } = solo();
+    for (const slot of PART_SLOTS) p.parts[slot] = { animal: 'frog', rarity: 0, found: false };
+    expect(fullSet(p.parts)).toBe('frog');
+    p.parts.legs.animal = 'chicken';
+    expect(fullSet(p.parts)).toBeNull();
   });
 
   it('bots put on parts rarer than what they wear', () => {

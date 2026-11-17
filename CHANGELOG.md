@@ -2,6 +2,16 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Gentler bots and full-set glow (2026-11-17)
+
+- Bots spend the first 20 seconds looting and only fight back if hurt. After that they react
+  more slowly, aim worse, lead moving targets less, pause longer between bursts and ignore
+  passers-by unless closer than 4.5 units. Measured over 30 seeds, a plush that just stands
+  still now survives a median of 59 s instead of 19 s (worst 22 s instead of 8 s), the first
+  knockout comes at about 26 s instead of 10 s, and a match runs about 4 minutes.
+- A plush wearing all five parts of one animal glows: a pool of light in the animal's color
+  underfoot and a pulsing tint. Hidden with the plush in bushes and under roofs.
+
 ## Step 3.1: Patchwork parts (2026-11-17)
 
 - Four animals (Bear, Frog, Shark, Chicken) with a part for each of the five slots: 20 parts.

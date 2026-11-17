@@ -16,6 +16,12 @@ export const DEFAULT_PARTS: PartLoadout = {
   accessory: { animal: 'frog', rarity: 0, found: false },
 };
 
+/** The animal when all five worn parts are the same animal (a full set), or null. */
+export function fullSet(parts: PartLoadout): Animal | null {
+  const animal = parts.head.animal;
+  return PART_SLOTS.every((slot) => parts[slot].animal === animal) ? animal : null;
+}
+
 /** The animal of a set the plush wears (3+ parts of it), or null. */
 export function wornSet(parts: PartLoadout): Animal | null {
   for (const animal of ANIMALS) {

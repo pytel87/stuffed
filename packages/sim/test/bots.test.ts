@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BotController, createGame, createWorld, step, TEST_MAP } from '../src/index.ts';
+import { BOT, BotController, createGame, createWorld, step, TEST_MAP } from '../src/index.ts';
 import type { EntityId, GameEvent, GameState, Input, MapData, Player, World } from '../src/index.ts';
 import { OPEN_MAP } from './helpers.ts';
 
@@ -53,19 +53,28 @@ describe('bots', () => {
     for (const p of state.players) if (p.alive) expect(travelled.get(p.id)!).toBeGreaterThan(30);
   });
 
-  function standoff(gap: number) {
+  /** A bot and you `gap` apart; by default after the opening truce. */
+  function standoff(gap: number, afterTruce = true) {
     const world = createWorld(OPEN_MAP);
     const state = createGame({ seed: 1, map: OPEN_MAP, roster: [{ name: 'bot', isBot: true }, { name: 'you', isBot: false }] });
     const [bot, you] = state.players as [Player, Player];
     bot.pos = { x: 20, y: 40 };
     you.pos = { x: 20 + gap, y: 40 };
+    if (afterTruce) state.tick = BOT.truce * 30;
     return { world, state, bot, you };
   }
 
   it('shoot at an enemy close by', () => {
-    const { world, state, you } = standoff(5);
+    const { world, state, you } = standoff(4);
     play(world, state, new BotController(1), 4 * 30);
     expect(you.stuffing).toBeLessThan(100);
+  });
+
+  it('only loot during the opening truce, unless hurt', () => {
+    const { world, state, you } = standoff(4, false);
+    const events = play(world, state, new BotController(1), 4 * 30);
+    expect(events.filter((e) => e.type === 'shot').length).toBe(0);
+    expect(you.stuffing).toBe(100);
   });
 
   it('with only the starter weapon, leave a distant enemy alone until hurt', () => {

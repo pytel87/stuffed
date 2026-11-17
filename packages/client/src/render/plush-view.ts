@@ -1,8 +1,8 @@
 // One plush on screen: a single rig with 5 part slots. Animation (walk, squash and stretch,
 // lean) is render-only and derived from interpolated sim velocity; the sim never sees it.
 import * as THREE from 'three';
-import { config, PART_SLOTS } from '@stuffed/sim';
-import type { PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
+import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
+import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
 import { bodyColor, buildPart, type PartObject } from './placeholder-parts.ts';
 import { PlushArms } from './plush-arms.ts';
 import { OUTLINE_COLOR } from './toon.ts';
@@ -49,6 +49,26 @@ function shadowMap(): THREE.CanvasTexture {
   return shadowTexture;
 }
 
+/** Glow color for a plush wearing a full set of one animal. */
+const SET_GLOW: Record<Animal, string> = { bear: '#ffb347', frog: '#7dff6a', shark: '#4fd2ff', chicken: '#fff27a' };
+
+let glowTexture: THREE.CanvasTexture | null = null;
+function glowMap(): THREE.CanvasTexture {
+  if (!glowTexture) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.6)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    glowTexture = new THREE.CanvasTexture(c);
+  }
+  return glowTexture;
+}
+
 export class PlushView {
   readonly root = new THREE.Group();
   private readonly lean = new THREE.Group();
@@ -75,6 +95,9 @@ export class PlushView {
   private wasAirborne = false;
   private lastZ = 0;
   private landSquash = 0;
+  /** While the plush wears a full set: a ring of light underfoot and a pulsing tint in the set's color. */
+  private readonly glowRing: THREE.Mesh;
+  private glowColor: THREE.Color | null = null;
 
   constructor(parts: PartLoadout, private readonly outlineColor = OUTLINE_COLOR) {
     this.root.add(this.lean);
@@ -106,6 +129,13 @@ export class PlushView {
       new THREE.MeshBasicMaterial({ color: '#000000', map: shadowMap(), transparent: true, opacity: 0.35, depthWrite: false }),
     );
     this.root.add(this.blob);
+    this.glowRing = new THREE.Mesh(
+      new THREE.CircleGeometry(1.3, 32).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ map: glowMap(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
+    );
+    this.glowRing.position.y = 0.01;
+    this.glowRing.visible = false;
+    this.blob.add(this.glowRing);
     this.setParts(parts);
   }
 
@@ -128,6 +158,10 @@ export class PlushView {
       if (slot === 'legs') this.legPivots = part.userData.swing ?? [];
     }
     if (!changed) return false;
+    const set = fullSet(parts);
+    this.glowRing.visible = set !== null;
+    this.glowColor = set ? new THREE.Color(SET_GLOW[set]) : null;
+    if (set) (this.glowRing.material as THREE.MeshBasicMaterial).color.set(SET_GLOW[set]);
     if (this.bodyAnimal !== parts.body.animal) {
       this.bodyAnimal = parts.body.animal;
       this.arms.setColor(bodyColor(parts.body.animal));
@@ -215,9 +249,18 @@ export class PlushView {
     this.weaponSocket.position.z = WEAPON_SOCKET[2] - this.recoil * RECOIL_DISTANCE;
     this.arms.update(this.weaponSocket.position, this.walkPhase, m);
 
+    const pulse = 0.5 + Math.sin(time * 3) * 0.5;
+    if (this.glowColor) (this.glowRing.material as THREE.MeshBasicMaterial).opacity = 0.7 + pulse * 0.3;
+
+    // Hit flash (white) on top of the full-set tint.
     const flash = this.flashTime > 0 ? this.flashTime / FLASH_SECONDS : 0;
     this.flashTime = Math.max(0, this.flashTime - dt);
-    for (const mat of this.toonMaterials) mat.emissive.setScalar(flash * 0.7);
+    const tint = this.glowColor ? 0.12 + pulse * 0.14 : 0;
+    for (const mat of this.toonMaterials) {
+      if (this.glowColor) mat.emissive.copy(this.glowColor).multiplyScalar(tint);
+      else mat.emissive.setScalar(0);
+      if (flash > 0) mat.emissive.addScalar(flash * 0.7);
+    }
     return landed;
   }
 

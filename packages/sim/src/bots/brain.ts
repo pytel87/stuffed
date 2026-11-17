@@ -11,10 +11,12 @@ import type { EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Ve
 import { raycastWalls, type World } from '../world.ts';
 
 export const BOT = {
+  /** Seconds at the start of a match when bots only loot, and fight only someone who hurts them. */
+  truce: 20,
   /** Enemies farther than this are never engaged (they rarely hit from there). */
   engageRange: 16,
   /** Enemies this close are always fought. */
-  threatRange: 6,
+  threatRange: 4.5,
   /** Below this much stuffing a bot with a healing item backs off from fights to heal. */
   retreatBelow: 45,
   /** Each bot rolls an aggression in this range; it scales how far it starts fights when well armed. */
@@ -22,14 +24,14 @@ export const BOT = {
   /** Seconds a bot keeps fighting back after being hurt, at any range it can see. */
   hurtMemory: 3,
   /** Seconds between first seeing an enemy and starting to shoot. */
-  reaction: [0.6, 1.3] as [number, number],
+  reaction: [0.9, 1.7] as [number, number],
   /** Aim wobble: the aim point drifts this far (units) per 10 units of distance. */
-  aimError: 2.4,
+  aimError: 3.2,
   /** Bots fire in bursts: seconds shooting, then seconds paused. */
   burst: [0.5, 1.1] as [number, number],
-  burstPause: [0.6, 1.4] as [number, number],
+  burstPause: [0.9, 1.8] as [number, number],
   /** How much of the target's motion bots lead their shots by (1 = perfect). */
-  leadFactor: 0.6,
+  leadFactor: 0.45,
   /** Preferred fighting distance per weapon. */
   preferredRange: { cork_popper: 9, foam_dart_smg: 6.5, super_soaker: 3.5 } satisfies Record<WeaponKind, number>,
   /** Chance per second to hop while fighting. */
@@ -230,6 +232,7 @@ export class BotController {
     if (current?.alive && dist(bot.pos, current.pos) <= BOT.engageRange && canSee(world, state, bot, current)) return current;
 
     const hurt = state.tick - m.lastHurtTick < BOT.hurtMemory * T;
+    if (!hurt && state.tick < BOT.truce * T * state.zone.timeScale) return null;
     const armed = bot.weapons.some((w) => w !== null && (w.kind !== 'cork_popper' || w.rarity > 0));
     const reach = hurt ? BOT.engageRange : armed ? Math.max(BOT.threatRange, BOT.engageRange * m.aggression) : BOT.threatRange;
     let best: Player | null = null;
