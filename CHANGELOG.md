@@ -8,6 +8,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   with rounded corduroy fins, a wicker basket with a padded rim, ropes, sandbags and a glossy
   propeller.
 - Gliding down, plushies hold a domed plush parasol with pompoms and a hooked handle.
+- The Foam Dart SMG is a simple classic foam blaster again; the Pillow Hammer is soft cloth (no
+  plastic shine).
 
 ## Textures, a grey Rinse, and a livelier backyard (2026-11-18)
 
