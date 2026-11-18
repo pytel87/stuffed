@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A patchwork blimp and plush parasols (2026-11-18)
+
+- The Toss blimp is sewn patchwork (dotted, striped and checked panels with stitched seams),
+  with rounded corduroy fins, a wicker basket with a padded rim, ropes, sandbags and a glossy
+  propeller.
+- Gliding down, plushies hold a domed plush parasol with pompoms and a hooked handle.
+
 ## Textures, a grey Rinse, and a livelier backyard (2026-11-18)
 
 - Generated textures (OpenAI images, `pnpm textures`): animals wear knit, corduroy or minky-dot

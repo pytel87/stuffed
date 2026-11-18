@@ -6,7 +6,8 @@ import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@s
 import { bodyColor, buildPart, FACE_ACCESSORIES, HEAD_TOP_LIFT, type PartObject } from './placeholder-parts.ts';
 import { mergeStatic } from './merge-static.ts';
 import { PlushArms } from './plush-arms.ts';
-import { OUTLINE_COLOR, toonMaterial } from './toon.ts';
+import { detailMaps, repeated } from './image-textures.ts';
+import { feltTexture, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 /** Where each slot's part attaches, in rig space (+z = facing direction, y = up). */
@@ -89,6 +90,49 @@ function glowMap(): THREE.CanvasTexture {
     glowTexture = new THREE.CanvasTexture(c);
   }
   return glowTexture;
+}
+
+const UMBRELLA_PANELS = ['#ff8a80', '#ffd166', '#8fd3ff', '#a5d6a7', '#ffb3cf', '#b39ddb', '#ffab5e', '#fff3d6'];
+/** Where the canopy's sphere sits (its top is higher, its rim lower). */
+const UMBRELLA_Y = 1.9;
+let umbrellaGeo: {
+  panels: THREE.BufferGeometry[];
+  hull: THREE.BufferGeometry;
+  pompom: THREE.BufferGeometry;
+  stick: THREE.BufferGeometry;
+  hook: THREE.BufferGeometry;
+  rim: number;
+  rimY: number;
+  topY: number;
+} | null = null;
+
+/** The parasol's shapes, shared by every plush. */
+function umbrellaGeometry(): NonNullable<typeof umbrellaGeo> {
+  if (umbrellaGeo) return umbrellaGeo;
+  const r = 1.2;
+  const open = 1.05;
+  const flat = 0.6;
+  const n = UMBRELLA_PANELS.length;
+  const panels = Array.from({ length: n }, (_, i) =>
+    new THREE.SphereGeometry(r, 6, 6, (i / n) * Math.PI * 2, (Math.PI * 2) / n, 0, open).scale(1, flat, 1),
+  );
+  umbrellaGeo = {
+    panels,
+    hull: new THREE.SphereGeometry(r + 0.05, 32, 6, 0, Math.PI * 2, 0, open + 0.02).scale(1, flat, 1),
+    pompom: new THREE.SphereGeometry(0.07, 8, 6),
+    stick: new THREE.CylinderGeometry(0.03, 0.03, 1.3, 6),
+    hook: new THREE.TorusGeometry(0.11, 0.03, 6, 12, Math.PI).rotateZ(Math.PI),
+    rim: r * Math.sin(open),
+    rimY: r * Math.cos(open) * flat,
+    topY: r * flat,
+  };
+  return umbrellaGeo;
+}
+
+let umbrellaNormal: THREE.Texture | null = null;
+function umbrellaWeave(): THREE.Texture {
+  if (!umbrellaNormal) umbrellaNormal = repeated(detailMaps('fabric_minky', feltTexture().image as HTMLCanvasElement).normal, 2, 1);
+  return umbrellaNormal;
 }
 
 export class PlushView {
@@ -191,20 +235,38 @@ export class PlushView {
     this.bubble.visible = false;
     this.root.add(this.bubble);
 
-    // A paper umbrella: a shallow cone of colored panels on a stick.
+    // A plush parasol: a domed canopy of eight fabric panels with a pompom at each rib, a ball on
+    // top and a glossy hooked handle.
     this.umbrella = new THREE.Group();
-    const panels = ['#ff5a5a', '#ffd23a', '#3fa9f5', '#5bd16a', '#ff7ac8', '#fff6ec'];
-    panels.forEach((c, i) => {
-      const panel = new THREE.Mesh(
-        new THREE.ConeGeometry(1.1, 0.5, 6, 1, true, (i / 6) * Math.PI * 2, Math.PI / 3),
-        toonMaterial(c, { map: null, side: THREE.DoubleSide }),
-      );
-      panel.position.y = 2.35;
+    const U = umbrellaGeometry();
+    const weave = umbrellaWeave();
+    UMBRELLA_PANELS.forEach((c, i) => {
+      const m = toonMaterial(c, { side: THREE.DoubleSide });
+      m.normalMap = weave;
+      const panel = new THREE.Mesh(U.panels[i]!, m);
+      panel.position.y = UMBRELLA_Y;
       this.umbrella.add(panel);
     });
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6), toonMaterial('#8e6036', { map: null }));
-    stick.position.y = 1.8;
+    const hull = new THREE.Mesh(U.hull, outlineMaterial(outlineColor));
+    hull.position.y = UMBRELLA_Y;
+    this.umbrella.add(hull);
+    const pom = toonMaterial('#fff6ec', { map: null });
+    for (let i = 0; i < UMBRELLA_PANELS.length; i++) {
+      const a = (i / UMBRELLA_PANELS.length) * Math.PI * 2;
+      const ball = new THREE.Mesh(U.pompom, pom);
+      ball.position.set(-Math.cos(a) * U.rim, UMBRELLA_Y + U.rimY, Math.sin(a) * U.rim);
+      this.umbrella.add(ball);
+    }
+    const top = new THREE.Mesh(U.pompom, toonMaterial('#ffd23a', { map: null }));
+    top.scale.setScalar(1.4);
+    top.position.y = UMBRELLA_Y + U.topY + 0.05;
+    this.umbrella.add(top);
+    const stick = new THREE.Mesh(U.stick, toonMaterial('#8e6036', { map: null }));
+    stick.position.y = 1.85;
     this.umbrella.add(stick);
+    const hook = new THREE.Mesh(U.hook, makePlastic(toonMaterial('#e2574c', { map: null })));
+    hook.position.set(0.11, 1.18, 0);
+    this.umbrella.add(hook);
     this.umbrella.visible = false;
     this.squash.add(this.umbrella);
 
