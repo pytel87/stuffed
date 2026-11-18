@@ -1,7 +1,7 @@
 import { MAX_PLAYERS } from '@stuffed/sim/net';
 import type { RoomClient } from '../session/room-client.ts';
-import { bindBotLevel, botLevelHtml } from './bot-level.ts';
-import { bindMapChoice, mapChoiceHtml } from './map-choice.ts';
+import { bindBotLevel, botLevelHtml, savedBotLevel } from './bot-level.ts';
+import { bindMapChoice, mapChoiceHtml, savedMap } from './map-choice.ts';
 import { escapeHtml } from './escape.ts';
 import { icon } from './icons.ts';
 
@@ -88,7 +88,8 @@ export class LobbyScreen {
         // not remembered; fine
       }
     });
-    this.start.addEventListener('click', () => this.client.start(this.wantedBots, this.wantedTeams));
+    // With the map and bot level picked here (the same choices Enter and Again send).
+    this.start.addEventListener('click', () => this.client.start(this.wantedBots, this.wantedTeams, savedBotLevel(), savedMap().id));
     q('.lobby-less').addEventListener('click', () => this.setBots(this.wantedBots - 1));
     q('.lobby-more').addEventListener('click', () => this.setBots(this.wantedBots + 1));
     q('.lobby-leave').addEventListener('click', onLeave);

@@ -10,6 +10,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   trap can't be stretched out.
 - The Marble Launcher hits harder: 38 per marble (was 30).
 - Fixed: a teammate's arrow could point the wrong way when they were far below the screen.
+- Fixed: starting a room match with the lobby's Start button always played the Backyard with
+  normal bots, whatever map and bot level were picked.
 - Protocol version 7.
 
 ## Shorter matches (2026-11-18)
