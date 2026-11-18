@@ -184,9 +184,13 @@ export class Hud {
         ? { ...interaction.chest.pos, z: interaction.chest.z }
         : interaction?.kind === 'revive'
           ? { ...interaction.target.pos, z: interaction.target.z }
-          : interaction
-            ? { ...interaction.loot.pos, z: interaction.loot.z }
-            : null;
+          : interaction?.kind === 'strike'
+            ? state.strikeButton && { ...state.strikeButton.pos, z: state.strikeButton.z + 0.6 }
+            : interaction?.kind === 'toy'
+              ? state.toy && { ...state.toy.pos, z: state.toy.z + 0.8 }
+              : interaction
+              ? { ...interaction.loot.pos, z: interaction.loot.z }
+              : null;
     let art = '';
     let color = '#ffffff';
     if (interaction?.kind === 'weapon' && interaction.loot.content.type === 'weapon') {
@@ -201,6 +205,12 @@ export class Hud {
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
+    } else if (interaction?.kind === 'toy' && state.toy) {
+      // The toy's crank, tap or drill.
+      art = `toy:${state.toy.kind}`;
+    } else if (interaction?.kind === 'strike' && state.strikeButton) {
+      // The air strike button (with what it calls floating over it).
+      art = `strike:${state.strikeButton.kind}`;
     } else if (interaction?.kind === 'revive') {
       // Hold to re-stitch a teammate: the stuffing heart.
       art = 'revive';

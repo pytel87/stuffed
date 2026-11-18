@@ -1,4 +1,4 @@
-import { config } from './config.ts';
+import { config, secondsToTicks } from './config.ts';
 import { ANIMALS, PART_SLOTS, pickAnimal } from './parts.ts';
 import { nextFloat, pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
@@ -59,6 +59,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       chargeStartTick: null,
       bubbledUntil: 0,
       glitteredUntil: 0,
+      soakedUntil: 0,
       juiceUntil: 0,
       drop: null,
       parts: rollParts(rng, entry.parts),
@@ -103,6 +104,25 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       })),
     goals: (map.goals ?? []).map(() => 0),
     toss,
+    strikeButton: map.strikeButton
+      ? { pos: { x: map.strikeButton.x, y: map.strikeButton.y }, z: map.strikeButton.z, kind: map.strikeButton.kind, readyTick: secondsToTicks(config.strike.firstReady) }
+      : null,
+    strikes: [],
+    toy: map.toy
+      ? {
+          kind: map.toy.kind,
+          pos: { x: map.toy.x, y: map.toy.y },
+          z: map.toy.z,
+          at: { ...(map.toy.at ?? { x: map.toy.x, y: map.toy.y }) },
+          readyTick: secondsToTicks(config.toys.firstReady),
+          startTick: -1,
+          endTick: -1,
+          byId: null,
+        }
+      : null,
+    pinata: map.pinata
+      ? { pos: { x: map.pinata.x, y: map.pinata.y }, z: map.pinata.z, kind: map.pinata.kind, hp: config.pinata.hp, broken: false, hitTick: -1 }
+      : null,
     zone: initialZone(map, rng, zoneTimeScale),
     events: [],
     mapId: map.id,

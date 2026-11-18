@@ -449,6 +449,58 @@ export const config = {
     finalCenterMargin: 0.25,
   },
 
+  /** The map's big toy (see systems/toys.ts). */
+  toys: {
+    interactRange: 1.6,
+    /** Seconds into the match before any toy works. */
+    firstReady: 30,
+    jack: { windup: 3, show: 2.5, radius: 4.5, knockback: 22, hop: 5, damage: 6, cooldown: 45, size: 0.6 },
+    /** A turning arc of water: pushes (knockback per tick) and soaks whoever it sweeps over. */
+    sprinkler: { duration: 8, radius: 7, arcDegrees: 50, turnPerSecond: 1.6, push: 1.1, soak: 3, cooldown: 40 },
+    /** Cracks for `windup` s, then open water for `open` s; works again `cooldownAfter` s later. */
+    icedrill: { windup: 3, open: 30, damage: 10, soak: 6, cooldownAfter: 20 },
+  },
+
+  /** The map's piñata (see systems/pinata.ts). */
+  pinata: {
+    /** Damage it takes before it breaks (about nine Cork Popper shots). */
+    hp: 160,
+    /** Its size: shots and plushies bump into it within this of its middle. */
+    radius: 0.7,
+    /** How high its middle is above what it stands on, and how far up and down it reaches. */
+    lift: { donkey: 0.95, present: 0.5 },
+    halfHeight: 0.55,
+    /** What showers out: good weapons (rare or better), items, a part. */
+    loot: { weapons: 2, items: 2, parts: 1 },
+    lootDistance: 1.8,
+  },
+
+  /** The map's air strike button (see systems/strikes.ts). */
+  strike: {
+    /** Seconds into the match before it first works (everyone has landed by then). */
+    firstReady: 40,
+    /** Seconds before it works again after a press. */
+    cooldown: 60,
+    interactRange: 1.6,
+    /** Seconds from the press until the first drop lands (the circles show meanwhile). */
+    warning: 2,
+    /** Drops per strike, landing this many seconds apart, within `spread` of the target. */
+    count: 7,
+    gap: 0.18,
+    spread: 5,
+    /** How far from its middle a drop hits. */
+    radius: 1.6,
+    /** Plushies this close together count as a crowd when picking the target. */
+    crowdRadius: 7,
+    kinds: {
+      balloons: { damage: 8, knockback: 4, soak: 4 },
+      blocks: { damage: 20, knockback: 6, soak: 0 },
+      snowballs: { damage: 10, knockback: 16, soak: 0 },
+    },
+    /** Speed multiplier while soaked by a water balloon. */
+    soakMoveMultiplier: 0.75,
+  },
+
   /** Movement speed multiplier while using an item. */
   itemUseMoveMultiplier: 0.5,
 

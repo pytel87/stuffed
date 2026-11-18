@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Air strikes, piñatas and map toys (2026-11-18)
+
+- An air strike button on every map (a red push button on a hazard-striped box): water balloons
+  in the Backyard (soak: slower, seen in bushes), toy blocks in the Bedroom, snowballs in the
+  Snowy Park (knock you flying). Each drop is marked two seconds ahead; a roof keeps you safe.
+- A piñata on every map: a paper donkey hanging from its own little tree in the Backyard, a big
+  pink present in the Bedroom and the Gift Market. Shoot or whack it open for two rare-or-better
+  weapons, two items and a part.
+- A big toy on every map: a jack-in-the-box that launches everyone around it, a garden sprinkler
+  whose turning spray pushes and soaks, and an ice drill that breaks the frozen pond open.
+- Riding the toy train online no longer jitters: it's predicted and drawn at the right moment.
+- New sounds for all of it. Protocol 11.
+
 ## Czech, roof chests, see-through roofs, smoother crowds (2026-11-18)
 
 - The game's words are in Czech (buttons, results, area names); `?lang=en` switches to English.

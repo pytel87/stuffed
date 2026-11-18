@@ -157,6 +157,8 @@ export interface Player {
   bubbledUntil: Tick;
   /** Covered in glitter until this tick: sparkles, can't hide in bushes or under roofs, and moves slower. */
   glitteredUntil: Tick;
+  /** Hit by a water balloon: slower (and seen in bushes) until this tick. */
+  soakedUntil: Tick;
   /** A Juice Box keeps healing and speeding this plush up until this tick. */
   juiceUntil: Tick;
   /**
@@ -288,7 +290,72 @@ export type GameEvent =
   | { type: 'wallPlaced'; wallId: EntityId; playerId: EntityId }
   | { type: 'wallBroken'; wallId: EntityId; pos: Vec2 }
   /** A plush got trapped in a bubble (or popped out of one). */
-  | { type: 'bubble'; playerId: EntityId; trapped: boolean };
+  | { type: 'bubble'; playerId: EntityId; trapped: boolean }
+  /** The map's strike button was pressed: drops are on their way around `pos`. */
+  | { type: 'strikeCalled'; playerId: EntityId; kind: StrikeKind; pos: Vec2 }
+  /** One drop of an air strike landed. */
+  | { type: 'strikeLand'; kind: StrikeKind; pos: Vec2 }
+  /** The piñata took a hit (it jiggles), or broke open and showered its loot. */
+  | { type: 'pinataHit'; pos: Vec2; byId: EntityId | null }
+  | { type: 'pinataBurst'; pos: Vec2; byId: EntityId | null }
+  /** The map's toy was pressed (the jack-in-the-box's tune, the sprinkler, the ice cracking). */
+  | { type: 'toyStarted'; kind: ToyKind; playerId: EntityId; pos: Vec2 }
+  /** The jack-in-the-box popped, or the pond's ice broke. */
+  | { type: 'toyPop'; kind: ToyKind; pos: Vec2 };
+
+/** The map's big toy: a jack-in-the-box, a garden sprinkler, or an ice drill on the pond. */
+export type ToyKind = 'jack' | 'sprinkler' | 'icedrill';
+
+export interface ToyState {
+  kind: ToyKind;
+  /** What you press (the box's crank, the tap on the house, the drill), and at what height. */
+  pos: Vec2;
+  z: number;
+  /** Where it acts: the box, the sprinkler out on the lawn, the pond. */
+  at: Vec2;
+  readyTick: Tick;
+  /** When it acts (the pop, the spray, the break) and stops; -1 before it was first pressed. */
+  startTick: Tick;
+  endTick: Tick;
+  /** Who pressed it last (credited for knockouts). */
+  byId: EntityId | null;
+}
+
+/** The map's piñata: a paper donkey on a frame, or a big wrapped present. */
+export type PinataKind = 'donkey' | 'present';
+
+export interface PinataState {
+  pos: Vec2;
+  /** What it stands on (its loot lands there). */
+  z: number;
+  kind: PinataKind;
+  hp: number;
+  broken: boolean;
+  /** When it was last hit (for the jiggle). */
+  hitTick: Tick;
+}
+
+/** What an air strike drops: water balloons (soak), toy blocks (hurt) or snowballs (knock back). */
+export type StrikeKind = 'balloons' | 'blocks' | 'snowballs';
+
+/** One drop of an air strike, marked on the ground until it lands. */
+export interface Strike {
+  id: EntityId;
+  kind: StrikeKind;
+  pos: Vec2;
+  calledTick: Tick;
+  landTick: Tick;
+  /** Who pressed the button (credited for knockouts). */
+  byId: EntityId;
+}
+
+/** The map's strike button as the match has it: where, at what height, and when it works again. */
+export interface StrikeButtonState {
+  pos: Vec2;
+  z: number;
+  kind: StrikeKind;
+  readyTick: Tick;
+}
 
 export type RngState = [number, number, number, number];
 
@@ -313,6 +380,13 @@ export interface GameState {
   goals: number[];
   /** The Toss: the blimp flies from `from` to `to` between these ticks; null without one. */
   toss: Toss | null;
+  /** The map's air strike button (null on maps without one) and the drops on their way. */
+  strikeButton: StrikeButtonState | null;
+  strikes: Strike[];
+  /** The map's piñata (null on maps without one). */
+  pinata: PinataState | null;
+  /** The map's big toy (null on maps without one). */
+  toy: ToyState | null;
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
@@ -430,6 +504,15 @@ export interface MapData {
   pools?: Circle[];
   /** Ice: plushies on it slide (they speed up and slow down only gradually). */
   ice?: Circle[];
+  /** A big toy button that calls an air strike; `z` is what it stands on (0: the ground). */
+  strikeButton?: { x: number; y: number; z: number; kind: StrikeKind };
+  /**
+   * A piñata full of good loot; `z` is what it stands on (0: the ground). A donkey hangs from a
+   * tree branch that leaves the trunk at `branch` (drawn only).
+   */
+  pinata?: { x: number; y: number; z: number; kind: PinataKind; branch?: { x: number; y: number; z: number } };
+  /** The map's big toy: pressed at (x, y, z), acting at `at` (the same spot when omitted). */
+  toy?: { kind: ToyKind; x: number; y: number; z: number; at?: Vec2 };
   /** Beach ball goals: a ball whose center rolls into `mouth` scores (the frame is in walls). */
   goals?: Goal[];
   grounds?: Ground[];

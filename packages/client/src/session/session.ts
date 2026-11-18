@@ -10,6 +10,12 @@ export interface RenderFrame {
   prev: GameState;
   curr: GameState;
   alpha: number;
+  /**
+   * Online: the moment your own plush is drawn at (prediction runs ahead of the others, which are
+   * drawn a little in the past). Things that are pure clockwork, like the toy train, are drawn
+   * then too. Unset: the same moment as everything else.
+   */
+  nowTick?: number;
 }
 
 /**

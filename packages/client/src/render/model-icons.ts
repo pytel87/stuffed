@@ -11,6 +11,8 @@ import { buildPart } from './placeholder-parts.ts';
 import { PlushView } from './plush-view.ts';
 import { OUTLINE_COLOR } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
+import { buildStrikeButton } from './strike-views.ts';
+import { buildDrill, buildJack, buildTap } from './toy-views.ts';
 
 const SIZE = 160;
 
@@ -79,6 +81,18 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
   for (const loot of ['low', 'medium', 'high', 'food'] as const) {
     shoot(`chest:${loot}`, buildChest({ id: 0, pos: { x: 0, y: 0 }, z: 0, opened: false, loot }).root, new THREE.Euler(0.45, -0.5, 0, 'YXZ'));
   }
+  // The air strike button of each kind, for its prompt.
+  for (const kind of ['balloons', 'blocks', 'snowballs'] as const) {
+    // Without its glow ring and lights, which would only make the button smaller in the picture.
+    const button = buildStrikeButton(kind);
+    button.glow.removeFromParent();
+    for (const dot of button.dots) dot.removeFromParent();
+    shoot(`strike:${kind}`, button.root, new THREE.Euler(0.4, -0.5, 0, 'YXZ'));
+  }
+  // The map toys, for their prompts: the jack-in-the-box, the garden tap, the ice drill.
+  shoot('toy:jack', buildJack().root, new THREE.Euler(0.4, -0.5, 0, 'YXZ'));
+  shoot('toy:sprinkler', buildTap().root, new THREE.Euler(0.3, -0.4, 0, 'YXZ'));
+  shoot('toy:icedrill', buildDrill(), new THREE.Euler(0.3, -0.4, 0, 'YXZ'));
   // Every skin part, turned to show its best side (tails from behind).
   const partTurn: Record<PartSlot, THREE.Euler> = {
     head: new THREE.Euler(0.15, 0.45, 0, 'YXZ'),

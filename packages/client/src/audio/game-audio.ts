@@ -130,6 +130,28 @@ export class GameAudio {
         case 'zone':
           if (e.stage === 'shrinking') s.play('rinse_rising', { volume: 0.8, pitchSpread: 0 });
           break;
+        case 'strikeCalled': {
+          // The button's click where it was pressed; the falling whistle over where it's coming down.
+          const by = state.players.find((p) => p.id === e.playerId);
+          if (by) s.play('click', { at: by.pos, volume: 1, pitchSpread: 0 });
+          s.play('strike_whistle', { at: e.pos, volume: 1, pitchSpread: 0 });
+          break;
+        }
+        case 'pinataHit':
+          s.play('pinata_hit', { at: e.pos, volume: 0.7 });
+          break;
+        case 'pinataBurst':
+          s.play('pinata_burst', { at: e.pos, volume: 1, pitchSpread: 0 });
+          break;
+        case 'toyStarted':
+          s.play(e.kind === 'jack' ? 'jack_tune' : e.kind === 'sprinkler' ? 'sprinkler_spray' : 'ice_crack', { at: e.pos, volume: 1, pitchSpread: 0 });
+          break;
+        case 'toyPop':
+          s.play(e.kind === 'jack' ? 'jack_pop' : 'ice_break', { at: e.pos, volume: 1, pitchSpread: 0 });
+          break;
+        case 'strikeLand':
+          s.play(e.kind === 'balloons' ? 'balloon_splash' : e.kind === 'blocks' ? 'block_clatter' : 'snow_thud', { at: e.pos, volume: 0.9 });
+          break;
         default:
           break;
       }

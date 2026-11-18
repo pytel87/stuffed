@@ -64,6 +64,10 @@ export const BOT = {
   combatJumpsPerSecond: 0.6,
   /** Look this far for chests and loot. */
   lootRange: 26,
+  /** Go whack the piñata when it's this close. */
+  pinataRange: 14,
+  /** Go press the air strike button when it's ready and this close. */
+  strikeButtonRange: 12,
   /** Heal when stuffing drops below this and no enemy is around. */
   healBelow: 65,
   /** Seconds without seeing an enemy before healing or looting again. */
@@ -320,6 +324,13 @@ export class BotController {
       input.moveX = dodge.x;
       input.moveY = dodge.y;
     }
+    // An air strike marked where it stands, a jack-in-the-box about to pop or the pond cracking
+    // under it: get out of the way.
+    const run = this.dodgeStrike(state, bot) ?? this.dodgeToy(world, state, bot);
+    if (run) {
+      input.moveX = run.x;
+      input.moveY = run.y;
+    }
 
     // Jump is a press: release in between so the next press counts.
     if (wantJump && !m.jumpHeld) {
@@ -504,6 +515,35 @@ export class BotController {
       input.buttons |= Btn.Interact;
       return 'stay';
     }
+    // The piñata close by: whack it open (it's full of good loot).
+    const pin = state.pinata;
+    if (pin && !pin.broken && Math.abs(bot.z - pin.z) < 1 && dist(bot.pos, pin.pos) < BOT.pinataRange) {
+      const d = dist(bot.pos, pin.pos);
+      const weapon = bot.weapons[bot.activeSlot];
+      const reach = weapon && config.weapons[weapon.kind].mode === 'melee' ? 1.6 : 5;
+      if (d > reach) return pin.pos;
+      input.aimX = pin.pos.x - bot.pos.x;
+      input.aimY = pin.pos.y - bot.pos.y;
+      // A press every few ticks (single-shot weapons need a fresh press each time).
+      if (state.tick % 6 < 3) input.buttons |= Btn.Fire;
+      return 'stay';
+    }
+    // At the air strike button: press it.
+    if (interaction?.kind === 'strike') {
+      m.tapE = !m.tapE;
+      if (m.tapE) input.buttons |= Btn.Interact;
+      return 'stay';
+    }
+    // Close to it (and on its level) while it's ready: go press it.
+    const button = state.strikeButton;
+    if (
+      button &&
+      state.tick >= button.readyTick &&
+      Math.abs(bot.z - button.z) <= config.loot.reachHeight &&
+      dist(bot.pos, button.pos) < BOT.strikeButtonRange
+    ) {
+      return button.pos;
+    }
 
     let goal: Vec2 | null = null;
     let bestD: number = BOT.lootRange;
@@ -562,6 +602,42 @@ export class BotController {
    * Heads for the goal, hopping low obstacles and turning around tall ones. If the bot barely
    * moved for half a second while trying to, it takes a random detour for a moment.
    */
+  /** The jack-in-the-box's tune playing close by, or the ice cracking under it: the way out. */
+  private dodgeToy(world: World, state: GameState, bot: Player): Vec2 | null {
+    const t = state.toy;
+    if (!t || state.tick >= t.startTick) return null;
+    let from: Vec2 | null = null;
+    let reach = 0;
+    if (t.kind === 'jack') {
+      from = t.at;
+      reach = config.toys.jack.radius + 1;
+    } else if (t.kind === 'icedrill') {
+      const pond = world.map.ice?.[0];
+      if (pond) {
+        from = pond.center;
+        reach = pond.radius + 0.5;
+      }
+    }
+    if (!from) return null;
+    const dx = bot.pos.x - from.x;
+    const dy = bot.pos.y - from.y;
+    const d = Math.hypot(dx, dy);
+    if (d > reach) return null;
+    return d > 1e-6 ? { x: dx / d, y: dy / d } : { x: 1, y: 0 };
+  }
+
+  /** Inside a marked air strike circle: the way out (away from its middle), else null. */
+  private dodgeStrike(state: GameState, bot: Player): Vec2 | null {
+    for (const s of state.strikes) {
+      const dx = bot.pos.x - s.pos.x;
+      const dy = bot.pos.y - s.pos.y;
+      const d = Math.hypot(dx, dy);
+      if (d > config.strike.radius + bot.radius + 0.5) continue;
+      return d > 1e-6 ? { x: dx / d, y: dy / d } : { x: 1, y: 0 };
+    }
+    return null;
+  }
+
   private steer(world: World, state: GameState, bot: Player, goal: Vec2, m: Memory): { x: number; y: number; jump: boolean } {
     const moved = dist(bot.pos, m.lastPos);
     m.lastPos = { ...bot.pos };

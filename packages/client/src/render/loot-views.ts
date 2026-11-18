@@ -503,7 +503,7 @@ interface LootView {
 
 let sparkleTex: THREE.CanvasTexture | null = null;
 /** A four-point gold star with a soft glow. */
-function sparkleTexture(): THREE.CanvasTexture {
+export function sparkleTexture(): THREE.CanvasTexture {
   if (sparkleTex) return sparkleTex;
   const c = document.createElement('canvas');
   c.width = c.height = 64;
@@ -536,7 +536,7 @@ function sparkleTexture(): THREE.CanvasTexture {
 
 let sparkleGlowTex: THREE.CanvasTexture | null = null;
 /** A soft round glow (drawn additively behind the sparkle). */
-function sparkleGlowTexture(): THREE.CanvasTexture {
+export function sparkleGlowTexture(): THREE.CanvasTexture {
   if (sparkleGlowTex) return sparkleGlowTex;
   const c = document.createElement('canvas');
   c.width = c.height = 64;

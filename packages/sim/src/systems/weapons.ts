@@ -5,6 +5,7 @@ import type { GameState, Input, Player, Rarity, Vec2, WeaponInstance, WeaponKind
 import { raycastWalls, type World } from '../world.ts';
 import { applyDamage, teammates } from './damage.ts';
 import { buildingAt, groundHeight } from './movement.ts';
+import { hitPinata, levelWithPinata } from './pinata.ts';
 
 const SWAP_TICKS = secondsToTicks(config.combat.weaponSwapTime);
 const REVEAL_TICKS = secondsToTicks(config.combat.revealOnShot);
@@ -130,6 +131,15 @@ function swing(world: World, state: GameState, player: Player, weapon: WeaponIns
     p.knockback.y += uy * s.knockback;
     applyDamage(state, p, weaponDamage(weapon), player.id, { from: { x: player.pos.x, y: player.pos.y } });
     state.events.push({ type: 'bonk', playerId: player.id, targetId: p.id });
+  }
+  // A whack at the piñata.
+  const pin = state.pinata;
+  if (pin && !pin.broken && levelWithPinata(state, player.z + config.combat.shotHeight, 0.6)) {
+    const dx = pin.pos.x - player.pos.x;
+    const dy = pin.pos.y - player.pos.y;
+    const d = Math.hypot(dx, dy);
+    const off = Math.acos(Math.max(-1, Math.min(1, (dx * player.aim.x + dy * player.aim.y) / (d || 1))));
+    if (d <= reach + config.pinata.radius && off <= halfArc) hitPinata(world, state, weaponDamage(weapon), player.id);
   }
   state.events.push({ type: 'shot', playerId: player.id, weapon: weapon.kind, pos: { x: player.pos.x, y: player.pos.y } });
 }

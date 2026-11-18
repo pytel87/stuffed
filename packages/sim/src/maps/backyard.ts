@@ -175,7 +175,13 @@ const lawnBushes: Circle[] = [
   bush(30, 36, 2), bush(36, 22, 2),
 ];
 
+// A small tree of its own out on the north lawn (between the house and the shed), with the
+// donkey piñata hanging from its branch.
+const PINATA_TREE = { x: 69.3, y: 37.3, w: 1.4, h: 1.4 };
+const pinataTree: Wall[] = [w('trunk', 4.2)(PINATA_TREE.x, PINATA_TREE.y, PINATA_TREE.w, PINATA_TREE.h)];
+
 const walls: Wall[] = [
+  ...pinataTree,
   ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...poolRim(POOL), ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
 ];
 
@@ -267,6 +273,12 @@ export const BACKYARD: MapData = {
   buildings,
   spawns: [...ringSpawns(16, 54, 11), ...ringSpawns(8, 36, 33)],
   chestSpawns,
+  // The air strike button: up on the treehouse platform (water balloons).
+  strikeButton: { x: 24, y: 23.5, z: 2.7, kind: 'balloons' },
+  // A garden tap on the house's east wall; its hose runs to a sprinkler out on the lawn.
+  toy: { kind: 'sprinkler', x: 76.6, y: 58, z: 0, at: { x: 86, y: 60 } },
+  // A paper donkey piñata hanging from the branch of its own little tree.
+  pinata: { x: 73.6, y: 38.2, z: 0, kind: 'donkey', branch: { x: PINATA_TREE.x + 0.7, y: PINATA_TREE.y + 0.7, z: 3.7 } },
   pools: [POOL],
   goals: [northGoal.goal, southGoal.goal],
   grounds,

@@ -220,6 +220,12 @@ export const BEDROOM: MapData = {
   buildings,
   spawns: [...ringSpawns(16, 44, 11), ...ringSpawns(8, 26, 33)],
   chestSpawns,
+  // The air strike button: up on the desk (a shower of toy blocks).
+  strikeButton: { x: 81, y: 12.5, z: 2.6, kind: 'blocks' },
+  // A jack-in-the-box by the rug.
+  toy: { kind: 'jack', x: 66, y: 82, z: 0 },
+  // A big wrapped present on the rug.
+  pinata: { x: 50, y: 90, z: 0, kind: 'present' },
   grounds,
   zones,
   decor,

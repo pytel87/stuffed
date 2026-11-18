@@ -208,6 +208,12 @@ export const PARK: MapData = {
   buildings,
   spawns: [...ringSpawns(16, 46, 7), ...ringSpawns(8, 26, 29)],
   chestSpawns,
+  // The air strike button: in the snow fort's yard, by the snow pile (a snowball barrage).
+  strikeButton: { x: FX + 9, y: FY + 13.5, z: 0, kind: 'snowballs' },
+  // A toy ice drill out on the frozen pond (beside the chest in the middle).
+  toy: { kind: 'icedrill', x: 64, y: 62, z: 0 },
+  // A big pink present (gold ribbon, unlike the stacks around it) in the middle of the Gift Market.
+  pinata: { x: 60, y: 100, z: 0, kind: 'present' },
   ice: [POND],
   zones,
   decor,

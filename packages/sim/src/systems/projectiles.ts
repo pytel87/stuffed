@@ -7,6 +7,7 @@ import { TRAIN, trainCircles } from './train.ts';
 import { applyDamage, teammates } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
+import { hitPinata, levelWithPinata } from './pinata.ts';
 
 /**
  * Moves projectiles with a swept test so fast ones can't skip through a plush or a wall
@@ -110,9 +111,23 @@ export function updateProjectiles(world: World, state: GameState): void {
         }
       }
     }
+    // The piñata: a shot stops against it (and wears it down).
+    let pinataHit = false;
+    const pin = state.pinata;
+    if (pin && !pin.broken) {
+      const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, pin.pos.x, pin.pos.y, config.pinata.radius + r);
+      if (t !== null && t < wallT && levelWithPinata(state, proj.z + dz * t, r)) {
+        wallT = t;
+        wallHit = { chest: pin.pos };
+        ballHit = null;
+        pinataHit = true;
+      }
+    }
     if (wallT !== Infinity && wallT <= hitT) {
       const at = { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT };
       const zAt = proj.z + dz * wallT;
+      // (A burst wears it down by itself, below.)
+      if (pinataHit && !s.blastRadius) hitPinata(world, state, proj.damage, proj.ownerId);
       if (ballHit) {
         const len = Math.hypot(proj.vel.x, proj.vel.y) || 1;
         pushBall(ballHit, proj.vel.x / len, proj.vel.y / len, config.beachBall.shotPush);
@@ -238,6 +253,11 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
       p.knockback.y += ((p.pos.y - at.y) / d) * push;
     }
     applyDamage(state, p, proj.damage * (1 - (1 - config.combat.blastEdgeDamage) * share), proj.ownerId, { from: { x: at.x, y: at.y } });
+  }
+  // The piñata in the blast takes it too.
+  const pin = state.pinata;
+  if (pin && !pin.broken && Math.hypot(pin.pos.x - at.x, pin.pos.y - at.y) <= radius + config.pinata.radius && levelWithPinata(state, z, radius)) {
+    hitPinata(world, state, proj.damage, proj.ownerId);
   }
   state.events.push({ type: 'burst', pos: { x: at.x, y: at.y }, z, weapon: proj.weapon, radius });
 }

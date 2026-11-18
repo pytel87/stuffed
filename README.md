@@ -107,6 +107,41 @@ Every match starts on a toy blimp flying across the yard. Press Jump (Space, or 
 on touch) to drop off and glide down under an umbrella, steering where you want to land. If you
 don't, you're dropped when it reaches the far side.
 
+## Air strike
+
+Each map has a big toy button (a red dome on a yellow post): up on the Backyard's treehouse, on
+the Bedroom's desk, in the Snowy Park's snow fort. Press E at it and a shower comes down on the
+busiest spot away from you: water balloons in the Backyard (a little damage, soaked: slower and
+seen in bushes), toy blocks in the Bedroom (hurt), snowballs in the Snowy Park (knock you
+flying). Each drop is marked by a circle two seconds ahead (an inner ring grows to its edge),
+anyone under a roof is safe, and bots step out of the circles. The button works from 40 s into
+the match, then needs a minute between presses (its lights come on one by one). See
+[strikes.ts](packages/sim/src/systems/strikes.ts) and `config.strike`.
+
+## Piñata
+
+Each map has one piñata full of good loot: a paper donkey hanging from the branch of its own
+little tree on the Backyard's north lawn (between the house and the shed), and a big pink present with a gold ribbon on the Bedroom rug
+and in the middle of the Snowy Park's Gift Market. A golden glow and a twinkling star mark it.
+Shots, hammer whacks and bursts wear it down (it jiggles and sheds confetti); once it breaks it
+showers two rare-or-better weapons, two items and a part around it. Bots whack it when nobody is
+around. See [pinata.ts](packages/sim/src/systems/pinata.ts) and `config.pinata`.
+
+## Map toys
+
+Each map has one big toy to press with E (it needs a while before it works again):
+
+- **Jack-in-the-box** (Bedroom, by the rug): crank it and it plays a tune for 3 s while it
+  shakes and a red ring marks its reach; then the clown pops out and launches everyone in the ring.
+- **Sprinkler** (Backyard): the tap on the house's east wall turns on a sprinkler out on the lawn
+  for 8 s; its turning arc of water pushes plushies away and soaks them.
+- **Ice drill** (Snowy Park, on the pond): cracks spread over the ice for 3 s, then it breaks:
+  whoever is still on it is dunked (hurt and soaked), and the pond is open water, slow to wade
+  through, for 30 s before it freezes over.
+
+Bots run from the jack-in-the-box and off the cracking ice. See
+[toys.ts](packages/sim/src/systems/toys.ts) and `config.toys`.
+
 ## Bots
 
 You play against 15 bots. For the first 20 seconds they only loot (and fight back if hurt).

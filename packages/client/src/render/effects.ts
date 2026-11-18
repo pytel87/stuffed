@@ -544,6 +544,33 @@ export class Effects {
     this.burst(this.cotton, x, base + 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
   }
 
+  /** An air strike drop landing: a big splash, a clatter of dust, or a burst of snow. */
+  strikeLand(kind: 'balloons' | 'blocks' | 'snowballs', x: number, y: number, z: number): void {
+    if (kind === 'balloons') this.burst(this.water, x, y + 0.3, z, 0, 0, 16, 4, 0.08, 0.6, 10);
+    else if (kind === 'blocks') {
+      this.burst(this.cotton, x, y + 0.2, z, 0, 0, 8, 3, 0.09, 0.45, 0);
+      this.burst(this.stars, x, y + 0.6, z, 0, 0, 4, 2, 0.1, 0.5, 4);
+    } else this.burst(this.cotton, x, y + 0.3, z, 0, 0, 16, 4.5, 0.1, 0.6, 6);
+  }
+
+  /** The piñata hit: a few bits of confetti. Burst: a big shower of confetti and candy. */
+  pinata(x: number, y: number, z: number, burst: boolean): void {
+    for (const pool of this.glitter) this.burst(pool, x, y, z, 0, 0, burst ? 10 : 2, burst ? 5 : 2.5, burst ? 0.09 : 0.06, burst ? 1.4 : 0.8, 5);
+    if (burst) for (const pool of this.buttons) this.burst(pool, x, y, z, 0, 0, 5, 4, 0.07, 1.2, 9);
+  }
+
+  /** A few drops of the sprinkler's spray, flying out along (dx, dz). */
+  spray(x: number, y: number, z: number, dx: number, dz: number): void {
+    // Fast enough to reach the far edge of where it pushes (about 7 units out).
+    this.burst(this.water, x, y + 0.3, z, dx, dz, 2, 11, 0.07, 0.9, 10);
+  }
+
+  /** The pond's ice breaking: a big splash of water and ice chips. */
+  iceBreak(x: number, z: number): void {
+    this.burst(this.water, x, 0.3, z, 0, 0, 30, 6, 0.1, 0.9, 10);
+    this.burst(this.cotton, x, 0.3, z, 0, 0, 20, 7, 0.1, 0.8, 8);
+  }
+
   /** Something picked up: a small puff where it was. */
   pickup(x: number, z: number): void {
     this.burst(this.cotton, x, 0.6, z, 0, 0, 4, 1.5, 0.05, 0.35, 0);

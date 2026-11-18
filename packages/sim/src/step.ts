@@ -7,6 +7,8 @@ import { expireWalls, updateItemUse } from './systems/items.ts';
 import { autoPickupItems, dropEverything, dropFromSlot, hasDrops, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
+import { updateStrikes } from './systems/strikes.ts';
+import { updateToys } from './systems/toys.ts';
 import { updateWeapons } from './systems/weapons.ts';
 import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input, Player } from './types.ts';
@@ -74,6 +76,8 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateBalls(world, state);
   if (world.map.track) plowLoot(world.map.track, state);
   updateProjectiles(world, state);
+  updateStrikes(world, state);
+  updateToys(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {

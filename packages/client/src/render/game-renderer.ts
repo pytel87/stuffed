@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
+import { ANIMALS, canSee, carriedBy, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
 import type { Animal, EntityId, GameEvent, GameState, MapData, PartLoadout, PartSlot, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
@@ -10,6 +10,9 @@ import { TrainView } from './train-view.ts';
 import { ReviveMarkers } from './revive-markers.ts';
 import { buildMapView } from './map-view.ts';
 import { ChestViews, LootViews } from './loot-views.ts';
+import { buildDrop, buildStrikeButton, StrikeViews } from './strike-views.ts';
+import { PinataView } from './pinata-views.ts';
+import { ToyView } from './toy-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
@@ -113,6 +116,9 @@ export class GameRenderer {
   private readonly projectiles = new ProjectileViews(this.scene);
   private readonly effects = new Effects(this.scene);
   private readonly chests = new ChestViews(this.scene);
+  private readonly strikes = new StrikeViews(this.scene);
+  private readonly pinata = new PinataView(this.scene);
+  private readonly toy = new ToyView(this.scene, (x, y, z, dx, dz) => this.effects.spray(x, y, z, dx, dz));
   private readonly placedWalls = new PlacedWallViews(this.scene);
   private readonly toss = new TossView(this.scene);
   /** Set trails: distance walked since the last print, and how many prints so far. */
@@ -332,6 +338,23 @@ export class GameRenderer {
         case 'goal':
           this.effects.goal(e.pos.x, e.pos.y);
           break;
+        case 'pinataHit':
+        case 'pinataBurst': {
+          if (e.type === 'pinataHit') this.pinata.hit();
+          const p = state.pinata;
+          if (p) this.effects.pinata(p.pos.x, p.z + config.pinata.lift[p.kind], p.pos.y, e.type === 'pinataBurst');
+          break;
+        }
+        case 'toyPop':
+          if (e.kind === 'jack') this.effects.chestPop(e.pos.x, e.pos.y);
+          else {
+            const pond = this.world.map.ice?.[0];
+            if (pond) for (let i = 0; i < 6; i++) this.effects.iceBreak(pond.center.x + Math.cos(i) * pond.radius * 0.5, pond.center.y + Math.sin(i) * pond.radius * 0.5);
+          }
+          break;
+        case 'strikeLand':
+          this.effects.strikeLand(e.kind, e.pos.x, groundHeight(this.world, state, e.pos, 99), e.pos.y);
+          break;
         case 'chestOpened': {
           const chest = state.chests.find((c) => c.id === e.chestId);
           if (chest) this.effects.chestPop(chest.pos.x, chest.pos.y, chest.z);
@@ -420,6 +443,7 @@ export class GameRenderer {
     seeThroughBush.receiveShadow = false;
     samples.add(seeThroughBush);
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
+    samples.add(buildStrikeButton('balloons').root, ...(['balloons', 'blocks', 'snowballs'] as const).map((k) => buildDrop(k)));
     // Spread them out in a grid at the map center, where the shadow camera can see them too.
     samples.children.forEach((o, i) => o.position.set(40 + (i % 8) * 1.5 - 6, 0.5, 40 + Math.floor(i / 8) * 1.5 - 6));
     this.scene.add(samples);
@@ -461,6 +485,9 @@ export class GameRenderer {
     this.dripTimers.clear();
     this.projectiles.clear();
     this.chests.clear();
+    this.strikes.clear();
+    this.pinata.clear();
+    this.toy.clear();
     this.loot.clear();
     this.placedWalls.clear();
     this.toss.clear();
@@ -474,6 +501,11 @@ export class GameRenderer {
     // or the picture stays stretched to the old shape.
     if (`${this.canvas.clientWidth}x${this.canvas.clientHeight}` !== this.sizedFor) this.resize();
     const { prev, curr, alpha } = frame;
+    // The toy train is clockwork: drawn at the moment your own plush is (online that's ahead of
+    // the others), and so is the ground it makes for anyone riding it.
+    const drawnTick = curr.tick - 1 + alpha;
+    const trainTick = frame.nowTick ?? drawnTick;
+    const trainState = trainTick === drawnTick ? curr : { ...curr, tick: trainTick };
     const prevById = new Map<EntityId, Player>(prev.players.map((p) => [p.id, p]));
     const seen = new Set<EntityId>();
     // Whoever we follow decides what is visible: you, or the plush you spectate.
@@ -504,11 +536,16 @@ export class GameRenderer {
 
 
       const before = prevById.get(p.id) ?? p;
-      const pos = lerp2(before.pos, p.pos, alpha);
+      let pos = lerp2(before.pos, p.pos, alpha);
       const vel = lerp2(before.vel, p.vel, alpha);
       const aim = p.id === opts.localPlayerId ? opts.localAim : lerpDir(before.aim, p.aim, alpha);
       const z = before.z + (p.z - before.z) * alpha;
-      const groundY = groundHeight(this.world, curr, pos, z);
+      // Someone else riding the train (drawn a little in the past): carried on to where their
+      // wagon is drawn now.
+      if (this.world.map.track && p.id !== opts.localPlayerId && trainTick !== drawnTick) {
+        pos = carriedBy(this.world.map.track, drawnTick, trainTick, pos, z) ?? pos;
+      }
+      const groundY = groundHeight(this.world, trainState, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Up on the roof above you: gone while you're inside, under it.
       fadeObject(view.root, this.roofFade(pos.x, pos.y, z));
@@ -544,7 +581,7 @@ export class GameRenderer {
       view.root.visible = p.drop !== 'riding' && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding');
       view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
-      if (p.soggy && view.root.visible) {
+      if ((p.soggy || curr.tick < p.soakedUntil) && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
         if (t <= 0) this.effects.drip(pos.x, pos.y);
         this.dripTimers.set(p.id, t <= 0 ? 0.3 : t);
@@ -571,13 +608,16 @@ export class GameRenderer {
 
     this.projectiles.update(prev, curr, alpha, opts.time);
     this.chests.update(curr, opts.dt, opts.time, this.roofFade);
+    this.strikes.update(this.world, curr, curr.tick - 1 + alpha, opts.dt, opts.time, this.roofFade);
+    this.pinata.update(curr, this.world.map.pinata?.branch, opts.dt, opts.time);
+    this.toy.update(curr, this.world.map, curr.tick - 1 + alpha, opts.time);
     // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
     for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
     this.loot.update(curr, opts.dt, opts.time, this.roofFade);
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
     this.goals.update(curr, opts.dt);
-    this.train.update(curr.tick - 1 + alpha, opts.dt, (x, y, z) => this.effects.steam(x, y, z));
+    this.train.update(trainTick, opts.dt, (x, y, z) => this.effects.steam(x, y, z));
     this.reviveMarkers.update(curr, viewer, opts.time);
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));

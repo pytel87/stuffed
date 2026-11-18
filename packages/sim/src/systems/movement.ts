@@ -6,6 +6,7 @@ import type { Ball, GameState, Input, Player, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
 import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
+import { iceOpen } from './toys.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -48,9 +49,10 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     (player.chargeStartTick !== null ? config.combat.chargeMoveMultiplier : 1) *
     (state.tick < player.juiceUntil ? config.itemEffects.juice.speedMultiplier : 1) *
     (state.tick < player.glitteredUntil ? config.combat.glitterMoveMultiplier : 1) *
+    (state.tick < player.soakedUntil ? config.strike.soakMoveMultiplier : 1) *
     (player.soggy ? config.player.soggySpeedMultiplier : 1) *
-    (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
-  const blend = onIce(world, player) ? ICE_BLEND : ACCEL_BLEND;
+    (wading(world, player, state) ? config.player.wadeSpeedMultiplier : 1);
+  const blend = onIce(world, player, state) ? ICE_BLEND : ACCEL_BLEND;
   player.vel.x += (move.x * speed - player.vel.x) * blend;
   player.vel.y += (move.y * speed - player.vel.y) * blend;
 
@@ -152,6 +154,30 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     }
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
+    }
+    // The jack-in-the-box.
+    const toy = state.toy;
+    if (toy?.kind === 'jack' && player.z < toy.z + 1) {
+      const dx = player.pos.x - toy.at.x;
+      const dy = player.pos.y - toy.at.y;
+      const min = r + config.toys.jack.size;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < min * min) {
+        const d = Math.sqrt(d2);
+        moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+      }
+    }
+    // The piñata, while it's whole (at the plush's level).
+    const pin = state.pinata;
+    if (pin && !pin.broken && player.z < pin.z + config.pinata.lift[pin.kind] + config.pinata.halfHeight && player.z + config.player.height > pin.z) {
+      const dx = player.pos.x - pin.pos.x;
+      const dy = player.pos.y - pin.pos.y;
+      const min = r + config.pinata.radius;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < min * min) {
+        const d = Math.sqrt(d2);
+        moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+      }
     }
     if (world.map.track) {
       for (const c of trainCircles(world.map.track, state.tick)) {
@@ -290,19 +316,20 @@ function removeInto(v: { x: number; y: number }, nx: number, ny: number): void {
   }
 }
 
-/** Standing on ice (not in the air). */
-export function onIce(world: World, player: Pick<Player, 'pos' | 'z'>): boolean {
-  if (player.z > 0.05) return false;
+/** Standing on ice (not in the air; and not while the pond is broken open). */
+export function onIce(world: World, player: Pick<Player, 'pos' | 'z'>, state?: GameState): boolean {
+  if (player.z > 0.05 || (state && iceOpen(state))) return false;
   for (const ice of world.map.ice ?? []) {
     if (Math.hypot(player.pos.x - ice.center.x, player.pos.y - ice.center.y) < ice.radius) return true;
   }
   return false;
 }
 
-/** Standing in a pool's shallow water (not jumping over it). */
-export function wading(world: World, player: Pick<Player, 'pos' | 'z'>): boolean {
+/** Standing in a pool's shallow water (not jumping over it), or in the pond while it's open. */
+export function wading(world: World, player: Pick<Player, 'pos' | 'z'>, state?: GameState): boolean {
   if (player.z > 0.05) return false;
-  for (const pool of world.map.pools ?? []) {
+  const water = state && iceOpen(state) ? [...(world.map.pools ?? []), ...(world.map.ice ?? [])] : (world.map.pools ?? []);
+  for (const pool of water) {
     if (Math.hypot(player.pos.x - pool.center.x, player.pos.y - pool.center.y) < pool.radius) return true;
   }
   return false;

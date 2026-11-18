@@ -313,7 +313,7 @@ describe('the Snowy Park', () => {
     for (let t = 0; t < 30 * 60 * 4 && state.status === 'playing'; t++) step(world, state, bots.inputs(world, state));
     expect(state.status).toBe('ended');
     expect(state.chests.some((c) => c.opened)).toBe(true);
-  }, 20_000); // a whole match: slow on a busy machine
+  });
 });
 
 describe('the toy train', () => {

@@ -134,7 +134,8 @@ export class NetworkMatch implements GameSession {
     this.pending = this.pending.filter((i) => i.seq > me.lastInputSeq);
     this.unconfirmedShots = this.unconfirmedShots.filter((seq) => seq > me.lastInputSeq);
     const fresh = structuredClone(me);
-    for (const input of this.pending) predictPlayer(this.world, state, fresh, input);
+    // Each one at the tick the server will apply it (the toy train moves on meanwhile).
+    this.pending.forEach((input, i) => predictPlayer(this.world, { ...state, tick: state.tick + i + 1 }, fresh, input));
 
     if (!this.predicted || !this.predictedPrev) {
       this.predicted = fresh;
@@ -165,7 +166,7 @@ export class NetworkMatch implements GameSession {
     this.pending.push(input);
     if (this.pending.length > MAX_PENDING) this.pending.shift();
     this.predictedPrev = structuredClone(this.predicted);
-    predictPlayer(this.world, latest.state, this.predicted, input);
+    predictPlayer(this.world, { ...latest.state, tick: latest.tick + this.pending.length }, this.predicted, input);
     this.predTick++;
     // Test them against the others as they're drawn (the server checks at that same moment).
     this.moveShots(this.drawnState() ?? latest.state);
@@ -318,7 +319,9 @@ export class NetworkMatch implements GameSession {
       players: s.players.map((p) => (p.id === me.id ? me : p)),
       projectiles: [...s.projectiles.filter((q) => q.ownerId !== me.id || !predictable(q.weapon)).map((q) => this.led(q)), ...mine],
     });
-    return { prev: withMe(prev.state), curr: withMe(curr.state), alpha };
+    const latest = this.snaps[this.snaps.length - 1]!;
+    const nowTick = latest.tick + this.pending.length - 1 + this.inputAcc / DT;
+    return { prev: withMe(prev.state), curr: withMe(curr.state), alpha, nowTick };
   }
 
   /**

@@ -157,6 +157,50 @@
     "train_toot": {
       "prompt": "a small wooden toy train whistle: a cheerful short toot toot",
       "seconds": 0.8
+    },
+    "strike_whistle": {
+      "prompt": "a cartoon falling bomb whistle, a long descending slide whistle from high to low, comedic",
+      "seconds": 1.8
+    },
+    "balloon_splash": {
+      "prompt": "a water balloon bursting on the ground: rubbery pop and a big wet splash",
+      "seconds": 0.8
+    },
+    "block_clatter": {
+      "prompt": "a wooden toy building block dropping onto a wooden floor: hard bonk and a short clatter",
+      "seconds": 0.7
+    },
+    "snow_thud": {
+      "prompt": "a big snowball smacking into the ground: soft heavy crunchy snow thump",
+      "seconds": 0.7
+    },
+    "pinata_hit": {
+      "prompt": "a stick whacking a papier-mache pinata: hollow papery thump with a crinkle",
+      "seconds": 0.5
+    },
+    "pinata_burst": {
+      "prompt": "a pinata bursting open: paper tearing, a party popper bang and a shower of candy and confetti",
+      "seconds": 1.4
+    },
+    "jack_tune": {
+      "prompt": "a tinkly wind-up music box playing a cheerful circus tune, with a crank clicking, getting faster",
+      "seconds": 3
+    },
+    "jack_pop": {
+      "prompt": "a jack-in-the-box popping open: a loud springy boing with a squeaky honk",
+      "seconds": 1
+    },
+    "sprinkler_spray": {
+      "prompt": "a garden lawn sprinkler spraying water: a steady hiss of water with a rhythmic ticking",
+      "seconds": 8
+    },
+    "ice_crack": {
+      "prompt": "ice cracking on a frozen pond: sharp creaks and splintering cracks spreading",
+      "seconds": 3
+    },
+    "ice_break": {
+      "prompt": "a frozen pond's ice shattering and plunging into water: a crash of ice and a big splash",
+      "seconds": 1.5
     }
   }
 }

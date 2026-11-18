@@ -7,6 +7,8 @@ import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { groundHeight } from './movement.ts';
+import { callStrike, strikeReady } from './strikes.ts';
+import { pressToy, toyReady } from './toys.ts';
 import { makeWeapon } from './weapons.ts';
 
 const OPEN_TICKS = secondsToTicks(config.chest.openTime);
@@ -21,6 +23,10 @@ export type Interaction =
   | { kind: 'chest'; chest: Chest }
   /** Team mode: a knocked-out teammate to re-stitch. */
   | { kind: 'revive'; target: Player }
+  /** The map's air strike button. */
+  | { kind: 'strike' }
+  /** The map's big toy (crank, tap or drill). */
+  | { kind: 'toy' }
   | null;
 
 /** Loot (or a chest base) at height `z` is within vertical reach of this plush. */
@@ -101,6 +107,9 @@ export function findInteraction(state: GameState, player: Player): Interaction {
   if (best?.content.type === 'part') return { kind: 'part', loot: best, part: best.content.part };
   if (best) return { kind: 'weapon', loot: best };
 
+  if (strikeReady(state, player)) return { kind: 'strike' };
+  if (toyReady(state, player)) return { kind: 'toy' };
+
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
   for (const c of state.chests) {
@@ -163,6 +172,10 @@ export function updateInteraction(world: World, state: GameState, player: Player
   else if (target?.kind === 'part') wearPart(world, state, player, target.loot, target.part);
   else if (target?.kind === 'chest') {
     player.action = { kind: 'openChest', chestId: target.chest.id, startTick: state.tick, endTick: state.tick + OPEN_TICKS };
+  } else if (target?.kind === 'strike') {
+    callStrike(world, state, player);
+  } else if (target?.kind === 'toy') {
+    pressToy(state, player);
   } else if (target?.kind === 'revive') {
     player.action = { kind: 'revive', targetId: target.target.id, startTick: state.tick, endTick: state.tick + secondsToTicks(config.team.reviveTime) };
   }
