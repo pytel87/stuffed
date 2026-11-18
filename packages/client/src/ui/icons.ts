@@ -22,6 +22,8 @@ const paths: Record<string, string> = {
   button_pack: `<circle cx="9" cy="14" r="5" fill="#e2574c"/><circle cx="15" cy="10" r="5" fill="#f7c331"/><circle cx="14" cy="9" r=".9" fill="${INK}" stroke="none"/><circle cx="16" cy="11" r=".9" fill="${INK}" stroke="none"/>`,
   button_pile: `<rect x="6" y="7" width="12" height="14" rx="3" fill="#e8f7ff"/><rect x="5.5" y="3.5" width="13" height="4" rx="1.5" fill="#e2433f"/><circle cx="10" cy="16.5" r="2" fill="#3d7ff2" stroke="none"/><circle cx="14.5" cy="15" r="2" fill="#f7c331" stroke="none"/><circle cx="11.5" cy="11.5" r="2" fill="#e2574c" stroke="none"/>`,
   // world
+  // stuffing drained of its color: you're out in the Rinse
+  drained: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#b9b9c2"/>`,
   water: `<path d="M12 3c3.5 4.5 6 7.6 6 10.7A6 6 0 0 1 6 13.7C6 10.6 8.5 7.5 12 3Z" fill="#7fd0f7"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" stroke="#fff" stroke-width="1.6"/>`,
   chest: `<rect x="3.5" y="10" width="17" height="9" rx="1.5" fill="#d9534f"/><path d="M3.5 10l1.5-4h14l1.5 4Z" fill="#f2c14e"/><path d="M12 12.5l.9 1.8 2 .2-1.5 1.3.5 2-1.9-1.1-1.9 1.1.5-2-1.5-1.3 2-.2Z" fill="#f7d046" stroke-width="1"/>`,
   // actions

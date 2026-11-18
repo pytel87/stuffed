@@ -2,6 +2,27 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Textures, a grey Rinse, and a livelier backyard (2026-11-18)
+
+- Generated textures (OpenAI images, `pnpm textures`): animals wear knit, corduroy or minky-dot
+  plush (with weave you can see in the light); wooden floors, a felt lawn, sand, soil, bricks,
+  roof tiles, crates, cardboard, a patchwork quilt, wicker, and woven picnic and tablecloth
+  checks. Toy plastic (weapons, toy blocks, the train, lacquered chests, beach balls, button
+  eyes) has a glint.
+- The Rinse drains the color out of everything in it, behind a shiny rainbow-edged line; out in
+  it, a grey-heart badge pulses faster the more it hurts (no more number). No countdown or
+  call-outs.
+- Bushes of felt leaves, some flowering or with berries; knitted laundry piles; a wooden rain
+  barrel; a sandcastle with windows and a door; a spade in the bucket; shells and pebbles on the
+  sand; books with labels and a bookmark; a striped inflatable pool with rippling water.
+- The pool's rim is solid: jump over it (or onto it). The rubber duck can be pushed about the
+  pool. Protocol version 6.
+- Shots leave colored streaks, hard hits knock stars loose, goal nets sag, the lawn darkens
+  past the map's edge. Shadows no longer shimmer as the camera moves; a bush you stand in is an
+  even see-through green.
+- A rebuilt Foam Dart SMG; a bigger part picture in the pickup prompt; a brighter new-part
+  sparkle.
+
 ## Animal touch-ups (2026-11-18)
 
 - Fixed: the octopus's tentacles all came out on one side, and the hedgehog's back spikes sat on

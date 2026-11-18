@@ -3,7 +3,8 @@
 // with small canvas textures (one per kind, shared).
 import * as THREE from 'three';
 import type { Wall } from '@stuffed/sim';
-import { darken, lighten, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { detailMaps, noteClone, repeated, upgradeTexture } from './image-textures.ts';
+import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const OUTLINE = 0.045;
 
@@ -41,6 +42,7 @@ export function tiled(tex: THREE.Texture, rx: number, ry: number): THREE.Texture
   const t = tex.clone();
   t.repeat.set(rx, ry);
   t.needsUpdate = true;
+  noteClone(tex, t);
   return t;
 }
 
@@ -51,7 +53,10 @@ function seeded(seed: number): () => number {
 }
 
 /** Bricks of slightly different reds and tans in light mortar, with a few speckles. */
-export const brickTexture = () =>
+/** The generated image (wall_brick), drawn until it loads. */
+export const brickTexture = () => upgradeTexture(drawnBrickTexture(), 'wall_brick', { soften: 0.25, periodic: true });
+
+const drawnBrickTexture = () =>
   canvasTexture('brick', 256, (g, s) => {
     const rand = seeded(11);
     g.fillStyle = '#efdcc4';
@@ -75,9 +80,48 @@ export const brickTexture = () =>
     }
   });
 
+/** Felt leaves for bushes and tree crowns: tintable detail and its normal map, repeated `r` times. */
+export function foliage(r = 1.5): { map: THREE.Texture; normal: THREE.Texture } {
+  const base = detailMaps('foliage_felt', feltTexture().image as HTMLCanvasElement, 0.14);
+  return { map: repeated(base.map, r, r), normal: repeated(base.normal, r, r) };
+}
+
+/** Woven wicker for the picnic basket (light wood until the image loads). */
+export const wickerTexture = () => upgradeTexture(canvasTexture('wicker', 16, (g, s) => {
+  g.fillStyle = '#d8aa6a';
+  g.fillRect(0, 0, s, s);
+}), 'wicker', { soften: 0.15 });
+
+/** Pool water with soft ripples (plain until the image loads). */
+export const waterTexture = () => upgradeTexture(canvasTexture('water', 16, (g, s) => {
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, s, s);
+}), 'water_pool', { seamless: true });
+
+/** Slowly drifts a texture (water ripples) while `mesh` is drawn. */
+export function drift(mesh: THREE.Mesh, tex: THREE.Texture, speed = 0.02): void {
+  mesh.onBeforeRender = () => {
+    const t = performance.now() / 1000;
+    tex.offset.set(t * speed, Math.sin(t * 0.3) * speed * 2);
+  };
+}
+
+/** Cardboard as grey detail (tinted by the material), felt until the generated image loads. */
+export const cardboardTexture = () =>
+  upgradeTexture(
+    canvasTexture('cardboard', 128, (g, s) => g.drawImage(feltTexture().image as HTMLCanvasElement, 0, 0, s, s)),
+    'cardboard',
+    { seamless: true, fabric: true },
+  );
+
+/** Floorboards for the house and the Bedroom: the generated wood, drawn planks until it loads. */
+export const woodFloorTexture = () => upgradeTexture(canvasTexture('woodFloor', 256, drawPlanks), 'floor_wood', { soften: 0.6 });
+
 /** Four planks of slightly different wood, with grain lines, knots and dark gaps. */
-export const plankTexture = () =>
-  canvasTexture('plank', 256, (g, s) => {
+export const plankTexture = () => upgradeTexture(canvasTexture('plank', 256, drawPlanks), 'floor_wood', { soften: 0.45 });
+
+function drawPlanks(g: CanvasRenderingContext2D, s: number): void {
+  {
     const rand = seeded(5);
     const tones = ['#c48d58', '#bb8450', '#c9955f', '#b98049'];
     const pw = s / 4;
@@ -116,10 +160,14 @@ export const plankTexture = () =>
         g.fill();
       }
     }
-  });
+  }
+}
+
+/** The lawn: the generated felt lawn, drawn felt until it loads. */
+export const lawnTexture = () => upgradeTexture(drawnLawnTexture(), 'ground_grass', { seamless: true, soften: 0.15 });
 
 /** Lawn felt: soft patches of lighter and darker green, short blades and fibers. */
-export const lawnTexture = () =>
+const drawnLawnTexture = () =>
   canvasTexture('lawn', 256, (g, s) => {
     const rand = seeded(21);
     g.fillStyle = '#7cc46a';
@@ -156,7 +204,10 @@ export const lawnTexture = () =>
   });
 
 /** Sand: grains in a few tones, gentle ripples and the odd pebble. */
-export const sandTexture = () =>
+/** The generated image (ground_sand), drawn until it loads. */
+export const sandTexture = () => upgradeTexture(drawnSandTexture(), 'ground_sand', { seamless: true });
+
+const drawnSandTexture = () =>
   canvasTexture('sand', 256, (g, s) => {
     const rand = seeded(31);
     g.fillStyle = '#efd793';
@@ -183,7 +234,10 @@ export const sandTexture = () =>
   });
 
 /** Garden soil: dark clods, pebbles and little roots. */
-export const dirtTexture = () =>
+/** The generated image (ground_dirt), drawn until it loads. */
+export const dirtTexture = () => upgradeTexture(drawnDirtTexture(), 'ground_dirt', { seamless: true, soften: 0.4 });
+
+const drawnDirtTexture = () =>
   canvasTexture('dirt', 256, (g, s) => {
     const rand = seeded(41);
     g.fillStyle = '#86603f';
@@ -213,7 +267,10 @@ export const dirtTexture = () =>
   });
 
 /** Stepping stones: grey with darker and lighter speckles. */
-export const stoneTexture = () =>
+/** The generated image (stone_top), drawn until it loads. */
+export const stoneTexture = () => upgradeTexture(drawnStoneTexture(), 'stone_top', { soften: 0.2 });
+
+const drawnStoneTexture = () =>
   canvasTexture('stone', 128, (g, s) => {
     const rand = seeded(51);
     g.fillStyle = '#cbc5bb';
@@ -234,7 +291,10 @@ export const ginghamTexture = () =>
     g.fillRect(0, 0, s, s / 2);
   });
 
-export const crateTexture = () =>
+/** The generated image (wood_crate), drawn until it loads. */
+export const crateTexture = () => upgradeTexture(drawnCrateTexture(), 'wood_crate', { soften: 0.3 });
+
+const drawnCrateTexture = () =>
   canvasTexture('crate', 128, (g, s) => {
     g.fillStyle = '#d6a468';
     g.fillRect(0, 0, s, s);
@@ -272,7 +332,10 @@ export const rugTexture = () =>
   });
 
 /** A patchwork quilt for the bed. */
-export const quiltTexture = () =>
+/** The generated image (fabric_quilt), drawn until it loads. */
+export const quiltTexture = () => upgradeTexture(drawnQuiltTexture(), 'fabric_quilt');
+
+const drawnQuiltTexture = () =>
   canvasTexture('quilt', 128, (g, s) => {
     const colors = ['#f6a5c0', '#9fc7e8', '#fde39a', '#b9e3a8', '#d7c2f0', '#ffc9a3'];
     const n = 4;
@@ -295,6 +358,12 @@ export const quiltTexture = () =>
       g.stroke();
     }
   });
+
+/** A woven red-and-cream picnic check (about 10 squares across), drawn checks until it loads. */
+export const picnicTexture = () => upgradeTexture(checkerTexture(), 'fabric_picnic', { periodic: true });
+
+/** A woven blue gingham tablecloth (about 8 squares across), drawn gingham until it loads. */
+export const tableclothTexture = () => upgradeTexture(ginghamTexture(), 'fabric_tablecloth', { periodic: true });
 
 export const checkerTexture = (a = '#e25b5b', b = '#fff6ec') =>
   canvasTexture(`checker${a}${b}`, 64, (g, s) => {
@@ -320,7 +389,10 @@ export const stripeTexture = () =>
   });
 
 /** Rounded roof tiles, each row a slightly different red. */
-export const tileTexture = () =>
+/** The generated image (roof_tiles), drawn until it loads. */
+export const tileTexture = () => upgradeTexture(drawnTileTexture(), 'roof_tiles', { soften: 0.2, periodic: true });
+
+const drawnTileTexture = () =>
   canvasTexture('roofTiles', 256, (g, s) => {
     const rand = seeded(61);
     const rows = 8;
@@ -393,7 +465,7 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
   switch (kind) {
     case 'block': {
       const color = BLOCK_COLORS[index % BLOCK_COLORS.length]!;
-      add(outlinedBox(b.w, H, b.h, toonMaterial('#ffffff', { map: letterTexture(color, LETTERS[index % LETTERS.length]!) })), H / 2);
+      add(outlinedBox(b.w, H, b.h, makePlastic(toonMaterial('#ffffff', { map: letterTexture(color, LETTERS[index % LETTERS.length]!) }), true)), H / 2);
       break;
     }
     case 'cardboard': {
@@ -407,6 +479,22 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       const long = b.w > b.h;
       add(new THREE.Mesh(new THREE.BoxGeometry(long ? b.w - 0.25 : b.w + 0.02, H - 0.3, long ? b.h + 0.02 : b.h - 0.25), flat('#f4ead2')), H / 2);
       add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.03, 0.12, b.h + 0.03), flat(darken(cover, 0.25))), H * 0.75);
+      // On the cover: a cream title label with two lines of "writing", a gold star, and a ribbon
+      // bookmark hanging out of the pages.
+      const lw = long ? Math.min(b.w * 0.5, 3) : b.w * 0.6;
+      const lh = long ? b.h * 0.6 : Math.min(b.h * 0.5, 3);
+      add(new THREE.Mesh(new THREE.BoxGeometry(lw, 0.03, lh), flat('#fbf3df')), H + 0.015);
+      for (const k of [-1, 1]) {
+        const line = new THREE.Mesh(new THREE.BoxGeometry(long ? lw * 0.7 : lw * 0.12, 0.035, long ? lh * 0.12 : lh * 0.7), flat(darken(cover, 0.3)));
+        line.position.set(long ? 0 : k * lw * 0.2, H + 0.02, long ? k * lh * 0.2 : 0);
+        g.add(line);
+      }
+      const star = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 5), flat('#f7c331'));
+      star.position.set(long ? -b.w / 2 + 0.6 : 0, H + 0.02, long ? 0 : -b.h / 2 + 0.6);
+      g.add(star);
+      const ribbon = new THREE.Mesh(new THREE.BoxGeometry(long ? 0.18 : 0.05, 0.7, long ? 0.05 : 0.18), flat('#e2433f'));
+      ribbon.position.set(long ? b.w / 4 : b.w / 2 + 0.03, H - 0.4, long ? b.h / 2 + 0.03 : b.h / 4);
+      g.add(ribbon);
       break;
     }
     case 'brick': {
@@ -428,16 +516,31 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     }
     case 'barrel': {
       const r = Math.min(b.w, b.h) / 2;
-      const barrel = toonMesh(new THREE.CylinderGeometry(r, r * 0.92, H, 20), '#7a8fa0', { outline: 0.05 });
-      add(barrel, H / 2);
-      for (const y of [H * 0.2, H * 0.8]) {
-        const band = new THREE.Mesh(new THREE.TorusGeometry(r * 0.99, 0.05, 6, 24), flat('#4c5a66'));
-        band.rotation.x = Math.PI / 2;
-        add(band, y);
+      // A wooden rain barrel: staves bulging a little in the middle, two iron bands, water on top.
+      const profile: THREE.Vector2[] = [];
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8;
+        profile.push(new THREE.Vector2(r * (0.9 + Math.sin(t * Math.PI) * 0.1), t * H));
       }
-      // rain water on top
-      const water = new THREE.Mesh(new THREE.CircleGeometry(r * 0.85, 20).rotateX(-Math.PI / 2), flat('#6fc3ec'));
-      add(water, H + 0.01);
+      const staves = toonMaterial('#f2d2a8', { map: tiled(plankTexture(), 3, 0.6) });
+      const barrel = new THREE.Mesh(new THREE.LatheGeometry(profile, 24), staves);
+      barrel.castShadow = barrel.receiveShadow = true;
+      const hull = new THREE.Mesh(new THREE.LatheGeometry(profile.map((v) => new THREE.Vector2(v.x + 0.05, v.y)), 24), outlineMaterial(OUTLINE_COLOR));
+      barrel.add(hull);
+      add(barrel, 0);
+      for (const t of [0.18, 0.82]) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(r * (0.9 + Math.sin(t * Math.PI) * 0.1) + 0.02, 0.06, 6, 28), flat('#5d6670'));
+        band.rotation.x = Math.PI / 2;
+        add(band, t * H);
+      }
+      const rimTop = new THREE.Mesh(new THREE.TorusGeometry(r * 0.9, 0.06, 6, 28), flat('#a8743f'));
+      rimTop.rotation.x = Math.PI / 2;
+      add(rimTop, H);
+      // rain water on top, with drifting ripples
+      const waterTex = tiled(waterTexture(), 0.5, 0.5);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(r * 0.88, 24).rotateX(-Math.PI / 2), toonMaterial('#bfe9ff', { map: waterTex }));
+      drift(water, waterTex, 0.015);
+      add(water, H - 0.08);
       break;
     }
     case 'trunk': {
@@ -445,7 +548,8 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       add(toonMesh(new THREE.CylinderGeometry(r * 0.85, r * 1.05, H, 16), '#7a5236', { outline: 0.03 }), H / 2);
       // a small leafy crown on top (kept small so it doesn't hide the platform)
       for (const [x, y, z, s] of [[0, 0.3, 0, 1.5], [1, 0, -0.4, 1.1], [-1, -0.1, -0.5, 1.1], [0.2, 0.2, -1.1, 1]] as const) {
-        const leaf = toonMesh(new THREE.IcosahedronGeometry(s, 1), '#4ea34a', { outline: 0.04, outlineColor: '#1f3f26' });
+        const crown = makeTriplanar(toonMaterial('#4ea34a', { map: foliage(1).map }), 0.9);
+        const leaf = toonMesh(new THREE.IcosahedronGeometry(s, 2), '#4ea34a', { outline: 0.04, outlineColor: '#1f3f26', material: crown });
         leaf.position.set(x, H + y, z);
         g.add(leaf);
       }
@@ -469,13 +573,33 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       break;
     }
     case 'sandcastle': {
-      const sand = '#e8cf8f';
-      add(outlinedBox(b.w, H * 0.65, b.h, toonMaterial(sand)), (H * 0.65) / 2);
-      // four towers with crenellated tops
+      const sand = '#f6e3b4';
+      const sandy = () => toonMaterial(sand, { map: tiled(sandTexture(), 0.4, 0.4) });
+      add(outlinedBox(b.w, H * 0.65, b.h, sandy()), (H * 0.65) / 2);
+      const hole = flat('#9c7a45');
+      // an arched door on the front (+z) and a little window each side of it
+      const door = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.04, 16, 1, false, 0, Math.PI), hole);
+      door.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      door.position.set(0, 0.02, b.h / 2 + 0.01);
+      door.scale.set(1, 1, 1.5);
+      g.add(door);
+      // four towers with crenellated tops and a window each
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-        const tower = toonMesh(new THREE.CylinderGeometry(0.42, 0.5, H, 12), sand, { outline: 0.05 });
-        tower.position.set((sx * b.w) / 2 - sx * 0.4, H / 2, (sz * b.h) / 2 - sz * 0.4);
+        const tower = toonMesh(new THREE.CylinderGeometry(0.42, 0.5, H, 12), sand, { outline: 0.05, material: sandy() });
+        const tx = (sx * b.w) / 2 - sx * 0.4;
+        const tz = (sz * b.h) / 2 - sz * 0.4;
+        tower.position.set(tx, H / 2, tz);
         g.add(tower);
+        for (let c = 0; c < 4; c++) {
+          const a = (c / 4) * Math.PI * 2 + Math.PI / 4;
+          const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), sandy());
+          merlon.position.set(tx + Math.cos(a) * 0.32, H + 0.1, tz + Math.sin(a) * 0.32);
+          merlon.rotation.y = -a;
+          g.add(merlon);
+        }
+        const win = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.24, 0.04), hole);
+        win.position.set(tx, H * 0.7, tz + sz * 0.44);
+        g.add(win);
       }
       const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), flat('#7a5236'));
       flagPole.position.set(b.w / 2 - 0.4, H + 0.45, -b.h / 2 + 0.4);
@@ -495,6 +619,17 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       add(sandTop, H * 0.8);
       const handle = new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04, 6, 24, Math.PI), flat('#ffd23a'));
       add(handle, H);
+      // a little red spade stuck in the sand, leaning out
+      const spade = new THREE.Group();
+      spade.position.set(r * 0.3, H * 0.8, r * 0.2);
+      spade.rotation.set(0.35, 0.6, -0.3);
+      const shaft = toonMesh(new THREE.CylinderGeometry(0.05, 0.05, H * 0.9, 8), '#e2433f', { outline: 0.06 });
+      shaft.position.y = H * 0.45;
+      spade.add(shaft);
+      const grip = toonMesh(new THREE.BoxGeometry(0.3, 0.08, 0.08), '#e2433f', { outline: 0.06 });
+      grip.position.y = H * 0.9;
+      spade.add(grip);
+      g.add(spade);
       break;
     }
     case 'planter': {
@@ -529,7 +664,7 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     }
     case 'ball': {
       const r = Math.min(b.w, b.h, H) / 2;
-      const ballMesh = toonMesh(new THREE.SphereGeometry(r, 24, 16), '#ffffff', { outline: 0.04, material: toonMaterial('#ffffff', { map: stripeTexture() }) });
+      const ballMesh = toonMesh(new THREE.SphereGeometry(r, 24, 16), '#ffffff', { outline: 0.04, material: makePlastic(toonMaterial('#ffffff', { map: stripeTexture() }), true) });
       ballMesh.rotation.z = 0.5 + index;
       add(ballMesh, r);
       break;
@@ -574,7 +709,7 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     }
     case 'basket': {
       add(outlinedBox(b.w, H * 0.8, b.h, toonMaterial('#c08a4a', { map: tiled(crateTexture(), 2, 1) })), (H * 0.8) / 2);
-      add(outlinedBox(b.w * 0.95, 0.08, b.h * 0.95, toonMaterial('#ffffff', { map: tiled(checkerTexture(), 2, 2) })), H * 0.8 + 0.04);
+      add(outlinedBox(b.w * 0.95, 0.08, b.h * 0.95, toonMaterial('#ffffff', { map: tiled(picnicTexture(), b.w / 12, b.h / 12) })), H * 0.8 + 0.04);
       const handle = new THREE.Mesh(new THREE.TorusGeometry(Math.min(b.w, b.h) * 0.4, 0.05, 6, 20, Math.PI), flat('#8e6036'));
       add(handle, H * 0.8);
       break;

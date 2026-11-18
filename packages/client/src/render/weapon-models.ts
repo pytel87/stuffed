@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { Rarity, WeaponKind } from '@stuffed/sim';
-import { lighten, toonMaterial, toonMesh } from './toon.ts';
+import { lighten, makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 type Point = [number, number, number];
 
@@ -73,17 +73,48 @@ export function buildWeapon(kind: WeaponKind, rarity: Rarity, outline: string, s
       break;
     }
     case 'foam_dart_smg': {
-      // An orange blaster with a yellow magazine, a blue barrel and foam darts in the top window.
-      k.box(0.19, 0.19, 0.46, '#f2873d', 0, 0, 0.22);
-      k.box(0.07, 0.05, 0.34, '#3d7ff2', 0, 0.12, 0.2); // top rail
-      k.tube(0.06, 0.2, '#3d7ff2', 0, 0.01, 0.53);
-      k.tube(0.07, 0.04, '#f7d046', 0, 0.01, 0.62, false); // orange-blue muzzle cap
-      k.box(0.1, 0.27, 0.13, '#f7d046', 0, -0.2, 0.24); // magazine
-      for (const z of [0.1, 0.2, 0.3]) k.ball(0.035, '#3d7ff2', 0.1, 0.05, z, false); // dart tips in the window
-      const grip = k.box(0.1, 0.22, 0.12, '#3d7ff2', 0, -0.14, 0.0);
-      grip.rotation.x = -0.25;
-      k.box(0.09, 0.12, 0.1, '#3d7ff2', 0, -0.12, 0.42); // front grip
-      if (showRarity) k.ring(0.11, 0.025, band, 0, 0, 0.38);
+      // A chunky orange toy blaster: a rounded body, a clear hopper on top full of foam darts, a
+      // curved yellow magazine, a blue grip, stock and barrel shroud with vents, a yellow muzzle.
+      const orange = '#f2873d';
+      const blue = '#3d7ff2';
+      const body = toonMesh(new THREE.CapsuleGeometry(0.11, 0.3, 6, 16), orange, { outline: 0.06, outlineColor: outline });
+      body.rotation.x = Math.PI / 2;
+      body.scale.set(1, 1, 0.9);
+      body.position.set(0, 0, 0.2);
+      g.add(body);
+      k.tube(0.075, 0.2, blue, 0, 0.01, 0.48); // barrel shroud
+      for (const z of [0.42, 0.48, 0.54]) k.ring(0.078, 0.012, '#2a5fc0', 0, 0.01, z); // vents
+      k.tube(0.065, 0.05, '#f7d046', 0, 0.01, 0.6); // muzzle cap
+      k.ball(0.03, '#2a1f2d', 0, 0.01, 0.63, false); // the bore
+      // The hopper: a clear window with three darts lying in it.
+      const hopper = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.09, 0.26),
+        new THREE.MeshToonMaterial({ color: '#d8f1ff', transparent: true, opacity: 0.45, gradientMap: null, depthWrite: false }),
+      );
+      hopper.position.set(0, 0.14, 0.2);
+      g.add(hopper);
+      for (const x of [-0.04, 0, 0.04]) {
+        const dart = k.tube(0.017, 0.2, '#ff7a3d', x, 0.13 + Math.abs(x) * 0.3, 0.18, false);
+        dart.castShadow = false;
+        k.ball(0.022, blue, x, 0.13 + Math.abs(x) * 0.3, 0.29, false);
+      }
+      k.box(0.16, 0.025, 0.28, blue, 0, 0.19, 0.2); // hopper lid
+      // A magazine curving forward: a rounded bar bent along an arc.
+      const mag = toonMesh(
+        new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, -0.08, 0.26), new THREE.Vector3(0, -0.2, 0.26), new THREE.Vector3(0, -0.29, 0.34)), 12, 0.045, 10),
+        '#f7d046',
+        { outline: 0.08, outlineColor: outline },
+      );
+      mag.scale.x = 1.4;
+      g.add(mag);
+      const grip = k.box(0.08, 0.2, 0.1, blue, 0, -0.15, 0.02);
+      grip.rotation.x = -0.3;
+      k.ring(0.055, 0.014, '#f7d046', 0, -0.08, 0.1, 'x'); // trigger guard
+      const stock = toonMesh(new THREE.CapsuleGeometry(0.06, 0.12, 4, 12), blue, { outline: 0.07, outlineColor: outline });
+      stock.rotation.x = Math.PI / 2 + 0.25;
+      stock.position.set(0, -0.04, -0.06);
+      g.add(stock);
+      if (showRarity) k.ring(0.085, 0.022, band, 0, 0.01, 0.36);
       break;
     }
     case 'super_soaker': {
@@ -227,5 +258,9 @@ export function buildWeapon(kind: WeaponKind, rarity: Rarity, outline: string, s
       break;
     }
   }
+  // Glossy toy plastic.
+  g.traverse((o) => {
+    if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) makePlastic(o.material);
+  });
   return g;
 }

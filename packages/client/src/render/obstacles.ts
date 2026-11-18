@@ -2,8 +2,10 @@
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
-import { buildWall, corrugatedTexture, ginghamTexture, plankTexture, quiltTexture, tiled, tileTexture } from './props.ts';
-import { feltTexture, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
+import { buildWall, cardboardTexture, corrugatedTexture, foliage, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
+import { detailMaps, repeated } from './image-textures.ts';
+import { feltTexture } from './toon.ts';
+import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
 const OUTLINE = 0.045;
 const BUSH = '#3f8f4a';
@@ -15,6 +17,8 @@ export interface BushView {
   /** Depth-only copies of the balls, drawn first while see-through, so only the nearest leaves show. */
   depth: THREE.Mesh[];
   outlines: THREE.Mesh[];
+  /** The leafy balls (they stop taking shadows while see-through). */
+  balls: THREE.Mesh[];
   seeThrough: boolean;
 }
 
@@ -22,10 +26,20 @@ export interface BushView {
  * A bush: a clump of leafy balls. `colors` gives each ball a color in turn (one for a leafy bush,
  * several for a laundry pile).
  */
-function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor = '#1f3f26'): { object: THREE.Object3D; view: BushView } {
+function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor = '#1f3f26', index = 0): { object: THREE.Object3D; view: BushView } {
   const g = new THREE.Group();
   g.position.set(circle.center.x, 0, circle.center.y);
-  const materials = colors.map((c) => toonMaterial(c));
+  const leafy = colors[0] === BUSH;
+  // Felt leaves on a bush; a laundry pile is knitted clothes.
+  const detail = leafy ? foliage(1) : laundryDetail();
+  // Leaves are projected from three sides (no stretching at the top of each ball); the knitted
+  // laundry keeps its weave's normal map.
+  const materials = colors.map((c) => {
+    if (leafy) return makeTriplanar(toonMaterial(c, { map: detail.map }), 0.6);
+    const m = toonMaterial(c, { map: detail.map });
+    m.normalMap = detail.normal;
+    return m;
+  });
   const hull = outlineMaterial(outlineColor);
   const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true });
   const r = circle.radius;
@@ -36,6 +50,7 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
   }
   const depth: THREE.Mesh[] = [];
   const outlines: THREE.Mesh[] = [];
+  const ballMeshes: THREE.Mesh[] = [];
   balls.forEach(([x, z, y, size], i) => {
     const geo = new THREE.IcosahedronGeometry(size, 2);
     const ball = new THREE.Mesh(geo, materials[i % materials.length]!);
@@ -44,6 +59,7 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
     ball.receiveShadow = true;
     // After the depth-only copies (renderOrder 1) when see-through.
     ball.renderOrder = 2;
+    ballMeshes.push(ball);
     const outline = new THREE.Mesh(geo, hull);
     outline.scale.setScalar(1.06);
     ball.add(outline);
@@ -55,7 +71,54 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
     depth.push(d);
     g.add(ball, d);
   });
-  return { object: g, view: { circle, materials, depth, outlines, seeThrough: false } };
+  // Some bushes flower (white and pink), some have red berries; the rest are just leaves.
+  if (leafy && index % 3 !== 2) {
+    const flowers = index % 3 === 0;
+    const petal = toonMaterial(flowers ? (index % 2 ? '#ffffff' : '#ffb3cf') : '#e2433f', { map: null });
+    const middle = toonMaterial('#f7c331', { map: null });
+    materials.push(petal, middle);
+    let seed = index * 7919 + 13;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 9; k++) {
+      const [bx, bz, by, size] = balls[k % balls.length]!;
+      // On the upper half of a ball, facing outward.
+      const a = rand() * Math.PI * 2;
+      const up = 0.35 + rand() * 0.6;
+      const n = new THREE.Vector3(Math.cos(a) * Math.sqrt(1 - up * up), up, Math.sin(a) * Math.sqrt(1 - up * up));
+      const spot = new THREE.Group();
+      spot.position.set(bx, by, bz).addScaledVector(n, size * 0.98);
+      spot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+      if (flowers) {
+        for (let p = 0; p < 5; p++) {
+          const pa = (p / 5) * Math.PI * 2;
+          const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), petal);
+          leaf.scale.set(1, 0.4, 0.7);
+          leaf.position.set(Math.cos(pa) * 0.1, 0, Math.sin(pa) * 0.1);
+          leaf.renderOrder = 2;
+          spot.add(leaf);
+        }
+        const mid = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), middle);
+        mid.position.y = 0.03;
+        mid.renderOrder = 2;
+        spot.add(mid);
+      } else {
+        for (const [ox, oz] of [[0, 0], [0.11, 0.05], [-0.04, 0.11]] as const) {
+          const berry = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), petal);
+          berry.position.set(ox, 0.04, oz);
+          berry.renderOrder = 2;
+          spot.add(berry);
+        }
+      }
+      g.add(spot);
+    }
+  }
+  return { object: g, view: { circle, materials, depth, outlines, balls: ballMeshes, seeThrough: false } };
+}
+
+/** Knitted laundry: the knit fabric's detail, repeated for the heaped clothes. */
+function laundryDetail(): { map: THREE.Texture; normal: THREE.Texture } {
+  const base = detailMaps('fabric_knit', feltTexture().image as HTMLCanvasElement);
+  return { map: repeated(base.map, 2, 2), normal: repeated(base.normal, 2, 2) };
 }
 
 export interface RoofView {
@@ -93,10 +156,7 @@ function roof(b: Building): RoofView {
 
   switch (b.kind ?? 'cardboard') {
     case 'cardboard': {
-      const lidTex = feltTexture().clone();
-      lidTex.repeat.set(w / 3, d / 3);
-      lidTex.needsUpdate = true;
-      lid(toonMaterial('#d8b48a', { map: lidTex }));
+      lid(toonMaterial('#d8b48a', { map: tiled(cardboardTexture(), w / 3, d / 3) }));
       on(new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.02, 0.6), flat('#efe2c2')), 0, top + 0.011, 0);
       on(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, d + 0.02), flat('#efe2c2')), 0, top + 0.011, 0);
       on(new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.025, 0.05), new THREE.MeshBasicMaterial({ color: '#a8845c' })), 0, top + 0.013, 0);
@@ -132,7 +192,7 @@ function roof(b: Building): RoofView {
     }
     case 'desk': {
       // A wooden desktop with a sheet of paper, crayons and a little lamp.
-      lid(toonMaterial('#d9a46a', { map: tiled(plankTexture(), w / 2, d / 4) }));
+      lid(toonMaterial('#ffffff', { map: tiled(plankTexture(), w / 2, d / 4) }));
       on(new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 4), flat('#ffffff')), -w / 5, top + 0.011, 0).rotation.y = 0.2;
       ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a'].forEach((c, i) => {
         const crayon = on(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 8), flat(c)), 1 + i * 0.35, top + 0.1, 1.2);
@@ -148,7 +208,7 @@ function roof(b: Building): RoofView {
     }
     case 'table': {
       // Blue gingham with a red hem, so it doesn't look like the blanket under the table.
-      lid(toonMaterial('#ffffff', { map: tiled(ginghamTexture(), w / 1.2, d / 1.2) }));
+      lid(toonMaterial('#ffffff', { map: tiled(tableclothTexture(), w / 4.8, d / 4.8) }));
       for (const [sx, sz, x, z] of [[w + 0.04, 0.12, 0, d / 2], [w + 0.04, 0.12, 0, -d / 2], [0.12, d + 0.04, w / 2, 0], [0.12, d + 0.04, -w / 2, 0]] as const) {
         on(new THREE.Mesh(new THREE.BoxGeometry(sx, ROOF_THICKNESS + 0.04, sz), flat('#e25b5b')), x, 0, z);
       }
@@ -192,15 +252,16 @@ const LAUNDRY = ['#e2574c', '#5d9cf5', '#f7c331', '#9b7bd8', '#5bd16a', '#ff9cbf
 
 export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushView[]; roofs: RoofView[] } {
   const root = new THREE.Group();
-  // Beach balls roll around: they're drawn from the match state (ball-views.ts).
+  // Beach balls roll around: they're drawn from the match state (ball-views.ts); a pool's rim is
+  // drawn with its pool (map-view.ts).
   map.walls.forEach((b, i) => {
-    if (b.kind !== 'ball') root.add(buildWall(underRoof(b, map), i));
+    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck') root.add(buildWall(underRoof(b, map), i));
   });
   const indoors = map.theme === 'bedroom';
   const bushes = map.bushes.map((c, i) => {
     // Each pile starts at a different color so neighbors don't match.
     const colors = indoors ? [...LAUNDRY.slice(i % LAUNDRY.length), ...LAUNDRY.slice(0, i % LAUNDRY.length)] : undefined;
-    const { object, view } = bush(c, colors, indoors ? OUTLINE_COLOR : undefined);
+    const { object, view } = bush(c, colors, indoors ? OUTLINE_COLOR : undefined, i);
     root.add(object);
     return view;
   });
@@ -245,5 +306,11 @@ export function updateBushes(bushes: BushView[], localX: number, localY: number)
     }
     for (const d of b.depth) d.visible = inside;
     for (const o of b.outlines) o.visible = !inside;
+    // Their shadows (on each other and on the ground under the bush) would show through as dark
+    // blotches and arcs: a see-through bush casts and takes none.
+    for (const ball of b.balls) {
+      ball.receiveShadow = !inside;
+      ball.castShadow = !inside;
+    }
   }
 }

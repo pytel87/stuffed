@@ -2,9 +2,9 @@
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
 import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
-import { checkerTexture, dirtTexture, lawnTexture, plankTexture, rugTexture, sandTexture, stoneTexture, tiled } from './props.ts';
+import { dirtTexture, picnicTexture, drift, lawnTexture, rugTexture, sandTexture, stoneTexture, tiled, waterTexture, woodFloorTexture } from './props.ts';
 import { mergeStatic } from './merge-static.ts';
-import { toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
 const LAWN_BEYOND = 64;
@@ -21,11 +21,17 @@ export function buildMapView(map: MapData): THREE.Group {
   // The Bedroom: wooden floorboards instead of the lawn.
   const indoors = map.theme === 'bedroom';
   const lawnMat = indoors
-    ? toonMaterial('#f3d9b6', { map: tiled(plankTexture(), lw / 2.4, lh / 9) })
+    ? toonMaterial('#ffffff', { map: tiled(woodFloorTexture(), lw / 4, lh / 4) })
     : toonMaterial('#ffffff', { map: tiled(lawnTexture(), lw / 8, lh / 8) });
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
   // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 8), Math.ceil(lh / 8)), lawnMat);
+  const lawnGeo = new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 4), Math.ceil(lh / 4));
+  if (!indoors) {
+    // Big soft patches of lighter and darker green, so the lawn isn't one even carpet.
+    patches(lawnGeo, map, 0.3, w / 2, h / 2, true);
+    lawnMat.vertexColors = true;
+  }
+  const lawn = new THREE.Mesh(lawnGeo, lawnMat);
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
@@ -33,22 +39,8 @@ export function buildMapView(map: MapData): THREE.Group {
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
-  if (!indoors) g.add(grassTufts(map));
   for (const d of map.decor ?? []) g.add(decorItem(d, mapRandom(map, Math.round(d.x * 13 + d.y * 7))));
   return g;
-}
-
-/** Grass tufts stay off sand, dirt, the blanket and water. */
-function onBareLawn(map: MapData, x: number, z: number, margin = 0.5): boolean {
-  for (const ground of map.grounds ?? []) {
-    if (ground.kind === 'stones' || !ground.box) continue;
-    const b = ground.box;
-    if (x > b.x - margin && x < b.x + b.w + margin && z > b.y - margin && z < b.y + b.h + margin) return false;
-  }
-  for (const pool of map.pools ?? []) {
-    if (Math.hypot(x - pool.center.x, z - pool.center.y) < pool.radius + 1 + margin) return false;
-  }
-  return true;
 }
 
 function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
@@ -83,52 +75,165 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
   const geometry = new THREE.PlaneGeometry(box.w, box.h, Math.ceil(box.w / 8), Math.ceil(box.h / 8)).rotateX(-Math.PI / 2);
   const material =
     ground.kind === 'blanket'
-      ? toonMaterial('#ffffff', { map: tiled(checkerTexture('#e25b5b', '#fff6ec'), box.w / 3, box.h / 3) })
+      ? toonMaterial('#ffffff', { map: tiled(picnicTexture(), box.w / 15, box.h / 15) })
       : ground.kind === 'floor'
-        ? toonMaterial('#f0dcc0', { map: tiled(plankTexture(), box.w / 1.6, box.h / 6) })
+        ? toonMaterial('#ffffff', { map: tiled(woodFloorTexture(), box.w / 3, box.h / 3) })
         : toonMaterial('#ffffff', { map: tiled(ground.kind === 'sand' ? sandTexture() : dirtTexture(), box.w / 8, box.h / 8) });
+  if (ground.kind === 'sand' || ground.kind === 'dirt') {
+    patches(geometry, map, 0.1, cx, cz);
+    material.vertexColors = true;
+  }
   const patch = new THREE.Mesh(geometry, material);
   patch.position.set(cx, 0.012, cz);
   patch.receiveShadow = true;
-  return patch;
+  if (ground.kind !== 'sand') return patch;
+  const g = new THREE.Group();
+  g.add(patch, sandBits(box, map));
+  return g;
+}
+
+/** Tints a flat ground's vertices lighter and darker in big soft blobs (`amount` either way).
+ *  The geometry is laid flat (x, z), centered on (cx, cz) in the world. */
+function patches(geo: THREE.BufferGeometry, map: MapData, amount: number, cx = 0, cz = 0, darkenBeyond = false): void {
+  const pos = geo.attributes.position!;
+  const colors = new Float32Array(pos.count * 3);
+  const seed = map.id.length * 1.7;
+  for (let i = 0; i < pos.count; i++) {
+    // The lawn plane is still in the xy plane here (it's rotated as a mesh); patches use xz.
+    const x = pos.getX(i) + cx;
+    const z = (pos.getZ(i) || -pos.getY(i)) + cz;
+    const n = Math.sin(x * 0.26 + seed) * Math.cos(z * 0.22 - seed) + 0.6 * Math.sin((x + z) * 0.45 + seed * 2) * Math.sin((x - z) * 0.37);
+    // Past the map's edge the lawn darkens bit by bit into the deep green beyond.
+    const out = darkenBeyond ? Math.max(0, -x, x - map.width, -z, z - map.height) : 0;
+    const v = (1 + (n / 1.6) * amount) * (1 - Math.min(0.45, out * 0.012));
+    // Lighter patches lean a little yellow (sunny), darker ones a little blue (shady).
+    colors[i * 3] = v * (1 + (v - 1) * 0.5);
+    colors[i * 3 + 1] = v;
+    colors[i * 3 + 2] = v * (1 - (v - 1) * 0.6);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+}
+
+/** Shells, pebbles and little mounds scattered on a sandpit (merged into a few meshes). */
+function sandBits(box: { x: number; y: number; w: number; h: number }, map: MapData): THREE.Object3D {
+  const g = new THREE.Group();
+  const rand = mapRandom(map, Math.round(box.x * 11 + box.y * 3));
+  const n = Math.round((box.w * box.h) / 7);
+  const shellColors = ['#ffd9c9', '#fff1dc', '#ffc7d6'];
+  for (let i = 0; i < n; i++) {
+    const x = box.x + 0.5 + rand() * (box.w - 1);
+    const z = box.y + 0.5 + rand() * (box.h - 1);
+    const kind = rand();
+    if (kind < 0.35) {
+      // a scallop shell: a flat fan with ribs
+      const shell = toonMesh(new THREE.SphereGeometry(0.22, 10, 6, 0, Math.PI), shellColors[i % 3]!, { outline: 0.08 });
+      shell.scale.set(1, 0.35, 1);
+      shell.rotation.y = rand() * Math.PI * 2;
+      shell.position.set(x, 0.03, z);
+      g.add(shell);
+    } else if (kind < 0.75) {
+      const pebble = toonMesh(new THREE.SphereGeometry(0.1 + rand() * 0.08, 8, 6), rand() < 0.5 ? '#c9c2b6' : '#a9a197', { outline: 0.1 });
+      pebble.scale.set(1.3, 0.55, 1);
+      pebble.rotation.y = rand() * Math.PI;
+      pebble.position.set(x, 0.04, z);
+      g.add(pebble);
+    } else {
+      // a little heap of darker, damp sand
+      const mound = toonMesh(new THREE.SphereGeometry(0.4 + rand() * 0.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#e7c98c', { outline: false });
+      mound.scale.set(1, 0.3, 0.8);
+      mound.position.set(x, 0.012, z);
+      g.add(mound);
+    }
+  }
+  mergeStatic(g);
+  return g;
 }
 
 /** A kiddie pool: shallow water inside an inflatable striped ring, and a rubber duck. */
 function poolView(pool: Circle): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(pool.center.x, 0, pool.center.y);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(pool.radius, 48).rotateX(-Math.PI / 2), toonMaterial('#7fd3f5', { map: null }));
+  const ripples = tiled(waterTexture(), pool.radius / 4, pool.radius / 4);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(pool.radius, 48).rotateX(-Math.PI / 2), toonMaterial('#bfe9ff', { map: ripples }));
+  drift(water, ripples);
   water.position.y = 0.03;
   water.receiveShadow = true;
   g.add(water);
-  const shine = new THREE.Mesh(new THREE.RingGeometry(pool.radius * 0.55, pool.radius * 0.6, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#c8f0ff', transparent: true, opacity: 0.6 }));
-  shine.position.y = 0.035;
-  g.add(shine);
-  // The inflatable rim: alternating blue and white segments.
-  const segments = 16;
-  for (let i = 0; i < segments; i++) {
-    const arc = (Math.PI * 2) / segments;
-    const seg = toonMesh(new THREE.TorusGeometry(pool.radius + 0.35, 0.4, 10, 6, arc), i % 2 ? '#fff8ef' : '#3fa9f5', { outline: 0.06 });
-    seg.rotation.x = Math.PI / 2;
-    seg.rotation.z = i * arc;
-    seg.position.y = 0.3;
-    g.add(seg);
+  // The inflatable rim: two stacked glossy tubes with blue and white stripes, and a valve.
+  const stripes = stripedVinyl();
+  // Its top is at the rim's height in the sim (0.7): you jump over it, or onto it.
+  for (const [y, r] of [[0.2, 0.26], [0.46, 0.24]] as const) {
+    const tube = new THREE.Mesh(new THREE.TorusGeometry(pool.radius + 0.35, r, 16, 64), makePlastic(toonMaterial('#ffffff', { map: stripes }), true));
+    tube.castShadow = tube.receiveShadow = true;
+    // Its outline: a slightly fatter tube round the same circle (scaling the ring would push it out).
+    tube.add(new THREE.Mesh(new THREE.TorusGeometry(pool.radius + 0.35, r + 0.05, 12, 64), outlineMaterial(OUTLINE_COLOR)));
+    tube.rotation.x = Math.PI / 2;
+    tube.position.y = y;
+    g.add(tube);
   }
-  // A rubber duck bobbing near the edge.
-  const duck = new THREE.Group();
-  duck.position.set(pool.radius * 0.45, 0.25, -pool.radius * 0.35);
-  const body = toonMesh(new THREE.SphereGeometry(0.45, 16, 12), '#ffd23a', { outline: 0.06 });
-  body.scale.set(1.2, 0.8, 1);
-  duck.add(body);
-  const head = toonMesh(new THREE.SphereGeometry(0.28, 14, 10), '#ffd23a', { outline: 0.07 });
-  head.position.set(0.35, 0.4, 0);
-  duck.add(head);
-  const beak = toonMesh(new THREE.ConeGeometry(0.1, 0.22, 8), '#f08a2c', { outline: false });
-  beak.rotation.z = -Math.PI / 2;
-  beak.position.set(0.66, 0.38, 0);
-  duck.add(beak);
-  g.add(duck);
+  const valve = toonMesh(new THREE.CylinderGeometry(0.09, 0.11, 0.14, 10), '#fff8ef', { outline: 0.1 });
+  valve.position.set(pool.radius + 0.35, 0.72, 0);
+  g.add(valve);
   return g;
+}
+
+let vinyl: THREE.CanvasTexture | null = null;
+/** Blue and white stripes round an inflatable ring (16 of each), with a soft seam line. */
+function stripedVinyl(): THREE.CanvasTexture {
+  if (vinyl) return vinyl;
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 16;
+  const g = c.getContext('2d')!;
+  for (let i = 0; i < 32; i++) {
+    g.fillStyle = i % 2 ? '#fff8ef' : '#3fa9f5';
+    g.fillRect((i * 512) / 32, 0, 512 / 32, 16);
+    g.fillStyle = 'rgba(42,31,45,0.18)';
+    g.fillRect((i * 512) / 32, 0, 1.5, 16);
+  }
+  vinyl = new THREE.CanvasTexture(c);
+  vinyl.colorSpace = THREE.SRGBColorSpace;
+  vinyl.wrapS = THREE.RepeatWrapping;
+  return vinyl;
+}
+
+/** A glossy rubber duck (drawn by ball-views.ts: it can be pushed about) at (x, z): a round body with an upturned tail, wings, a wide flat
+ *  beak and button eyes. */
+export function rubberDuck(x: number, z: number): THREE.Group {
+  const duck = new THREE.Group();
+  duck.position.set(x, 0.12, z);
+  duck.rotation.y = 0.6;
+  const yellow = () => makePlastic(toonMaterial('#ffd23a', { map: null }));
+  const body = toonMesh(new THREE.SphereGeometry(0.45, 20, 14), '#ffd23a', { outline: 0.06, material: yellow() });
+  body.scale.set(1.25, 0.75, 1);
+  body.position.y = 0.2;
+  duck.add(body);
+  const tail = toonMesh(new THREE.ConeGeometry(0.2, 0.4, 12), '#ffd23a', { outline: 0.08, material: yellow() });
+  tail.rotation.z = Math.PI / 2 + 0.7;
+  tail.position.set(-0.55, 0.38, 0);
+  duck.add(tail);
+  for (const s of [-1, 1]) {
+    const wing = toonMesh(new THREE.SphereGeometry(0.2, 12, 8), '#f5bf1f', { outline: 0.1, material: makePlastic(toonMaterial('#f5bf1f', { map: null })) });
+    wing.scale.set(1.3, 0.6, 0.4);
+    wing.position.set(-0.05, 0.3, s * 0.42);
+    duck.add(wing);
+  }
+  const head = toonMesh(new THREE.SphereGeometry(0.3, 18, 12), '#ffd23a', { outline: 0.07, material: yellow() });
+  head.position.set(0.32, 0.68, 0);
+  duck.add(head);
+  const orange = () => makePlastic(toonMaterial('#f08a2c', { map: null }));
+  for (const [y, sy] of [[0.63, 0.32], [0.57, 0.24]] as const) {
+    const bill = toonMesh(new THREE.SphereGeometry(0.16, 14, 8), '#f08a2c', { outline: 0.1, material: orange() });
+    bill.scale.set(1.3, sy, 1);
+    bill.position.set(0.6, y, 0);
+    duck.add(bill);
+  }
+  for (const s of [-1, 1]) {
+    const eye = toonMesh(new THREE.SphereGeometry(0.055, 10, 8), '#2a1f2d', { outline: false, material: makePlastic(toonMaterial('#2a1f2d', { map: null })) });
+    eye.position.set(0.52, 0.78, s * 0.15);
+    duck.add(eye);
+  }
+  return duck;
 }
 
 /** Render-only randomness; seeded by map id so the layout is the same every match. */
@@ -138,59 +243,6 @@ function mapRandom(map: MapData, salt: number): () => number {
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 }
 
-/** Grass is cut into square patches so the ones off screen aren't drawn at all. */
-const GRASS_PATCH = 24;
-
-/**
- * Decorative grass tufts (three blades each), one instanced mesh per patch of lawn. Phones get
- * fewer of them.
- */
-function grassTufts(map: MapData): THREE.Group {
-  const rand = mapRandom(map, 1);
-  const handheld = matchMedia('(pointer: coarse)').matches;
-  const span = { w: map.width + 2 * DECOR_BEYOND, h: map.height + 2 * DECOR_BEYOND };
-  const count = Math.round(span.w * span.h * (handheld ? 0.14 : 0.25));
-  const blade = new THREE.ConeGeometry(0.07, 0.45, 4).translate(0, 0.22, 0);
-  const material = toonMaterial('#5fa552', { map: null });
-  // Sort the tufts into patches first.
-  const cols = Math.ceil(span.w / GRASS_PATCH);
-  const rows = Math.ceil(span.h / GRASS_PATCH);
-  const patches: { x: number; z: number; scale: number }[][] = Array.from({ length: cols * rows }, () => []);
-  for (let n = 0; n < count; n++) {
-    const x = rand() * span.w - DECOR_BEYOND;
-    const z = rand() * span.h - DECOR_BEYOND;
-    const scale = 0.7 + rand() * 0.6;
-    if (!onBareLawn(map, x, z)) continue;
-    const c = Math.min(cols - 1, Math.floor((x + DECOR_BEYOND) / GRASS_PATCH));
-    const r = Math.min(rows - 1, Math.floor((z + DECOR_BEYOND) / GRASS_PATCH));
-    patches[r * cols + c]!.push({ x, z, scale });
-  }
-  const g = new THREE.Group();
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  const euler = new THREE.Euler();
-  const s = new THREE.Vector3();
-  const p = new THREE.Vector3();
-  for (const tufts of patches) {
-    if (tufts.length === 0) continue;
-    const mesh = new THREE.InstancedMesh(blade, material, tufts.length * 3);
-    let i = 0;
-    for (const t of tufts) {
-      for (const dx of [-0.07, 0, 0.07]) {
-        euler.set(0, 0, dx * 4);
-        q.setFromEuler(euler);
-        s.setScalar(t.scale);
-        p.set(t.x + dx, 0, t.z);
-        mesh.setMatrixAt(i++, m.compose(p, q, s));
-      }
-    }
-    mesh.receiveShadow = true;
-    // Bounds of this patch's blades, so the camera can skip it when it's off screen.
-    mesh.computeBoundingSphere();
-    g.add(mesh);
-  }
-  return g;
-}
 
 const CRAYONS = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#9b7bd8', '#ff9cbf', '#f28a2c'];
 

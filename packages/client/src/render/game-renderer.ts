@@ -15,14 +15,28 @@ import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
-import { RinseView } from './rinse-view.ts';
+import { RINSE_BW, RinseGrade, RinseView } from './rinse-view.ts';
 import { buildPart } from './placeholder-parts.ts';
-import { toonMaterial } from './toon.ts';
+import { makeTriplanar, toonMaterial } from './toon.ts';
+import { foliage } from './props.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
 const SUN_OFFSET = new THREE.Vector3(-8, 20, 10);
+/** The sun's view (rotation only), to snap the shadow camera in its own plane. */
+const SUN_VIEW = new THREE.Matrix4().lookAt(SUN_OFFSET, new THREE.Vector3(), new THREE.Vector3(0, 1, 0));
+const SUN_VIEW_INV = SUN_VIEW.clone().invert();
+
+/** `out` = `target` moved to the nearest whole shadow-map texel, as the sun sees it. */
+function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, out: THREE.Vector3): void {
+  const cam = sun.shadow.camera;
+  const texel = (cam.right - cam.left) / sun.shadow.mapSize.x;
+  out.copy(target).applyMatrix4(SUN_VIEW_INV);
+  out.x = Math.round(out.x / texel) * texel;
+  out.y = Math.round(out.y / texel) * texel;
+  out.applyMatrix4(SUN_VIEW);
+}
 /**
  * Adaptive resolution: if frames average slower than this (seconds), render fewer pixels.
  * Retina screens start at 2x; each step drops 0.25 down to 1x.
@@ -79,6 +93,10 @@ export class GameRenderer {
   private bushes: BushView[] = [];
   private roofs: RoofView[] = [];
   private rinse!: RinseView;
+  private readonly shadowTarget = new THREE.Vector3();
+  private readonly rinseGrade = RINSE_BW ? new RinseGrade() : null;
+  private zoneNow: import('@stuffed/sim').Zone | null = null;
+  private timeNow = 0;
   /** Everything that belongs to the map (rebuilt when a match is on another map). */
   private readonly mapLayer = new THREE.Group();
   private mapId = '';
@@ -130,6 +148,8 @@ export class GameRenderer {
   setMap(map: MapData): void {
     if (map.id === this.mapId) return;
     this.mapId = map.id;
+    // Far beyond the map (seen in the Toss): deep green past the lawn, dark wood past the floor.
+    this.renderer.setClearColor(map.theme === 'bedroom' ? '#7a5a3e' : '#3f7a3c');
     // Free the old map's GPU memory: shapes, materials and their textures. (Shared ones, like
     // the felt texture or outline materials, are simply uploaded again when next used.)
     const materials = new Set<THREE.Material>();
@@ -327,6 +347,10 @@ export class GameRenderer {
     samples.add(new PlushView(Object.fromEntries(PART_SLOTS.map((slot) => [slot, { animal: 'frog', rarity: 0, found: false }])) as PartLoadout).root);
     for (const kind of Object.keys(config.weapons) as WeaponKind[]) samples.add(buildWeapon(kind, 4, '#2a1f2d'));
     samples.add(new THREE.Mesh(new THREE.SphereGeometry(1), toonMaterial('#3f8f4a', { transparent: true, opacity: 0.4 })));
+    // A bush you stand in: see-through felt leaves, without shadows.
+    const seeThroughBush = new THREE.Mesh(new THREE.SphereGeometry(1), makeTriplanar(toonMaterial('#3f8f4a', { map: foliage(1).map, transparent: true, opacity: 0.42 }), 0.6));
+    seeThroughBush.receiveShadow = false;
+    samples.add(seeThroughBush);
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
     // Spread them out in a grid at the map center, where the shadow camera can see them too.
     samples.children.forEach((o, i) => o.position.set(40 + (i % 8) * 1.5 - 6, 0.5, 40 + Math.floor(i / 8) * 1.5 - 6));
@@ -429,9 +453,9 @@ export class GameRenderer {
           this.trailWalked.set(p.id, walked);
         }
       }
-      // Walking through water (the pool, or the Rinse): a splash every step or so.
+      // Walking through water (the pool, or the Rinse when it's drawn as water): a splash every step or so.
       const speedNow = Math.hypot(vel.x, vel.y);
-      if (view.root.visible && !p.drop && z - groundY < 0.05 && speedNow > 1.5 && (p.soggy || wading(this.world, { pos, z }))) {
+      if (view.root.visible && !p.drop && z - groundY < 0.05 && speedNow > 1.5 && ((p.soggy && !RINSE_BW) || wading(this.world, { pos, z }))) {
         const walked = (this.splashWalked.get(p.id) ?? 0) + speedNow * opts.dt;
         if (walked >= 0.9) {
           this.effects.waterStep(pos.x, groundY, pos.y, vel.x / speedNow, vel.y / speedNow);
@@ -484,6 +508,8 @@ export class GameRenderer {
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));
     this.rinse.update(curr.zone, opts.time, this.followPos, zoom);
+    this.zoneNow = curr.zone;
+    this.timeNow = opts.time;
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 
@@ -495,10 +521,18 @@ export class GameRenderer {
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
     // Keep the shadow camera centered on what the player sees.
-    this.sun.target.position.copy(this.rig.target);
-    this.sun.position.copy(this.rig.target).add(SUN_OFFSET);
+    // ...moving it in whole shadow-map texels, so shadow edges stay still instead of crawling.
+    snapToTexels(this.rig.target, this.sun, this.shadowTarget);
+    this.sun.target.position.copy(this.shadowTarget);
+    this.sun.position.copy(this.shadowTarget).add(SUN_OFFSET);
 
-    this.renderer.render(this.scene, this.camera);
+    // `?rinse=bw`: the Rinse greys out what's in it (a screen pass) instead of drawing water.
+    if (this.rinseGrade && this.rinse.mesh.visible && this.zoneNow) {
+      this.rinse.mesh.visible = false;
+      this.rinseGrade.render(this.renderer, this.scene, this.camera, this.zoneNow, this.timeNow);
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
     this.adaptQuality(opts.dt);
   }
 }

@@ -331,6 +331,8 @@ export interface Ball {
   radius: number;
   /** Where it goes back to after a goal. */
   home: Vec2;
+  /** A rubber duck: it floats, and stays in its pool. */
+  kind?: 'duck';
 }
 
 /** Axis-aligned box, min corner + size. */
@@ -344,7 +346,11 @@ export interface Box {
 /** How a wall looks. The sim only cares about its box and height. */
 export type WallKind =
   | 'block' | 'cardboard' | 'book' | 'brick' | 'plank' | 'crate' | 'barrel' | 'trunk'
-  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal' | 'train';
+  | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal' | 'train'
+  /** A kiddie pool's inflatable rim, as small blocks round it (drawn with the pool). */
+  | 'rim'
+  /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
+  | 'duck';
 
 export interface Toss {
   from: Vec2;

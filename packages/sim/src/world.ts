@@ -29,7 +29,7 @@ export interface Pose {
 const HISTORY = 16;
 
 export function createWorld(map: MapData): World {
-  const solid = map.walls.filter((w) => w.kind !== 'ball');
+  const solid = map.walls.filter((w) => w.kind !== 'ball' && w.kind !== 'duck');
   return { map, solid, walls: new StaticBoxHash(solid), placed: [], history: new Map() };
 }
 

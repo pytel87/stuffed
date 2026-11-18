@@ -47,6 +47,15 @@ pnpm sfx                     # generates any sound that has no file yet
 pnpm sfx --force cork_pop    # regenerates one (e.g. after editing its prompt)
 ```
 
+## Textures
+
+Fabrics (knit, corduroy, minky dot), floors, grass, bricks, roofs, crates and the like are
+512 px JPEGs in [packages/client/public/textures](packages/client/public/textures), generated
+with the OpenAI image API from the prompts in [tools/textures.json](tools/textures.json)
+(`OPENAI_API_KEY` in `.env.local`; `pnpm textures`, or `pnpm textures --force wall_brick`). The
+game draws simple code textures first and swaps the images in once they load; `?lowtex` keeps
+the drawn ones.
+
 Playback is plain Web Audio ([audio/sound.ts](packages/client/src/audio/sound.ts)): sounds
 are heard from the camera, fade with distance, pan left/right and vary slightly in pitch.
 
@@ -154,13 +163,14 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 - The bar at the bottom is your stuffing. Buttons show as a yellow coat along its top, and they
   soak hits first. On touch screens a pill in the top left shows both as numbers instead.
 - Your bag's parts sit in the bottom left (under the pill on touch screens). The players-left
-  count is at the top. There's no Rinse countdown: the rising foam shows it coming.
+  count is at the top. There's no Rinse countdown: the world past its shiny edge turns grey.
 - The thin colored strip along the bottom of a weapon card is its ammo, in the weapon's rarity
   color. It drains as you shoot and refills in white while you reload.
 - What E or the hand would do floats over the chest or weapon itself. The opening bar floats
   over the chest; the bar for using an item floats over your plush.
-- The water drop at the top counts down to the Rinse. When you're in the water, a badge
-  points back to dry land.
+- Out in the Rinse (the grey), a grey-heart badge with a rainbow rim pulses (faster the more it
+  hurts) and its arrow points back to the safe zone. `?rinse=water` draws the Rinse as water
+  instead.
 
 ### Parts (Patchwork)
 

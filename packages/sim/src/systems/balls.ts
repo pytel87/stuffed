@@ -24,6 +24,7 @@ export function updateBalls(world: World, state: GameState): void {
       ball.pos.x += (ball.vel.x * DT) / steps;
       ball.pos.y += (ball.vel.y * DT) / steps;
       collide(world, state, ball);
+      if (ball.kind === 'duck') stayInPool(world, ball);
     }
     const inWater = world.map.pools?.some((c) => Math.hypot(ball.pos.x - c.center.x, ball.pos.y - c.center.y) < c.radius) ?? false;
     const keep = inWater ? KEEP_IN_WATER : KEEP;
@@ -91,6 +92,25 @@ function collide(world: World, state: GameState, ball: Ball): void {
   if (ball.pos.x > width + out - r) reflect(ball, -1, 0, ball.pos.x - (width + out - r), B.restitution);
   if (ball.pos.y < -out + r) reflect(ball, 0, 1, -out + r - ball.pos.y, B.restitution);
   if (ball.pos.y > height + out - r) reflect(ball, 0, -1, ball.pos.y - (height + out - r), B.restitution);
+}
+
+/** A duck bobs against the inside of its pool's rim instead of floating out. */
+function stayInPool(world: World, ball: Ball): void {
+  let pool: { center: Vec2; radius: number } | null = null;
+  let best = Infinity;
+  for (const c of world.map.pools ?? []) {
+    const d = Math.hypot(ball.home.x - c.center.x, ball.home.y - c.center.y);
+    if (d < best) {
+      best = d;
+      pool = c;
+    }
+  }
+  if (!pool) return;
+  const dx = ball.pos.x - pool.center.x;
+  const dy = ball.pos.y - pool.center.y;
+  const d = Math.hypot(dx, dy);
+  const max = pool.radius - ball.radius;
+  if (d > max && d > 1e-9) reflect(ball, -dx / d, -dy / d, d - max, 0.5);
 }
 
 /** Moves the ball out along the normal and bounces the velocity heading into it. */

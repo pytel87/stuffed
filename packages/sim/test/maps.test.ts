@@ -60,6 +60,37 @@ describe('the Backyard', () => {
     expect(inWater).toBeLessThan(onLawn * 0.7);
   });
 
+  it("has a rim round the pool: you can't walk in, but you can jump over it", () => {
+    const pool = map.pools![0]!;
+    // West of the pool, heading east into it.
+    const start = { x: pool.center.x - pool.radius - 2, y: pool.center.y };
+    const into = (jump: boolean) => {
+      const { world, state, p } = solo(map, start);
+      run(world, state, 45, (id, tick) => (id === p.id ? input({ moveX: 1, buttons: jump && tick % 20 === 0 ? Btn.Jump : 0 }) : input()));
+      return { world, p };
+    };
+    const walked = into(false);
+    expect(walked.p.pos.x).toBeLessThan(pool.center.x - pool.radius);
+    const jumped = into(true);
+    expect(jumped.p.pos.x).toBeGreaterThan(pool.center.x - pool.radius + 0.5);
+  });
+
+  it('has a rubber duck in the pool that a plush can push about, but not out of the pool', () => {
+    const pool = map.pools![0]!;
+    const { world, state, p } = solo(map, { x: 0, y: 0 });
+    const duck = state.balls.find((b) => b.kind === 'duck')!;
+    expect(duck).toBeDefined();
+    const start = { ...duck.pos };
+    // Run into it from the pool's middle, heading out toward the rim, for a while.
+    const dx = start.x - pool.center.x;
+    const dy = start.y - pool.center.y;
+    const d = Math.hypot(dx, dy);
+    p.pos = { x: start.x - (dx / d) * 2, y: start.y - (dy / d) * 2 };
+    run(world, state, 120, (id) => (id === p.id ? input({ moveX: dx / d, moveY: dy / d }) : input()));
+    expect(Math.hypot(duck.pos.x - start.x, duck.pos.y - start.y)).toBeGreaterThan(0.5);
+    expect(Math.hypot(duck.pos.x - pool.center.x, duck.pos.y - pool.center.y)).toBeLessThanOrEqual(pool.radius - duck.radius + 1e-6);
+  });
+
   it('rarely gives the starting Cork Popper, and never a plain one', () => {
     const world = createWorld(map);
     const state = createGame({ seed: 5, map, roster: roster(2) });

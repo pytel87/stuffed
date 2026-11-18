@@ -89,7 +89,23 @@ const shedProps: Wall[] = [
 
 // ---------- Kiddie Pool (E) ----------
 const POOL: Circle = { center: { x: 106, y: 64 }, radius: 9.5 };
-const poolProps: Wall[] = [ball(94.2, 54.5, 1.6, 1.6), ball(115.5, 73.5, 1.6, 1.6), ball(117, 52, 1.6, 1.6)];
+/** The pool's inflatable rim: a ring of small low blocks (jump over it, or onto it). */
+const RIM_HEIGHT = 0.7;
+function poolRim(pool: Circle): Wall[] {
+  const mid = pool.radius + 0.35;
+  const n = Math.ceil((2 * Math.PI * mid) / 0.6);
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const x = pool.center.x + Math.cos(a) * mid;
+    const y = pool.center.y + Math.sin(a) * mid;
+    return { x: x - 0.4, y: y - 0.4, w: 0.8, h: 0.8, height: RIM_HEIGHT, kind: 'rim' as const };
+  });
+}
+
+/** The rubber duck floating in it (push it about). */
+const duck: Wall = { x: 109.75, y: 60.15, w: 1.1, h: 1.1, height: 0.6, kind: 'duck' };
+
+const poolProps: Wall[] = [duck, ball(94.2, 54.5, 1.6, 1.6), ball(115.5, 73.5, 1.6, 1.6), ball(117, 52, 1.6, 1.6)];
 
 // Beach ball goals north and south of the pool, opening toward it: two posts and a back bar
 // (the frame is solid; the ball scores once its center is inside the mouth).
@@ -160,7 +176,7 @@ const lawnBushes: Circle[] = [
 ];
 
 const walls: Wall[] = [
-  ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
+  ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...poolRim(POOL), ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
 ];
 
 const buildings: Building[] = [
@@ -178,7 +194,7 @@ const chestSpawns: ChestSpawn[] = [
   // shed: one per room
   chest(92, 27.5, 'high'), chest(101.5, 21.5, 'high'), chest(101.5, 28.5, 'high'),
   // kiddie pool: around it, and one in the middle of the water
-  chest(106, 64), chest(106, 51.5), chest(96.5, 71), chest(116, 61),
+  chest(106, 64), chest(106, 51.5), chest(96.5, 71), chest(117.6, 60.5),
   // picnic: food crates under and around the table
   chest(94.5, 99, 'food'), chest(101.5, 99, 'food'), chest(86.5, 99.5, 'food'), chest(110, 95, 'food'), chest(98, 108.5, 'food'),
   // sandbox: half-buried in the sand

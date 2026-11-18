@@ -5,7 +5,7 @@ import { TRAIN, trainCars } from '@stuffed/sim';
 import type { MapData, TrainTrack } from '@stuffed/sim';
 import { mergeStatic } from './merge-static.ts';
 import { outlinedBox } from './props.ts';
-import { toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 const COLORS = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#9b7bd8'];
 
@@ -57,6 +57,10 @@ function buildCar(index: number): THREE.Group {
     g.add(inner);
   }
   mergeStatic(g);
+  // Painted wood, lacquered: it catches the light.
+  g.traverse((o) => {
+    if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) makePlastic(o.material, true);
+  });
   return g;
 }
 

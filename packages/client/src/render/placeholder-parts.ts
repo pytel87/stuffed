@@ -11,7 +11,8 @@ import { mergeStatic } from './merge-static.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
-import { lighten, darken, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { detailMaps, repeated } from './image-textures.ts';
+import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
 
@@ -33,8 +34,40 @@ export function bodyColor(animal: Animal): string {
 export function buildPart(slot: PartSlot, animal: Animal): PartObject {
   const builder = BUILDERS[slot][animal];
   const part = builder ? builder(OUTLINE_COLOR) : missingPart();
+  // The animal's fabric instead of the plain felt.
+  const felt = feltTexture();
+  const kind = FABRICS[animal] ?? 'minky';
+  const { map: fabric, normal: bumps } = fabricDetail(kind);
+  part.traverse((o) => {
+    // Button eyes, noses and stitched mouths: shiny black buttons and thread.
+    if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial && o.material.color.getHexString() === '2a1f2d') makePlastic(o.material);
+    if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial && o.material.map === felt) {
+      o.material.map = fabric;
+      o.material.normalMap = bumps;
+      o.material.normalScale.setScalar(0.7);
+    }
+  });
   mergeStatic(part, part.userData.swing ?? []);
   return part;
+}
+
+type Fabric = 'minky' | 'knit' | 'corduroy';
+/** Each animal's fabric (the rest are minky dot plush). */
+const FABRICS: Partial<Record<Animal, Fabric>> = {
+  bear: 'knit', cat: 'knit', fox: 'knit', lion: 'knit', koala: 'knit', penguin: 'knit',
+  frog: 'corduroy', dino: 'corduroy', shark: 'corduroy', turtle: 'corduroy', elephant: 'corduroy',
+};
+const fabricMaps = new Map<Fabric, { map: THREE.Texture; normal: THREE.Texture }>();
+
+/** A fabric's tintable detail and its weave as a normal map, repeated a few times round a part. */
+function fabricDetail(kind: Fabric): { map: THREE.Texture; normal: THREE.Texture } {
+  let maps = fabricMaps.get(kind);
+  if (!maps) {
+    const base = detailMaps(`fabric_${kind}`, feltTexture().image as HTMLCanvasElement);
+    maps = { map: repeated(base.map, 3, 2), normal: repeated(base.normal, 3, 2) };
+    fabricMaps.set(kind, maps);
+  }
+  return maps;
 }
 
 type Builder = (outline: string) => PartObject;

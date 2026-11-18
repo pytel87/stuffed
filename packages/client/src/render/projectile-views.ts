@@ -3,12 +3,29 @@
 import * as THREE from 'three';
 import { config, DT } from '@stuffed/sim';
 import type { EntityId, GameState, Projectile, WeaponKind } from '@stuffed/sim';
-import { toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
-const TRAIL_MATS = [0.55, 0.32, 0.15].map(
-  (opacity) => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity, depthWrite: false }),
-);
-const trailGeo = new THREE.SphereGeometry(0.07, 8, 6);
+/** A streak behind each shot, in a light tint of it: a soft outer cone and a brighter core. */
+const TRAIL_TINTS: Partial<Record<WeaponKind, string>> = {
+  cork_popper: '#ffe2b8',
+  foam_dart_smg: '#b9d3ff',
+  super_soaker: '#d4f4ff',
+  rubber_band_rifle: '#ffc2cf',
+  marble_launcher: '#dff3ff',
+};
+const trailGeo = new THREE.ConeGeometry(1, 1, 12, 1, true).rotateX(-Math.PI / 2).translate(0, 0, -0.5);
+const trailMats = new Map<string, THREE.MeshBasicMaterial[]>();
+function trailMaterials(tint: string): THREE.MeshBasicMaterial[] {
+  let mats = trailMats.get(tint);
+  if (!mats) {
+    mats = [
+      new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.35, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }),
+    ];
+    trailMats.set(tint, mats);
+  }
+  return mats;
+}
 
 function buildProjectile(kind: WeaponKind): THREE.Group {
   const g = new THREE.Group();
@@ -86,12 +103,21 @@ function buildProjectile(kind: WeaponKind): THREE.Group {
       break;
   }
   if (g.userData.noTrail) return g;
-  TRAIL_MATS.forEach((mat, i) => {
-    const ghost = new THREE.Mesh(trailGeo, mat);
-    ghost.position.z = -0.25 - i * 0.18;
-    ghost.scale.setScalar(1 - i * 0.2);
-    g.add(ghost);
-  });
+  // Toy plastic and glass shine.
+  if (kind === 'foam_dart_smg' || kind === 'marble_launcher' || kind === 'glitter_bomb') {
+    g.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) makePlastic(o.material);
+    });
+  }
+  const [outer, core] = trailMaterials(TRAIL_TINTS[kind] ?? '#ffffff');
+  const streak = new THREE.Mesh(trailGeo, outer);
+  streak.scale.set(0.14, 0.14, 1.1);
+  streak.position.z = -0.12;
+  g.add(streak);
+  const inner = new THREE.Mesh(trailGeo, core);
+  inner.scale.set(0.06, 0.06, 0.7);
+  inner.position.z = -0.12;
+  g.add(inner);
   return g;
 }
 

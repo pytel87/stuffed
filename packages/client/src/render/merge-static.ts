@@ -22,6 +22,7 @@ function lookKey(mesh: THREE.Mesh, m: THREE.Material): string | null {
     mesh.castShadow,
     mesh.receiveShadow,
     mesh.renderOrder,
+    m.customProgramCacheKey(),
   ].join('|');
 }
 

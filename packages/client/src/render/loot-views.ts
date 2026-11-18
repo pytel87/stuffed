@@ -5,8 +5,8 @@ import { config } from '@stuffed/sim';
 import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, PartSlot, WeaponKind } from '@stuffed/sim';
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
-import { checkerTexture, crateTexture, tiled } from './props.ts';
-import { OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { crateTexture, picnicTexture, tiled, wickerTexture } from './props.ts';
+import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
@@ -96,8 +96,8 @@ export function buildChest(chest: Chest): ChestView {
     chest.loot === 'low'
       ? toonMaterial('#ffffff', { map: tiled(crateTexture(), 1.5, 1) })
       : chest.loot === 'food'
-        ? toonMaterial(look.body, { map: tiled(checkerTexture('#a87440', '#d8aa6a'), 6, 3) })
-        : toonMaterial(look.body);
+        ? toonMaterial('#ffffff', { map: tiled(wickerTexture(), 2, 1) })
+        : makePlastic(toonMaterial(look.body));
   // A hollow box: a floor and four walls, so an open chest is empty inside.
   const t = 0.08;
   const inner = flat(chest.loot === 'high' ? '#2a1f4d' : '#4a2f22');
@@ -125,10 +125,12 @@ export function buildChest(chest: Chest): ChestView {
   root.add(hull);
 
   if (chest.loot === 'medium' || chest.loot === 'high') {
+    // Painted toy chests are lacquered: the body, lid and trim all catch the light.
+    const trimMat = makePlastic(flat(look.trim));
     // Trim bands (a frame around the sides, not a slab over the top), straps and a star latch.
     for (const y of [0.06, h - 0.05]) {
       for (const [sx, sz, bx, bz] of [[w + 0.03, 0.03, 0, d / 2], [w + 0.03, 0.03, 0, -d / 2], [0.03, d + 0.03, w / 2, 0], [0.03, d + 0.03, -w / 2, 0]] as const) {
-        const band = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.07, sz), flat(look.trim));
+        const band = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.07, sz), trimMat);
         band.position.set(bx, y, bz);
         root.add(band);
       }
@@ -136,7 +138,7 @@ export function buildChest(chest: Chest): ChestView {
     // Straps down the front and back only (not through the hollow inside).
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
-        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, 0.03), flat(look.trim));
+        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, 0.03), trimMat);
         strap.position.set(sx * (w / 2 - 0.18), h / 2, sz * (d / 2 + 0.005));
         root.add(strap);
       }
@@ -160,7 +162,7 @@ export function buildChest(chest: Chest): ChestView {
   const lid = new THREE.Group();
   lid.position.set(0, h, -d / 2);
   const lidMat =
-    chest.loot === 'food' ? toonMaterial('#ffffff', { map: tiled(checkerTexture(), 2, 2) }) : chest.loot === 'low' ? toonMaterial('#ffffff', { map: crateTexture() }) : toonMaterial(look.lid);
+    chest.loot === 'food' ? toonMaterial('#ffffff', { map: tiled(picnicTexture(), 0.5, 0.5) }) : chest.loot === 'low' ? toonMaterial('#ffffff', { map: crateTexture() }) : makePlastic(toonMaterial(look.lid));
   // A half tube along the width, curved side up, squashed a little; or a flat lid.
   const lidGeo = look.round
     ? new THREE.CylinderGeometry(d / 2 + 0.03, d / 2 + 0.03, w + 0.06, 24, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).scale(1, 0.7, 1)
@@ -504,11 +506,16 @@ function sparkleTexture(): THREE.CanvasTexture {
   c.width = c.height = 64;
   const g = c.getContext('2d')!;
   const glow = g.createRadialGradient(32, 32, 2, 32, 32, 30);
-  glow.addColorStop(0, 'rgba(255, 236, 140, 0.9)');
-  glow.addColorStop(1, 'rgba(255, 236, 140, 0)');
+  glow.addColorStop(0, 'rgba(255, 248, 190, 1)');
+  glow.addColorStop(1, 'rgba(255, 244, 170, 0)');
   g.fillStyle = glow;
   g.fillRect(0, 0, 64, 64);
-  g.fillStyle = '#ffd23a';
+  // Vivid lemon yellow, lighter in the middle.
+  const fill = g.createRadialGradient(32, 32, 0, 32, 32, 26);
+  fill.addColorStop(0, '#fffbb0');
+  fill.addColorStop(0.4, '#fff04a');
+  fill.addColorStop(1, '#ffd21a');
+  g.fillStyle = fill;
   g.strokeStyle = '#2a1f2d';
   g.lineWidth = 2.5;
   g.beginPath();
@@ -532,9 +539,9 @@ function sparkleGlowTexture(): THREE.CanvasTexture {
   c.width = c.height = 64;
   const g = c.getContext('2d')!;
   const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  glow.addColorStop(0, 'rgba(255, 240, 160, 1)');
-  glow.addColorStop(0.35, 'rgba(255, 210, 80, 0.55)');
-  glow.addColorStop(1, 'rgba(255, 200, 60, 0)');
+  glow.addColorStop(0, 'rgba(255, 252, 210, 1)');
+  glow.addColorStop(0.35, 'rgba(255, 232, 110, 0.75)');
+  glow.addColorStop(1, 'rgba(255, 220, 80, 0)');
   g.fillStyle = glow;
   g.fillRect(0, 0, 64, 64);
   sparkleGlowTex = new THREE.CanvasTexture(c);

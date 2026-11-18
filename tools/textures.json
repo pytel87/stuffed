@@ -1,0 +1,60 @@
+{
+  "style": "Seamless tileable texture, perfectly repeating on all four edges. Flat top-down orthographic view filling the whole square, even soft lighting, no shadows, no vignette, no perspective, no objects, no text, no border.",
+  "textures": {
+    "fabric_knit": {
+      "prompt": "Chunky hand-knitted stockinette fabric, neat rows of V stitches about 12 across, in plain light neutral grey yarn (to be tinted later)"
+    },
+    "fabric_corduroy": {
+      "prompt": "Soft wide-wale corduroy fabric, vertical ribs about 10 across, in plain light neutral grey (to be tinted later)"
+    },
+    "floor_wood": {
+      "prompt": "Toy-box style wooden floorboards, warm light honey oak, 4 planks across running vertically with soft grain and a few knots, gentle cartoon-like colors"
+    },
+    "ground_grass": {
+      "prompt": "Green felt fabric made to look like a lawn for toys, with small stitched grass tufts and soft fibers, fresh cheerful green"
+    },
+    "fabric_minky": {
+      "prompt": "Minky dot plush fabric for stuffed toys: soft short velvety pile covered in small raised round dots in a neat staggered grid, about 14 dots across, plain light neutral grey (to be tinted later)"
+    },
+    "wall_brick": {
+      "prompt": "Toy-like garden brick wall, 3 bricks across and 6 rows, rounded soft red and terracotta bricks of slightly different shades with light cream mortar, cheerful storybook style"
+    },
+    "wood_crate": {
+      "prompt": "Side panel of a wooden toy crate: four horizontal light pine slats with soft grain inside a slightly darker wooden frame border, with little round nail heads at the corners, cheerful storybook style. Flat front-on view filling the whole square, even soft lighting, no shadows, no perspective, no text",
+      "panel": true
+    },
+    "ground_sand": {
+      "prompt": "Soft warm sandbox sand with tiny grains and a few gentle ripples and specks, light golden beige, cheerful storybook style"
+    },
+    "ground_dirt": {
+      "prompt": "Garden soil bed for toys: soft crumbly brown earth with small clumps and pebbles, warm medium brown, cheerful storybook style"
+    },
+    "stone_top": {
+      "prompt": "Top surface of a smooth grey garden stepping stone with soft speckles and a few tiny pits, light warm grey, cheerful storybook style"
+    },
+    "cardboard": {
+      "prompt": "Plain corrugated cardboard box surface, light kraft brown with faint fibers and very subtle corrugation lines, cheerful storybook style"
+    },
+    "roof_tiles": {
+      "prompt": "Toy house roof with rows of rounded terracotta clay roof tiles overlapping like fish scales, about 6 across and 6 rows, warm red-orange, cheerful storybook style"
+    },
+    "fabric_quilt": {
+      "prompt": "Children's patchwork quilt, 4 by 4 square patches in soft pastel prints (gingham, polka dots, flowers, stripes) joined with visible running stitches, cozy storybook style"
+    },
+    "foliage_felt": {
+      "prompt": "Felt leaves for a toy bush: many small overlapping rounded leaf shapes cut from soft felt, each with a stitched center vein, densely covering everything, plain light neutral grey (to be tinted later)"
+    },
+    "water_pool": {
+      "prompt": "Cartoon swimming pool water seen from above: soft light turquoise with gentle wavy light caustic lines and ripples, cheerful storybook style"
+    },
+    "wicker": {
+      "prompt": "Woven wicker picnic basket weave, tight basket-weave of light honey-brown rattan strips, about 10 weaves across, cheerful storybook style"
+    },
+    "fabric_picnic": {
+      "prompt": "Red and cream woven picnic blanket cotton fabric, classic gingham check with exactly 8 by 8 squares (red, soft pink where stripes cross, and cream), visible soft woven threads, cozy storybook style"
+    },
+    "fabric_tablecloth": {
+      "prompt": "Blue and white gingham tablecloth cotton fabric, classic check with exactly 8 by 8 squares (blue, light blue where stripes cross, and white), visible fine woven threads, cozy storybook style"
+    }
+  }
+}

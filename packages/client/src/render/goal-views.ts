@@ -7,6 +7,19 @@ import { toonMaterial } from './toon.ts';
 
 const HEIGHT = 1.6;
 
+/** A net panel (w x h, facing +z) bulging `sag` along its normal in the middle, most at the bottom. */
+function saggingNet(w: number, h: number, sag: number): THREE.PlaneGeometry {
+  const geo = new THREE.PlaneGeometry(w, h, 10, 6);
+  const pos = geo.attributes.position!;
+  for (let i = 0; i < pos.count; i++) {
+    const u = pos.getX(i) / w + 0.5;
+    const v = pos.getY(i) / h + 0.5;
+    pos.setZ(i, sag * Math.sin(Math.PI * u) * Math.sin(Math.PI * v) * (1.2 - v * 0.6));
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function netTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
@@ -78,12 +91,14 @@ export class GoalViews {
     roof.rotation.x = -Math.PI / 2 + (goal.opens === 'south' ? -0.25 : 0.25);
     (roof.material as THREE.MeshBasicMaterial).map!.repeat.set(4, 2);
     g.add(roof);
-    // Net all round: the back and both sides, from the ground up to the roof net.
-    const backNet = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, HEIGHT - 0.25), netMat);
+    // Net all round: the back and both sides, from the ground up to the roof net, each sagging
+    // outward a little in the middle like a real net.
+    const outward = goal.opens === 'south' ? -1 : 1;
+    const backNet = new THREE.Mesh(saggingNet(x1 - x0, HEIGHT - 0.25, 0.22 * outward), netMat);
     backNet.position.set((x0 + x1) / 2, (HEIGHT - 0.25) / 2, back);
     g.add(backNet);
-    for (const x of [x0 + 0.02, x1 - 0.02]) {
-      const side = new THREE.Mesh(new THREE.PlaneGeometry(depth, HEIGHT - 0.25), netMat);
+    for (const [x, out] of [[x0 + 0.02, -1], [x1 - 0.02, 1]] as const) {
+      const side = new THREE.Mesh(saggingNet(depth, HEIGHT - 0.25, 0.15 * out), netMat);
       side.rotation.y = Math.PI / 2;
       side.position.set(x, (HEIGHT - 0.25) / 2, (front + back) / 2);
       g.add(side);

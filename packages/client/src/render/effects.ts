@@ -404,6 +404,8 @@ export class Effects {
   stuffingHit(x: number, z: number, dirX: number, dirZ: number, amount: number): void {
     const n = Math.min(10, 2 + Math.round(amount / 4));
     this.burst(this.cotton, x, 0.8, z, dirX, dirZ, n, 3, 0.07 + amount * 0.003, 0.7, 4);
+    // A harder hit knocks a couple of stars loose too.
+    if (amount >= 12) this.burst(this.stars, x, 1.1, z, dirX, dirZ, amount >= 25 ? 3 : 2, 2.6, 0.09, 0.6, 5);
   }
 
   armorHit(x: number, z: number, dirX: number, dirZ: number, amount: number): void {
