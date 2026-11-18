@@ -146,13 +146,20 @@ const OWL = ANIMAL_COLORS.owl;
 
 function owlHead(outline: string): PartObject {
   const g = headBall(OWL.main, outline);
-  // Big pale eye discs with large button eyes, a little beak, and ear tufts.
+  // A pale heart-shaped face (two caps hugging the head), big eye discs with large button eyes,
+  // a little beak, and ear tufts.
+  const faceColor = lighten(OWL.main, 0.45);
+  for (const s of [-1, 1]) {
+    const cap = toonMesh(new THREE.SphereGeometry(HEAD_RADIUS + 0.012, 24, 10, 0, Math.PI * 2, 0, 0.62), faceColor, { outline: false });
+    cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(s * 0.42, -0.05, 1).normalize());
+    g.add(cap);
+  }
   for (const s of [-1, 1]) {
     const disc = toonMesh(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 20), OWL.belly, { outline: 0.08, outlineColor: outline });
     disc.rotation.x = Math.PI / 2;
-    disc.position.set(s * 0.15, 0.06, 0.38);
+    disc.position.set(s * 0.15, 0.06, 0.42);
     g.add(disc);
-    eye(g, s * 0.15, 0.06, 0.08, 0.41);
+    eye(g, s * 0.15, 0.06, 0.08, 0.45);
     const tuft = toonMesh(new THREE.ConeGeometry(0.08, 0.24, 8), OWL.main, { outlineColor: outline });
     tuft.position.set(s * 0.24, 0.42, 0.02);
     tuft.rotation.z = -s * 0.35;
@@ -160,7 +167,7 @@ function owlHead(outline: string): PartObject {
   }
   const beak = toonMesh(new THREE.ConeGeometry(0.05, 0.13, 8), '#f0a93b', { outline: 0.12, outlineColor: outline });
   beak.rotation.x = Math.PI / 2 + 0.6;
-  beak.position.set(0, -0.08, 0.43);
+  beak.position.set(0, -0.08, 0.46);
   g.add(beak);
   return g;
 }

@@ -171,9 +171,24 @@ function unicornHead(outline: string): PartObject {
     tuft.position.set(0, Math.cos(a) * 0.42, -Math.sin(a) * 0.42);
     g.add(tuft);
   });
-  cheeks(g);
-  eye(g, -0.16, 0.06);
-  eye(g, 0.16, 0.06);
+  // A soft pony muzzle with two nostrils and a little smile.
+  const muzzle = toonMesh(sphere(0.17, 20, 14), UNI.belly, { outline: 0.05, outlineColor: outline });
+  muzzle.scale.set(1.15, 0.78, 0.62);
+  muzzle.position.set(0, -0.13, 0.33);
+  g.add(muzzle);
+  for (const s of [-1, 1]) {
+    const nostril = toonMesh(sphere(0.024, 8, 6), '#c77a9a', { outline: false });
+    nostril.scale.set(1, 1.3, 0.5);
+    nostril.position.set(s * 0.07, -0.1, 0.435);
+    g.add(nostril);
+  }
+  const mouth = toonMesh(new THREE.TorusGeometry(0.06, 0.012, 6, 16, Math.PI), INK, { outline: false });
+  mouth.rotation.z = Math.PI;
+  mouth.position.set(0, -0.17, 0.425);
+  g.add(mouth);
+  cheeks(g, -0.04, 0.27);
+  eye(g, -0.16, 0.08);
+  eye(g, 0.16, 0.08);
   return g;
 }
 
@@ -282,17 +297,27 @@ function catLegs(outline: string): PartObject {
 /** A long curling striped tail. */
 function catTail(outline: string): PartObject {
   const g = new THREE.Group();
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, -0.12, -0.05),
-    new THREE.Vector3(0, -0.1, -0.3),
-    new THREE.Vector3(0.05, 0.15, -0.45),
-    new THREE.Vector3(0.12, 0.38, -0.38),
-  ]);
-  const tail = toonMesh(new THREE.TubeGeometry(curve, 24, 0.055, 10), CAT.main, { outline: 0.12, outlineColor: outline });
+  // A soft S-curve up and out to one side (so it shows from behind), with a rounded tip.
+  const curve = new THREE.CatmullRomCurve3(
+    [
+      new THREE.Vector3(0, -0.12, -0.05),
+      new THREE.Vector3(0.04, -0.14, -0.22),
+      new THREE.Vector3(0.14, -0.04, -0.36),
+      new THREE.Vector3(0.22, 0.14, -0.38),
+      new THREE.Vector3(0.24, 0.32, -0.3),
+      new THREE.Vector3(0.18, 0.44, -0.24),
+    ],
+    false,
+    'centripetal',
+  );
+  const tail = toonMesh(new THREE.TubeGeometry(curve, 48, 0.07, 12), CAT.main, { outline: 0.1, outlineColor: outline });
   g.add(tail);
-  for (const t of [0.35, 0.6, 0.85]) {
+  const tip = toonMesh(sphere(0.07, 14, 10), CAT.main, { outline: 0.1, outlineColor: outline });
+  tip.position.copy(curve.getPoint(1));
+  g.add(tip);
+  for (const t of [0.3, 0.52, 0.74]) {
     const p = curve.getPoint(t);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.014, 6, 14), toonMaterial(darken(CAT.main, 0.25).getStyle(), { map: null }));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.072, 0.016, 6, 16), toonMaterial(darken(CAT.main, 0.25).getStyle(), { map: null }));
     ring.position.copy(p);
     ring.lookAt(p.clone().add(curve.getTangent(t)));
     g.add(ring);
@@ -364,10 +389,11 @@ function foxLegs(outline: string): PartObject {
 /** A big bushy tail with a white tip. */
 function foxTail(outline: string): PartObject {
   const g = new THREE.Group();
+  // Big and bushy, swept up and out to one side so it shows from behind as well.
   const tail = toonMesh(sphere(0.17), FOX.main, { outlineColor: outline });
   tail.scale.set(1, 1, 2.3);
-  tail.position.set(0, 0.02, -0.2);
-  tail.rotation.x = 0.55;
+  tail.position.set(0.16, 0.06, -0.2);
+  tail.rotation.set(0.8, 0.75, 0, 'YXZ');
   g.add(tail);
   const tip = toonMesh(sphere(0.13), '#fff7ee', { outlineColor: outline });
   tip.scale.set(1, 1, 1 / 2.3);

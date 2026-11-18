@@ -7,7 +7,7 @@ export const ANIMAL_COLORS: Record<Animal, { main: string; belly: string }> = {
   shark: { main: '#7f9fbf', belly: '#f2f4f7' },
   chicken: { main: '#fbf6ef', belly: '#ffffff' },
   dino: { main: '#45b39d', belly: '#f2e2a0' },
-  owl: { main: '#9a6b45', belly: '#f3dfb6' },
+  owl: { main: '#7a5437', belly: '#f3dfb6' },
   axolotl: { main: '#f6a7c1', belly: '#ffe0ea' },
   penguin: { main: '#34405a', belly: '#fbfbfb' },
   bunny: { main: '#c7b6ea', belly: '#f6f0ff' },

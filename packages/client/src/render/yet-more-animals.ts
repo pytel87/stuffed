@@ -208,22 +208,40 @@ function pigTail(outline: string): PartObject {
   return g;
 }
 
-/** A shiny red apple on the head. */
-function apple(outline: string): PartObject {
+/** A muddy splash on the head: a splat over the top, drips down one side, and a few flecks. */
+function mudSplash(outline: string): PartObject {
   const g = new THREE.Group();
-  const fruit = toonMesh(sphere(0.12, 18, 14), '#e2433f', { outlineColor: outline });
-  fruit.scale.set(1.05, 0.9, 1.05);
-  fruit.position.set(0.06, 0.5, 0.02);
-  g.add(fruit);
-  const stem = toonMesh(new THREE.CylinderGeometry(0.012, 0.015, 0.08, 6), '#7a4a26', { outline: false });
-  stem.position.set(0.06, 0.62, 0.02);
-  stem.rotation.z = -0.2;
-  g.add(stem);
-  const leaf = toonMesh(sphere(0.04, 10, 8), '#6fbf4a', { outline: 0.15, outlineColor: outline });
-  leaf.scale.set(1.8, 0.3, 0.8);
-  leaf.position.set(0.12, 0.63, 0.02);
-  leaf.rotation.z = 0.4;
-  g.add(leaf);
+  const mud = '#7a4f2c';
+  const wet = '#9a6a3f';
+  // A blob hugging the head at direction `dir`, flattened along the surface.
+  const blob = (dir: THREE.Vector3, r: number, flat: number, color: string, outlined: boolean) => {
+    const n = dir.clone().normalize();
+    const m = toonMesh(sphere(r, 14, 10), color, outlined ? { outline: 0.06, outlineColor: outline } : { outline: false });
+    m.scale.set(1, flat, 1);
+    m.position.copy(n.clone().multiplyScalar(HEAD_RADIUS + r * flat * 0.2));
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+    g.add(m);
+    return m;
+  };
+  // The splat: a big puddle on top-right with lumpy edges.
+  blob(new THREE.Vector3(0.25, 1, 0.05), 0.2, 0.22, mud, true);
+  for (const [x, z, r] of [[0.48, 0.2, 0.08], [0.05, 0.28, 0.09], [0.42, -0.25, 0.08], [-0.05, -0.18, 0.07], [0.6, -0.02, 0.07]] as const) {
+    blob(new THREE.Vector3(x, 1, z), r, 0.3, mud, true);
+  }
+  // A wet shine on top.
+  blob(new THREE.Vector3(0.2, 1, 0.1), 0.06, 0.3, wet, false).position.multiplyScalar(1.02);
+  // Drips running down the right side, each ending in a round drop.
+  for (const [y, z, len] of [[0.55, 0.15, 0.16], [0.45, -0.1, 0.11]] as const) {
+    const n = new THREE.Vector3(0.85, y, z).normalize();
+    const drip = toonMesh(new THREE.CapsuleGeometry(0.03, len, 4, 8), mud, { outline: 0.1, outlineColor: outline });
+    drip.position.copy(n.clone().multiplyScalar(HEAD_RADIUS + 0.005));
+    drip.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-n.y, n.x, 0).normalize());
+    g.add(drip);
+  }
+  // A few flecks on the cheek.
+  for (const [x, y, r] of [[-0.3, 0.05, 0.025], [-0.25, -0.05, 0.02], [-0.34, -0.02, 0.018]] as const) {
+    blob(new THREE.Vector3(x, y, onSurface(x, y)), r, 0.35, mud, false);
+  }
   return g;
 }
 
@@ -433,5 +451,5 @@ export const YET_MORE_PARTS: Record<Exclude<PartSlot, 'body'>, Record<'panda' | 
   head: { panda: pandaHead, pig: pigHead, lion: lionHead, elephant: elephantHead },
   legs: { panda: pandaLegs, pig: pigLegs, lion: lionLegs, elephant: elephantLegs },
   tail: { panda: pandaTail, pig: pigTail, lion: lionTail, elephant: elephantTail },
-  accessory: { panda: bamboo, pig: apple, lion: crown, elephant: fez },
+  accessory: { panda: bamboo, pig: mudSplash, lion: crown, elephant: fez },
 };

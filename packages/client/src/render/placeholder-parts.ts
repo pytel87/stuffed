@@ -39,6 +39,12 @@ export function buildPart(slot: PartSlot, animal: Animal): PartObject {
 
 type Builder = (outline: string) => PartObject;
 
+/** How much taller than a plain ball a head is on top (the octopus's dome): accessories worn on
+ *  top of the head are lifted by this, so hats sit on it instead of sinking in. */
+export const HEAD_TOP_LIFT: Partial<Record<Animal, number>> = { octopus: 0.2 };
+/** Accessories worn on the face, not on top (they stay put on a taller head). */
+export const FACE_ACCESSORIES: ReadonlySet<Animal> = new Set<Animal>(['owl', 'shark', 'turtle']);
+
 const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
   head: {
     bear: (o) => bearHead(o),
@@ -188,10 +194,10 @@ function chickenHead(outline: string): PartObject {
   const c = ANIMAL_COLORS.chicken.main;
   const g = headBall(c, outline);
   // comb: three red bumps along the top
-  [-0.1, 0, 0.1].forEach((z, i) => {
-    const bump = toonMesh(sphere(i === 1 ? 0.1 : 0.08), COMB, { outlineColor: outline });
-    bump.scale.set(0.55, 1, 1);
-    bump.position.set(0, 0.42 + (i === 1 ? 0.04 : 0), z);
+  [-0.12, 0, 0.12].forEach((z, i) => {
+    const bump = toonMesh(sphere(i === 1 ? 0.12 : 0.1), COMB, { outlineColor: outline });
+    bump.scale.set(0.6, 1, 1);
+    bump.position.set(0, 0.43 + (i === 1 ? 0.05 : 0), z);
     g.add(bump);
   });
   const beak = toonMesh(new THREE.ConeGeometry(0.09, 0.2, 12), BEAK, { outlineColor: outline });
@@ -254,11 +260,18 @@ function flipperLegs(outline: string): PartObject {
     const leg = toonMesh(new THREE.CapsuleGeometry(0.09, 0.16, 4, 10), c, { outline: 0.1, outlineColor: outline });
     leg.position.y = -0.14;
     hip.add(leg);
-    const foot = toonMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 3), lighten(c, 0.15), { outline: 0.08, outlineColor: outline });
-    foot.rotation.y = Math.PI / 2;
-    foot.scale.set(0.8, 1, 1.2);
-    foot.position.set(0, -0.3, 0.1);
+    // A puffy webbed foot with three round toes.
+    const footColor = lighten(c, 0.15);
+    const foot = toonMesh(sphere(0.12, 16, 10), footColor, { outlineColor: outline });
+    foot.scale.set(1.05, 0.38, 1.25);
+    foot.position.set(0, -0.3, 0.08);
     hip.add(foot);
+    for (const a of [-0.55, 0, 0.55]) {
+      const toe = toonMesh(sphere(0.045, 10, 8), footColor, { outline: 0.1, outlineColor: outline });
+      toe.scale.set(1, 0.7, 1);
+      toe.position.set(Math.sin(a) * 0.13, -0.3, 0.08 + Math.cos(a) * 0.14);
+      hip.add(toe);
+    }
   });
 }
 
@@ -269,11 +282,15 @@ function finLegs(outline: string): PartObject {
     const stump = toonMesh(new THREE.CylinderGeometry(0.09, 0.11, 0.22, 14), c, { outlineColor: outline });
     stump.position.y = -0.14;
     hip.add(stump);
-    const fin = toonMesh(new THREE.ConeGeometry(0.18, 0.38, 3), c, { outline: 0.08, outlineColor: outline });
-    fin.rotation.x = Math.PI / 2;
-    fin.scale.set(1, 1, 0.4);
-    fin.position.set(0, -0.28, 0.1);
+    // A soft rounded flipper, wider at the front, with a pale underside edge.
+    const fin = toonMesh(sphere(0.13, 16, 10), c, { outlineColor: outline });
+    fin.scale.set(0.95, 0.38, 1.45);
+    fin.position.set(0, -0.28, 0.08);
     hip.add(fin);
+    const tip = toonMesh(sphere(0.07, 12, 8), ANIMAL_COLORS.shark.belly, { outline: false });
+    tip.scale.set(1.2, 0.45, 1);
+    tip.position.set(0, -0.31, 0.2);
+    hip.add(tip);
   });
 }
 
@@ -289,13 +306,24 @@ function pomTail(outline: string): PartObject {
 /** A lily pad worn like a little backpack, with a pink flower on it. */
 function lilyPad(outline: string): PartObject {
   const g = new THREE.Group();
-  const pad = toonMesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 24, 1, false, 0.35, Math.PI * 2 - 0.7), '#4fa04a', {
+  // A soft, puffy pad (a squashed ball with its notch cut out) with a few veins.
+  const padColor = '#4fa04a';
+  const pad = toonMesh(new THREE.SphereGeometry(0.3, 28, 12, 0.35, Math.PI * 2 - 0.7), padColor, {
     outline: 0.06,
     outlineColor: outline,
+    material: toonMaterial(padColor, { side: THREE.DoubleSide }),
   });
+  pad.scale.set(1, 0.22, 1);
   pad.rotation.x = Math.PI / 2 - 0.25;
-  pad.position.set(0, 0.12, 0.02);
+  pad.position.set(0, 0.12, -0.02);
   g.add(pad);
+  for (const a of [1.2, 2.2, 3.1, 4.0, 5.0]) {
+    // On the outer face (local -y faces away from the back once tilted).
+    const vein = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.05, 0.14), toonMaterial(darken(padColor, 0.25).getStyle(), { map: null }));
+    vein.position.set(Math.sin(a) * 0.1, -0.27, Math.cos(a) * 0.1);
+    vein.rotation.y = a;
+    pad.add(vein);
+  }
   const flower = new THREE.Group();
   flower.position.set(0.08, 0.2, -0.04);
   for (let i = 0; i < 5; i++) {
@@ -370,39 +398,52 @@ function bandage(outline: string): PartObject {
 }
 
 
+/** A chunky gold crown, a little tipped, with ball-topped points and red gems on the band. */
 function crown(): PartObject {
   const g = new THREE.Group();
-  const mat = toonMaterial('#f7c331', { side: THREE.DoubleSide });
-  const band = toonMesh(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 20, 1, true), '#f7c331', { outline: false, material: mat });
-  band.position.y = 0.4;
-  g.add(band);
-  const spikeGeo = new THREE.ConeGeometry(0.05, 0.12, 8);
+  const gold = '#f7c331';
+  const crown = new THREE.Group();
+  crown.position.set(0, 0.42, -0.04);
+  crown.rotation.set(-0.12, 0, 0.12);
+  // A band with thickness (a ring profile spun round), so it reads solid from any side.
+  const profile = [new THREE.Vector2(0.17, -0.06), new THREE.Vector2(0.21, -0.06), new THREE.Vector2(0.21, 0.06), new THREE.Vector2(0.17, 0.06), new THREE.Vector2(0.17, -0.06)];
+  crown.add(toonMesh(new THREE.LatheGeometry(profile, 24), gold, { outline: 0.06 }));
   for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    const spike = toonMesh(spikeGeo, '#f7c331', { outline: false, material: mat });
-    spike.position.set(Math.cos(a) * 0.19, 0.51, Math.sin(a) * 0.19);
-    g.add(spike);
+    const a = (i / 5) * Math.PI * 2 + Math.PI / 2;
+    const point = toonMesh(new THREE.ConeGeometry(0.055, 0.15, 8), gold, { outline: 0.1 });
+    point.position.set(Math.cos(a) * 0.19, 0.13, Math.sin(a) * 0.19);
+    crown.add(point);
+    const ball = toonMesh(sphere(0.03, 8, 6), gold, { outline: false });
+    ball.position.set(Math.cos(a) * 0.19, 0.215, Math.sin(a) * 0.19);
+    crown.add(ball);
+    const gem = toonMesh(sphere(0.032, 8, 6), i % 2 ? '#3d7ff2' : '#e2433f', { outline: false });
+    gem.scale.set(1, 1, 0.6);
+    gem.position.set(Math.cos(a + Math.PI / 5) * 0.212, 0, Math.sin(a + Math.PI / 5) * 0.212);
+    gem.lookAt(gem.position.clone().multiplyScalar(2));
+    crown.add(gem);
   }
+  g.add(crown);
   return g;
 }
 
-/** Half an egg shell worn as a hat, with a zigzag rim. */
+/** Half an egg shell worn as a little hat tipped over one side (the comb still shows), with a
+ *  zigzag rim. */
 function eggShell(outline: string): PartObject {
   const g = new THREE.Group();
   const color = '#fff4dc';
-  const shell = toonMesh(new THREE.SphereGeometry(0.24, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), color, {
+  const shell = toonMesh(new THREE.SphereGeometry(0.17, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), color, {
     outlineColor: outline,
     material: toonMaterial(color, { side: THREE.DoubleSide }),
   });
   shell.scale.set(1, 1.15, 1);
-  shell.position.y = 0.36;
-  shell.rotation.z = 0.15;
+  shell.position.set(-0.24, 0.3, -0.02);
+  shell.rotation.z = 0.75;
   g.add(shell);
-  const toothGeo = new THREE.ConeGeometry(0.035, 0.08, 4);
+  const toothGeo = new THREE.ConeGeometry(0.03, 0.07, 4);
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2;
     const tooth = toonMesh(toothGeo, color, { outline: false });
-    tooth.position.set(Math.cos(a) * 0.235, -0.03, Math.sin(a) * 0.235);
+    tooth.position.set(Math.cos(a) * 0.165, -0.025, Math.sin(a) * 0.165);
     shell.add(tooth);
   }
   return g;

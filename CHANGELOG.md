@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Animal touch-ups (2026-11-18)
+
+- Fixed: the octopus's tentacles all came out on one side, and the hedgehog's back spikes sat on
+  its left side. Both now go evenly round (the octopus) and across the back (the hedgehog).
+- The unicorn has a muzzle with nostrils and a smile; the chicken's comb shows (its eggshell
+  sits tipped to one side); the owl is darker, with a pale heart-shaped face; the octopus's
+  anchor is bigger.
+- Softer shapes: a smooth curled cat tail and a fox tail that shows from behind; puffy frog feet
+  with toes, rounded shark flippers, a puffy lily pad, and a chunky frog crown with gems.
+- The hedgehog carries an apple (instead of a toadstool) and the pig wears a muddy splash.
+- Hats sit on top of the octopus's tall head instead of sinking in; mittens are closer to the
+  body's color.
+
 ## A tidier HUD, and new looks for items (2026-11-18)
 
 - Desktop: the stuffing bar keeps one length and stays centered, with your health by the heart
@@ -50,7 +63,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Twenty animals (2026-11-17)
 
-- Turtle (common: shell with hexagon plates, red bandana), Hedgehog (rare: spikes, a toadstool
+- Turtle (common: shell with hexagon plates, red bandana), Hedgehog (rare: spikes, an apple
   on top), Koala (rare: fluffy ears, big nose, a sleepy nightcap) and Octopus (epic: a domed
   head, eight wiggly tentacles, sailor hat). Each with its set glow, trail and knockout burst.
 

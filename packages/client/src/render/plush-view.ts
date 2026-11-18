@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
-import { bodyColor, buildPart, type PartObject } from './placeholder-parts.ts';
+import { bodyColor, buildPart, FACE_ACCESSORIES, HEAD_TOP_LIFT, type PartObject } from './placeholder-parts.ts';
 import { mergeStatic } from './merge-static.ts';
 import { PlushArms } from './plush-arms.ts';
 import { OUTLINE_COLOR, toonMaterial } from './toon.ts';
@@ -239,6 +239,9 @@ export class PlushView {
       if (slot === 'legs') this.legPivots = part.userData.swing ?? [];
     }
     if (!changed) return false;
+    // Hats sit on top of a taller head (the octopus's dome) instead of sinking into it.
+    const lift = FACE_ACCESSORIES.has(parts.accessory.animal) ? 0 : (HEAD_TOP_LIFT[parts.head.animal] ?? 0);
+    this.slots.accessory.position.y = SOCKETS.accessory[1] + lift;
     const set = fullSet(parts);
     this.glowRing.visible = set !== null;
     this.glowColor = set ? new THREE.Color(SET_GLOW[set]) : null;

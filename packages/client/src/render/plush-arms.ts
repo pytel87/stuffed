@@ -69,7 +69,7 @@ export class PlushArms {
 
   setColor(bodyColor: string): void {
     this.armMat.color.set(bodyColor);
-    this.mittenMat.color.copy(lighten(bodyColor, 0.3));
+    this.mittenMat.color.copy(lighten(bodyColor, 0.15));
   }
 
   setGrip(kind: WeaponKind | null): void {

@@ -207,20 +207,27 @@ function hedgehogTail(outline: string): PartObject {
   return g;
 }
 
-/** A red toadstool, white spots and all, perched on top. */
-function mushroom(outline: string): PartObject {
+/** A red apple speared on the head spikes, tipped to one side, with a leaf. */
+function spikedApple(outline: string): PartObject {
   const g = new THREE.Group();
-  const stalk = toonMesh(new THREE.CylinderGeometry(0.05, 0.07, 0.18, 10), '#fff7ea', { outline: 0.1, outlineColor: outline });
-  stalk.position.set(0.08, 0.5, 0);
-  g.add(stalk);
-  const cap = toonMesh(new THREE.SphereGeometry(0.16, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), '#e2433f', { outlineColor: outline });
-  cap.position.set(0.08, 0.57, 0);
-  g.add(cap);
-  for (const [a, h] of [[0, 0.5], [2.1, 0.7], [4.2, 0.4], [1, 1.2], [3.2, 1.1]] as const) {
-    const spot = toonMesh(sphere(0.025, 8, 6), '#ffffff', { outline: false });
-    spot.position.set(0.08 + Math.cos(a) * 0.15 * Math.cos(h * 0.6), 0.57 + Math.sin(h * 0.6) * 0.15, Math.sin(a) * 0.15 * Math.cos(h * 0.6));
-    g.add(spot);
-  }
+  const apple = new THREE.Group();
+  apple.position.set(0.1, 0.47, -0.04);
+  apple.rotation.set(-0.2, 0, -0.35);
+  const fruit = toonMesh(sphere(0.14, 18, 14), '#e2433f', { outlineColor: outline });
+  fruit.scale.set(1.05, 0.9, 1.05);
+  apple.add(fruit);
+  const shine = toonMesh(sphere(0.03, 8, 6), '#ff9a8a', { outline: false });
+  shine.position.set(-0.06, 0.06, 0.1);
+  apple.add(shine);
+  const stem = toonMesh(new THREE.CylinderGeometry(0.012, 0.015, 0.09, 6), '#7a4a26', { outline: false });
+  stem.position.y = 0.14;
+  apple.add(stem);
+  const leaf = toonMesh(sphere(0.045, 10, 8), '#6fbf4a', { outline: 0.15, outlineColor: outline });
+  leaf.scale.set(1.8, 0.3, 0.8);
+  leaf.position.set(0.06, 0.16, 0);
+  leaf.rotation.z = 0.4;
+  apple.add(leaf);
+  g.add(apple);
   return g;
 }
 
@@ -330,11 +337,12 @@ function octopusHead(outline: string): PartObject {
   return g;
 }
 
-/** Eight wiggly tentacles, four on each side (each side swings as one leg). */
+/** Eight wiggly tentacles, four on each side fanned from back to front, evenly round the base
+ *  (each side swings as one leg). */
 function octopusLegs(outline: string): PartObject {
   return pairOfLegs(0.12, 0.3, (hip, side) => {
     for (let i = 0; i < 4; i++) {
-      const a = side * (0.25 + i * 0.45) + (side < 0 ? Math.PI : 0);
+      const a = -1.15 + i * 0.8;
       const out = new THREE.Vector3(Math.cos(a) * side, 0, Math.sin(a));
       const curve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(0, 0, 0),
@@ -376,7 +384,8 @@ function octopusTail(outline: string): PartObject {
 function sailorHat(outline: string): PartObject {
   const g = new THREE.Group();
   const hat = new THREE.Group();
-  hat.position.set(0.05, 0.6, -0.02);
+  // On a plain head; the octopus's taller dome lifts it (see HEAD_TOP_LIFT).
+  hat.position.set(0.05, 0.47, -0.02);
   hat.rotation.z = -0.25;
   const crown = toonMesh(new THREE.CylinderGeometry(0.2, 0.22, 0.14, 20), '#fffaf3', { outline: 0.08, outlineColor: outline });
   hat.add(crown);
@@ -394,5 +403,5 @@ export const FINAL_PARTS: Record<Exclude<PartSlot, 'body'>, Record<'turtle' | 'h
   head: { turtle: turtleHead, hedgehog: hedgehogHead, koala: koalaHead, octopus: octopusHead },
   legs: { turtle: turtleLegs, hedgehog: hedgehogLegs, koala: koalaLegs, octopus: octopusLegs },
   tail: { turtle: turtleTail, hedgehog: hedgehogTail, koala: koalaTail, octopus: octopusTail },
-  accessory: { turtle: bandana, hedgehog: mushroom, koala: nightcap, octopus: sailorHat },
+  accessory: { turtle: bandana, hedgehog: spikedApple, koala: nightcap, octopus: sailorHat },
 };

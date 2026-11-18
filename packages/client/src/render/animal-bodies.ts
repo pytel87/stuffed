@@ -89,8 +89,8 @@ function owlBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.owl;
   const b = shapedBody({ shape: 'barrel', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.27, bellyY: -0.04 });
   // Feather marks on the belly and wing shapes folded on the sides.
-  for (const [x, y] of [[-0.08, 0.06], [0.08, 0.06], [0, -0.06], [-0.08, -0.18], [0.08, -0.18]] as const) {
-    const v = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 4, 8, Math.PI), flat(darken(c.belly, 0.2).getStyle()));
+  for (const [x, y] of [[-0.1, 0.1], [0.1, 0.1], [0, 0.0], [-0.1, -0.1], [0.1, -0.1], [0, -0.2]] as const) {
+    const v = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.016, 4, 10, Math.PI), flat(darken(c.belly, 0.38).getStyle()));
     v.rotation.z = Math.PI;
     v.position.copy(b.surface(x, y, 0.035));
     b.group.add(v);
@@ -276,7 +276,8 @@ function hedgehogBody(outline: string): THREE.Object3D {
     const y = 0.28 - row * 0.15;
     const r = b.radiusAt(y);
     for (let i = 0; i < 6; i++) {
-      const a = Math.PI * (0.62 + (i / 5) * 0.76) + (row % 2) * 0.12;
+      // Round the back (-z), from one side to the other.
+      const a = Math.PI * (1.12 + (i / 5) * 0.76) + (row % 2) * 0.12;
       const n = new THREE.Vector3(Math.cos(a), 0.15, Math.sin(a) * DEPTH).normalize();
       const spike = toonMesh(new THREE.ConeGeometry(0.06, 0.2, 6), '#6b4630', { outline: 0.12, outlineColor: outline });
       spike.position.set(Math.cos(a) * r, y, Math.sin(a) * r * DEPTH);
@@ -309,13 +310,26 @@ function octopusBody(outline: string): THREE.Object3D {
     spot.position.copy(b.surface(x, y, -0.005));
     b.group.add(spot);
   }
-  const anchor = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14, Math.PI), flat('#3d7ff2'));
-  anchor.rotation.z = Math.PI;
-  anchor.position.copy(b.surface(0, -0.02, 0.02));
-  b.group.add(anchor);
-  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.02), flat('#3d7ff2'));
-  shaft.position.copy(b.surface(0, 0.03, 0.02));
+  // A big anchor: a ring on top, a cross bar, the shaft and curved arms with points.
+  const blue = flat('#3d7ff2');
+  const arms = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.018, 6, 18, Math.PI), blue);
+  arms.rotation.z = Math.PI;
+  arms.position.copy(b.surface(0, -0.04, 0.03));
+  b.group.add(arms);
+  for (const s of [-1, 1]) {
+    const point = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.05, 4), blue);
+    point.position.copy(b.surface(s * 0.085, -0.03, 0.03));
+    b.group.add(point);
+  }
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.19, 0.02), blue);
+  shaft.position.copy(b.surface(0, -0.02, 0.03));
   b.group.add(shaft);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.024, 0.02), blue);
+  bar.position.copy(b.surface(0, 0.04, 0.03));
+  b.group.add(bar);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.026, 0.01, 6, 14), blue);
+  ring.position.copy(b.surface(0, 0.095, 0.03));
+  b.group.add(ring);
   return b.group;
 }
 
