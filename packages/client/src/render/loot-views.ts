@@ -341,7 +341,8 @@ export function buildItem(kind: ItemKind): THREE.Group {
       const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf'];
       const jar = new THREE.Group();
       jar.position.set(-0.06, 0.2, 0);
-      jar.rotation.z = Math.PI / 2;
+      // Lying with its open mouth toward +x, where the buttons spill out (the bottom to -x).
+      jar.rotation.z = -Math.PI / 2;
       const glass = new THREE.Mesh(
         new THREE.CylinderGeometry(0.2, 0.2, 0.42, 20, 1, true),
         new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
@@ -356,7 +357,7 @@ export function buildItem(kind: ItemKind): THREE.Group {
       for (let i = 0; i < 10; i++) {
         const button = toonMesh(new THREE.CylinderGeometry(0.065, 0.065, 0.025, 12), colors[i % colors.length]!, { outline: false });
         const a = i * 2.4;
-        button.position.set(-0.08 - Math.abs(Math.sin(a)) * 0.06, -0.15 + (i / 10) * 0.32, Math.cos(a) * 0.09);
+        button.position.set(0.08 + Math.abs(Math.sin(a)) * 0.06, -0.15 + (i / 10) * 0.32, Math.cos(a) * 0.09);
         button.rotation.set(i * 0.7, 0, i * 0.4);
         jar.add(button);
       }
