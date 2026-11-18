@@ -123,7 +123,7 @@ void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 /**
  * A part is new to you if it's in neither your collection nor what you carry this match (worn or
- * in the bag): the E prompt and the part on the ground sparkle.
+ * in the bag): a sparkle floats over it on the ground.
  */
 function isNewPart(slot: PartSlot, animal: Animal): boolean {
   const owned = profiles.profile?.parts ?? [];
@@ -132,7 +132,6 @@ function isNewPart(slot: PartSlot, animal: Animal): boolean {
   return true;
 }
 renderer.isNewPart = isNewPart;
-hud.isNewPart = isNewPart;
 const audio = new GameAudio(sound);
 const music = new Music(sound, import.meta.env.BASE_URL);
 /** The soft button click. */

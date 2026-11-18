@@ -174,8 +174,8 @@ the gallery):
 Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
 a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on (a found part it replaces goes into your bag). Q puts it in your bag instead: up
 to three spare parts, shown next to your stuffing. Tap a bag slot (or Q with nothing in reach)
-to wear that part. A part you haven't collected yet sparkles: a gold star over it on the ground
-and on the E prompt. When you're knocked out, the parts you wear go home with you, but the ones
+to wear that part. A part you haven't collected yet sparkles: a gold star floats over it on the
+ground. When you're knocked out, the parts you wear go home with you, but the ones
 in your bag drop for others to take; weapons and items drop too. Bots drop every part they
 found. A plush wearing all five parts of one animal glows in that animal's color. Parts never
 change stats or hitboxes.

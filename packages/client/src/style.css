@@ -2090,20 +2090,3 @@ body.touch-mode .gear {
   gap: 0.35rem;
 }
 
-/* A part you haven't collected yet: a gold sparkle on the prompt, gently pulsing. */
-.prompt .new {
-  display: flex;
-  margin-left: 0.15rem;
-  animation: sparkle-pulse 0.9s ease-in-out infinite;
-}
-
-.prompt .new .icon {
-  width: 1.4rem;
-  height: 1.4rem;
-}
-
-@keyframes sparkle-pulse {
-  50% {
-    transform: scale(1.25) rotate(15deg);
-  }
-}

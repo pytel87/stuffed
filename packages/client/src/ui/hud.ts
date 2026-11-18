@@ -28,9 +28,6 @@ export class Hud {
   private readonly promptStash: HTMLElement;
   /** The bag's three slots. */
   private readonly bag: { root: HTMLElement; art: HTMLElement }[];
-  private readonly promptNew: HTMLElement;
-  /** Whether a part would be new to you (not collected, not carried): the prompt sparkles. */
-  isNewPart: (slot: PartSlot, animal: Animal) => boolean = () => false;
   private readonly progress: HTMLElement;
   private readonly progressArt: HTMLElement;
   private readonly progressFill: HTMLElement;
@@ -65,7 +62,7 @@ export class Hud {
        </div>
        <div class="progress in-world" hidden><span class="art"></span><div class="track"><div class="fill"></div></div></div>
        <div class="prompt in-world" hidden>
-         <span class="opt"><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span><span class="new" hidden>${icon('sparkle')}</span></span>
+         <span class="opt"><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span></span>
          <button type="button" class="opt stash-opt" hidden aria-label="Stash"><kbd>Q</kbd>${icon('stash')}</button>
        </div>`,
     );
@@ -78,7 +75,6 @@ export class Hud {
     this.prompt = q('.prompt');
     this.promptArt = q('.prompt .art');
     this.promptStash = q('.prompt .stash-opt');
-    this.promptNew = q('.prompt .new');
     this.bag = [0, 1, 2].map((i) => {
       const root = q(`.stash-slot[data-bag="${i}"]`);
       // Tap to wear that part; long press (or right-click) drops it.
@@ -192,8 +188,6 @@ export class Hud {
     } else if (interaction?.kind === 'part') {
       const p = interaction.part;
       art = `part:${p.slot}:${p.animal}`;
-      // Not in your collection yet (nor carried): it sparkles.
-      art += this.isNewPart(p.slot, p.animal) ? ':new' : '';
       // The animal's rarity, like a weapon's.
       color = config.rarity[ANIMAL_RARITY[p.animal]].color;
     } else if (interaction?.kind === 'chest') {
@@ -204,8 +198,7 @@ export class Hud {
       art = 'revive';
     }
     this.set('pr', art, (v) => {
-      const [kind, slot, animal, fresh] = v.split(':');
-      this.promptNew.hidden = fresh !== 'new';
+      const [kind, slot, animal] = v.split(':');
       this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
       this.prompt.hidden = v === '';
       this.prompt.classList.toggle('hold', kind === 'chest' || kind === 'revive');
