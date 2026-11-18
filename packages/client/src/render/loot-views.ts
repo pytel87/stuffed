@@ -256,15 +256,55 @@ export function buildItem(kind: ItemKind): THREE.Group {
       }
       break;
     case 'sewing_kit': {
-      const tin = toonMesh(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 24), '#e2577c', { outline: 0.05 });
-      g.add(tin);
-      const spool = toonMesh(new THREE.CylinderGeometry(0.08, 0.08, 0.2, 14), '#4a7fd6', { outline: 0.08 });
-      spool.position.set(0.08, 0.15, 0);
+      // A tomato pincushion with colorful pins in it, and a spool of thread beside it.
+      const cushion = toonMesh(new THREE.SphereGeometry(0.24, 20, 14), '#e2433f', { outline: 0.06 });
+      cushion.scale.set(1, 0.72, 1);
+      cushion.position.set(-0.05, 0.17, 0);
+      g.add(cushion);
+      // Segment seams round it.
+      for (let i = 0; i < 6; i++) {
+        const seam = new THREE.Mesh(new THREE.TorusGeometry(0.242, 0.008, 4, 24, Math.PI), toonMaterial('#a92d2a', { map: null }));
+        seam.rotation.set(0, (i / 6) * Math.PI, 0);
+        seam.scale.set(1, 0.72, 1);
+        seam.position.copy(cushion.position);
+        g.add(seam);
+      }
+      // A green leafy cap on top.
+      for (let i = 0; i < 5; i++) {
+        const leaf = toonMesh(new THREE.SphereGeometry(0.05, 8, 6), '#5fb34f', { outline: 0.1 });
+        const a = (i / 5) * Math.PI * 2;
+        leaf.scale.set(1.8, 0.35, 0.7);
+        leaf.position.set(-0.05 + Math.cos(a) * 0.06, 0.34, Math.sin(a) * 0.06);
+        leaf.rotation.y = -a;
+        g.add(leaf);
+      }
+      // Pins with round colored heads.
+      const heads = ['#3d7ff2', '#f7c331', '#ff9cbf', '#5bd16a'];
+      heads.forEach((c, i) => {
+        const a = (i / heads.length) * Math.PI * 2 + 0.6;
+        const pin = new THREE.Group();
+        pin.position.set(-0.05 + Math.cos(a) * 0.13, 0.26, Math.sin(a) * 0.13);
+        pin.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6);
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 4), toonMaterial('#d9dde3', { map: null }));
+        shaft.position.y = 0.04;
+        pin.add(shaft);
+        const head = toonMesh(new THREE.SphereGeometry(0.035, 10, 8), c, { outline: 0.15 });
+        head.position.y = 0.12;
+        pin.add(head);
+        g.add(pin);
+      });
+      // A spool of blue thread lying beside it.
+      const spool = new THREE.Group();
+      spool.position.set(0.24, 0.07, 0.12);
+      spool.rotation.set(0, 0.5, Math.PI / 2);
+      const thread = toonMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.14, 16), '#3d7ff2', { outline: 0.08 });
+      spool.add(thread);
+      for (const y of [-0.08, 0.08]) {
+        const end = toonMesh(new THREE.CylinderGeometry(0.095, 0.095, 0.025, 16), '#d9a46a', { outline: 0.1 });
+        end.position.y = y;
+        spool.add(end);
+      }
       g.add(spool);
-      const needle = toonMesh(new THREE.CylinderGeometry(0.015, 0.015, 0.36, 6), '#d9dde3', { outline: 0.2 });
-      needle.rotation.z = 0.9;
-      needle.position.set(-0.08, 0.14, 0.04);
-      g.add(needle);
       break;
     }
     case 'button_pack':
