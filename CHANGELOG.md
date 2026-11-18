@@ -9,6 +9,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - The Bubble Wand traps for 2 s (was 1.5); more bubbles bounce off someone already trapped, so a
   trap can't be stretched out.
 - The Marble Launcher hits harder: 38 per marble (was 30).
+- Fixed: a teammate's arrow could point the wrong way when they were far below the screen.
 - Protocol version 7.
 
 ## Shorter matches (2026-11-18)
