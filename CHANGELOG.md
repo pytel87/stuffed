@@ -8,6 +8,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   Knocked out, the parts you wear are kept but the bagged ones drop for others. A found part you
   replace by wearing a new one goes into the bag (instead of onto the ground).
 - Parts you haven't collected yet sparkle: a gold star floats over them on the ground. Protocol version 5.
+- The Sewing Kit looks like one: a ball of pink wool with two knitting needles through it.
 
 ## Chest tweaks (2026-11-18)
 

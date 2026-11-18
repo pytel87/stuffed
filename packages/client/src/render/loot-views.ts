@@ -256,55 +256,36 @@ export function buildItem(kind: ItemKind): THREE.Group {
       }
       break;
     case 'sewing_kit': {
-      // A tomato pincushion with colorful pins in it, and a spool of thread beside it.
-      const cushion = toonMesh(new THREE.SphereGeometry(0.24, 20, 14), '#e2433f', { outline: 0.06 });
-      cushion.scale.set(1, 0.72, 1);
-      cushion.position.set(-0.05, 0.17, 0);
-      g.add(cushion);
-      // Segment seams round it.
-      for (let i = 0; i < 6; i++) {
-        const seam = new THREE.Mesh(new THREE.TorusGeometry(0.242, 0.008, 4, 24, Math.PI), toonMaterial('#a92d2a', { map: null }));
-        seam.rotation.set(0, (i / 6) * Math.PI, 0);
-        seam.scale.set(1, 0.72, 1);
-        seam.position.copy(cushion.position);
-        g.add(seam);
-      }
-      // A green leafy cap on top.
+      // A pink ball of wool with two knitting needles stuck through it, and a loose strand.
+      const ball = toonMesh(new THREE.SphereGeometry(0.22, 20, 16), '#ff8fb8', { outline: 0.06 });
+      ball.position.y = 0.2;
+      g.add(ball);
+      // Wraps of yarn round it, crossing every which way.
+      const wrapMat = toonMaterial('#e5679a', { map: null });
       for (let i = 0; i < 5; i++) {
-        const leaf = toonMesh(new THREE.SphereGeometry(0.05, 8, 6), '#5fb34f', { outline: 0.1 });
-        const a = (i / 5) * Math.PI * 2;
-        leaf.scale.set(1.8, 0.35, 0.7);
-        leaf.position.set(-0.05 + Math.cos(a) * 0.06, 0.34, Math.sin(a) * 0.06);
-        leaf.rotation.y = -a;
-        g.add(leaf);
+        const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.222, 0.012, 4, 28), wrapMat);
+        wrap.position.copy(ball.position);
+        wrap.rotation.set(i * 0.9, i * 0.6, i * 0.35);
+        g.add(wrap);
       }
-      // Pins with round colored heads.
-      const heads = ['#3d7ff2', '#f7c331', '#ff9cbf', '#5bd16a'];
-      heads.forEach((c, i) => {
-        const a = (i / heads.length) * Math.PI * 2 + 0.6;
-        const pin = new THREE.Group();
-        pin.position.set(-0.05 + Math.cos(a) * 0.13, 0.26, Math.sin(a) * 0.13);
-        pin.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6);
-        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 4), toonMaterial('#d9dde3', { map: null }));
-        shaft.position.y = 0.04;
-        pin.add(shaft);
-        const head = toonMesh(new THREE.SphereGeometry(0.035, 10, 8), c, { outline: 0.15 });
-        head.position.y = 0.12;
-        pin.add(head);
-        g.add(pin);
-      });
-      // A spool of blue thread lying beside it.
-      const spool = new THREE.Group();
-      spool.position.set(0.24, 0.07, 0.12);
-      spool.rotation.set(0, 0.5, Math.PI / 2);
-      const thread = toonMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.14, 16), '#3d7ff2', { outline: 0.08 });
-      spool.add(thread);
-      for (const y of [-0.08, 0.08]) {
-        const end = toonMesh(new THREE.CylinderGeometry(0.095, 0.095, 0.025, 16), '#d9a46a', { outline: 0.1 });
-        end.position.y = y;
-        spool.add(end);
+      // Two knitting needles crossing through the ball, with round tops.
+      for (const [rz, ry, top] of [[0.7, 0.3, '#3d7ff2'], [-0.6, -0.4, '#f7c331']] as const) {
+        const needle = new THREE.Group();
+        needle.position.copy(ball.position);
+        needle.rotation.set(0, ry, rz);
+        const shaft = toonMesh(new THREE.CylinderGeometry(0.018, 0.018, 0.7, 8), '#d9dde3', { outline: 0.15 });
+        needle.add(shaft);
+        const knob = toonMesh(new THREE.SphereGeometry(0.045, 10, 8), top, { outline: 0.12 });
+        knob.position.y = 0.36;
+        needle.add(knob);
+        g.add(needle);
       }
-      g.add(spool);
+      // A loose strand trailing off.
+      const strand = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.1, 0.06, 0.16), new THREE.Vector3(0.25, 0.02, 0.22), new THREE.Vector3(0.36, 0.02, 0.1)]), 12, 0.012, 5),
+        wrapMat,
+      );
+      g.add(strand);
       break;
     }
     case 'button_pack':
