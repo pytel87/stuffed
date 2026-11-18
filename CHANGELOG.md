@@ -6,6 +6,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 - Chests rarely give the starting Cork Popper (about 1 in 15 instead of 1 in 5), and never a
   plain Hand-me-down one: a chest gun is always better than the one you start with.
+- Fixed: after a match ended, its last moment (the final knockout and hits) replayed every
+  frame in solo, piling up a huge cotton cloud and damage numbers.
 - The Bouncy Ball is replaced by the Button Jar: +50 buttons in 4 s (the big armor, as the
   Sewing Kit is to the Cotton Puff). The Cotton Puff now heals up to full (was up to 75).
 - Lighter knockout burst (no cotton cloud hiding whoever's near); "Watch" and "Again" as words

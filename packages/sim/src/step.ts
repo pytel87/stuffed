@@ -18,7 +18,11 @@ import { recordPoses, type World } from './world.ts';
  * System order is fixed; changing it changes the simulation.
  */
 export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityId, Input>): GameState {
-  if (state.status === 'ended') return state;
+  if (state.status === 'ended') {
+    // Over: nothing happens any more (and the last tick's events aren't repeated).
+    state.events = [];
+    return state;
+  }
   state.tick++;
   state.events = [];
   // Walls put up this match count as walls for everything below.

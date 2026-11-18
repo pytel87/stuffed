@@ -353,6 +353,18 @@ describe('team mode', () => {
     expect(b.alive).toBe(false);
   });
 
+  it('after the match ends, the last events are not repeated', () => {
+    const { world, state, a, c } = teamGame();
+    applyDamage(state, c, 1000, a.id);
+    run(world, state, 1, () => idle);
+    expect(state.status).toBe('ended');
+    // Whatever happened on the final tick (the last knockout, its hits)...
+    state.events = [{ type: 'eliminated', playerId: c.id, byId: a.id, placement: 2 }];
+    run(world, state, 3, () => idle);
+    // ...isn't there again on the ticks after.
+    expect(state.events).toEqual([]);
+  });
+
   it('the match ends when only one team is left, and the whole team wins', () => {
     const { world, state, a, b, c } = teamGame();
     applyDamage(state, c, 1000, a.id);
