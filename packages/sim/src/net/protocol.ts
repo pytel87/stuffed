@@ -6,7 +6,7 @@ import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, Ow
 
 export const PROTOCOL_VERSION = 13;
 /** Plushies per match, humans and bots together. */
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
 export const SNAPSHOT_EVERY = 1;
 

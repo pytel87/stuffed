@@ -20,7 +20,7 @@ This starts the game client (Vite, usually http://localhost:5173) and the game s
 
 - Open http://localhost:5173: the title menu has **Play solo** (15 bots, in your browser),
   **Create a room** and **Join** with a code. A room's lobby shows its invite link
-  (`?room=CODE`); the host picks the bots and presses Start. Bots fill up to 10 plushies.
+  (`?room=CODE`); the host picks the bots and presses Start. Bots fill up to 16 plushies (the lobby starts full; take bots away with −).
 - Shortcuts: `?solo` starts a solo match, `?online` creates a room, `?room=CODE` joins one.
 - **Other computers at home:** run `pnpm dev:lan` and open the client from the other machine
   with this computer's local IP (e.g. http://192.168.1.20:5173/?room=CODE).

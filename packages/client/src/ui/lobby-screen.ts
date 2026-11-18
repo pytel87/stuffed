@@ -18,7 +18,7 @@ export class LobbyScreen {
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
   private readonly nameInput: HTMLInputElement;
-  private wantedBots = 7;
+  private wantedBots = 15;
   /** Team mode: all of us against the bots (on by default; families play together). */
   private wantedTeams = true;
   private readonly teamToggle: HTMLButtonElement;

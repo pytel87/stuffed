@@ -2,6 +2,10 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Bigger rooms (2026-11-19)
+
+- Online rooms take up to 16 plushies (was 10), like solo; the lobby starts full of bots.
+
 ## Slides, zip line, trampoline and mini-games (2026-11-19)
 
 - Getting around: a trampoline (onto the house roof) and a seesaw in the Backyard; slides off the

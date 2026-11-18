@@ -31,7 +31,7 @@ const MAX_QUEUED_INPUTS = 15;
 const INPUT_TIMEOUT_TICKS = 15;
 /** Seconds after a match ends before the loop stops (final snapshots, effects). */
 const LINGER_SECONDS = 3;
-const DEFAULT_BOTS = 7;
+const DEFAULT_BOTS = 15;
 const NAME_MAX = 16;
 
 interface Seat {
