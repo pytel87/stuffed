@@ -42,7 +42,8 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
     return m;
   });
   const hull = outlineMaterial(outlineColor);
-  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true });
+  // Pushed back a hair, so the see-through leaves never fight their own depth copies.
+  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
   const r = circle.radius;
   const balls: [number, number, number, number][] = [[0, 0, 1.15, r * 0.55]];
   for (let i = 0; i < 6; i++) {

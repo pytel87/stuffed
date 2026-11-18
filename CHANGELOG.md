@@ -8,8 +8,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   edge as it's drawn (about a third of the frame cost it had, near the edge). Fixes the lag on
   older iPads.
 - Igloos: a wider doorway and a taller entrance tunnel; inside, the dome fades to a ghost and a
-  smooth low wall of snow bricks stays round you. Pine trees no longer flicker when you stand
-  in them.
+  smooth low wall of snow bricks stays round you. Pine trees and bushes (and laundry piles) no
+  longer flicker when you stand in them.
 
 ## Ten more animals and the Snowy Park (2026-11-18)
 
