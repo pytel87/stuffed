@@ -11,6 +11,7 @@ import { mergeStatic } from './merge-static.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
+import { MYTHIC_PARTS } from './mythic-animals.ts';
 import { detailMaps, repeated } from './image-textures.ts';
 import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -56,6 +57,7 @@ type Fabric = 'minky' | 'knit' | 'corduroy';
 const FABRICS: Partial<Record<Animal, Fabric>> = {
   bear: 'knit', cat: 'knit', fox: 'knit', lion: 'knit', koala: 'knit', penguin: 'knit',
   frog: 'corduroy', dino: 'corduroy', shark: 'corduroy', turtle: 'corduroy', elephant: 'corduroy',
+  raccoon: 'knit', sloth: 'knit', yeti: 'knit', giraffe: 'corduroy', dragon: 'corduroy', bee: 'corduroy',
 };
 const fabricMaps = new Map<Fabric, { map: THREE.Texture; normal: THREE.Texture }>();
 
@@ -89,6 +91,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...EVEN_MORE_PARTS.head,
     ...YET_MORE_PARTS.head,
     ...FINAL_PARTS.head,
+    ...MYTHIC_PARTS.head,
   },
   // Each animal's body has its own shape (animal-bodies.ts); all fit any head, legs and arms.
   body: BODIES,
@@ -102,6 +105,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...EVEN_MORE_PARTS.legs,
     ...YET_MORE_PARTS.legs,
     ...FINAL_PARTS.legs,
+    ...MYTHIC_PARTS.legs,
   },
   tail: {
     bear: (o) => pomTail(o),
@@ -113,6 +117,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...EVEN_MORE_PARTS.tail,
     ...YET_MORE_PARTS.tail,
     ...FINAL_PARTS.tail,
+    ...MYTHIC_PARTS.tail,
   },
   accessory: {
     bear: (o) => bow(o),
@@ -124,6 +129,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...EVEN_MORE_PARTS.accessory,
     ...YET_MORE_PARTS.accessory,
     ...FINAL_PARTS.accessory,
+    ...MYTHIC_PARTS.accessory,
   },
 };
 

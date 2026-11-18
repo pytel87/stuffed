@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 8;
+export const PROTOCOL_VERSION = 9;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 10;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */

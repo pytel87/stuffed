@@ -26,7 +26,7 @@ export function bindMapChoice(button: HTMLButtonElement, onChange: (map: MapData
   let map = savedMap();
   const show = () => {
     button.innerHTML = icon(`map-${map.id}`);
-    button.setAttribute('aria-label', map.id === 'bedroom' ? 'Bedroom' : 'Backyard');
+    button.setAttribute('aria-label', map.id === 'bedroom' ? 'Bedroom' : map.id === 'park' ? 'Snowy Park' : 'Backyard');
   };
   show();
   button.addEventListener('click', (e) => {

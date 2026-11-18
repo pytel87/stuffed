@@ -2,6 +2,20 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Ten more animals and the Snowy Park (2026-11-18)
+
+- Ten new animals (thirty in all): Mouse and Sheep (common), Raccoon and Bee (rare), Flamingo,
+  Giraffe and Sloth (epic), Dragon, Phoenix and Yeti (legendary), each with five parts, a fabric,
+  a set glow, a trail and a knockout burst. Legendary parts are rarer per animal (weight 1).
+- A new map, the Snowy Park: a slippery frozen pond, pine trees, snow walls and a snow fort, a
+  log cabin, gift stacks, snowmen, lamp posts, igloos to hide in, sleds and lost mittens, and
+  falling snow. New generated textures: snow, ice, log walls and gift wrap.
+- Look-alikes told apart: the Dragon is crimson (not green like the Dino), the Yeti wears
+  earmuffs (not a red hat like the Penguin), the Axolotl is coral, the Flamingo hot pink, the
+  Mouse tan and the Sloth olive. The Yeti and Flamingo were reworked (a blue yeti face and shaggy
+  fur; a black-tipped beak and wing tips).
+- Protocol version 9.
+
 ## Back to the lobby (2026-11-18)
 
 - After a room match, the host gets a Lobby button: everyone goes back to the same room's lobby

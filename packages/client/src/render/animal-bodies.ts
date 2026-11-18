@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { Animal } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
 import { DEPTH, shapedBody } from './body-shapes.ts';
+import { GIRAFFE_SPOT, YETI_FUR } from './mythic-animals.ts';
 import { darken, toonMaterial, toonMesh } from './toon.ts';
 
 const flat = (c: string) => toonMaterial(c, { map: null });
@@ -333,6 +334,182 @@ function octopusBody(outline: string): THREE.Object3D {
   return b.group;
 }
 
+function mouseBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.mouse;
+  const b = shapedBody({ shape: 'pear', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.25, bellyY: -0.06 });
+  // A little pink heart patch, sewn on.
+  const heart = new THREE.Shape();
+  heart.moveTo(0, -0.04);
+  heart.bezierCurveTo(-0.07, 0.01, -0.05, 0.06, 0, 0.03);
+  heart.bezierCurveTo(0.05, 0.06, 0.07, 0.01, 0, -0.04);
+  const h = new THREE.Mesh(new THREE.ShapeGeometry(heart), flat('#ff9cbf'));
+  h.position.copy(b.surface(0.17, 0.2, 0.012));
+  h.lookAt(h.position.clone().add(new THREE.Vector3(0.3, 0.3, 1)));
+  b.group.add(h);
+  return b.group;
+}
+
+function sheepBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.sheep;
+  const b = shapedBody({ shape: 'plump', main: c.main, belly: c.belly, outline, bellyW: 0.22, bellyH: 0.2, bellyY: -0.08 });
+  // Curly wool: puffs all round.
+  for (let row = 0; row < 3; row++) {
+    const y = 0.22 - row * 0.2;
+    const r = b.radiusAt(y);
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2 + row * 0.4;
+      if (Math.sin(a) > 0.55 && row > 0) continue; // keep the belly patch clear
+      const puff = toonMesh(new THREE.SphereGeometry(0.1, 10, 8), c.main, { outline: 0.08, outlineColor: outline });
+      puff.position.set(Math.cos(a) * r, y, Math.sin(a) * r * DEPTH);
+      b.group.add(puff);
+    }
+  }
+  return b.group;
+}
+
+function raccoonBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.raccoon;
+  const b = shapedBody({ shape: 'round', main: c.main, belly: c.belly, outline, bellyW: 0.26, bellyH: 0.26, bellyY: -0.05 });
+  // A little backpack with a flap, on the back.
+  const pack = toonMesh(new THREE.BoxGeometry(0.32, 0.34, 0.14), '#e2574c', { outline: 0.06, outlineColor: outline });
+  pack.position.copy(b.surface(0, 0.02, -0.05, true));
+  b.group.add(pack);
+  const flapMesh = toonMesh(new THREE.BoxGeometry(0.33, 0.12, 0.15), '#b8433b', { outline: 0.06, outlineColor: outline });
+  flapMesh.position.copy(pack.position).add(new THREE.Vector3(0, 0.12, -0.01));
+  b.group.add(flapMesh);
+  for (const s of [-1, 1]) {
+    const strap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.018, 6, 16, Math.PI), flat('#b8433b'));
+    strap.rotation.y = Math.PI / 2;
+    strap.position.set(s * 0.14, 0.05, 0);
+    b.group.add(strap);
+  }
+  return b.group;
+}
+
+function beeBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.bee;
+  const b = shapedBody({ shape: 'egg', main: c.main, belly: c.belly, outline, bellyW: 0.2, bellyH: 0.2, bellyY: -0.04 });
+  // Black stripes round the body.
+  for (const y of [0.2, -0.04, -0.27]) {
+    const top = y + 0.05;
+    const bottom = y - 0.05;
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(b.radiusAt(top) + 0.03, b.radiusAt(bottom) + 0.03, 0.1, 40, 1, true), flat('#2a1f2d'));
+    stripe.scale.z = DEPTH;
+    stripe.position.y = y;
+    b.group.add(stripe);
+  }
+  return b.group;
+}
+
+function flamingoBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.flamingo;
+  const b = shapedBody({ shape: 'tapered', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.24, bellyY: -0.06 });
+  // Folded wings, a darker pink, with the flamingo's black flight feathers at their tips.
+  for (const s of [-1, 1]) {
+    const wing = toonMesh(new THREE.SphereGeometry(0.2, 14, 10), darken(c.main, 0.12).getStyle(), { outlineColor: outline });
+    wing.scale.set(0.35, 0.95, 0.75);
+    wing.position.set(s * (b.radiusAt(-0.02) - 0.02), -0.02, -0.05);
+    wing.rotation.z = s * 0.15;
+    b.group.add(wing);
+    // Thin black flight feathers peeking out along the wing's back edge.
+    for (const [dy, dz, rx] of [[-0.06, -0.15, 0.7], [-0.13, -0.11, 0.5], [-0.18, -0.06, 0.3]] as const) {
+      const tip = toonMesh(new THREE.SphereGeometry(0.05, 8, 6), '#2a1f2d', { outline: false });
+      tip.scale.set(0.3, 1.5, 0.5);
+      tip.position.set(s * (b.radiusAt(-0.05 + dy) + 0.025), -0.02 + dy, -0.05 + dz);
+      tip.rotation.set(rx, 0, s * 0.15);
+      b.group.add(tip);
+    }
+  }
+  return b.group;
+}
+
+function giraffeBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.giraffe;
+  const b = shapedBody({ shape: 'pin', main: c.main, belly: c.belly, outline, bellyW: 0.22, bellyH: 0.22, bellyY: -0.08 });
+  for (const [x, y, r, back] of [[-0.24, 0.12, 0.06, false], [0.26, -0.02, 0.07, false], [-0.2, -0.22, 0.05, false], [0.1, 0.12, 0.05, true], [-0.15, -0.08, 0.07, true], [0.2, -0.24, 0.06, true]] as const) {
+    const spot = toonMesh(new THREE.SphereGeometry(r, 10, 8), GIRAFFE_SPOT, { outline: false });
+    spot.scale.z = 0.3;
+    spot.position.copy(b.surface(x, y, -0.006, back));
+    spot.lookAt(spot.position.clone().multiplyScalar(2));
+    b.group.add(spot);
+  }
+  return b.group;
+}
+
+function slothBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.sloth;
+  const b = shapedBody({ shape: 'chunky', main: c.main, belly: c.belly, outline, bellyW: 0.26, bellyH: 0.26, bellyY: -0.05 });
+  // A tuft of fur at the chest.
+  for (const x of [-0.06, 0.06]) {
+    const tuft = toonMesh(new THREE.SphereGeometry(0.06, 8, 6), c.main, { outline: 0.1, outlineColor: outline });
+    tuft.scale.set(0.9, 1.3, 0.5);
+    tuft.position.copy(b.surface(x, 0.28, 0.01));
+    b.group.add(tuft);
+  }
+  return b.group;
+}
+
+function dragonBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.dragon;
+  const b = shapedBody({ shape: 'broad', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.28, bellyY: -0.05 });
+  // Scale bands across the belly.
+  for (const y of [0.12, 0.0, -0.12, -0.24]) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.012, 4, 14, Math.PI), flat(darken(c.belly, 0.25).getStyle()));
+    band.rotation.z = Math.PI;
+    band.scale.set(1.8, 0.4, 1);
+    band.position.copy(b.surface(0, y, 0.03));
+    b.group.add(band);
+  }
+  // Spikes down the back.
+  for (const y of [0.3, 0.12, -0.06, -0.24]) {
+    const spike = toonMesh(new THREE.ConeGeometry(0.05, 0.12, 6), '#ff8a3d', { outline: 0.1, outlineColor: outline });
+    spike.position.copy(b.surface(0, y, -0.02, true));
+    spike.rotation.x = -Math.PI / 2;
+    b.group.add(spike);
+  }
+  return b.group;
+}
+
+function phoenixBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.phoenix;
+  const b = shapedBody({ shape: 'bell', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.27, bellyY: -0.05 });
+  // Flame-feather marks on the chest.
+  for (const [x, y, col] of [[-0.08, 0.06, '#ffcf3d'], [0.08, 0.06, '#ffcf3d'], [0, -0.06, '#e2433f'], [-0.08, -0.18, '#ff8a3d'], [0.08, -0.18, '#ff8a3d']] as const) {
+    const v = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.016, 4, 10, Math.PI), flat(col));
+    v.rotation.z = Math.PI;
+    v.position.copy(b.surface(x, y, 0.035));
+    b.group.add(v);
+  }
+  return b.group;
+}
+
+function yetiBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.yeti;
+  const b = shapedBody({ shape: 'chunky', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.26, bellyY: -0.05 });
+  // Shaggy fur: soft drooping tufts round the sides and back (the belly stays clear), and a
+  // fringe along the bottom.
+  for (const [y, n, off] of [[0.22, 9, 0], [0.0, 10, 0.3], [-0.24, 11, 0.15]] as const) {
+    const r = b.radiusAt(y);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + off;
+      if (Math.sin(a) > 0.45) continue;
+      // A flat, pointed lock of fur hanging down against the body.
+      const tuft = toonMesh(new THREE.ConeGeometry(0.075, 0.22, 8), YETI_FUR, { outline: false });
+      tuft.rotation.x = Math.PI;
+      tuft.scale.set(1, 1, 0.45);
+      const holder = new THREE.Group();
+      holder.position.set(Math.cos(a) * (r - 0.005), y - 0.04, Math.sin(a) * (r - 0.005) * DEPTH);
+      holder.rotation.y = -a + Math.PI / 2;
+      holder.rotation.x = 0.15;
+      holder.add(tuft);
+      b.group.add(holder);
+      continue;
+      b.group.add(tuft);
+    }
+  }
+  return b.group;
+}
+
 export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   bear: bearBody,
   frog: frogBody,
@@ -354,4 +531,14 @@ export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   hedgehog: hedgehogBody,
   koala: koalaBody,
   octopus: octopusBody,
+  mouse: mouseBody,
+  sheep: sheepBody,
+  raccoon: raccoonBody,
+  bee: beeBody,
+  flamingo: flamingoBody,
+  giraffe: giraffeBody,
+  sloth: slothBody,
+  dragon: dragonBody,
+  phoenix: phoenixBody,
+  yeti: yetiBody,
 };

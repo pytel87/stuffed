@@ -52,6 +52,7 @@ const paths: Record<string, string> = {
   revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
   // the maps: a tree (the Backyard) and a bed (the Bedroom)
   'map-backyard': `<rect x="10.5" y="13" width="3" height="8" rx="1" fill="#a0693f"/><circle cx="12" cy="9.5" r="6.5" fill="#5bb46a"/><path d="M3 21h18" stroke-width="1.8"/>`,
+  'map-park': `<circle cx="12" cy="16.5" r="4.5" fill="#fff"/><circle cx="12" cy="9" r="3.2" fill="#fff"/><path d="M8.5 6.2h7M9.8 6.2V3.5h4.4v2.7" fill="#2a1f2d"/><path d="M12 9.3l2.4.6" stroke="#f28a2c" stroke-width="1.6"/>`,
   'map-bedroom': `<rect x="3" y="7" width="3" height="13" rx="1" fill="#a0693f"/><rect x="3" y="13" width="18" height="5" rx="1.5" fill="#f6a5c0"/><rect x="6.5" y="10" width="5" height="3" rx="1.2" fill="#fff"/><path d="M21 18v2" stroke-width="1.8"/>`,
   // signal bars: how tough the bots are
   'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
@@ -114,6 +115,16 @@ const HEAD_EXTRAS: Record<Animal, string> = {
   hedgehog: `<path d="M3 13l1-4 2 2 1-5 2 3 3-6 3 6 2-3 1 5 2-2 1 4" fill="#6b4630"/>`,
   koala: `<circle cx="5" cy="9" r="4.2" fill="M"/><circle cx="19" cy="9" r="4.2" fill="M"/>`,
   octopus: `<path d="M5 18c-1 2-2 3-3 3M9 19c0 2-1 3-2 3M15 19c0 2 1 3 2 3M19 18c1 2 2 3 3 3" stroke="M" stroke-width="2.2"/>`,
+  mouse: `<circle cx="5.5" cy="7" r="4" fill="M"/><circle cx="18.5" cy="7" r="4" fill="M"/>`,
+  sheep: `<circle cx="7" cy="5.5" r="3" fill="M"/><circle cx="12" cy="4" r="3.2" fill="M"/><circle cx="17" cy="5.5" r="3" fill="M"/>`,
+  raccoon: `<path d="M4.5 9.5l1-6.5 5 3.5M19.5 9.5l-1-6.5-5 3.5" fill="M"/>`,
+  bee: `<path d="M9.5 6L7 1.5M14.5 6L17 1.5" stroke-width="1.6"/><circle cx="7" cy="1.8" r="1.4" fill="#2a1f2d"/><circle cx="17" cy="1.8" r="1.4" fill="#2a1f2d"/>`,
+  flamingo: ``,
+  giraffe: `<path d="M9 6V2M15 6V2" stroke-width="2"/><circle cx="9" cy="2" r="1.6" fill="#b5793b"/><circle cx="15" cy="2" r="1.6" fill="#b5793b"/>`,
+  sloth: ``,
+  dragon: `<path d="M7.5 6.5L6 1.5l4 3.5M16.5 6.5L18 1.5l-4 3.5" fill="#fff3d6"/>`,
+  phoenix: `<path d="M12 5.5L10 0.5l2.5 2.5L14 0.5Z" fill="#ffcf3d"/>`,
+  yeti: `<path d="M4 9l1.5-3 1.5 2 1.5-3.5 2 2.5 1.5-3 1.5 3 2-2.5 1.5 3.5 1.5-2 1.5 3" fill="M"/>`,
 };
 /** ...and in front of it. */
 const HEAD_FRONT: Partial<Record<Animal, string>> = {
@@ -129,6 +140,13 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
   elephant: `<path d="M12 14v5.5c0 1.5 2 1.5 2 0" stroke-width="2.4"/>`,
   turtle: `<path d="M9.5 16c1.5 1.5 3.5 1.5 5 0" stroke-width="1.3"/>`,
   koala: `<ellipse cx="12" cy="14.5" rx="2" ry="2.6" fill="#3a3440" stroke="none"/>`,
+  mouse: `<circle cx="12" cy="14.5" r="1.2" fill="#ff7aa8" stroke="none"/>`,
+  sheep: `<ellipse cx="12" cy="13.5" rx="5" ry="5.5" fill="#5a4b55" stroke="none"/>`,
+  raccoon: `<path d="M5 11.5c2-2 5-2 7 0 2-2 5-2 7 0" stroke="#3a3640" stroke-width="3"/>`,
+  flamingo: `<path d="M12 14c3 0 4 1.5 3 4" stroke="#fff3e6" stroke-width="2.4"/>`,
+  sloth: `<path d="M7 10.5l3 2M17 10.5l-3 2" stroke="#5e4632" stroke-width="2.6"/>`,
+  phoenix: `<path d="M11 14.5h2l-1 2.5Z" fill="#f7c331" stroke-width="1.3"/>`,
+  yeti: `<ellipse cx="12" cy="13.5" rx="4.5" ry="4" fill="#8fb6e8" stroke="none"/>`,
 };
 
 /** A skin part as a slot shape in its animal's colors. */

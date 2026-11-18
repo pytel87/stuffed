@@ -2,7 +2,7 @@
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
 import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
-import { dirtTexture, picnicTexture, drift, lawnTexture, rugTexture, sandTexture, stoneTexture, tiled, waterTexture, woodFloorTexture } from './props.ts';
+import { dirtTexture, drift, iceTexture, lawnTexture, picnicTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture } from './props.ts';
 import { mergeStatic } from './merge-static.ts';
 import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -20,15 +20,18 @@ export function buildMapView(map: MapData): THREE.Group {
   const lh = h + 2 * LAWN_BEYOND;
   // The Bedroom: wooden floorboards instead of the lawn.
   const indoors = map.theme === 'bedroom';
+  const snowy = map.theme === 'snow';
   const lawnMat = indoors
     ? toonMaterial('#ffffff', { map: tiled(woodFloorTexture(), lw / 4, lh / 4) })
-    : toonMaterial('#ffffff', { map: tiled(lawnTexture(), lw / 8, lh / 8) });
+    : snowy
+      ? toonMaterial('#ffffff', { map: tiled(snowTexture(), lw / 10, lh / 10) })
+      : toonMaterial('#ffffff', { map: tiled(lawnTexture(), lw / 8, lh / 8) });
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
   // some GPUs (seen with wide phone screens), and the lawn then covers everything on it.
   const lawnGeo = new THREE.PlaneGeometry(lw, lh, Math.ceil(lw / 4), Math.ceil(lh / 4));
   if (!indoors) {
     // Big soft patches of lighter and darker green, so the lawn isn't one even carpet.
-    patches(lawnGeo, map, 0.3, w / 2, h / 2, true);
+    patches(lawnGeo, map, snowy ? 0.12 : 0.3, w / 2, h / 2, true);
     lawnMat.vertexColors = true;
   }
   const lawn = new THREE.Mesh(lawnGeo, lawnMat);
@@ -39,6 +42,7 @@ export function buildMapView(map: MapData): THREE.Group {
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
   for (const pool of map.pools ?? []) g.add(poolView(pool));
+  for (const ice of map.ice ?? []) g.add(iceView(ice));
   for (const d of map.decor ?? []) g.add(decorItem(d, mapRandom(map, Math.round(d.x * 13 + d.y * 7))));
   return g;
 }
@@ -144,6 +148,30 @@ function sandBits(box: { x: number; y: number; w: number; h: number }, map: MapD
       mound.position.set(x, 0.012, z);
       g.add(mound);
     }
+  }
+  mergeStatic(g);
+  return g;
+}
+
+/** A frozen pond: glossy ice with frost, and a soft bank of snow round its edge. */
+function iceView(pond: Circle): THREE.Object3D {
+  const g = new THREE.Group();
+  g.position.set(pond.center.x, 0, pond.center.y);
+  const frost = tiled(iceTexture(), pond.radius / 5, pond.radius / 5);
+  const ice = new THREE.Mesh(new THREE.CircleGeometry(pond.radius, 64).rotateX(-Math.PI / 2), makePlastic(toonMaterial('#e6f6ff', { map: frost }), true));
+  ice.position.y = 0.02;
+  ice.receiveShadow = true;
+  g.add(ice);
+  const bank = toonMaterial('#ffffff', { map: snowTexture() });
+  const n = Math.round(pond.radius * 4);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const r = 0.45 + ((i * 7) % 5) * 0.08;
+    const lump = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), bank);
+    lump.scale.y = 0.55;
+    lump.position.set(Math.cos(a) * (pond.radius + 0.3), 0, Math.sin(a) * (pond.radius + 0.3));
+    lump.receiveShadow = true;
+    g.add(lump);
   }
   mergeStatic(g);
   return g;
@@ -395,6 +423,51 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
         m.position.set((rand() - 0.5) * 1.6, 0.16, (rand() - 0.5) * 1.6);
         g.add(m);
       }
+      break;
+    }
+    case 'sled': {
+      // A little red wooden sled on curly runners.
+      const seat = toonMesh(new THREE.BoxGeometry(1.4, 0.1, 0.6), '#e2433f', { outline: 0.06 });
+      seat.position.y = 0.28;
+      g.add(seat);
+      for (const s of [-1, 1]) {
+        const runner = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.035, 6, 20, Math.PI * 0.6), makePlastic(flat('#c9cfd8')));
+        runner.rotation.set(0, 0, Math.PI * 1.2);
+        runner.position.set(0.1, 0.8, s * 0.26);
+        g.add(runner);
+        const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.06), flat('#8a5a34'));
+        strut.position.set(s * 0.45, 0.15, 0);
+        g.add(strut);
+      }
+      break;
+    }
+    case 'snowballs': {
+      // A little pyramid of snowballs, ready to throw.
+      const snow = toonMaterial('#ffffff', { map: snowTexture() });
+      for (const [x, y, z] of [[-0.22, 0.2, -0.12], [0.22, 0.2, -0.12], [0, 0.2, 0.22], [0, 0.52, 0]] as const) {
+        const ball = toonMesh(new THREE.SphereGeometry(0.22, 12, 10), '#ffffff', { outline: 0.06, material: snow });
+        ball.position.set(x, y, z);
+        g.add(ball);
+      }
+      break;
+    }
+    case 'mitten': {
+      // A lost knitted mitten, lying flat.
+      const color = ['#e2433f', '#3d7ff2', '#5bd16a', '#9b7bd8'][Math.floor(rand() * 4)]!;
+      const hand = toonMesh(new THREE.SphereGeometry(0.3, 14, 10), color, { outline: 0.08 });
+      hand.scale.set(0.8, 0.25, 1.1);
+      hand.position.y = 0.08;
+      g.add(hand);
+      const thumb = toonMesh(new THREE.SphereGeometry(0.12, 10, 8), color, { outline: 0.1 });
+      thumb.scale.set(1, 0.4, 1.4);
+      thumb.position.set(0.24, 0.08, 0.05);
+      thumb.rotation.y = 0.6;
+      g.add(thumb);
+      const cuff = toonMesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 12), '#fffaf3', { outline: 0.08 });
+      cuff.rotation.x = Math.PI / 2;
+      cuff.scale.set(1, 1, 0.45);
+      cuff.position.set(0, 0.08, -0.36);
+      g.add(cuff);
       break;
     }
     case 'car': {

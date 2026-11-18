@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BACKYARD, BEDROOM, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, TRAIN, trainCars, wading } from '../src/index.ts';
+import { applyDamage, BACKYARD, BEDROOM, PARK, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, TRAIN, trainCars, wading } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { openChest } from '../src/systems/loot.ts';
 import { input, roster, run } from './helpers.ts';
@@ -212,6 +212,63 @@ describe('the Bedroom', () => {
     run(world, state, 30, (id) => (id === p.id ? input({ moveY: -1 }) : input()));
     expect(p.pos.y).toBeLessThan(19);
     expect(p.z).toBeCloseTo(2.6, 1);
+  });
+
+  it('plays a whole bots-only match to the end', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 4, map, roster: Array.from({ length: 16 }, (_, i) => ({ name: `b${i}`, isBot: true })), zoneTimeScale: 0.3 });
+    const bots = new BotController(4);
+    for (let t = 0; t < 30 * 60 * 4 && state.status === 'playing'; t++) step(world, state, bots.inputs(world, state));
+    expect(state.status).toBe('ended');
+    expect(state.chests.some((c) => c.opened)).toBe(true);
+  });
+});
+
+describe('the Snowy Park', () => {
+  const map = PARK;
+
+  it('has room for 16 plushies, spread out, off the ice and clear of walls', () => {
+    expect(map.spawns.length).toBeGreaterThanOrEqual(16);
+    const pond = map.ice![0]!;
+    for (const s of map.spawns) {
+      for (const wall of map.walls) expect(insideBox(s.x, s.y, wall, 1), `spawn ${s.x},${s.y}`).toBe(false);
+      for (const b of map.buildings) expect(insideBox(s.x, s.y, b, 1), `spawn ${s.x},${s.y}`).toBe(false);
+      expect(Math.hypot(s.x - pond.center.x, s.y - pond.center.y)).toBeGreaterThan(pond.radius);
+    }
+    for (const a of map.spawns) for (const b of map.spawns) if (a !== b) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(5);
+  });
+
+  it('keeps every wall and chest inside the map, and chests clear of walls', () => {
+    for (const wall of map.walls) {
+      expect(wall.x).toBeGreaterThanOrEqual(0);
+      expect(wall.y).toBeGreaterThanOrEqual(0);
+      expect(wall.x + wall.w).toBeLessThanOrEqual(map.width);
+      expect(wall.y + wall.h).toBeLessThanOrEqual(map.height);
+    }
+    for (const c of map.chestSpawns) {
+      for (const wall of map.walls) expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+    }
+  });
+
+  it('is slippery on the pond: you keep sliding after you let go', () => {
+    const slide = (at: { x: number; y: number }) => {
+      const { world, state, p } = solo(map, at);
+      run(world, state, 20, (id) => (id === p.id ? input({ moveX: 1 }) : input()));
+      const x = p.pos.x;
+      run(world, state, 20, () => input());
+      return p.pos.x - x;
+    };
+    const onIce = slide({ x: map.ice![0]!.center.x - 10, y: map.ice![0]!.center.y + 3 });
+    const onSnow = slide({ x: 50, y: 36 });
+    expect(onIce).toBeGreaterThan(onSnow * 3);
+  });
+
+  it('lets you climb from the woodpile onto the cabin roof', () => {
+    const { world, state, p } = solo(map, { x: 104, y: 91.5 }, 1.4);
+    run(world, state, 3, (id) => (id === p.id ? input({ buttons: Btn.Jump, moveX: -1 }) : input()));
+    run(world, state, 30, (id) => (id === p.id ? input({ moveX: -1 }) : input()));
+    expect(p.pos.x).toBeLessThan(102);
+    expect(p.z).toBeCloseTo(2.8, 1);
   });
 
   it('plays a whole bots-only match to the end', () => {

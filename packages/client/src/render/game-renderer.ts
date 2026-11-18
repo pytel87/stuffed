@@ -24,6 +24,51 @@ import { buildWeapon } from './weapon-models.ts';
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
 const SUN_OFFSET = new THREE.Vector3(-8, 20, 10);
+/** How far round the camera's focus the snow falls (a box this wide and this tall). */
+const SNOW_SPAN = 56;
+const SNOW_HEIGHT = 22;
+
+/** Snowflakes in a box round the camera's focus; they drift down and wrap round. */
+function makeSnowfall(): THREE.Points {
+  const n = matchMedia('(pointer: coarse)').matches ? 450 : 900;
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * SNOW_SPAN;
+    pos[i * 3 + 1] = Math.random() * SNOW_HEIGHT;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * SNOW_SPAN;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.8)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 32, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.28, map: tex, transparent: true, depthWrite: false, color: '#ffffff' }));
+  points.frustumCulled = false;
+  points.renderOrder = 5;
+  return points;
+}
+
+function fallSnow(points: THREE.Points, focus: THREE.Vector3, dt: number): void {
+  const attr = points.geometry.attributes.position as THREE.BufferAttribute;
+  const a = attr.array as Float32Array;
+  const t = performance.now() / 1000;
+  for (let i = 0; i < a.length; i += 3) {
+    a[i + 1]! -= dt * (1.2 + (i % 7) * 0.12);
+    a[i]! += Math.sin(t * 0.8 + i) * dt * 0.3;
+    if (a[i + 1]! < 0) a[i + 1] = SNOW_HEIGHT;
+  }
+  attr.needsUpdate = true;
+  // The box moves with the camera's focus, so it always snows round you.
+  points.position.set(focus.x, 0, focus.z);
+}
+
 /** The sun's view (rotation only), to snap the shadow camera in its own plane. */
 const SUN_VIEW = new THREE.Matrix4().lookAt(SUN_OFFSET, new THREE.Vector3(), new THREE.Vector3(0, 1, 0));
 const SUN_VIEW_INV = SUN_VIEW.clone().invert();
@@ -94,6 +139,7 @@ export class GameRenderer {
   private roofs: RoofView[] = [];
   private rinse!: RinseView;
   private readonly shadowTarget = new THREE.Vector3();
+  private snowfall: THREE.Points | null = null;
   private readonly rinseGrade = RINSE_BW ? new RinseGrade() : null;
   private zoneNow: import('@stuffed/sim').Zone | null = null;
   private timeNow = 0;
@@ -149,7 +195,11 @@ export class GameRenderer {
     if (map.id === this.mapId) return;
     this.mapId = map.id;
     // Far beyond the map (seen in the Toss): deep green past the lawn, dark wood past the floor.
-    this.renderer.setClearColor(map.theme === 'bedroom' ? '#7a5a3e' : '#3f7a3c');
+    this.renderer.setClearColor(map.theme === 'bedroom' ? '#7a5a3e' : map.theme === 'snow' ? '#dce8f2' : '#3f7a3c');
+    // Gently falling snow over the Snowy Park.
+    this.snowfall?.removeFromParent();
+    this.snowfall = map.theme === 'snow' ? makeSnowfall() : null;
+    if (this.snowfall) this.scene.add(this.snowfall);
     // Free the old map's GPU memory: shapes, materials and their textures. (Shared ones, like
     // the felt texture or outline materials, are simply uploaded again when next used.)
     const materials = new Set<THREE.Material>();
@@ -514,6 +564,7 @@ export class GameRenderer {
     this.rinse.update(curr.zone, opts.time, this.followPos, zoom);
     this.zoneNow = curr.zone;
     this.timeNow = opts.time;
+    if (this.snowfall) fallSnow(this.snowfall, this.rig.target, opts.dt);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
 

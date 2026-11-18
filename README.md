@@ -88,6 +88,15 @@ tree or a bed) on the title menu or in the lobby: a kid's bedroom at toy scale. 
 Bed or climb onto it from the toy box, climb the Desk by its chair, take the Block Castle's keep,
 crawl into the Toy Corner's toy box, and hide in the laundry piles.
 
+## The Snowy Park
+
+A winter park, 120 x 120 ([packages/sim/src/maps/park.ts](packages/sim/src/maps/park.ts)): a
+frozen pond in the middle where plushies slide (speeding up, stopping and turning take much
+longer on the ice), Pine Forest to hide in, Snowball Alley's low snow walls, a Snow Fort with
+towers, a Log Cabin whose snowy roof you reach from the woodpile, the Gift Market with a gift
+tower, the Snowman Garden, and three igloos you can walk into (each hides you, with a high-loot
+chest inside). Snow falls all match. Pick it with the map button.
+
 ## The Toss
 
 Every match starts on a toy blimp flying across the yard. Press Jump (Space, or the jump button
@@ -174,17 +183,17 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### Parts (Patchwork)
 
-Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of twenty
+Every plush is stitched from five parts (head, body, legs, tail or back, accessory) of thirty
 animals, in four rarities (the ring under a part on the ground shows which, as do the stars in
 the gallery):
 
-- Common (green): Bear, Frog, Chicken, Bunny, Cat, Pig, Turtle
-- Rare (blue): Shark, Owl, Penguin, Fox, Panda, Hedgehog, Koala
-- Epic (purple): Dino, Axolotl, Lion, Elephant, Octopus
-- Legendary (gold): Unicorn
+- Common (green): Bear, Frog, Chicken, Bunny, Cat, Pig, Turtle, Mouse, Sheep
+- Rare (blue): Shark, Owl, Penguin, Fox, Panda, Hedgehog, Koala, Raccoon, Bee
+- Epic (purple): Dino, Axolotl, Lion, Elephant, Octopus, Flamingo, Giraffe, Sloth
+- Legendary (gold): Unicorn, Dragon, Phoenix, Yeti
 
-Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
-a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on (a found part it replaces goes into your bag). Q puts it in your bag instead: up
+Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 1 per animal, so
+a part is legendary about 1 time in 30, and any one legendary animal about 1 time in 118). New profiles start in common animals. E puts it on (a found part it replaces goes into your bag). Q puts it in your bag instead: up
 to three spare parts, shown in the bottom left (under your stuffing on touch screens). The
 floating prompt reads hand | part | bag (E | part | Q on a keyboard). Tap a bag slot (or Q with nothing in reach)
 to wear that part. A part you haven't collected yet sparkles: a gold star floats over it on the
@@ -204,8 +213,8 @@ room saves this; solo matches report it to the server from the browser.
 The hanger next to your name on the title menu opens the Wardrobe: tap a slot (head, body,
 legs, tail, accessory), then any part you own for it, to choose the look you start every match
 in. The gallery button in its corner
-shows all twenty animals in full, commonest first, with the parts you own lit up; tap an owned
-part to wear it, or a complete (gold) set to wear all five. The key button in its corner shows
+shows all thirty animals in full, commonest first, with the parts you own lit up; tap an animal's
+card to wear every part of it you own. The key button in its corner shows
 the profile's recovery code: typing it into the Wardrobe on another device puts the same
 profile there too.
 

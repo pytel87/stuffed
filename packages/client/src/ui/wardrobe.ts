@@ -233,7 +233,7 @@ export class Wardrobe {
     }
     const slot = this.selected;
     const owned = this.owned(slot);
-    // Only as wide as it needs: up to 5 columns of 4 rows (all twenty animals) before it scrolls; short screens
+    // Only as wide as it needs: up to 5 columns of 4 rows before it scrolls; short screens
     // (phones in landscape) fit 3 rows, so they spread to up to 6 columns instead.
     const short = window.innerHeight <= 480;
     const rows = short ? 3 : 4;

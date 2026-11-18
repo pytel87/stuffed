@@ -261,6 +261,8 @@ export const config = {
     gravity: 30,
     /** Ledges up to this high are climbed without jumping, and a jump only needs to reach a top minus this. */
     stepHeight: 0.2,
+    /** On ice, how much grip is left (share of the normal acceleration): low = long slides. */
+    iceGrip: 0.12,
     /** What every plush starts with until chests exist (prototype step 4). */
     startingLoadout: [{ kind: 'cork_popper', rarity: 0 }] as readonly WeaponSpec[],
   },
@@ -325,7 +327,7 @@ export const config = {
     /** How many spare parts the bag holds (dropped if you're knocked out; worn ones are kept). */
     bagSize: 3,
     /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
-    animalWeights: [0, 6, 4, 3, 2],
+    animalWeights: [0, 6, 4, 3, 1],
   },
 
   chest: {

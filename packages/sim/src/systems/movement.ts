@@ -9,6 +9,8 @@ import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
+/** On ice: speeding up, slowing down and turning all take much longer (you slide). */
+const ICE_BLEND = 1 - Math.exp(-config.player.acceleration * config.player.iceGrip * DT);
 const KNOCKBACK_KEEP = Math.exp(-config.player.knockbackDecay * DT);
 /** Longest move per collision substep; well under the player radius so walls can't be skipped. */
 const MAX_SUBSTEP = 0.35;
@@ -48,8 +50,9 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     (state.tick < player.glitteredUntil ? config.combat.glitterMoveMultiplier : 1) *
     (player.soggy ? config.player.soggySpeedMultiplier : 1) *
     (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
-  player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;
-  player.vel.y += (move.y * speed - player.vel.y) * ACCEL_BLEND;
+  const blend = onIce(world, player) ? ICE_BLEND : ACCEL_BLEND;
+  player.vel.x += (move.x * speed - player.vel.x) * blend;
+  player.vel.y += (move.y * speed - player.vel.y) * blend;
 
   const dx = (player.vel.x + player.knockback.x) * DT;
   const dy = (player.vel.y + player.knockback.y) * DT;
@@ -285,6 +288,15 @@ function removeInto(v: { x: number; y: number }, nx: number, ny: number): void {
     v.x -= nx * dot;
     v.y -= ny * dot;
   }
+}
+
+/** Standing on ice (not in the air). */
+export function onIce(world: World, player: Pick<Player, 'pos' | 'z'>): boolean {
+  if (player.z > 0.05) return false;
+  for (const ice of world.map.ice ?? []) {
+    if (Math.hypot(player.pos.x - ice.center.x, player.pos.y - ice.center.y) < ice.radius) return true;
+  }
+  return false;
 }
 
 /** Standing in a pool's shallow water (not jumping over it). */

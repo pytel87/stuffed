@@ -85,7 +85,8 @@ export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 export type Animal =
   | 'bear' | 'frog' | 'shark' | 'chicken' | 'dino' | 'owl' | 'axolotl' | 'penguin'
   | 'bunny' | 'unicorn' | 'cat' | 'fox' | 'panda' | 'pig' | 'lion' | 'elephant'
-  | 'turtle' | 'hedgehog' | 'koala' | 'octopus';
+  | 'turtle' | 'hedgehog' | 'koala' | 'octopus'
+  | 'mouse' | 'sheep' | 'raccoon' | 'bee' | 'flamingo' | 'giraffe' | 'sloth' | 'dragon' | 'phoenix' | 'yeti';
 
 /** A skin part: purely cosmetic, never changes stats or hitboxes. */
 export interface Part {
@@ -350,7 +351,11 @@ export type WallKind =
   /** A kiddie pool's inflatable rim, as small blocks round it (drawn with the pool). */
   | 'rim'
   /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
-  | 'duck';
+  | 'duck'
+  // The Snowy Park.
+  | 'snowman' | 'gift' | 'snowwall' | 'iceblock' | 'log' | 'lamppost'
+  /** An igloo's snow-block ring (drawn with its dome, as part of the building's roof). */
+  | 'igloo';
 
 export interface Toss {
   from: Vec2;
@@ -381,7 +386,7 @@ export interface Wall extends Box {
 export interface Building extends Box {
   height: number;
   /** Roof look only. */
-  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk';
+  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk' | 'cabin' | 'igloo';
 }
 
 /** A patch of ground drawn differently (no effect on play). */
@@ -407,8 +412,8 @@ export interface MapZone {
 /** Static map data. Not part of GameState: it never changes during a match. */
 export interface MapData {
   id: string;
-  /** How it looks: a lawn with leafy bushes, or a bedroom floor with laundry piles. */
-  theme?: 'backyard' | 'bedroom';
+  /** How it looks: a lawn with leafy bushes, a bedroom floor with laundry piles, or snow with pine trees. */
+  theme?: 'backyard' | 'bedroom' | 'snow';
   width: number;
   height: number;
   walls: Wall[];
@@ -419,6 +424,8 @@ export interface MapData {
   chestSpawns: ChestSpawn[];
   /** Shallow water: plushies wading in it move slower. */
   pools?: Circle[];
+  /** Ice: plushies on it slide (they speed up and slow down only gradually). */
+  ice?: Circle[];
   /** Beach ball goals: a ball whose center rolls into `mouth` scores (the frame is in walls). */
   goals?: Goal[];
   grounds?: Ground[];
@@ -441,7 +448,7 @@ export interface TrainTrack {
 
 /** A bit of floor clutter, drawn only: crayons, drawings, socks, a train track... */
 export interface Decor {
-  kind: 'track' | 'crayon' | 'paper' | 'sock' | 'puzzle' | 'marbles' | 'car';
+  kind: 'track' | 'crayon' | 'paper' | 'sock' | 'puzzle' | 'marbles' | 'car' | 'sled' | 'snowballs' | 'mitten';
   x: number;
   y: number;
   /** Turn (radians). */

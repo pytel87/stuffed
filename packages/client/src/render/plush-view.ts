@@ -59,7 +59,7 @@ const SET_GLOW: Record<Animal, string> = {
   chicken: '#fff27a',
   dino: '#5dffc8',
   owl: '#ffd27a',
-  axolotl: '#ff8ad0',
+  axolotl: '#ffa070',
   penguin: '#a8e4ff',
   bunny: '#d9b8ff',
   unicorn: '#ff9cf0',
@@ -73,6 +73,16 @@ const SET_GLOW: Record<Animal, string> = {
   hedgehog: '#ffb070',
   koala: '#c9d6e6',
   octopus: '#d79bff',
+  mouse: '#f0d6b8',
+  sheep: '#fff8e6',
+  raccoon: '#c9cfe0',
+  bee: '#ffe14a',
+  flamingo: '#ff7ab8',
+  giraffe: '#ffcf6a',
+  sloth: '#cfdc8a',
+  dragon: '#ff5a4a',
+  phoenix: '#ff9a3a',
+  yeti: '#a8e4ff',
 };
 
 let glowTexture: THREE.CanvasTexture | null = null;

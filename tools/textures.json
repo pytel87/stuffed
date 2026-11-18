@@ -55,6 +55,18 @@
     },
     "fabric_tablecloth": {
       "prompt": "Blue and white gingham tablecloth cotton fabric, classic check with exactly 8 by 8 squares (blue, light blue where stripes cross, and white), visible fine woven threads, cozy storybook style"
+    },
+    "ground_snow": {
+      "prompt": "Fresh soft snow made of white felt for a toy world: gentle drifts and soft lumps with faint pale blue shadows and a few tiny sparkles, cheerful storybook style"
+    },
+    "ice_pond": {
+      "prompt": "Frozen pond ice seen from above: smooth pale blue ice with soft white frost swirls, a few fine cracks and air bubbles, cheerful storybook style"
+    },
+    "wood_logs": {
+      "prompt": "Log cabin wall: horizontal stacked round wooden logs with bark texture and rounded ends, warm brown, about 6 logs high, cheerful storybook style"
+    },
+    "gift_wrap": {
+      "prompt": "Plain light grey gift wrapping paper with a subtle pattern of small stars and dots, slightly glossy paper, evenly lit (to be tinted later)"
     }
   }
 }

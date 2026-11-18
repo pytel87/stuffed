@@ -2,7 +2,7 @@
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
-import { buildWall, cardboardTexture, corrugatedTexture, foliage, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
+import { buildWall, cardboardTexture, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
 import { detailMaps, repeated } from './image-textures.ts';
 import { feltTexture } from './toon.ts';
 import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
@@ -162,6 +162,45 @@ function roof(b: Building): RoofView {
       on(new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.025, 0.05), new THREE.MeshBasicMaterial({ color: '#a8845c' })), 0, top + 0.013, 0);
       break;
     }
+    case 'igloo': {
+      // A dome of snow blocks (rows of bricks drawn on it) down to the ground, with an entrance
+      // tunnel at its doorway. Fades like any roof while you're inside.
+      const R = Math.min(b.w, b.h) / 2 + 0.5 + 0.55;
+      const H = b.height + 0.25;
+      const base = -(b.height - ROOF_THICKNESS / 2 + 0.01);
+      const bricks = toonMaterial('#ffffff', { map: iglooBricks() });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), bricks);
+      dome.scale.set(R, H, R);
+      dome.position.y = base;
+      dome.castShadow = true;
+      dome.receiveShadow = true;
+      const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
+      hull.scale.set(1.03, 1.03, 1.03);
+      dome.add(hull);
+      g.add(dome);
+      // The tunnel: a half-tube out of the doorway (the side with no blocks, toward the open ground).
+      const door = iglooDoor(b);
+      const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 1.8, 16, 1, true, 0, Math.PI), toonMaterial('#ffffff', { map: iglooBricks(), side: THREE.DoubleSide }));
+      tunnel.rotation.set(0, -door, Math.PI / 2);
+      tunnel.position.set(Math.cos(door) * (R - 0.3), base, Math.sin(door) * (R - 0.3));
+      tunnel.castShadow = true;
+      g.add(tunnel);
+      break;
+    }
+    case 'cabin': {
+      // A log cabin's roof under a thick layer of snow, with icicles along the front and a chimney.
+      lid(toonMaterial('#ffffff', { map: tiled(snowTexture(), w / 4, d / 4) }));
+      const chimney = on(new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, 1) })), w / 2 - 2.2, top + 0.7, -d / 2 + 2);
+      chimney.castShadow = true;
+      on(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.25, 1.6), toonMaterial('#ffffff', { map: snowTexture() })), w / 2 - 2.2, top + 1.5, -d / 2 + 2);
+      const icicle = toonMaterial('#d8f1ff', { map: null });
+      for (let i = 0; i < Math.floor(w / 0.8); i++) {
+        const len = 0.25 + ((i * 7) % 4) * 0.08;
+        const ic = on(new THREE.Mesh(new THREE.ConeGeometry(0.07, len, 6), icicle), -w / 2 + 0.4 + i * 0.8, -top - len / 2, d / 2);
+        ic.rotation.x = Math.PI;
+      }
+      break;
+    }
     case 'house': {
       lid(toonMaterial('#ffffff', { map: tiled(tileTexture(), w / 3, d / 3) }));
       // a little chimney in one corner (just for looks)
@@ -247,6 +286,97 @@ function underRoof(wall: Wall, map: MapData): Wall {
   return wall;
 }
 
+/**
+ * A pine tree in the snow: three tiers of felt-needle cones with snow on their tops, on a short
+ * trunk. Works like a bush (hide in it; see-through while you're inside).
+ */
+function pine(circle: Circle, index: number): { object: THREE.Object3D; view: BushView } {
+  const g = new THREE.Group();
+  g.position.set(circle.center.x, 0, circle.center.y);
+  g.rotation.y = index * 1.3;
+  const needles = makeTriplanar(toonMaterial('#2f7a4a', { map: foliage(1).map }), 0.6);
+  const snow = toonMaterial('#ffffff', { map: snowTexture() });
+  const materials = [needles, snow];
+  const hull = outlineMaterial('#1f3f26');
+  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true });
+  const r = circle.radius;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.8, 8), toonMaterial('#6b4630'));
+  trunk.position.y = 0.4;
+  g.add(trunk);
+  const depth: THREE.Mesh[] = [];
+  const outlines: THREE.Mesh[] = [];
+  const meshes: THREE.Mesh[] = [];
+  const tiers: [number, number, number][] = [[r * 1.05, 1.6, 0.6], [r * 0.8, 1.4, 1.5], [r * 0.52, 1.2, 2.3]];
+  for (const [base, height, y] of tiers) {
+    const parts: [THREE.BufferGeometry, THREE.Material, boolean][] = [
+      [new THREE.ConeGeometry(base, height, 14), needles, true],
+      // Snow resting on the tier: a flatter white cone just over its top part.
+      [new THREE.ConeGeometry(base * 0.55, height * 0.42, 14).translate(0, height * 0.3, 0), snow, false],
+    ];
+    for (const [geo, mat, outlined] of parts) {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = y + height / 2;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.renderOrder = 2;
+      meshes.push(mesh);
+      if (outlined) {
+        const outline = new THREE.Mesh(geo, hull);
+        outline.scale.setScalar(1.06);
+        mesh.add(outline);
+        outlines.push(outline);
+      }
+      const d = new THREE.Mesh(geo, depthOnly);
+      d.position.copy(mesh.position);
+      d.visible = false;
+      d.renderOrder = 1;
+      depth.push(d);
+      g.add(mesh, d);
+    }
+  }
+  return { object: g, view: { circle, materials, depth, outlines, balls: meshes, seeThrough: false } };
+}
+
+let iglooTex: THREE.CanvasTexture | null = null;
+/** Snow bricks: offset rows of soft blocks with light blue joints (round a dome: 16 across, 6 up). */
+function iglooBricks(): THREE.CanvasTexture {
+  if (iglooTex) return iglooTex;
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 192;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, 512, 192);
+  g.strokeStyle = '#b8d8f0';
+  g.lineWidth = 3;
+  const rows = 6;
+  const rh = 192 / rows;
+  for (let r = 0; r < rows; r++) {
+    g.beginPath();
+    g.moveTo(0, r * rh);
+    g.lineTo(512, r * rh);
+    g.stroke();
+    const n = 16 - r * 2;
+    for (let i = 0; i < n; i++) {
+      const x = ((i + (r % 2) * 0.5) * 512) / n;
+      g.beginPath();
+      g.moveTo(x, r * rh);
+      g.lineTo(x, (r + 1) * rh);
+      g.stroke();
+    }
+  }
+  iglooTex = new THREE.CanvasTexture(c);
+  iglooTex.colorSpace = THREE.SRGBColorSpace;
+  iglooTex.wrapS = THREE.RepeatWrapping;
+  return iglooTex;
+}
+
+/** Which way an igloo's doorway faces (radians, in the map's x/y): the gap in its block ring. */
+const iglooDoors = new Map<Building, number>();
+function iglooDoor(b: Building): number {
+  return iglooDoors.get(b) ?? Math.PI;
+}
+
 /** Laundry piles in the Bedroom: socks, shirts and towels in a heap. */
 const LAUNDRY = ['#e2574c', '#5d9cf5', '#f7c331', '#9b7bd8', '#5bd16a', '#ff9cbf', '#fffaf3'];
 
@@ -255,16 +385,41 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
   // Beach balls roll around: they're drawn from the match state (ball-views.ts); a pool's rim is
   // drawn with its pool (map-view.ts).
   map.walls.forEach((b, i) => {
-    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck') root.add(buildWall(underRoof(b, map), i));
+    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo') root.add(buildWall(underRoof(b, map), i));
   });
   const indoors = map.theme === 'bedroom';
   const bushes = map.bushes.map((c, i) => {
+    if (map.theme === 'snow') {
+      const { object, view } = pine(c, i);
+      root.add(object);
+      return view;
+    }
     // Each pile starts at a different color so neighbors don't match.
     const colors = indoors ? [...LAUNDRY.slice(i % LAUNDRY.length), ...LAUNDRY.slice(0, i % LAUNDRY.length)] : undefined;
     const { object, view } = bush(c, colors, indoors ? OUTLINE_COLOR : undefined, i);
     root.add(object);
     return view;
   });
+  // Each igloo's doorway: the direction (from its middle) of the widest gap in its snow blocks.
+  for (const b of map.buildings) {
+    if (b.kind !== 'igloo') continue;
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const angles = map.walls
+      .filter((w) => w.kind === 'igloo' && Math.hypot(w.x + w.w / 2 - cx, w.y + w.h / 2 - cy) < b.w)
+      .map((w) => Math.atan2(w.y + w.h / 2 - cy, w.x + w.w / 2 - cx))
+      .sort((a, c) => a - c);
+    let best = 0;
+    let door = Math.PI;
+    angles.forEach((a, i) => {
+      const next = i + 1 < angles.length ? angles[i + 1]! : angles[0]! + Math.PI * 2;
+      if (next - a > best) {
+        best = next - a;
+        door = (a + next) / 2;
+      }
+    });
+    iglooDoors.set(b, door);
+  }
   const roofs = map.buildings.map((b) => {
     const view = roof(b);
     root.add(view.object);

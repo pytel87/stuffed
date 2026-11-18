@@ -3,6 +3,7 @@
 // which avoids transparency sorting.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { ANIMALS } from '@stuffed/sim';
 import { toonMaterial } from './toon.ts';
 
 interface Particle {
@@ -244,6 +245,55 @@ export class Effects {
       case 'chicken':
         this.burst(this.feathers, x, y + 0.8, z, 0, 0, 1, 0.6, 0.09, 1.1, 0.6);
         break;
+      case 'mouse': {
+        // Tiny paw prints.
+        const side = step % 2 ? 0.1 : -0.1;
+        this.tmpPos.set(x - dirZ * side, y + 0.06, z + dirX * side);
+        this.tmpVel.set(0, 0, 0);
+        this.paws.spawn(this.tmpPos, this.tmpVel, 0.06, 1.1, 0, Math.atan2(-dirX, -dirZ));
+        break;
+      }
+      case 'sheep':
+        // Wisps of wool.
+        if (step % 2 === 0) this.burst(this.cotton, x, y + 0.5, z, 0, 0, 2, 0.5, 0.06, 0.9, -0.3);
+        break;
+      case 'raccoon': {
+        const side = step % 2 ? 0.16 : -0.16;
+        this.tmpPos.set(x - dirZ * side, y + 0.06, z + dirX * side);
+        this.tmpVel.set(0, 0, 0);
+        this.paws.spawn(this.tmpPos, this.tmpVel, 0.1, 1.4, 0, Math.atan2(-dirX, -dirZ));
+        break;
+      }
+      case 'bee':
+        // A buzz of yellow sparkles.
+        this.burst(this.glitter[1]!, x, y + 0.6, z, 0, 0, 2, 0.8, 0.05, 0.6, -0.3);
+        break;
+      case 'flamingo':
+        if (step % 2 === 0) this.shockwave(x, y + 0.04, z, 0.6, '#ff7ab8');
+        this.burst(this.glitter[0]!, x, y + 0.5, z, 0, 0, 1, 0.5, 0.05, 0.7, 0.4);
+        break;
+      case 'giraffe':
+        if (step % 2 === 0) this.burst(this.leaves, x, y + 1.0, z, 0, 0, 1, 0.5, 0.08, 1.2, 0.4);
+        break;
+      case 'sloth':
+        if (step % 3 === 0) this.burst(this.leaves, x, y + 0.8, z, 0, 0, 1, 0.3, 0.08, 1.6, 0.25);
+        break;
+      case 'dragon':
+        // Little embers drifting up, and a stomp now and then.
+        this.burst(this.juiceDrops, x, y + 0.5, z, 0, 0, 2, 0.7, 0.05, 0.6, -1.5);
+        if (step % 3 === 0) this.shockwave(x, y + 0.04, z, 0.8, '#ff6a4a');
+        break;
+      case 'phoenix': {
+        const pool = this.glitter[step % 2 ? 1 : 0]!;
+        this.burst(pool, x, y + 0.4, z, -dirX * 0.4, -dirZ * 0.4, 3, 0.9, 0.06, 0.8, -1);
+        this.burst(this.juiceDrops, x, y + 0.6, z, 0, 0, 1, 0.5, 0.05, 0.5, -1.5);
+        break;
+      }
+      case 'yeti':
+        // Snow kicked up.
+        this.burst(this.glitter[3]!, x, y + 0.15, z, -dirX * 0.4, -dirZ * 0.4, 4, 1.1, 0.06, 0.7, 2);
+        if (step % 2 === 0) this.shockwave(x, y + 0.04, z, 0.7, '#a8e4ff');
+        break;
     }
   }
 
@@ -317,6 +367,46 @@ export class Effects {
       case 'chicken':
         this.burst(this.feathers, x, 1, z, 0, 0, 18, 4, 0.12, 1.6, 1.5);
         break;
+      case 'mouse':
+        this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.07, 1.2, 9);
+        this.burst(this.glitter[1]!, x, 1, z, 0, 0, 12, 3, 0.07, 1, 1);
+        break;
+      case 'sheep':
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 30, 4, 0.11, 1.4, 3);
+        break;
+      case 'raccoon':
+        this.burst(this.paws, x, 0.8, z, 0, 0, 10, 4, 0.1, 1.2, 9);
+        this.burst(this.stars, x, 1.2, z, 0, 0, 5, 3, 0.1, 1, 4);
+        break;
+      case 'bee':
+        this.burst(this.glitter[1]!, x, 1, z, 0, 0, 26, 4, 0.07, 1.2, 0.5);
+        this.burst(this.stars, x, 1.2, z, 0, 0, 5, 3, 0.1, 1, 4);
+        break;
+      case 'flamingo':
+        this.burst(this.feathers, x, 1, z, 0, 0, 14, 4, 0.12, 1.5, 1.5);
+        this.burst(this.glitter[0]!, x, 1, z, 0, 0, 18, 4, 0.07, 1.2, 1);
+        break;
+      case 'giraffe':
+        this.burst(this.leaves, x, 1.2, z, 0, 0, 20, 4, 0.11, 1.5, 1.5);
+        break;
+      case 'sloth':
+        this.burst(this.leaves, x, 1, z, 0, 0, 14, 2.5, 0.12, 2, 0.6);
+        this.burst(this.cotton, x, 0.8, z, 0, 0, 10, 2.5, 0.1, 1.4, 2);
+        break;
+      case 'dragon':
+        this.shockwave(x, 0.05, z, 2.6, '#ff6a4a');
+        this.burst(this.juiceDrops, x, 0.8, z, 0, 0, 24, 4, 0.08, 1, -0.5);
+        this.burst(this.stars, x, 1.2, z, 0, 0, 6, 3, 0.12, 1, 4);
+        break;
+      case 'phoenix':
+        for (const pool of this.glitter.slice(0, 2)) this.burst(pool, x, 1, z, 0, 0, 16, 4.5, 0.08, 1.4, -0.5);
+        this.burst(this.juiceDrops, x, 0.8, z, 0, 0, 24, 4, 0.08, 1.2, -1);
+        this.shockwave(x, 0.05, z, 2.4, '#ff9a3a');
+        break;
+      case 'yeti':
+        this.burst(this.glitter[3]!, x, 1, z, 0, 0, 36, 4.5, 0.08, 1.4, 1.5);
+        this.shockwave(x, 0.05, z, 2, '#a8e4ff');
+        break;
     }
   }
 
@@ -349,7 +439,7 @@ export class Effects {
     this.bubblePop(-500, 0.8, -500);
     this.cardboard(-500, -500, true);
     this.juice(-500, 0, -500);
-    for (const a of ['bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin', 'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant', 'turtle', 'hedgehog', 'koala', 'octopus']) this.setKnockout(a, -500, -500);
+    for (const a of ANIMALS) this.setKnockout(a, -500, -500);
   }
 
   /** A plush re-stitched by a teammate: a puff of stuffing and a pink sparkle. */

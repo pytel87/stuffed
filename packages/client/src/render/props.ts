@@ -92,6 +92,30 @@ export const wickerTexture = () => upgradeTexture(canvasTexture('wicker', 16, (g
   g.fillRect(0, 0, s, s);
 }), 'wicker', { soften: 0.15 });
 
+/** Soft felt snow (white until the image loads). */
+export const snowTexture = () => upgradeTexture(canvasTexture('snow', 16, (g, s) => {
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, s, s);
+}), 'ground_snow', { seamless: true });
+
+/** Frozen pond ice (pale blue until the image loads). */
+export const iceTexture = () => upgradeTexture(canvasTexture('ice', 16, (g, s) => {
+  g.fillStyle = '#d8f1ff';
+  g.fillRect(0, 0, s, s);
+}), 'ice_pond', { seamless: true });
+
+/** A wall of stacked logs (warm wood until the image loads). */
+export const logWallTexture = () => upgradeTexture(canvasTexture('logWall', 16, (g, s) => {
+  g.fillStyle = '#a8703f';
+  g.fillRect(0, 0, s, s);
+}), 'wood_logs', { periodic: true, soften: 0.15 });
+
+/** Gift wrap: a soft pattern as grey detail, tinted by each gift's color. */
+export const giftWrapTexture = () => upgradeTexture(canvasTexture('giftWrap', 16, (g, s) => {
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, s, s);
+}), 'gift_wrap', { fabric: true, seamless: true, contrast: 0.12 });
+
 /** Pool water with soft ripples (plain until the image loads). */
 export const waterTexture = () => upgradeTexture(canvasTexture('water', 16, (g, s) => {
   g.fillStyle = '#ffffff';
@@ -667,6 +691,129 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       const ballMesh = toonMesh(new THREE.SphereGeometry(r, 24, 16), '#ffffff', { outline: 0.04, material: makePlastic(toonMaterial('#ffffff', { map: stripeTexture() }), true) });
       ballMesh.rotation.z = 0.5 + index;
       add(ballMesh, r);
+      break;
+    }
+    case 'snowman': {
+      // Three snowballs, a carrot nose, coal eyes and buttons, a red scarf, twig arms and a top hat.
+      const snow = () => toonMaterial('#ffffff', { map: tiled(snowTexture(), 0.5, 0.5) });
+      const r = Math.min(b.w, b.h) / 2;
+      const balls: [number, number][] = [[r * 0.95, r * 0.85], [r * 0.68, r * 0.85 * 2 + r * 0.45], [r * 0.48, r * 0.85 * 2 + r * 0.45 * 2 + r * 0.35]];
+      for (const [br, y] of balls) add(toonMesh(new THREE.SphereGeometry(br, 20, 14), '#ffffff', { outline: 0.04, material: snow() }), y);
+      const [, headY] = balls[2]!;
+      const headR = balls[2]![0];
+      const nose = toonMesh(new THREE.ConeGeometry(0.07, 0.3, 10), '#f28a2c', { outline: 0.1 });
+      nose.rotation.x = Math.PI / 2;
+      nose.position.set(0, headY, headR + 0.12);
+      g.add(nose);
+      for (const s of [-1, 1]) {
+        const coal = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), makePlastic(flat('#2a1f2d')));
+        coal.position.set(s * 0.13, headY + 0.1, headR - 0.04);
+        g.add(coal);
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.9, 6), flat('#6b4630'));
+        arm.position.set(s * (balls[1]![0] + 0.3), balls[1]![1] + 0.2, 0);
+        arm.rotation.z = s * -1.0;
+        g.add(arm);
+      }
+      for (const dy of [0.15, -0.05, -0.25]) {
+        const button = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), makePlastic(flat('#2a1f2d')));
+        button.position.set(0, balls[1]![1] + dy, balls[1]![0] - 0.02);
+        g.add(button);
+      }
+      const scarf = toonMesh(new THREE.TorusGeometry(headR * 0.95, 0.07, 8, 20), '#e2433f', { outline: 0.08 });
+      scarf.rotation.x = Math.PI / 2;
+      scarf.position.y = headY - headR * 0.7;
+      g.add(scarf);
+      const tail = toonMesh(new THREE.BoxGeometry(0.14, 0.4, 0.05), '#e2433f', { outline: 0.08 });
+      tail.position.set(0.18, headY - headR * 0.7 - 0.2, headR * 0.8);
+      tail.rotation.z = 0.2;
+      g.add(tail);
+      const brim = toonMesh(new THREE.CylinderGeometry(headR * 0.85, headR * 0.85, 0.05, 18), '#2a1f2d', { outline: 0.08 });
+      brim.position.y = headY + headR * 0.82;
+      g.add(brim);
+      const crown = toonMesh(new THREE.CylinderGeometry(headR * 0.55, headR * 0.55, 0.35, 18), '#2a1f2d', { outline: 0.06 });
+      crown.position.y = headY + headR * 0.82 + 0.18;
+      g.add(crown);
+      break;
+    }
+    case 'gift': {
+      // A wrapped present: colored paper, a ribbon both ways round and a bow on top.
+      const colors = ['#e2433f', '#3d7ff2', '#5bd16a', '#9b7bd8', '#f7c331', '#ff7ab8'];
+      const paper = colors[index % colors.length]!;
+      const ribbon = ['#f7c331', '#ffffff', '#e2433f', '#f7c331', '#e2433f', '#ffffff'][index % colors.length]!;
+      add(outlinedBox(b.w, H, b.h, toonMaterial(paper, { map: tiled(giftWrapTexture(), b.w / 1.5, H / 1.5) })), H / 2);
+      const rib = makePlastic(flat(ribbon));
+      add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.04, H + 0.02, 0.22), rib), H / 2);
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.22, H + 0.02, b.h + 0.04), rib), H / 2);
+      for (const s of [-1, 1]) {
+        const loop = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.05, 6, 14), rib);
+        loop.position.set(s * 0.15, H + 0.12, 0);
+        loop.rotation.set(0, Math.PI / 2, s * 0.6);
+        g.add(loop);
+      }
+      break;
+    }
+    case 'snowwall': {
+      // Packed snow: a block with a rounded top and a few lumps.
+      // Packed snow, a touch blue so it stands out from the snow on the ground.
+      const snow = toonMaterial('#d6e9fb', { map: tiled(snowTexture(), Math.max(b.w, b.h) / 3, H / 3) });
+      const long = b.w >= b.h;
+      add(outlinedBox(b.w, H - 0.15, b.h, snow), (H - 0.15) / 2);
+      add(toonMesh(new THREE.BoxGeometry(b.w, 0.3, b.h), '#ffffff', { outline: 0.04, material: snow }), H - 0.15);
+      for (let i = 0; i < 3; i++) {
+        const lump = toonMesh(new THREE.SphereGeometry(0.22 + (i % 2) * 0.08, 10, 8), '#ffffff', { outline: 0.06, material: snow });
+        const t = (i + 0.5) / 3 - 0.5;
+        lump.position.set(long ? t * b.w * 0.9 : 0, H - 0.05, long ? 0 : t * b.h * 0.9);
+        lump.scale.y = 0.6;
+        g.add(lump);
+      }
+      break;
+    }
+    case 'iceblock': {
+      // A clear block of ice with a glint.
+      const ice = makePlastic(new THREE.MeshToonMaterial({ color: '#c8ecff', transparent: true, opacity: 0.85, gradientMap: null }));
+      ice.map = tiled(iceTexture(), 0.5, 0.5);
+      add(outlinedBox(b.w, H, b.h, ice), H / 2);
+      break;
+    }
+    case 'log': {
+      if (H > 1.5) {
+        // A log wall: stacked logs, snow along the top.
+        add(outlinedBox(b.w, H, b.h, toonMaterial('#ffffff', { map: tiled(logWallTexture(), Math.max(b.w, b.h) / 3, H / 2.8) })), H / 2);
+        add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.1, 0.12, b.h + 0.1), toonMaterial('#ffffff', { map: snowTexture() })), H + 0.02);
+        break;
+      }
+      // A fallen log lying along its long side, rings on its ends and snow on top.
+      const long = b.w >= b.h;
+      const len = Math.max(b.w, b.h);
+      const r = Math.min(H, Math.min(b.w, b.h)) / 2;
+      const bark = toonMaterial('#8a5a34', { map: tiled(plankTexture(), 1, len / 2) });
+      const trunk = toonMesh(new THREE.CylinderGeometry(r, r, len, 16), '#8a5a34', { outline: 0.05, material: bark });
+      trunk.rotation.set(long ? 0 : Math.PI / 2, 0, long ? Math.PI / 2 : 0);
+      add(trunk, r);
+      for (const s of [-1, 1]) {
+        const ring = new THREE.Mesh(new THREE.CircleGeometry(r * 0.92, 16), flat('#e8c897'));
+        ring.position.set(long ? (s * len) / 2 + s * 0.01 : 0, r, long ? 0 : (s * len) / 2 + s * 0.01);
+        ring.rotation.y = long ? (s * Math.PI) / 2 : s > 0 ? 0 : Math.PI;
+        g.add(ring);
+        const core = new THREE.Mesh(new THREE.RingGeometry(r * 0.35, r * 0.42, 16), flat('#c79a64'));
+        core.position.copy(ring.position).add(new THREE.Vector3(long ? s * 0.005 : 0, 0, long ? 0 : s * 0.005));
+        core.rotation.copy(ring.rotation);
+        g.add(core);
+      }
+      const snowTop = toonMesh(new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), '#ffffff', { outline: false, material: toonMaterial('#ffffff', { map: snowTexture() }) });
+      snowTop.scale.set(long ? len * 0.45 : r * 0.9, 0.12, long ? r * 0.9 : len * 0.45);
+      add(snowTop, r * 1.85);
+      break;
+    }
+    case 'lamppost': {
+      // An old park lamp: a dark green post, a glowing lantern and a little snow cap.
+      const green = makePlastic(flat('#2f5d4a'));
+      add(toonMesh(new THREE.CylinderGeometry(0.22, 0.28, 0.3, 12), '#2f5d4a', { outline: 0.08, material: green }), 0.15);
+      add(toonMesh(new THREE.CylinderGeometry(0.08, 0.1, H - 0.6, 10), '#2f5d4a', { outline: 0.12, material: green }), (H - 0.6) / 2 + 0.2);
+      const glow = new THREE.MeshToonMaterial({ color: '#fff3b0', emissive: '#ffcf5a', emissiveIntensity: 0.9, gradientMap: null });
+      add(toonMesh(new THREE.BoxGeometry(0.34, 0.4, 0.34), '#fff3b0', { outline: 0.1, material: glow }), H - 0.3);
+      add(toonMesh(new THREE.ConeGeometry(0.3, 0.22, 4), '#2f5d4a', { outline: 0.1, material: green }).rotateY(Math.PI / 4), H - 0.02);
+      add(toonMesh(new THREE.SphereGeometry(0.16, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#ffffff', { outline: false }), H + 0.05);
       break;
     }
     case 'train': {

@@ -7,6 +7,7 @@ export const ANIMALS: readonly Animal[] = [
   'bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin',
   'bunny', 'unicorn', 'cat', 'fox', 'panda', 'pig', 'lion', 'elephant',
   'turtle', 'hedgehog', 'koala', 'octopus',
+  'mouse', 'sheep', 'raccoon', 'bee', 'flamingo', 'giraffe', 'sloth', 'dragon', 'phoenix', 'yeti',
 ];
 
 /**
@@ -15,10 +16,10 @@ export const ANIMALS: readonly Animal[] = [
  * `config.parts.animalWeights`.
  */
 export const ANIMAL_RARITY: Record<Animal, Rarity> = {
-  bear: 1, frog: 1, chicken: 1, bunny: 1, cat: 1, pig: 1, turtle: 1,
-  shark: 2, owl: 2, penguin: 2, fox: 2, panda: 2, hedgehog: 2, koala: 2,
-  dino: 3, axolotl: 3, lion: 3, elephant: 3, octopus: 3,
-  unicorn: 4,
+  bear: 1, frog: 1, chicken: 1, bunny: 1, cat: 1, pig: 1, turtle: 1, mouse: 1, sheep: 1,
+  shark: 2, owl: 2, penguin: 2, fox: 2, panda: 2, hedgehog: 2, koala: 2, raccoon: 2, bee: 2,
+  dino: 3, axolotl: 3, lion: 3, elephant: 3, octopus: 3, flamingo: 3, giraffe: 3, sloth: 3,
+  unicorn: 4, dragon: 4, phoenix: 4, yeti: 4,
 };
 
 const ANIMAL_WEIGHTS = Object.fromEntries(ANIMALS.map((a) => [a, config.parts.animalWeights[ANIMAL_RARITY[a]]])) as Record<Animal, number>;
