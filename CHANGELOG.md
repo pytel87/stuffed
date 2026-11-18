@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Shorter matches (2026-11-18)
+
+- The Rinse still waits a minute, then closes in over 5 minutes (was 9): a match lasts at most
+  6 minutes.
+- The parts you take home show in round circles on the results card (a long row wraps instead
+  of squeezing them into ovals), with bigger pictures.
+
 ## A patchwork blimp and plush parasols (2026-11-18)
 
 - The Toss blimp is sewn patchwork (dotted, striped and checked panels with stitched seams),

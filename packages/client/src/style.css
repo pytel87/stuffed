@@ -877,16 +877,21 @@ button {
 /* The parts that went into your collection, on the results card. */
 .kept {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
 }
 
 .kept-part {
+  /* Always round: a full row never squeezes them into ovals (it wraps instead). */
+  flex: none;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   width: 2.4rem;
   height: 2.4rem;
+  aspect-ratio: 1;
   border-radius: 50%;
   border: 3px solid var(--ink);
   background: #fff;
@@ -895,8 +900,8 @@ button {
 }
 
 .kept-part .icon {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.9rem;
+  height: 1.9rem;
 }
 
 .help-grid {

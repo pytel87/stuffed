@@ -440,7 +440,7 @@ export const config = {
     /** Seconds before the water starts rising (time to land and loot). */
     delay: 60,
     /** Seconds from the first drop of water until the circle closes completely. */
-    duration: 540,
+    duration: 300,
     /** Stuffing lost per second while soggy, rising linearly while the circle shrinks. */
     damagePerSecond: { start: 1, end: 10 },
     /** The final point keeps at least this share of the map size away from the edges. */
