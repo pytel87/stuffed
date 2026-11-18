@@ -2,6 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A tidier HUD, and new looks for items (2026-11-18)
+
+- Desktop: the stuffing bar keeps one length and stays centered, with your health by the heart
+  and buttons after it; the bag moved to the bottom left; every gap matches the item slots'.
+- Phones: health and buttons share a pill in the top left, the bag (as big as the item slots)
+  sits under it, and the players-left count beside it.
+- No Rinse countdown or "Rinse!"/"Flood!" call-outs: the rising foam shows it coming. The
+  players-left count is a plain number at the top.
+- Buttons are yellow: a sewing-button icon as big as the heart, a yellow coat on the bar and a
+  yellow count. Stuffing (and re-stitching a teammate) is a plain red heart.
+- The part prompt reads hand | part | bag (E and Q on a keyboard), with the part in the middle.
+- New looks: the Cotton Puff is a sticking plaster, the Big Stuffing Bag an open first-aid box,
+  the Juice Box a blue carton with an orange on it, and the Button Pack and Pile scattered
+  sewing buttons. The Pillow Hammer is bigger; the Glitter Bomb and Bubble Wand are redone.
+- The sparkle over new parts glows, and only shows on the ground.
+
 ## A bigger bag, and new parts sparkle (2026-11-18)
 
 - The part bag holds three (was one), shown next to your stuffing; tap a slot to wear that part.
@@ -16,7 +32,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   plain Hand-me-down one: a chest gun is always better than the one you start with.
 - Fixed: after a match ended, its last moment (the final knockout and hits) replayed every
   frame in solo, piling up a huge cotton cloud and damage numbers.
-- The Bouncy Ball is replaced by the Button Jar: +50 buttons in 4 s (the big armor, as the
+- The Bouncy Ball is replaced by the Button Pile: +50 buttons in 4 s (the big armor, as the
   Sewing Kit is to the Cotton Puff). The Cotton Puff now heals up to full (was up to 75).
 - Lighter knockout burst (no cotton cloud hiding whoever's near); "Watch" and "Again" as words
   on the results card.

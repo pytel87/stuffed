@@ -9,8 +9,9 @@ const INK = '#2a1f2d';
 
 const paths: Record<string, string> = {
   // stats
-  stuffing: `<path d="M7 18a4 4 0 0 1-.6-8 5 5 0 0 1 9.6-1.5A4 4 0 0 1 17 18Z" fill="#fdfbf7"/>`,
-  buttons: `<circle cx="12" cy="12" r="8" fill="#5d9cf5"/><circle cx="9.6" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.6" cy="14.4" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="14.4" r="1.2" fill="${INK}" stroke="none"/>`,
+  // a stitched plush heart: stuffing (health)
+  stuffing: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
+  buttons: `<circle cx="12" cy="12" r="8.5" fill="#ffd23f" stroke="${INK}"/><circle cx="12" cy="12" r="5.6" stroke="#e0a800" stroke-width="1.2"/><circle cx="9.6" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.6" cy="14.4" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="14.4" r="1.2" fill="${INK}" stroke="none"/>`,
   // weapons (side views, barrel to the right)
   cork_popper: `<rect x="3" y="9" width="14" height="5" rx="2.5" fill="#2bb3a6"/><rect x="13" y="8.5" width="2.5" height="6" fill="#f2a03d"/><path d="M6 14v4.5h3.5V14" fill="#2bb3a6"/><rect x="17.5" y="9.5" width="4" height="4" rx="1.5" fill="#d9a066"/>`,
   foam_dart_smg: `<rect x="3" y="8" width="14" height="6" rx="1.5" fill="#f2873d"/><path d="M8 14v6h3v-6" fill="#3d7ff2"/><rect x="17" y="9.5" width="4.5" height="3" rx="1.5" fill="#3d7ff2"/>`,
@@ -19,7 +20,7 @@ const paths: Record<string, string> = {
   cotton_puff: `<circle cx="9" cy="13" r="4.5" fill="#fdfbf7"/><circle cx="15" cy="12" r="4" fill="#fdfbf7"/><circle cx="12" cy="8.5" r="3.6" fill="#fdfbf7"/>`,
   sewing_kit: `<ellipse cx="12" cy="15" rx="8" ry="4.5" fill="#e2577c"/><rect x="11" y="5" width="5" height="8" rx="1.5" fill="#4a7fd6"/><path d="M5 5l8 8" stroke-width="1.6"/>`,
   button_pack: `<circle cx="9" cy="14" r="5" fill="#e2574c"/><circle cx="15" cy="10" r="5" fill="#f7c331"/><circle cx="14" cy="9" r=".9" fill="${INK}" stroke="none"/><circle cx="16" cy="11" r=".9" fill="${INK}" stroke="none"/>`,
-  button_jar: `<rect x="6" y="7" width="12" height="14" rx="3" fill="#e8f7ff"/><rect x="5.5" y="3.5" width="13" height="4" rx="1.5" fill="#e2433f"/><circle cx="10" cy="16.5" r="2" fill="#3d7ff2" stroke="none"/><circle cx="14.5" cy="15" r="2" fill="#f7c331" stroke="none"/><circle cx="11.5" cy="11.5" r="2" fill="#e2574c" stroke="none"/>`,
+  button_pile: `<rect x="6" y="7" width="12" height="14" rx="3" fill="#e8f7ff"/><rect x="5.5" y="3.5" width="13" height="4" rx="1.5" fill="#e2433f"/><circle cx="10" cy="16.5" r="2" fill="#3d7ff2" stroke="none"/><circle cx="14.5" cy="15" r="2" fill="#f7c331" stroke="none"/><circle cx="11.5" cy="11.5" r="2" fill="#e2574c" stroke="none"/>`,
   // world
   water: `<path d="M12 3c3.5 4.5 6 7.6 6 10.7A6 6 0 0 1 6 13.7C6 10.6 8.5 7.5 12 3Z" fill="#7fd0f7"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" stroke="#fff" stroke-width="1.6"/>`,
   chest: `<rect x="3.5" y="10" width="17" height="9" rx="1.5" fill="#d9534f"/><path d="M3.5 10l1.5-4h14l1.5 4Z" fill="#f2c14e"/><path d="M12 12.5l.9 1.8 2 .2-1.5 1.3.5 2-1.9-1.1-1.9 1.1.5-2-1.5-1.3 2-.2Z" fill="#f7d046" stroke-width="1"/>`,
@@ -45,8 +46,8 @@ const paths: Record<string, string> = {
   bot: `<rect x="5" y="8" width="14" height="11" rx="3" fill="#fff"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.5" cy="13" r="1.3" fill="${INK}" stroke="none"/><circle cx="14.5" cy="13" r="1.3" fill="${INK}" stroke="none"/>`,
   crown: `<path d="M4 18l1-10 4.5 4L12 6l2.5 6L19 8l1 10Z" fill="#f7c331"/>`,
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
-  // a stitched heart with a needle: re-stitch a teammate
-  revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff7aa8"/><path d="M8 12.5h1.6M11.2 12.5h1.6M14.4 12.5H16" stroke-width="1.6"/><path d="M17 3.5l3.5 3.5" stroke-width="1.6"/>`,
+  // re-stitch a teammate: the same heart as your own stuffing
+  revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
   // the maps: a tree (the Backyard) and a bed (the Bedroom)
   'map-backyard': `<rect x="10.5" y="13" width="3" height="8" rx="1" fill="#a0693f"/><circle cx="12" cy="9.5" r="6.5" fill="#5bb46a"/><path d="M3 21h18" stroke-width="1.8"/>`,
   'map-bedroom': `<rect x="3" y="7" width="3" height="13" rx="1" fill="#a0693f"/><rect x="3" y="13" width="18" height="5" rx="1.5" fill="#f6a5c0"/><rect x="6.5" y="10" width="5" height="3" rx="1.2" fill="#fff"/><path d="M21 18v2" stroke-width="1.8"/>`,

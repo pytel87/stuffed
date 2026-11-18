@@ -127,42 +127,101 @@ export function buildWeapon(kind: WeaponKind, rarity: Rarity, outline: string, s
       break;
     }
     case 'pillow_hammer': {
-      // A long handle with a big fluffy pillow head, tufted with a button.
-      k.tube(0.035, 0.62, '#a87440', 0, 0, 0.26);
-      const head = k.ball(0.22, '#b8d8ff', 0, 0, 0.62);
-      head.scale.set(1.9, 1.05, 1.0);
-      for (const sx of [-1, 1]) {
-        for (const sy of [-1, 1]) k.ball(0.06, '#9cc4f5', sx * 0.38, sy * 0.13, 0.62, false); // corners
+      // A long handle with a big puffy square pillow on the end: tufted corners and a button in
+      // the middle of each face.
+      k.tube(0.035, 0.56, '#a87440', 0, 0, 0.23);
+      const head = new THREE.Group();
+      head.position.set(0, 0, 0.72);
+      // Facing mostly up (the game's camera looks down), a little to the side for the HUD picture.
+      const n = new THREE.Vector3(0.45, 1, 0).normalize();
+      const along = new THREE.Vector3(0, 0, 1);
+      const across = new THREE.Vector3().crossVectors(along, n);
+      head.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(across, along, n));
+      // Puffy: a box whose thickness tapers to thin seams at the edges.
+      const W = 0.78;
+      const H = 0.56;
+      const T = 0.26;
+      const geo = new THREE.BoxGeometry(W, H, T, 10, 8, 2);
+      const pos = geo.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) / (W / 2);
+        const y = pos.getY(i) / (H / 2);
+        const puff = Math.max(0.15, (1 - x * x * x * x) * (1 - y * y * y * y));
+        pos.setZ(i, pos.getZ(i) * puff);
       }
-      k.ball(0.06, '#e2574c', 0, 0.2, 0.62, 0.1); // tuft button on top
-      if (showRarity) k.ring(0.045, 0.02, band, 0, 0, 0.42);
+      geo.computeVertexNormals();
+      head.add(toonMesh(geo, '#b8d8ff', { outline: 0.05, outlineColor: outline }));
+      // Tufted corners and a button on each face.
+      for (const sx of [-1, 1]) {
+        for (const sy of [-1, 1]) {
+          const tuft = toonMesh(new THREE.ConeGeometry(0.06, 0.13, 8), '#9cc4f5', { outline: 0.12, outlineColor: outline });
+          tuft.position.set((sx * W) / 2, (sy * H) / 2, 0);
+          tuft.rotation.z = Math.atan2(sy, sx) - Math.PI / 2;
+          head.add(tuft);
+        }
+      }
+      for (const side of [-1, 1]) {
+        const button = toonMesh(new THREE.CylinderGeometry(0.065, 0.065, 0.035, 14), '#e2574c', { outline: 0.12, outlineColor: outline });
+        button.rotation.x = Math.PI / 2;
+        button.position.z = side * (T / 2 + 0.005);
+        head.add(button);
+      }
+      g.add(head);
+      if (showRarity) k.ring(0.045, 0.02, band, 0, 0, 0.36);
       break;
     }
     case 'glitter_bomb': {
-      // A pink sparkly ball with a star sticker and a ribbon bow, held in the hand.
+      // A pink ball speckled with glitter, a gold cap and a curly fuse with a spark on top.
       k.ball(0.17, '#ff7ac8', 0, 0.02, 0.18);
-      for (const [x, y, z, c] of [[0.1, 0.1, 0.27, '#fff27a'], [-0.12, 0.06, 0.24, '#7af0ff'], [0.05, -0.08, 0.32, '#ffffff'], [-0.06, 0.14, 0.12, '#fff27a']] as const) {
-        k.ball(0.025, c, x, y, z, false);
+      const glitter = ['#fff27a', '#7af0ff', '#ffffff', '#c58bff'];
+      for (let i = 0; i < 10; i++) {
+        // Spread over the ball (a golden-angle spiral), skipping the bottom.
+        const t = (i + 0.5) / 10;
+        const y = 1 - t * 1.5;
+        const r = Math.sqrt(Math.max(0, 1 - y * y));
+        const a = i * 2.39996;
+        const dir = new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r).normalize();
+        const flake = new THREE.Mesh(new THREE.OctahedronGeometry(0.03, 0), new THREE.MeshBasicMaterial({ color: glitter[i % glitter.length]!, toneMapped: false }));
+        flake.position.set(0, 0.02, 0.18).addScaledVector(dir, 0.172);
+        flake.scale.set(1, 1, 0.4);
+        flake.lookAt(flake.position.clone().add(dir));
+        g.add(flake);
       }
-      for (const sx of [-1, 1]) {
-        const loop = k.ball(0.06, '#ffd23a', sx * 0.07, 0.22, 0.18, 0.1);
-        loop.scale.set(1.2, 0.6, 0.8);
+      k.tube(0.055, 0.06, '#f7c331', 0, 0.2, 0.18, 0.1).rotation.x = 0; // the cap
+      const fuse = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.23, 0.18),
+        new THREE.Vector3(0.03, 0.29, 0.16),
+        new THREE.Vector3(-0.02, 0.33, 0.13),
+        new THREE.Vector3(0.02, 0.37, 0.11),
+      ]);
+      g.add(toonMesh(new THREE.TubeGeometry(fuse, 12, 0.014, 6), '#5a4030', { outline: false }));
+      // The spark: a bright little star.
+      for (const [sx, sy, sz] of [[1, 1, 0.35], [0.35, 1, 1]] as const) {
+        const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.05, 0), new THREE.MeshBasicMaterial({ color: '#ffd23a', toneMapped: false }));
+        spark.scale.set(sx, sy, sz);
+        spark.position.copy(fuse.getPoint(1)).add(new THREE.Vector3(0, 0.02, 0));
+        g.add(spark);
       }
       if (showRarity) k.ring(0.17, 0.02, band, 0, 0.02, 0.18, 'x');
       break;
     }
     case 'bubble_wand': {
-      // A pink stick with a big loop and a shimmering soap film in it.
+      // A pink stick with a big loop and a shimmering soap film in it. The loop is turned half
+      // toward the side and half up, so it reads as a loop from above and from the side.
       k.tube(0.025, 0.46, '#ff7ac8', 0, 0, 0.26);
-      const loop = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.025, 8, 28), toonMaterial('#ff7ac8', { map: null }));
-      loop.position.set(0, 0, 0.64);
-      g.add(loop);
+      const head = new THREE.Group();
+      head.position.set(0, 0, 0.64);
+      head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 1, 0).normalize());
+      head.add(toonMesh(new THREE.TorusGeometry(0.15, 0.028, 10, 32), '#ff7ac8', { outline: 0.12, outlineColor: outline }));
       const film = new THREE.Mesh(
-        new THREE.CircleGeometry(0.14, 24),
-        new THREE.MeshBasicMaterial({ color: '#c6f0ff', transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }),
+        new THREE.CircleGeometry(0.14, 28),
+        new THREE.MeshBasicMaterial({ color: '#bfefff', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }),
       );
-      film.position.set(0, 0, 0.64);
-      g.add(film);
+      head.add(film);
+      const shine = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.095, 20, 1, 0.4, 1.4), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+      shine.position.z = 0.002;
+      head.add(shine);
+      g.add(head);
       k.tube(0.04, 0.12, '#ffd23a', 0, 0, 0.03); // handle cap
       if (showRarity) k.ring(0.035, 0.016, band, 0, 0, 0.3);
       break;

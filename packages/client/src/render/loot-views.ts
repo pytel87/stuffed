@@ -245,16 +245,68 @@ export class ChestViews {
 
 // ---------- loot ----------
 
+/** A round sewing button of radius `r`, with its four holes. */
+/** A sewing button like the HUD's: a disc with a darker ring set in from its rim, and four holes. */
+function sewingButton(r: number, color: string): THREE.Group {
+  const button = new THREE.Group();
+  const h = Math.max(0.03, r * 0.3);
+  button.add(toonMesh(new THREE.CylinderGeometry(r, r, h, 18), color, { outline: 0.08 }));
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(r * 0.56, r * 0.74, 24).rotateX(-Math.PI / 2),
+    toonMaterial(new THREE.Color(color).multiplyScalar(0.55), { map: null }),
+  );
+  ring.position.y = h / 2 + 0.003;
+  button.add(ring);
+  const off = r * 0.3;
+  const holeMat = toonMaterial(OUTLINE_COLOR, { map: null });
+  for (const [hx, hz] of [[-off, -off], [off, -off], [-off, off], [off, off]] as const) {
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.12, r * 0.12, Math.max(0.035, r * 0.32), 6), holeMat);
+    hole.position.set(hx, 0.002, hz);
+    button.add(hole);
+  }
+  return button;
+}
+
 export function buildItem(kind: ItemKind): THREE.Group {
   const g = new THREE.Group();
   switch (kind) {
-    case 'cotton_puff':
-      for (const [x, y, z, r] of [[0, 0, 0, 0.2], [0.16, 0.05, 0.05, 0.15], [-0.14, 0.04, -0.04, 0.14], [0.02, 0.15, -0.05, 0.13]] as const) {
-        const puff = toonMesh(new THREE.IcosahedronGeometry(r, 1), '#fdfbf7', { outline: 0.08 });
-        puff.position.set(x, y, z);
-        g.add(puff);
+    case 'cotton_puff': {
+      // A sticking plaster: a skin-tone strip with rounded ends, little air holes, and a white
+      // pad with a red heart (a little heal).
+      const W = 0.62;
+      const D = 0.2;
+      const tone = '#ffc7a8';
+      const strip = toonMesh(new THREE.BoxGeometry(W - D, 0.035, D), tone, { outline: 0.06 });
+      strip.position.y = 0.02;
+      g.add(strip);
+      for (const side of [-1, 1]) {
+        const end = toonMesh(new THREE.CylinderGeometry(D / 2, D / 2, 0.035, 20, 1, false, side > 0 ? 0 : Math.PI, Math.PI), tone, { outline: 0.06 });
+        end.position.set((side * (W - D)) / 2, 0.02, 0);
+        g.add(end);
       }
+      const pad = toonMesh(new THREE.BoxGeometry(W * 0.36, 0.045, D * 0.8), '#fff3f6', { outline: 0.08 });
+      pad.position.y = 0.03;
+      g.add(pad);
+      const heart = new THREE.Shape();
+      const hs = D * 0.22;
+      heart.moveTo(0, -hs);
+      heart.bezierCurveTo(-1.6 * hs, 0.15 * hs, -1.1 * hs, 1.4 * hs, 0, 0.7 * hs);
+      heart.bezierCurveTo(1.1 * hs, 1.4 * hs, 1.6 * hs, 0.15 * hs, 0, -hs);
+      const h = new THREE.Mesh(new THREE.ShapeGeometry(heart), toonMaterial('#e2433f', { map: null }));
+      h.rotation.x = -Math.PI / 2;
+      h.position.set(0, 0.055, 0.004);
+      g.add(h);
+      const holeMat = toonMaterial('#d99a80', { map: null });
+      for (const x of [-0.36, -0.26, 0.26, 0.36]) {
+        for (const z of [-0.2, 0.2]) {
+          const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.04, 5), holeMat);
+          dot.position.set(x * W, 0.022, z * D);
+          g.add(dot);
+        }
+      }
+      g.rotation.y = 0.4;
       break;
+    }
     case 'sewing_kit': {
       // A pink ball of wool with two knitting needles stuck through it, and a loose strand.
       const ball = toonMesh(new THREE.SphereGeometry(0.22, 20, 16), '#ff8fb8', { outline: 0.06 });
@@ -289,96 +341,114 @@ export function buildItem(kind: ItemKind): THREE.Group {
       break;
     }
     case 'button_pack':
-      ['#e2574c', '#3d7ff2', '#f7c331'].forEach((c, i) => {
-        const button = toonMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.06, 20), c, { outline: 0.06 });
-        button.position.set((i - 1) * 0.05, i * 0.08, (i % 2) * 0.04);
+      // A few buttons scattered on the ground (the same size as the Button Pile's).
+      for (const [x, z, c, tilt, turn] of [[-0.13, -0.06, '#e2574c', 0.1, 0.3], [0.12, -0.09, '#3d7ff2', -0.15, 1.4], [0.01, 0.12, '#f7c331', 0.2, 2.2], [0.17, 0.13, '#5bd16a', 0.05, 0.9]] as const) {
+        const button = sewingButton(0.11, c);
+        button.position.set(x, 0.03 + Math.abs(tilt) * 0.1, z);
+        button.rotation.set(tilt, turn, tilt * 0.5);
         g.add(button);
-        for (const [hx, hz] of [[-0.05, -0.05], [0.05, -0.05], [-0.05, 0.05], [0.05, 0.05]] as const) {
-          const hole = toonMesh(new THREE.CylinderGeometry(0.018, 0.018, 0.07, 6), OUTLINE_COLOR, { outline: false, castShadow: false });
-          hole.position.set(button.position.x + hx, button.position.y + 0.002, button.position.z + hz);
-          g.add(hole);
-        }
-      });
+      }
       break;
     case 'big_stuffing_bag': {
-      // A fat white sack of stuffing, tied with red string, fluff spilling from the top.
-      const sack = toonMesh(new THREE.SphereGeometry(0.3, 18, 14), '#fbf6ef', { outline: 0.06 });
-      sack.scale.set(1, 1.1, 0.9);
-      g.add(sack);
-      const tie = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.03, 8, 16), toonMaterial('#e2574c', { map: null }));
-      tie.rotation.x = Math.PI / 2;
-      tie.position.y = 0.3;
-      g.add(tie);
-      for (const [x, y, z, r] of [[0, 0.42, 0, 0.11], [0.08, 0.38, 0.05, 0.08], [-0.07, 0.4, -0.04, 0.08]] as const) {
-        const puff = toonMesh(new THREE.IcosahedronGeometry(r, 1), '#ffffff', { outline: 0.1 });
-        puff.position.set(x, y, z);
-        g.add(puff);
+      // An open first-aid box overflowing with stuffing; its lid flipped up behind, with a red
+      // cross on it (a big heal).
+      const W = 0.5;
+      const H = 0.3;
+      const D = 0.36;
+      const box = toonMesh(new THREE.BoxGeometry(W, H, D), '#fdfbf7', { outline: 0.05 });
+      box.position.y = H / 2;
+      g.add(box);
+      // A red cross on the front too, so it reads from any side.
+      for (const r of [0, Math.PI / 2]) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(r ? 0.05 : 0.16, r ? 0.16 : 0.05, 0.012), toonMaterial('#e2433f', { map: null }));
+        bar.position.set(0, H * 0.5, D / 2 + 0.004);
+        g.add(bar);
       }
-      const patch = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), toonMaterial('#ff8fb1', { map: null }));
-      patch.position.set(0, 0.02, 0.28);
-      g.add(patch);
+      // The lid, hinged at the back and tipped open, cross facing up.
+      const lid = new THREE.Group();
+      lid.position.set(0, H, -D / 2);
+      lid.rotation.x = -1.15;
+      const panel = toonMesh(new THREE.BoxGeometry(W, 0.04, D), '#fdfbf7', { outline: 0.06 });
+      panel.position.set(0, 0.02, D / 2);
+      lid.add(panel);
+      for (const r of [0, Math.PI / 2]) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(r ? 0.07 : 0.22, 0.012, r ? 0.22 : 0.07), toonMaterial('#e2433f', { map: null }));
+        bar.position.set(0, 0.046, D / 2);
+        lid.add(bar);
+      }
+      g.add(lid);
+      // Stuffing heaped up out of the top.
+      for (const [x, y, z, r] of [[0, H + 0.06, 0.02, 0.13], [0.12, H + 0.04, 0.06, 0.09], [-0.12, H + 0.05, -0.02, 0.1], [0.04, H + 0.14, 0, 0.08], [-0.05, H + 0.03, 0.1, 0.07]] as const) {
+        const tuft = toonMesh(new THREE.IcosahedronGeometry(r, 1), '#ffffff', { outline: 0.08 });
+        tuft.position.set(x, y, z);
+        g.add(tuft);
+      }
       break;
     }
     case 'juice_box': {
-      // An orange juice box with a bendy straw.
-      const box = toonMesh(new THREE.BoxGeometry(0.26, 0.38, 0.18), '#f7a531', { outline: 0.06 });
+      // A sky-blue juice box with a big orange on the front (it stands out on blue) and a bendy
+      // pink straw.
+      const box = toonMesh(new THREE.BoxGeometry(0.26, 0.38, 0.18), '#6ec3f0', { outline: 0.06 });
       g.add(box);
-      const label = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16), toonMaterial('#ff7a3d', { map: null }));
-      label.position.set(0, 0, 0.092);
-      g.add(label);
-      const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.04, 8), toonMaterial('#5fb34f', { map: null }));
-      leaf.position.set(0.05, 0.07, 0.093);
-      g.add(leaf);
-      const straw = toonMesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), '#ff5a8a', { outline: 0.15 });
-      straw.position.set(0.06, 0.28, 0);
-      straw.rotation.z = -0.3;
+      // A darker band round the bottom and an orange top, like the fruit.
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.262, 0.07, 0.182), toonMaterial('#3d9bd6', { map: null }));
+      band.position.y = -0.15;
+      g.add(band);
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(0.262, 0.03, 0.182), toonMaterial('#ff8a1c', { map: null }));
+      lid.position.y = 0.19;
+      g.add(lid);
+      // The orange: a round, outlined fruit with a leaf on a cream label, on both big faces
+      // (so it stands out from the carton).
+      const face = (mesh: THREE.Mesh, x: number, y: number, z: number, side: number) => {
+        mesh.position.set(x, y, side * z);
+        if (side < 0) mesh.rotation.y = Math.PI;
+        g.add(mesh);
+      };
+      for (const side of [1, -1]) {
+        face(new THREE.Mesh(new THREE.CircleGeometry(0.112, 24), toonMaterial('#fff7ea', { map: null })), 0, 0.02, 0.091, side);
+        face(new THREE.Mesh(new THREE.CircleGeometry(0.084, 20), toonMaterial(OUTLINE_COLOR, { map: null })), 0, 0.01, 0.093, side);
+        face(new THREE.Mesh(new THREE.CircleGeometry(0.072, 20), toonMaterial('#ff8a1c', { map: null })), 0, 0.01, 0.095, side);
+        face(new THREE.Mesh(new THREE.CircleGeometry(0.02, 10), toonMaterial('#ffd9a3', { map: null })), -0.026, 0.036, 0.097, side);
+        const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.032, 8), toonMaterial('#4fae3f', { map: null }));
+        leaf.scale.set(1.6, 0.8, 1);
+        leaf.rotation.z = side * 0.5;
+        face(leaf, side * 0.035, 0.09, 0.097, side);
+      }
+      // A bendy straw: up from the top corner, then bent over.
+      const straw = toonMesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.06, 0.18, 0), new THREE.Vector3(0.06, 0.36, 0), new THREE.Vector3(0.1, 0.42, 0), new THREE.Vector3(0.18, 0.43, 0)]), 16, 0.022, 8),
+        '#ff5a8a',
+        { outline: false },
+      );
       g.add(straw);
+      for (const y of [0.3, 0.33]) {
+        const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.023, 0.006, 4, 10), toonMaterial('#ffffff', { map: null }));
+        stripe.rotation.x = Math.PI / 2;
+        stripe.position.set(0.06, y, 0);
+        g.add(stripe);
+      }
       break;
     }
-    case 'button_jar': {
-      // A glass jar of colorful buttons tipped on its side, lid off, a few buttons spilled out of
-      // its mouth (from above you see the buttons, not just a lid).
-      const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf'];
-      const jar = new THREE.Group();
-      jar.position.set(-0.06, 0.2, 0);
-      // Lying with its open mouth toward +x, where the buttons spill out (the bottom to -x).
-      jar.rotation.z = -Math.PI / 2;
-      const glass = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.2, 0.42, 20, 1, true),
-        new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
-      );
-      jar.add(glass);
-      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.215, 0.44, 20, 1, true), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
-      jar.add(rim);
-      const bottom = toonMesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 20), '#bfe6f5', { outline: false });
-      bottom.position.y = -0.21;
-      jar.add(bottom);
-      // Buttons heaped inside.
-      for (let i = 0; i < 10; i++) {
-        const button = toonMesh(new THREE.CylinderGeometry(0.065, 0.065, 0.025, 12), colors[i % colors.length]!, { outline: false });
-        const a = i * 2.4;
-        button.position.set(0.08 + Math.abs(Math.sin(a)) * 0.06, -0.15 + (i / 10) * 0.32, Math.cos(a) * 0.09);
-        button.rotation.set(i * 0.7, 0, i * 0.4);
-        jar.add(button);
+    case 'button_pile': {
+      // A big heap of colorful buttons: many more of the Button Pack's.
+      const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf', '#9b7bd8'];
+      // [x, y, z, radius, tilt] from the bottom layer up to a big one on top.
+      const heap: [number, number, number, number, number][] = [];
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2;
+        heap.push([Math.cos(a) * 0.24, 0.03, Math.sin(a) * 0.24, 0.1, 0.25]);
       }
-      g.add(jar);
-      // Spilled out of the open mouth.
-      for (const [x, z, c, r] of [[0.24, 0.04, 0, 0.2], [0.32, -0.1, 1, 1.1], [0.36, 0.13, 2, 2.3], [0.2, -0.18, 3, 0.7]] as const) {
-        const button = toonMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 14), colors[c]!, { outline: 0.1 });
-        button.position.set(x, 0.02, z);
-        button.rotation.y = r;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + 0.4;
+        heap.push([Math.cos(a) * 0.13, 0.1, Math.sin(a) * 0.13, 0.11, 0.4]);
+      }
+      heap.push([0, 0.17, 0, 0.12, 0.15], [0.05, 0.22, -0.03, 0.11, 0.5]);
+      heap.forEach(([x, y, z, r, tilt], i) => {
+        const button = sewingButton(r, colors[i % colors.length]!);
+        button.position.set(x, y, z);
+        button.rotation.set(Math.sin(i * 1.7) * tilt, i * 0.9, Math.cos(i * 1.3) * tilt);
         g.add(button);
-        for (const [hx, hz] of [[-0.02, -0.02], [0.02, -0.02], [-0.02, 0.02], [0.02, 0.02]] as const) {
-          const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.035, 5), toonMaterial(OUTLINE_COLOR, { map: null }));
-          hole.position.set(x + hx, 0.022, z + hz);
-          g.add(hole);
-        }
-      }
-      // The red lid lying beside it.
-      const lid = toonMesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 20), '#e2433f', { outline: 0.06 });
-      lid.position.set(-0.12, 0.03, -0.32);
-      lid.rotation.x = 0.15;
-      g.add(lid);
+      });
       break;
     }
     case 'cardboard_wall': {
@@ -417,8 +487,8 @@ function buildLoosePart(part: Part): THREE.Group {
 interface LootView {
   root: THREE.Group;
   model: THREE.Group;
-  /** Parts only: a gold sparkle shown while the part would be new to you. */
-  sparkle: THREE.Sprite | null;
+  /** Parts only: a glowing gold sparkle shown while the part would be new to you. */
+  sparkle: { root: THREE.Group; star: THREE.Sprite; glow: THREE.Sprite; twinkles: THREE.Sprite[] } | null;
   glow: THREE.Mesh;
   halo: THREE.Mesh;
   beam: THREE.Mesh | null;
@@ -452,6 +522,24 @@ function sparkleTexture(): THREE.CanvasTexture {
   sparkleTex = new THREE.CanvasTexture(c);
   sparkleTex.colorSpace = THREE.SRGBColorSpace;
   return sparkleTex;
+}
+
+let sparkleGlowTex: THREE.CanvasTexture | null = null;
+/** A soft round glow (drawn additively behind the sparkle). */
+function sparkleGlowTexture(): THREE.CanvasTexture {
+  if (sparkleGlowTex) return sparkleGlowTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, 'rgba(255, 240, 160, 1)');
+  glow.addColorStop(0.35, 'rgba(255, 210, 80, 0.55)');
+  glow.addColorStop(1, 'rgba(255, 200, 60, 0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 64, 64);
+  sparkleGlowTex = new THREE.CanvasTexture(c);
+  sparkleGlowTex.colorSpace = THREE.SRGBColorSpace;
+  return sparkleGlowTex;
 }
 
 function buildLoot(loot: GroundLoot): LootView {
@@ -502,12 +590,27 @@ function buildLoot(loot: GroundLoot): LootView {
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
   mergeStatic(model);
   root.add(model);
-  let sparkle: THREE.Sprite | null = null;
+  let sparkle: LootView['sparkle'] = null;
   if (c.type === 'part') {
-    sparkle = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false }));
-    sparkle.scale.setScalar(0.55);
-    sparkle.visible = false;
-    root.add(sparkle);
+    const sRoot = new THREE.Group();
+    sRoot.visible = false;
+    const glowSprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: sparkleGlowTexture(), depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending, transparent: true }),
+    );
+    glowSprite.renderOrder = 4;
+    sRoot.add(glowSprite);
+    const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false }));
+    star.renderOrder = 5;
+    sRoot.add(star);
+    // Two tiny twinkles circling it.
+    const twinkles = [0, 1].map(() => {
+      const t = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleGlowTexture(), depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending, transparent: true }));
+      t.renderOrder = 4;
+      sRoot.add(t);
+      return t;
+    });
+    root.add(sRoot);
+    sparkle = { root: sRoot, star, glow: glowSprite, twinkles };
   }
   return { root, model, sparkle, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
 }
@@ -550,11 +653,21 @@ export class LootViews {
       view.age += dt;
       if (view.sparkle && loot.content.type === 'part') {
         const part = loot.content.part;
-        view.sparkle.visible = this.isNewPart(part.slot, part.animal);
-        if (view.sparkle.visible) {
-          view.sparkle.position.y = 1.35 + Math.sin(time * 3 + view.phase) * 0.12;
-          (view.sparkle.material as THREE.SpriteMaterial).rotation = Math.sin(time * 2 + view.phase) * 0.4;
-          view.sparkle.scale.setScalar(0.5 + Math.sin(time * 5 + view.phase) * 0.08);
+        const sp = view.sparkle;
+        sp.root.visible = this.isNewPart(part.slot, part.animal);
+        if (sp.root.visible) {
+          sp.root.position.y = 1.35 + Math.sin(time * 3 + view.phase) * 0.12;
+          (sp.star.material as THREE.SpriteMaterial).rotation = Math.sin(time * 2 + view.phase) * 0.4;
+          sp.star.scale.setScalar(0.5 + Math.sin(time * 5 + view.phase) * 0.08);
+          // A warm glow breathing behind it.
+          const breathe = 0.5 + 0.5 * Math.sin(time * 4 + view.phase);
+          sp.glow.scale.setScalar(1.1 + breathe * 0.45);
+          (sp.glow.material as THREE.SpriteMaterial).opacity = 0.55 + breathe * 0.45;
+          sp.twinkles.forEach((t, i) => {
+            const a = time * 2.2 + view.phase + i * Math.PI;
+            t.position.set(Math.cos(a) * 0.38, Math.sin(a * 1.3) * 0.1, Math.sin(a) * 0.38);
+            t.scale.setScalar(0.18 + 0.1 * Math.max(0, Math.sin(time * 7 + i * 2)));
+          });
         }
       }
       // Loot can move (the toy train pushes it off the rails): glide to where it is now.

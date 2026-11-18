@@ -42,7 +42,8 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
   scene.add(sun);
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 50);
 
-  const shoot = (name: string, model: THREE.Object3D, turn: THREE.Euler) => {
+  /** `minHalf`: frame at least this much (world units), so small models aren't blown up. */
+  const shoot = (name: string, model: THREE.Object3D, turn: THREE.Euler, minHalf = 0) => {
     const holder = new THREE.Group();
     holder.add(model);
     holder.rotation.copy(turn);
@@ -51,7 +52,7 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
     const box = new THREE.Box3().setFromObject(holder);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    const half = (Math.max(size.x, size.y) / 2) * 1.12;
+    const half = Math.max(minHalf, (Math.max(size.x, size.y) / 2) * 1.12);
     camera.left = -half;
     camera.right = half;
     camera.top = half;
@@ -70,7 +71,9 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
   }
   // Items from a little above.
   for (const kind of Object.keys(config.items) as ItemKind[]) {
-    shoot(kind, buildItem(kind), new THREE.Euler(0.5, -0.5, 0, 'YXZ'));
+    // Items share a minimum frame, so they keep their sizes relative to each other (the Button
+    // Pack's buttons look as big as the Button Pile's).
+    shoot(kind, buildItem(kind), new THREE.Euler(0.5, -0.5, 0, 'YXZ'), 0.36);
   }
   // Each kind of chest (by loot level), for the open prompt.
   for (const loot of ['low', 'medium', 'high', 'food'] as const) {

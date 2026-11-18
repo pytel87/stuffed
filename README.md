@@ -151,8 +151,10 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### The screen
 
-- The bar at the bottom (top-left on touch) is your stuffing. Buttons show as a blue coat
-  along its top, and they soak hits first.
+- The bar at the bottom is your stuffing. Buttons show as a yellow coat along its top, and they
+  soak hits first. On touch screens a pill in the top left shows both as numbers instead.
+- Your bag's parts sit in the bottom left (under the pill on touch screens). The players-left
+  count is at the top. There's no Rinse countdown: the rising foam shows it coming.
 - The thin colored strip along the bottom of a weapon card is its ammo, in the weapon's rarity
   color. It drains as you shoot and refills in white while you reload.
 - What E or the hand would do floats over the chest or weapon itself. The opening bar floats
@@ -173,7 +175,8 @@ the gallery):
 
 Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
 a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on (a found part it replaces goes into your bag). Q puts it in your bag instead: up
-to three spare parts, shown next to your stuffing. Tap a bag slot (or Q with nothing in reach)
+to three spare parts, shown in the bottom left (under your stuffing on touch screens). The
+floating prompt reads hand | part | bag (E | part | Q on a keyboard). Tap a bag slot (or Q with nothing in reach)
 to wear that part. A part you haven't collected yet sparkles: a gold star floats over it on the
 ground. When you're knocked out, the parts you wear go home with you, but the ones
 in your bag drop for others to take; weapons and items drop too. Bots drop every part they
@@ -219,7 +222,7 @@ URL, for example
 | Cotton Puff / Sewing Kit / Big Stuffing Bag | +15 / +50 / full stuffing (all up to full) |
 | Button Pack | +25 buttons |
 | Juice Box | +5 stuffing per second for 10 s, and a little faster |
-| Button Jar | +50 buttons (4 s; the big armor) |
+| Button Pile | +50 buttons (4 s; the big armor) |
 | Cardboard Wall | a wall in front of you for 20 s, until it's shot down |
 
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current

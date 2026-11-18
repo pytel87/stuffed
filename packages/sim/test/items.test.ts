@@ -59,13 +59,13 @@ describe('Juice Box', () => {
   });
 });
 
-describe('Button Jar', () => {
+describe('Button Pile', () => {
   it('adds a big stack of buttons after a longer use', () => {
-    const g = holding('button_jar');
+    const g = holding('button_pile');
     g.you.buttons = 10;
     g.play(1, use);
-    g.play(secondsToTicks(config.items.button_jar.useTime), {});
-    expect(g.you.buttons).toBe(10 + config.items.button_jar.buttons);
+    g.play(secondsToTicks(config.items.button_pile.useTime), {});
+    expect(g.you.buttons).toBe(10 + config.items.button_pile.buttons);
   });
 });
 

@@ -202,7 +202,7 @@ const items: Record<ItemKind, ItemStats> = {
   big_stuffing_bag: { name: 'Big Stuffing Bag', useTime: 8, stuffing: 100, buttons: 0, stuffingCap: 100, maxStack: 1, chestCount: 1, rarity: 3 },
   juice_box: { name: 'Juice Box', useTime: 2, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2, effect: 'juice' },
   // The big armor: like the Sewing Kit is to the Cotton Puff.
-  button_jar: { name: 'Button Jar', useTime: 4, stuffing: 0, buttons: 50, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2 },
+  button_pile: { name: 'Button Pile', useTime: 4, stuffing: 0, buttons: 50, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2 },
   cardboard_wall: { name: 'Cardboard Wall', useTime: 1, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 1, effect: 'wall' },
 };
 
@@ -363,7 +363,7 @@ export const config = {
       button_pack: 3,
       big_stuffing_bag: 0.6,
       juice_box: 1.5,
-      button_jar: 1.2,
+      button_pile: 1.2,
       cardboard_wall: 1.6,
     } satisfies Record<ItemKind, number>,
     /** Food crates (picnic) favor healing. */
@@ -373,7 +373,7 @@ export const config = {
       button_pack: 1,
       big_stuffing_bag: 2,
       juice_box: 3,
-      button_jar: 0.5,
+      button_pile: 0.5,
       cardboard_wall: 0.5,
     } satisfies Record<ItemKind, number>,
   },

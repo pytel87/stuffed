@@ -16,7 +16,7 @@ export type Rarity = 0 | 1 | 2 | 3 | 4;
 export type WeaponKind =
   | 'cork_popper' | 'foam_dart_smg' | 'super_soaker'
   | 'rubber_band_rifle' | 'marble_launcher' | 'pillow_hammer' | 'glitter_bomb' | 'bubble_wand';
-export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'button_jar' | 'cardboard_wall';
+export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'button_pile' | 'cardboard_wall';
 
 /** Held-button bitfield carried in Input.buttons. */
 export const Btn = {

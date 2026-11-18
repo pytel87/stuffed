@@ -386,7 +386,6 @@ function frame(now: number): void {
   shown = state;
   const events = session.takeEvents();
   renderer.playEvents(events, state);
-  zoneHud.events(events);
   const localId = session.localPlayerId;
   for (const e of events) {
     if (e.type === 'hit' && e.sourceId === session.localPlayerId) {
@@ -435,7 +434,7 @@ function frame(now: number): void {
   touch.setGrabReady(hud.grabReady);
   touch.setStashReady(hud.stashReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
-  zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft(), dt);
+  zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft());
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   debug.update(dt, {
     seed,

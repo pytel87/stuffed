@@ -257,7 +257,7 @@ export class GameRenderer {
         }
         case 'itemUsed': {
           const p = byId.get(e.playerId);
-          if (p && e.item !== 'cardboard_wall') this.effects.itemUsed(p.pos.x, p.pos.y, e.item === 'button_pack' || e.item === 'button_jar');
+          if (p && e.item !== 'cardboard_wall') this.effects.itemUsed(p.pos.x, p.pos.y, e.item === 'button_pack' || e.item === 'button_pile');
           break;
         }
         case 'wallPlaced': {

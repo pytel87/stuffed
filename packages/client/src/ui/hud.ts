@@ -9,7 +9,7 @@ const PROMPT_HEIGHT = 1.5;
 const OVERHEAD_HEIGHT = 2.4;
 
 /**
- * In-match HUD, mostly icons: one toughness bar (stuffing, with buttons as a blue coat over it),
+ * In-match HUD, mostly icons: one toughness bar (stuffing, with buttons as a yellow coat over it),
  * the two weapon cards (ammo as a draining bar that refills while reloading; tap to switch, tap
  * the active one to reload), three item slots (tap to use), and in the scene: what E/Grab would
  * do, floating over the chest or item, and a progress bar over what's being opened or used.
@@ -46,12 +46,11 @@ export class Hud {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="vitals">
-         ${icon('stuffing')}
+         <span class="health">${icon('stuffing')}<b class="num"></b></span>
          <div class="track"><div class="fill stuffing"></div><div class="fill buttons"></div></div>
-         <b class="num"></b>
          <b class="coat" hidden>${icon('buttons')}<span></span></b>
-         <span class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="Bag ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</span>
        </div>
+       <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="Bag ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
        <div class="loadout">
          <div class="items">
            ${[0, 1, 2].map((i) => `<button type="button" class="item" data-item="${i}"><span class="art"></span><b class="count"></b><kbd>${i + 3}</kbd></button>`).join('')}
@@ -62,7 +61,8 @@ export class Hud {
        </div>
        <div class="progress in-world" hidden><span class="art"></span><div class="track"><div class="fill"></div></div></div>
        <div class="prompt in-world" hidden>
-         <span class="opt"><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span></span>
+         <span class="opt use"><kbd>E</kbd>${icon('hand', 'icon tap')}</span>
+         <span class="art"></span>
          <button type="button" class="opt stash-opt" hidden aria-label="Stash"><kbd>Q</kbd>${icon('stash')}</button>
        </div>`,
     );
@@ -194,7 +194,7 @@ export class Hud {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
     } else if (interaction?.kind === 'revive') {
-      // Hold to re-stitch a teammate: needle and thread.
+      // Hold to re-stitch a teammate: the stuffing heart.
       art = 'revive';
     }
     this.set('pr', art, (v) => {
@@ -202,7 +202,8 @@ export class Hud {
       this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
       this.prompt.hidden = v === '';
       this.prompt.classList.toggle('hold', kind === 'chest' || kind === 'revive');
-      // Parts can be worn (E) or stashed (Q).
+      // Parts: wear it (E, the hand) or stash it (Q, the bag), either side of the part.
+      this.prompt.classList.toggle('part', kind === 'part');
       this.promptStash.hidden = kind !== 'part';
     });
     this.set('prc', color, (v) => this.prompt.style.setProperty('--rarity', v));
