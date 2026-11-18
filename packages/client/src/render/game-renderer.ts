@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ANIMALS, canSee, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, MapData, PartLoadout, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
+import type { Animal, EntityId, GameEvent, GameState, MapData, PartLoadout, PartSlot, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
 import { Effects } from './effects.ts';
@@ -155,6 +155,11 @@ export class GameRenderer {
     this.rinse = new RinseView(map);
     this.mapLayer.add(this.rinse.mesh);
     this.world = createWorld(map);
+  }
+
+  /** Which parts are new to the player (a sparkle over them on the ground). */
+  set isNewPart(fn: (slot: PartSlot, animal: Animal) => boolean) {
+    this.loot.isNewPart = fn;
   }
 
   /** The canvas size the drawing buffer and camera were last set up for. */

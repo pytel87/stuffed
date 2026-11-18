@@ -29,7 +29,7 @@ describe('skin parts', () => {
     const { state } = newGame(3, 6);
     for (const p of state.players) {
       for (const slot of PART_SLOTS) expect(p.parts[slot]).toMatchObject({ rarity: 0, found: false });
-      expect(p.stash).toBeNull();
+      expect(p.stash).toEqual([]);
     }
   });
 
@@ -66,40 +66,48 @@ describe('skin parts', () => {
     expect(state.loot).toHaveLength(0);
   });
 
-  it('E swaps a found part for another: the old one drops', () => {
+  it('E swaps a found part for another: the old one goes in the bag (or drops, the bag full)', () => {
     const { world, state, p } = solo();
     p.parts.tail = { animal: 'frog', rarity: 1, found: true };
     spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: shark('tail', 3) });
     press(world, state);
     expect(p.parts.tail).toEqual({ animal: 'shark', rarity: 3, found: true });
-    expect(partsOnGround(state).map((l) => l.content)).toEqual([{ type: 'part', part: { slot: 'tail', animal: 'frog', rarity: 1 } }]);
+    expect(p.stash).toEqual([{ slot: 'tail', animal: 'frog', rarity: 1 }]);
+    expect(partsOnGround(state)).toHaveLength(0);
+
+    p.stash = [shark('head'), shark('legs'), shark('body')];
+    spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: { slot: 'tail', animal: 'chicken', rarity: 0 } });
+    press(world, state);
+    expect(partsOnGround(state).map((l) => l.content)).toEqual([{ type: 'part', part: shark('tail', 3) }]);
   });
 
-  it('Q stashes a part; a part already in the stash drops', () => {
+  it('Q bags a part, up to three; with the bag full the oldest drops', () => {
     const { world, state, p } = solo();
     const look = structuredClone(p.parts);
-    spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: shark('legs') });
-    press(world, state, pressQ);
-    expect(p.stash).toEqual(shark('legs'));
+    for (const slot of ['legs', 'body', 'tail'] as const) {
+      spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: shark(slot) });
+      press(world, state, pressQ);
+    }
+    expect(p.stash).toEqual([shark('legs'), shark('body'), shark('tail')]);
     expect(p.parts).toEqual(look);
 
-    spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: shark('body', 4) });
+    spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: shark('head', 4) });
     press(world, state, pressQ);
-    expect(p.stash).toEqual(shark('body', 4));
+    expect(p.stash).toEqual([shark('body'), shark('tail'), shark('head', 4)]);
     expect(partsOnGround(state).map((l) => l.content)).toEqual([{ type: 'part', part: shark('legs') }]);
   });
 
-  it('Q with nothing in reach puts the stashed part on, and stashes a found part it replaces', () => {
+  it('putting on a bagged part (Q, or tapping its slot) swaps in a found part it replaces', () => {
     const { world, state, p } = solo();
-    p.stash = shark('head', 4);
+    p.stash = [shark('head', 4)];
     press(world, state, pressQ);
     expect(p.parts.head).toEqual({ animal: 'shark', rarity: 4, found: true });
-    expect(p.stash).toBeNull(); // the plush's own head just came off
+    expect(p.stash).toEqual([]); // the plush's own head just came off
 
-    p.stash = { slot: 'head', animal: 'chicken', rarity: 1 };
-    press(world, state, pressQ);
+    p.stash = [shark('legs'), { slot: 'head', animal: 'chicken', rarity: 1 }];
+    run(world, state, 1, () => input({ wearBagSlot: 1 }));
     expect(p.parts.head.animal).toBe('chicken');
-    expect(p.stash).toEqual(shark('head', 4));
+    expect(p.stash).toEqual([shark('legs'), shark('head', 4)]);
   });
 
   it('holding E or Q does nothing more than one press', () => {
@@ -111,7 +119,7 @@ describe('skin parts', () => {
     expect(partsOnGround(state)).toHaveLength(1);
   });
 
-  it('knocked out: players keep every part they found and drop only weapons and items; their own look stays', () => {
+  it('knocked out: players keep the parts they wear; the bag drops for others; their own look stays', () => {
     const world = createWorld(OPEN_MAP);
     const state = createGame({ seed: 1, map: OPEN_MAP, roster: [{ name: 'you', isBot: false }, { name: 'bot', isBot: true }] });
     const p = state.players[0]!;
@@ -119,16 +127,16 @@ describe('skin parts', () => {
     const look = p.parts.body;
     p.parts.head = { animal: 'shark', rarity: 0, found: true };
     p.parts.legs = { animal: 'frog', rarity: 0, found: true };
-    p.stash = shark('tail', 0);
+    p.stash = [shark('tail', 0), shark('body', 0)];
     applyDamage(state, p, 1000, null);
     run(world, state, 1, () => idle);
     const event = state.events.find((e) => e.type === 'partsDropped');
     if (event?.type !== 'partsDropped') throw new Error('no partsDropped event');
-    expect(event.kept).toHaveLength(3);
-    expect(event.dropped).toHaveLength(0);
-    expect(partsOnGround(state)).toHaveLength(0);
+    expect(event.kept).toHaveLength(2);
+    expect(event.dropped).toEqual([shark('tail', 0), shark('body', 0)]);
+    expect(partsOnGround(state)).toHaveLength(2);
     expect(state.loot.some((l) => l.content.type === 'weapon')).toBe(true);
-    expect(p.stash).toBeNull();
+    expect(p.stash).toEqual([]);
     expect(p.parts.body).toEqual(look);
   });
 
@@ -142,10 +150,10 @@ describe('skin parts', () => {
     expect(partsOnGround(state)).toHaveLength(1);
   });
 
-  it('what you carry home: found parts you wear, and the stash', () => {
+  it('what you carry home: found parts you wear, and the bag', () => {
     const { p } = solo();
     p.parts.head = { animal: 'shark', rarity: 3, found: true };
-    p.stash = shark('tail', 1);
+    p.stash = [shark('tail', 1)];
     expect(carriedParts(p)).toEqual([shark('head', 3), shark('tail', 1)]);
   });
 

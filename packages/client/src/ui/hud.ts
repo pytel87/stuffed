@@ -26,8 +26,11 @@ export class Hud {
   private readonly prompt: HTMLElement;
   private readonly promptArt: HTMLElement;
   private readonly promptStash: HTMLElement;
-  private readonly stash: HTMLElement;
-  private readonly stashArt: HTMLElement;
+  /** The bag's three slots. */
+  private readonly bag: { root: HTMLElement; art: HTMLElement }[];
+  private readonly promptNew: HTMLElement;
+  /** Whether a part would be new to you (not collected, not carried): the prompt sparkles. */
+  isNewPart: (slot: PartSlot, animal: Animal) => boolean = () => false;
   private readonly progress: HTMLElement;
   private readonly progressArt: HTMLElement;
   private readonly progressFill: HTMLElement;
@@ -50,7 +53,7 @@ export class Hud {
          <div class="track"><div class="fill stuffing"></div><div class="fill buttons"></div></div>
          <b class="num"></b>
          <b class="coat" hidden>${icon('buttons')}<span></span></b>
-         <button type="button" class="stash-slot" hidden aria-label="Stash"><span class="art"></span><kbd>Q</kbd></button>
+         <span class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="Bag ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</span>
        </div>
        <div class="loadout">
          <div class="items">
@@ -62,7 +65,7 @@ export class Hud {
        </div>
        <div class="progress in-world" hidden><span class="art"></span><div class="track"><div class="fill"></div></div></div>
        <div class="prompt in-world" hidden>
-         <span class="opt"><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span></span>
+         <span class="opt"><kbd>E</kbd>${icon('hand', 'icon tap')}<span class="art"></span><span class="new" hidden>${icon('sparkle')}</span></span>
          <button type="button" class="opt stash-opt" hidden aria-label="Stash"><kbd>Q</kbd>${icon('stash')}</button>
        </div>`,
     );
@@ -75,15 +78,18 @@ export class Hud {
     this.prompt = q('.prompt');
     this.promptArt = q('.prompt .art');
     this.promptStash = q('.prompt .stash-opt');
-    this.stash = q('.stash-slot');
-    this.stashArt = q('.stash-slot .art');
-    // Tapping the stash option (or the stash slot) is the same as pressing Q.
+    this.promptNew = q('.prompt .new');
+    this.bag = [0, 1, 2].map((i) => {
+      const root = q(`.stash-slot[data-bag="${i}"]`);
+      // Tap to wear that part; long press (or right-click) drops it.
+      pressable(root, () => input.wearBag(i), () => input.drop(5 + i));
+      return { root, art: q('.art', root) };
+    });
+    // Tapping the bag option on the prompt is the same as pressing Q.
     this.promptStash.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       input.stash();
     });
-    // The stash slot: tap to wear the stashed part; long press (or right-click) drops it.
-    pressable(this.stash, () => input.stash(), () => input.drop(5));
     this.progress = q('.progress');
     this.progressArt = q('.progress .art');
     this.progressFill = q('.progress .fill');
@@ -147,13 +153,15 @@ export class Hud {
       this.set(`ic${i}`, stack ? config.rarity[config.items[stack.kind].rarity].color : 'transparent', (v) => s.root.style.setProperty('--rarity', v));
     });
 
-    const stash = me.stash;
-    this.set('st', stash ? `${stash.slot}:${stash.animal}` : '', (v) => {
-      this.stash.hidden = v === '';
-      if (stash) this.stashArt.innerHTML = partIcon(stash.slot, stash.animal);
+    // The bag: each slot shows its part, ringed in the animal's rarity color.
+    this.bag.forEach((b, i) => {
+      const part = me.stash[i];
+      this.set(`st${i}`, part ? `${part.slot}:${part.animal}` : '', (v) => {
+        b.root.hidden = v === '';
+        if (part) b.art.innerHTML = partIcon(part.slot, part.animal);
+        b.root.style.setProperty('--rarity', part ? config.rarity[ANIMAL_RARITY[part.animal]].color : 'transparent');
+      });
     });
-    // The stash slot is ringed in its animal's rarity color (as the part's ring was on the ground).
-    this.set('stc', stash ? config.rarity[ANIMAL_RARITY[stash.animal]].color : 'transparent', (v) => this.stash.style.setProperty('--rarity', v));
 
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
@@ -184,6 +192,8 @@ export class Hud {
     } else if (interaction?.kind === 'part') {
       const p = interaction.part;
       art = `part:${p.slot}:${p.animal}`;
+      // Not in your collection yet (nor carried): it sparkles.
+      art += this.isNewPart(p.slot, p.animal) ? ':new' : '';
       // The animal's rarity, like a weapon's.
       color = config.rarity[ANIMAL_RARITY[p.animal]].color;
     } else if (interaction?.kind === 'chest') {
@@ -194,7 +204,8 @@ export class Hud {
       art = 'revive';
     }
     this.set('pr', art, (v) => {
-      const [kind, slot, animal] = v.split(':');
+      const [kind, slot, animal, fresh] = v.split(':');
+      this.promptNew.hidden = fresh !== 'new';
       this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
       this.prompt.hidden = v === '';
       this.prompt.classList.toggle('hold', kind === 'chest' || kind === 'revive');

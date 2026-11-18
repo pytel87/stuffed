@@ -34,7 +34,7 @@ function lockedFor(state: GameState, player: Player, loot: GroundLoot): boolean 
 }
 
 /**
- * Drops a weapon (slot 0-1), a whole item stack (2-4) or the stashed part (5) in front of the
+ * Drops a weapon (slot 0-1), a whole item stack (2-4) or a part from the bag (5-7) in front of the
  * plush. Holding nothing after dropping your weapon switches to the other one.
  */
 export function dropFromSlot(world: World, state: GameState, player: Player, slot: number): void {
@@ -55,9 +55,9 @@ export function dropFromSlot(world: World, state: GameState, player: Player, slo
       player.items[slot - 2] = null;
       if (player.action?.kind === 'useItem' && player.action.slot === slot - 2) player.action = null;
     }
-  } else if (slot === 5 && player.stash) {
-    content = { type: 'part', part: player.stash };
-    player.stash = null;
+  } else if (slot >= 5 && slot <= 7 && player.stash[slot - 5]) {
+    content = { type: 'part', part: player.stash[slot - 5]! };
+    player.stash.splice(slot - 5, 1);
   }
   if (!content) return;
   const ahead = config.loot.dropAhead;
@@ -146,7 +146,11 @@ export function updateInteraction(world: World, state: GameState, player: Player
   if (stashPressed) {
     const target = findInteraction(state, player);
     if (target?.kind === 'part') stashPart(world, state, player, target.loot, target.part);
-    else swapStash(state, player);
+    else wearFromBag(world, state, player, 0);
+    return;
+  }
+  if (input.wearBagSlot !== undefined && input.wearBagSlot >= 0) {
+    wearFromBag(world, state, player, input.wearBagSlot);
     return;
   }
 
@@ -260,35 +264,43 @@ function pickUpWeapon(world: World, state: GameState, player: Player, loot: Grou
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: weapon.kind });
 }
 
-/** Puts the part on; the one worn in that slot drops where the new one lay, if it was found this match. */
+/**
+ * Puts the part on. The one worn in that slot, if found this match, goes in the bag (or, with the
+ * bag full, drops where the new one lay).
+ */
 function wearPart(world: World, state: GameState, player: Player, loot: GroundLoot, part: Part): void {
   removeLoot(state, loot.id);
   const old = player.parts[part.slot];
   player.parts[part.slot] = { animal: part.animal, rarity: part.rarity, found: true };
-  if (old.found) spawnLoot(world, state, loot.pos, { type: 'part', part: { slot: part.slot, animal: old.animal, rarity: old.rarity } }, loot.z);
+  if (old.found) {
+    const off: Part = { slot: part.slot, animal: old.animal, rarity: old.rarity };
+    if (player.stash.length < config.parts.bagSize) player.stash.push(off);
+    else spawnLoot(world, state, loot.pos, { type: 'part', part: off }, loot.z);
+  }
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: 'part' });
   state.events.push({ type: 'wear', playerId: player.id, part, stashed: false });
 }
 
-/** Puts the part in the stash; a part already there drops where the new one lay. */
+/** Puts the part in the bag; with the bag full, the oldest one in it drops where the new one lay. */
 function stashPart(world: World, state: GameState, player: Player, loot: GroundLoot, part: Part): void {
   removeLoot(state, loot.id);
-  if (player.stash) spawnLoot(world, state, loot.pos, { type: 'part', part: player.stash }, loot.z);
-  player.stash = { ...part };
+  if (player.stash.length >= config.parts.bagSize) spawnLoot(world, state, loot.pos, { type: 'part', part: player.stash.shift()! }, loot.z);
+  player.stash.push({ ...part });
   state.events.push({ type: 'pickup', playerId: player.id, lootId: loot.id, what: 'part' });
   state.events.push({ type: 'wear', playerId: player.id, part, stashed: true });
 }
 
 /**
- * Puts the stashed part on. The part it replaces goes into the stash if it was found this
- * match; the plush's own part simply comes off.
+ * Puts on the part in bag slot `index`. The part it replaces goes into the bag in its place if
+ * it was found this match; the plush's own part simply comes off.
  */
-function swapStash(state: GameState, player: Player): void {
-  const part = player.stash;
+function wearFromBag(world: World, state: GameState, player: Player, index: number): void {
+  const part = player.stash[index];
   if (!part) return;
   const old = player.parts[part.slot];
   player.parts[part.slot] = { animal: part.animal, rarity: part.rarity, found: true };
-  player.stash = old.found ? { slot: part.slot, animal: old.animal, rarity: old.rarity } : null;
+  if (old.found) player.stash[index] = { slot: part.slot, animal: old.animal, rarity: old.rarity };
+  else player.stash.splice(index, 1);
   state.events.push({ type: 'wear', playerId: player.id, part, stashed: false });
 }
 
@@ -329,35 +341,32 @@ export function addToSlots(slots: Player['items'], stack: ItemStack): number {
 
 /** True while a knocked-out plush still has something to drop. */
 export function hasDrops(player: Player): boolean {
-  return player.weapons.some(Boolean) || player.items.some(Boolean) || player.stash !== null || PART_SLOTS.some((s) => player.parts[s].found);
+  return player.weapons.some(Boolean) || player.items.some(Boolean) || player.stash.length > 0 || PART_SLOTS.some((s) => player.parts[s].found);
 }
 
 /**
- * Unstitched plushies burst and drop their weapons and items in a ring around them. Players keep
- * every part they found this match (and their stash): those go home with them, not to the
- * ground. Bots have no collection, so their parts drop for others to take. Their own starting
- * look stays theirs.
+ * Unstitched plushies burst and drop their weapons and items in a ring around them, and the parts
+ * in their bag for others to take. The parts they found and wear go home with them. Bots have no
+ * collection, so all their found parts drop. Their own starting look stays theirs.
  */
 export function dropEverything(world: World, state: GameState, player: Player): void {
   const drops: LootContent[] = [];
   for (const w of player.weapons) if (w) drops.push({ type: 'weapon', weapon: { ...w, reloadEndTick: null } });
   for (const s of player.items) if (s) drops.push({ type: 'item', item: { ...s } });
-  const carried: Part[] = [];
+  const worn: Part[] = [];
   for (const slot of PART_SLOTS) {
-    const worn = player.parts[slot];
-    if (!worn.found) continue;
-    carried.push({ slot, animal: worn.animal, rarity: worn.rarity });
-    worn.found = false;
+    const part = player.parts[slot];
+    if (!part.found) continue;
+    worn.push({ slot, animal: part.animal, rarity: part.rarity });
+    part.found = false;
   }
-  if (player.stash) carried.push(player.stash);
-  const kept: Part[] = [];
-  const dropped: Part[] = [];
-  (player.isBot ? dropped : kept).push(...carried);
+  const kept = player.isBot ? [] : worn;
+  const dropped = player.isBot ? [...worn, ...player.stash] : [...player.stash];
   for (const part of dropped) drops.push({ type: 'part', part });
-  if (carried.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, kept, dropped });
+  if (kept.length + dropped.length > 0) state.events.push({ type: 'partsDropped', playerId: player.id, kept, dropped });
   player.weapons = [null, null];
   player.items = [null, null, null];
-  player.stash = null;
+  player.stash = [];
   drops.forEach((content, i) => {
     const a = (i / drops.length) * Math.PI * 2;
     const r = config.loot.dropDistance * 0.8;

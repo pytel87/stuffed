@@ -322,6 +322,8 @@ export const config = {
   },
 
   parts: {
+    /** How many spare parts the bag holds (dropped if you're knocked out; worn ones are kept). */
+    bagSize: 3,
     /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
     animalWeights: [0, 6, 4, 3, 2],
   },

@@ -2,7 +2,7 @@
 // reads from the top-down camera; Limited Edition and up also get a light beam.
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
-import type { Chest, EntityId, GameState, GroundLoot, ItemKind, Part, WeaponKind } from '@stuffed/sim';
+import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, PartSlot, WeaponKind } from '@stuffed/sim';
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { checkerTexture, crateTexture, tiled } from './props.ts';
@@ -374,11 +374,41 @@ function buildLoosePart(part: Part): THREE.Group {
 interface LootView {
   root: THREE.Group;
   model: THREE.Group;
+  /** Parts only: a gold sparkle shown while the part would be new to you. */
+  sparkle: THREE.Sprite | null;
   glow: THREE.Mesh;
   halo: THREE.Mesh;
   beam: THREE.Mesh | null;
   age: number;
   phase: number;
+}
+
+let sparkleTex: THREE.CanvasTexture | null = null;
+/** A four-point gold star with a soft glow. */
+function sparkleTexture(): THREE.CanvasTexture {
+  if (sparkleTex) return sparkleTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  glow.addColorStop(0, 'rgba(255, 236, 140, 0.9)');
+  glow.addColorStop(1, 'rgba(255, 236, 140, 0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#ffd23a';
+  g.strokeStyle = '#2a1f2d';
+  g.lineWidth = 2.5;
+  g.beginPath();
+  g.moveTo(32, 6);
+  g.quadraticCurveTo(35, 29, 58, 32);
+  g.quadraticCurveTo(35, 35, 32, 58);
+  g.quadraticCurveTo(29, 35, 6, 32);
+  g.quadraticCurveTo(29, 29, 32, 6);
+  g.fill();
+  g.stroke();
+  sparkleTex = new THREE.CanvasTexture(c);
+  sparkleTex.colorSpace = THREE.SRGBColorSpace;
+  return sparkleTex;
 }
 
 function buildLoot(loot: GroundLoot): LootView {
@@ -429,11 +459,20 @@ function buildLoot(loot: GroundLoot): LootView {
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
   mergeStatic(model);
   root.add(model);
-  return { root, model, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
+  let sparkle: THREE.Sprite | null = null;
+  if (c.type === 'part') {
+    sparkle = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false }));
+    sparkle.scale.setScalar(0.55);
+    sparkle.visible = false;
+    root.add(sparkle);
+  }
+  return { root, model, sparkle, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
 }
 
 export class LootViews {
   private readonly views = new Map<EntityId, LootView>();
+  /** Whether a part would be new to you (sparkles over it on the ground). */
+  isNewPart: (slot: PartSlot, animal: Animal) => boolean = () => false;
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -466,6 +505,15 @@ export class LootViews {
         this.scene.add(view.root);
       }
       view.age += dt;
+      if (view.sparkle && loot.content.type === 'part') {
+        const part = loot.content.part;
+        view.sparkle.visible = this.isNewPart(part.slot, part.animal);
+        if (view.sparkle.visible) {
+          view.sparkle.position.y = 1.35 + Math.sin(time * 3 + view.phase) * 0.12;
+          (view.sparkle.material as THREE.SpriteMaterial).rotation = Math.sin(time * 2 + view.phase) * 0.4;
+          view.sparkle.scale.setScalar(0.5 + Math.sin(time * 5 + view.phase) * 0.08);
+        }
+      }
       // Loot can move (the toy train pushes it off the rails): glide to where it is now.
       view.root.position.x += (loot.pos.x - view.root.position.x) * Math.min(1, dt * 12);
       view.root.position.z += (loot.pos.y - view.root.position.z) * Math.min(1, dt * 12);

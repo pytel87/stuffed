@@ -60,13 +60,13 @@ export function wornSet(parts: PartLoadout): Animal | null {
   return null;
 }
 
-/** Parts a plush could take home: the ones it found and still wears, plus its stash. */
+/** Parts a plush could take home: the ones it found and still wears, plus its bag. */
 export function carriedParts(player: Pick<Player, 'parts' | 'stash'>): Part[] {
   const parts: Part[] = [];
   for (const slot of PART_SLOTS) {
     const worn = player.parts[slot];
     if (worn.found) parts.push({ slot, animal: worn.animal, rarity: worn.rarity });
   }
-  if (player.stash) parts.push({ ...player.stash });
+  for (const part of player.stash) parts.push({ ...part });
   return parts;
 }

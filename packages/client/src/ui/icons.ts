@@ -54,6 +54,8 @@ const paths: Record<string, string> = {
   'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
   'level-normal': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#f7c331"/><rect x="10" y="11" width="4" height="9" rx="1" fill="#f7c331"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
   'level-hard': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#e2574c"/><rect x="10" y="11" width="4" height="9" rx="1" fill="#e2574c"/><rect x="16" y="6" width="4" height="14" rx="1" fill="#e2574c"/>`,
+  // a four-point sparkle: a part you haven't collected yet
+  sparkle: `<path d="M12 2.5c.8 4.8 2.7 6.7 7.5 7.5-4.8.8-6.7 2.7-7.5 7.5-.8-4.8-2.7-6.7-7.5-7.5 4.8-.8 6.7-2.7 7.5-7.5Z" fill="#ffd23a"/><path d="M19 15.5c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" fill="#ffd23a" stroke-width="1.4"/>`,
   // two plushies side by side: team mode
   team: `<circle cx="8" cy="9" r="3.2" fill="#5d9cf5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/><circle cx="16" cy="9" r="3.2" fill="#5d9cf5"/><path d="M10.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/>`,
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0Z" fill="#f7c331"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7l-.8-3h-5.4Z"/>`,

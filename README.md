@@ -122,7 +122,7 @@ pulses while there's still time.
 | Open a toy chest | Hold E (1 s) |
 | Pick up a weapon | E (items are picked up by walking over them) |
 | Put on a part | E |
-| Stash a part / wear the stashed part | Q |
+| Bag a part / wear the first bagged part | Q |
 | Use an item | 3, 4, 5 |
 | Debug overlay (FPS, draw calls, frame time, tick, hitboxes) | F1 |
 | Play again (after the match or a knockout) | Enter |
@@ -140,7 +140,7 @@ the game fullscreen.
 | Aim | Drag on the right half; a short drag aims, a longer one also shoots |
 | Jump | Arrow button, bottom right |
 | Open a chest / pick up a weapon / put on a part | Hand button (lights up when there's something to grab; hold it for chests) |
-| Stash a part | Tap the sack in the floating prompt; tap the stash slot to wear what's in it |
+| Bag a part | Tap the sack in the floating prompt; tap a bag slot to wear what's in it |
 | Switch weapon / reload | Tap a weapon card; tap the one in hand to reload |
 | Use an item | Tap it |
 | Sound, fullscreen, controls, leave | ⚙ top right |
@@ -172,18 +172,20 @@ the gallery):
 - Legendary (gold): Unicorn
 
 Each chest also pops a part; its animal is rolled by rarity (odds 6 : 4 : 3 : 2 per animal, so
-a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on. Q puts it in your one stash slot instead (it shows next to your
-stuffing bar), and Q with nothing in reach swaps the stash with the part you wear in that slot.
-When you're knocked out, only your weapons and items drop; the parts you found and your stash
-go home with you. Bots drop their parts for others to take, and put on parts that build toward
-a set. A plush wearing all
-five parts of one animal glows in that animal's color. Parts never change stats or hitboxes.
+a part is a Unicorn about 1 time in 35). New profiles start in common animals. E puts it on (a found part it replaces goes into your bag). Q puts it in your bag instead: up
+to three spare parts, shown next to your stuffing. Tap a bag slot (or Q with nothing in reach)
+to wear that part. A part you haven't collected yet sparkles: a gold star over it on the ground
+and on the E prompt. When you're knocked out, the parts you wear go home with you, but the ones
+in your bag drop for others to take; weapons and items drop too. Bots drop every part they
+found. A plush wearing all five parts of one animal glows in that animal's color. Parts never
+change stats or hitboxes.
 
 ### Keeping parts: profiles and the Wardrobe
 
 Each device gets a profile on its first visit (no sign-up): a random token in the browser, and
-a random look that is also its first five parts. Everyone keeps every part they carried
-(found and still worn, or stashed), win or lose; the results card shows them. Online, the
+a random look that is also its first five parts. You keep the parts you found and wear, win or
+lose, and the ones in your bag too if you're still standing at the end; the results card shows
+them. Online, the
 room saves this; solo matches report it to the server from the browser.
 
 The hanger next to your name on the title menu opens the Wardrobe: tap a slot (head, body,

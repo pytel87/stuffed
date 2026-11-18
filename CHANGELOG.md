@@ -2,6 +2,14 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A bigger bag, and new parts sparkle (2026-11-18)
+
+- The part bag holds three (was one), shown next to your stuffing; tap a slot to wear that part.
+  Knocked out, the parts you wear are kept but the bagged ones drop for others. A found part you
+  replace by wearing a new one goes into the bag (instead of onto the ground).
+- Parts you haven't collected yet sparkle: a gold star floats over them on the ground and on the
+  E prompt. Protocol version 5.
+
 ## Chest tweaks (2026-11-18)
 
 - Chests rarely give the starting Cork Popper (about 1 in 15 instead of 1 in 5), and never a

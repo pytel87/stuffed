@@ -1,7 +1,7 @@
 import './style.css';
 import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
-import type { EntityId, GameState, Part, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import type { Animal, EntityId, GameState, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Music } from './audio/music.ts';
 import { Sound } from './audio/sound.ts';
@@ -121,6 +121,18 @@ profiles.onChange = () => {
 wardrobe.onLookChanged = () => room?.lookChanged();
 void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
+/**
+ * A part is new to you if it's in neither your collection nor what you carry this match (worn or
+ * in the bag): the E prompt and the part on the ground sparkle.
+ */
+function isNewPart(slot: PartSlot, animal: Animal): boolean {
+  const owned = profiles.profile?.parts ?? [];
+  if (owned.some((p) => p.slot === slot && p.animal === animal)) return false;
+  if (me && (me.stash.some((p) => p.slot === slot && p.animal === animal) || (me.parts[slot].animal === animal && me.parts[slot].found))) return false;
+  return true;
+}
+renderer.isNewPart = isNewPart;
+hud.isNewPart = isNewPart;
 const audio = new GameAudio(sound);
 const music = new Music(sound, import.meta.env.BASE_URL);
 /** The soft button click. */

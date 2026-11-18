@@ -41,7 +41,7 @@ async function createRoom(env: Env): Promise<Response> {
 }
 
 /** The most parts one plush can carry home: five worn plus the stash. */
-const MAX_CARRIED = 6;
+const MAX_CARRIED = 8;
 
 /**
  * Profiles (all JSON; the device's token goes in `authorization: Bearer ...`):

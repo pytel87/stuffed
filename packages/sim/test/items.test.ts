@@ -117,17 +117,17 @@ describe('Cardboard Wall', () => {
 });
 
 describe('dropping', () => {
-  it('drops a weapon, an item stack or the stash in front of you; you can take it back after a moment', () => {
+  it('drops a weapon, an item stack or a bagged part in front of you; you can take it back after a moment', () => {
     const g = holding('juice_box', 2);
     g.you.weapons = [makeWeapon('cork_popper', 0), makeWeapon('foam_dart_smg', 2)];
-    g.you.stash = { slot: 'head', animal: 'shark', rarity: 3 };
+    g.you.stash = [{ slot: 'head', animal: 'shark', rarity: 3 }];
     g.play(1, { dropSlot: 0 });
     expect(g.you.weapons[0]).toBeNull();
     expect(g.you.activeSlot).toBe(1); // holding the other one now
     g.play(1, { dropSlot: 2 });
     expect(g.you.items[0]).toBeNull();
     g.play(1, { dropSlot: 5 });
-    expect(g.you.stash).toBeNull();
+    expect(g.you.stash).toEqual([]);
     expect(g.state.loot).toHaveLength(3);
     for (const l of g.state.loot) expect(l.pos.x).toBeGreaterThan(20.8); // ahead (aiming +x)
 

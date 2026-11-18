@@ -49,8 +49,10 @@ export interface Input {
   cycleWeapon: boolean;
   /** Request to start using the item in slot 0..2; -1 for none. */
   useItemSlot: -1 | 0 | 1 | 2;
-  /** Request to drop something: weapon slot 0..1, item slot 2..4, the stash 5; -1 or absent for none. */
+  /** Request to drop something: weapon slot 0..1, item slot 2..4, bag slot 5..7; -1 or absent for none. */
   dropSlot?: number;
+  /** Request to put on the part in bag slot 0..2 (tapping it); -1 or absent for none. */
+  wearBagSlot?: number;
   /**
    * Online: the tick of the other plushies the player was looking at when they made this input
    * (they're drawn a little in the past). Shots are checked against where targets were then.
@@ -162,8 +164,11 @@ export interface Player {
    */
   drop: 'riding' | 'gliding' | null;
   parts: PartLoadout;
-  /** One spare part, not shown on the plush. Q swaps it with the part worn in its slot. */
-  stash: Part | null;
+  /**
+   * The bag: up to config.parts.bagSize spare parts, not shown on the plush. Kept at the end of a
+   * match; dropped for others if knocked out (worn parts are always kept).
+   */
+  stash: Part[];
   lastInputSeq: number;
   /** Buttons held last tick, to detect presses (E to pick up). */
   heldButtons: number;
@@ -248,11 +253,11 @@ export type GameEvent =
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
   /**
-   * A knocked-out plush's found parts (and stash): each was rolled once, by its rarity's keep
-   * chance. `kept` go to the player's collection; `dropped` fall to the ground for others.
+   * A knocked-out plush's found parts: `kept` (the ones it wore) go to the player's collection;
+   * `dropped` (the bag, or everything for a bot) fall to the ground for others.
    */
   | { type: 'partsDropped'; playerId: EntityId; kept: Part[]; dropped: Part[] }
-  /** Put on a part (from the ground or the stash) or stashed one. */
+  /** Put on a part (from the ground or the bag), or put one in the bag. */
   | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
   | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
   /** Team mode: a knocked-out plush re-stitched by a teammate. */

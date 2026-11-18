@@ -22,6 +22,7 @@ export class KeyboardMouseInput implements InputSource {
   private cycleWeapon = false;
   private useItemSlot: Input['useItemSlot'] = -1;
   private dropSlot = -1;
+  private wearBagSlot = -1;
   /** On-screen stick movement, -1..1 per axis. */
   readonly virtualMove: Vec2 = { x: 0, y: 0 };
   /** On-screen buttons currently held (Btn bits). */
@@ -85,7 +86,12 @@ export class KeyboardMouseInput implements InputSource {
     this.useItemSlot = slot;
   }
 
-  /** Drop a weapon (slot 0-1), an item stack (2-4) or the stashed part (5). */
+  /** Put on the part in bag slot 0-2. */
+  wearBag(slot: number): void {
+    this.wearBagSlot = slot;
+  }
+
+  /** Drop a weapon (slot 0-1), an item stack (2-4) or a bagged part (5-7). */
   drop(slot: number): void {
     this.dropSlot = slot;
   }
@@ -97,7 +103,7 @@ export class KeyboardMouseInput implements InputSource {
     this.tapButtons |= Btn.Reload;
   }
 
-  /** Stash the part in reach, or swap the stash with the worn part (Q). */
+  /** Bag the part in reach, or put on the first bagged part (Q). */
   stash(): void {
     this.tapButtons |= Btn.Stash;
   }
@@ -125,11 +131,13 @@ export class KeyboardMouseInput implements InputSource {
       cycleWeapon: this.cycleWeapon,
       useItemSlot: this.useItemSlot,
       dropSlot: this.dropSlot,
+      wearBagSlot: this.wearBagSlot,
     };
     this.weaponSlot = -1;
     this.cycleWeapon = false;
     this.useItemSlot = -1;
     this.dropSlot = -1;
+    this.wearBagSlot = -1;
     this.tapButtons = 0;
     return input;
   }
