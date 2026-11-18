@@ -539,9 +539,9 @@ export class Effects {
     this.shockwave(x, 0.06, z, 2.6, '#ffd23a');
   }
 
-  chestPop(x: number, z: number): void {
-    for (const pool of this.buttons) this.burst(pool, x, 0.8, z, 0, 0, 4, 3, 0.06, 0.9, 9);
-    this.burst(this.cotton, x, 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
+  chestPop(x: number, z: number, base = 0): void {
+    for (const pool of this.buttons) this.burst(pool, x, base + 0.8, z, 0, 0, 4, 3, 0.06, 0.9, 9);
+    this.burst(this.cotton, x, base + 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
   }
 
   /** Something picked up: a small puff where it was. */

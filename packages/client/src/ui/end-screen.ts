@@ -1,5 +1,6 @@
 import type { Part } from '@stuffed/sim';
 import { icon, partIcon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 export interface EndView {
   tone: 'win' | 'lose';
@@ -48,8 +49,8 @@ export class EndScreen {
       'beforeend',
       `<div class="overlay end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
          <div class="card">
-           <button type="button" class="round end-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
-           <button type="button" class="round end-menu" aria-label="Menu">${icon('home')}</button>
+           <button type="button" class="round end-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>
+           <button type="button" class="round end-menu" aria-label="${tr('Menu')}">${icon('home')}</button>
            <div class="place"></div>
            <h1 id="end-title"></h1>
            <p class="sub"></p>
@@ -57,8 +58,8 @@ export class EndScreen {
            <div class="kept" hidden></div>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
-             <button type="button" class="big end-spectate"><span>Watch</span></button>
-             <button type="button" class="big end-lobby" hidden><span>Lobby</span></button>
+             <button type="button" class="big end-spectate"><span>${tr('Watch')}</span></button>
+             <button type="button" class="big end-lobby" hidden><span>${tr('Lobby')}</span></button>
            </div>
          </div>
        </div>`,
@@ -99,7 +100,7 @@ export class EndScreen {
     this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
-    this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `<span>Again</span><kbd>Enter</kbd>`;
+    this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>${tr('Host…')}</span>` : `<span>${tr('Again')}</span><kbd>Enter</kbd>`;
     this.refreshLobby();
     this.el.hidden = false;
   }

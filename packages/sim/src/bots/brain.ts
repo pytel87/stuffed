@@ -4,7 +4,7 @@
 import { config } from '../config.ts';
 import { PART_SLOTS } from '../parts.ts';
 import { nextFloat, nextRange, seedRng } from '../rng.ts';
-import { findInteraction } from '../systems/loot.ts';
+import { chestInReach, findInteraction } from '../systems/loot.ts';
 import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
 import { TRAIN, trainCars } from '../systems/train.ts';
@@ -514,8 +514,9 @@ export class BotController {
       bestD = d;
     }
     for (const chest of state.chests) {
-      // Not from up on a roof: walk off it first (the wander goal takes the bot down).
-      if (chest.opened || bot.z > config.chest.height + config.loot.reachHeight) continue;
+      // Only one it can open from its level: up on a roof, it walks off first (the wander goal
+      // takes it down); one up on a roof is for climbers.
+      if (chest.opened || !chestInReach(bot, chest)) continue;
       const d = dist(bot.pos, chest.pos) + 4; // loot on the ground first
       if (d < bestD) {
         goal = chest.pos;

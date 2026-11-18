@@ -3,6 +3,7 @@
 import { BOT_LEVELS } from '@stuffed/sim';
 import type { BotLevel } from '@stuffed/sim';
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 const KEY = 'stuffed.botLevel';
 
@@ -16,11 +17,11 @@ export function savedBotLevel(): BotLevel {
   return 'normal';
 }
 
-const LABELS: Record<BotLevel, string> = { easy: 'Easy bots', normal: 'Normal bots', hard: 'Hard bots' };
+const LABELS: Record<BotLevel, string> = { easy: tr('Easy bots'), normal: tr('Normal bots'), hard: tr('Hard bots') };
 
 /** One round button showing the level (one, two or three bars); a tap moves to the next. */
 export function botLevelHtml(): string {
-  return `<button type="button" class="round bot-level" aria-label="Bot difficulty"></button>`;
+  return `<button type="button" class="round bot-level" aria-label="${tr('Bot difficulty')}"></button>`;
 }
 
 /** Wires a button made by botLevelHtml(); `onChange` hears the new level. */

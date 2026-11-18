@@ -4,6 +4,7 @@ import { bindBotLevel, botLevelHtml, savedBotLevel } from './bot-level.ts';
 import { bindMapChoice, mapChoiceHtml, savedMap } from './map-choice.ts';
 import { escapeHtml } from './escape.ts';
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 /** Room card before a match: the code to share, who's in, bots, Start (host) and Leave. */
 export class LobbyScreen {
@@ -33,27 +34,27 @@ export class LobbyScreen {
       'beforeend',
       `<div class="overlay lobby" hidden>
          <div class="card">
-           <button type="button" class="round lobby-share" aria-label="Share invite">${icon('share')}</button>
-           <button type="button" class="round lobby-leave" aria-label="Leave">${icon('door')}</button>
+           <button type="button" class="round lobby-share" aria-label="${tr('Share invite')}">${icon('share')}</button>
+           <button type="button" class="round lobby-leave" aria-label="${tr('Leave')}">${icon('door')}</button>
            <div class="room-code"><span class="code"></span></div>
            <div class="row">
-             <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="Your name"></label>
-             <button type="button" class="round lobby-wardrobe" aria-label="Wardrobe">${icon('hanger')}</button>
+             <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="${tr('Your name')}"></label>
+             <button type="button" class="round lobby-wardrobe" aria-label="${tr('Wardrobe')}">${icon('hanger')}</button>
            </div>
            <ul class="chips"></ul>
            <div class="bots">
              <span class="bot-label">${icon('bot')}</span>
-             <button type="button" class="round lobby-less" aria-label="Fewer bots">−</button>
+             <button type="button" class="round lobby-less" aria-label="${tr('Fewer bots')}">−</button>
              <span class="bot-number"><b class="bot-count"></b></span>
-             <button type="button" class="round lobby-more" aria-label="More bots">+</button>
+             <button type="button" class="round lobby-more" aria-label="${tr('More bots')}">+</button>
            </div>
            <div class="bots lobby-options">
              ${mapChoiceHtml()}
              ${botLevelHtml()}
-             <button type="button" class="round lobby-team" aria-label="Team up against the bots" aria-pressed="true">${icon('team')}</button>
+             <button type="button" class="round lobby-team" aria-label="${tr('Team up against the bots')}" aria-pressed="true">${icon('team')}</button>
            </div>
            <p class="status"></p>
-           <button type="button" class="big primary lobby-start"><span>Start</span></button>
+           <button type="button" class="big primary lobby-start"><span>${tr('Start')}</span></button>
          </div>
        </div>`,
     );
@@ -148,7 +149,7 @@ export class LobbyScreen {
     this.botsRow.hidden = !c.isHost;
     this.optionsRow.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
-    this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? 'Full' : c.isHost ? '' : 'Waiting for host…';
+    this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? tr('Full') : c.isHost ? '' : tr('Waiting for host…');
   }
 
   private async shareInvite(): Promise<void> {

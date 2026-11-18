@@ -3,7 +3,7 @@ import { ANIMALS, PART_SLOTS, pickAnimal } from './parts.ts';
 import { nextFloat, pick, seedRng, shuffle } from './rng.ts';
 import { makeWeapon } from './systems/weapons.ts';
 import { initialZone } from './systems/zone.ts';
-import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, Toss, WeaponInstance, WeaponSpec } from './types.ts';
+import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, Toss, Vec2, WeaponInstance, WeaponSpec } from './types.ts';
 
 export interface CreateGameOptions {
   seed: number;
@@ -68,7 +68,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
     };
   });
 
-  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, opened: false, loot: pos.loot ?? 'medium' }));
+  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, z: pos.roof ? roofUnder(map, pos) : 0, opened: false, loot: pos.loot ?? 'medium' }));
 
   const toss = withToss ? planToss(map, rng) : null;
   if (toss) {
@@ -141,4 +141,11 @@ function planToss(map: MapData, rng: RngState): Toss {
     startTick: 0,
     endTick: Math.round(((2 * t.reach) / t.speed) * config.tickRate),
   };
+}
+
+/** The roof height of the building over `pos` (where a roof chest stands). */
+function roofUnder(map: MapData, pos: Vec2): number {
+  const b = map.buildings.find((b) => pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h);
+  if (!b) throw new Error(`roof chest at ${pos.x}, ${pos.y} is not on a building`);
+  return b.height;
 }

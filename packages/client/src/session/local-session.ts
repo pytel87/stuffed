@@ -4,6 +4,7 @@ import type { BotLevel, EntityId, GameEvent, GameState, MapData, RosterEntry, We
 /** Your plush's look in solo play without a profile (bots get random ones). */
 const YOUR_LOOK: RosterEntry['parts'] = { head: 'bear', body: 'bear', legs: 'chicken', tail: 'bear', accessory: 'frog' };
 import type { GameSession, InputSource, RenderFrame } from './session.ts';
+import { tr } from '../i18n.ts';
 
 /** Longest real-time gap simulated in one frame; longer stalls (tab switch) are dropped. */
 const MAX_FRAME_SECONDS = 0.25;
@@ -44,7 +45,7 @@ export class LocalSession implements GameSession {
     this.map = map;
     this.world = createWorld(map);
     const roster: RosterEntry[] = [
-      ...(watchOnly ? [] : [{ name: 'You', isBot: false, parts: look, ...(loadout ? { loadout } : {}) }]),
+      ...(watchOnly ? [] : [{ name: tr('You'), isBot: false, parts: look, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale, toss: true });

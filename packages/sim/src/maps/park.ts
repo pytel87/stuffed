@@ -126,6 +126,8 @@ const chestSpawns: ChestSpawn[] = [
   chest(106, 38, 'high'), chest(10, 50, 'high'), chest(100, 72, 'high'),
   // the pond's middle, the fort and the cabin
   chest(C, C, 'high'), chest(FX + 4.5, FY + 4.5, 'high'), chest(FX + 13.5, FY + 13.5, 'high'), chest(92, 90.5, 'high'), chest(98, 93, 'high'),
+  // up on the cabin's snowy roof (from the woodpile)
+  { ...chest(92, 94, 'high'), roof: true },
   // at the foot of the gift tower
   chest(68, 110.5, 'high'),
   // Pine Forest

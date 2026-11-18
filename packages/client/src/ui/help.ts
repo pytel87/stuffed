@@ -1,4 +1,5 @@
 import { icon, partIcon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 const keys = (...k: string[]) => k.map((x) => `<kbd>${x}</kbd>`).join('');
 
@@ -11,11 +12,11 @@ export class Help {
       'beforeend',
       `<div class="overlay help" hidden>
          <div class="card">
-           <button type="button" class="round close" aria-label="Close">${icon('close')}</button>
+           <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <div class="help-grid desk">
              <span>${keys('W', 'A', 'S', 'D')}</span><span>${icon('person')}</span>
              <span>${icon('mouse')}</span><span>${icon('cork_popper')}</span>
-             <span>${keys('Space')}</span><span>${icon('jump')}</span>
+             <span>${keys(tr('Space'))}</span><span>${icon('jump')}</span>
              <span>${keys('E')}</span><span>${icon('hand')} ${icon('chest')} ${partIcon('head', 'shark')}</span>
              <span>${keys('Q')}</span><span>${icon('stash')} ${icon('swap')}</span>
              <span>${keys('1', '2')}</span><span>${icon('swap')}</span>

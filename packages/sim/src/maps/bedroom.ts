@@ -143,6 +143,8 @@ const bushes: Circle[] = ([
 const chestSpawns: ChestSpawn[] = ([
   // under the bed and the desk, in the castle keep and the toy box
   chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'), chest(99, 54.5, 'high'),
+  // on top of the bed, the desk and the dollhouse
+  { ...chest(21, 19, 'high'), roof: true }, { ...chest(91, 16.5, 'high'), roof: true }, { ...chest(97, 52.5, 'high'), roof: true },
   // castle yard
   chest(49.5, 60.5), chest(61.5, 49.5),
   // bookshelf

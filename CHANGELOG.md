@@ -2,6 +2,21 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Czech, roof chests, see-through roofs, smoother crowds (2026-11-18)
+
+- The game's words are in Czech (buttons, results, area names); `?lang=en` switches to English.
+- A chest on every roof you can climb (house, shed, treehouse, picnic table, bed, desk,
+  dollhouse, log cabin): opened only from up there, its loot stays on the roof. Protocol 10.
+- Roofs fade to a faint ghost while you're inside instead of vanishing; whatever is on that roof
+  (loot, a chest, a plush) fades out with it, so nothing seems to float in the room.
+- Softer shadow edges. No more flickering shadow under a plush standing in the pool.
+- Phones and tablets draw plushies with about half the triangles and only their soft blob
+  shadow, so a crowd on screen stays smooth (`?detail=low` / `?detail=high`).
+- Online, your shots from the rubber band rifle, marble launcher and glitter bomb start at your
+  muzzle while you run, instead of off to the side.
+- The options gear hides while the Wardrobe is open (it covered its close button on phones).
+- Server: a late input no longer repeats putting on a part from the bag.
+
 ## Smoother grey Rinse, roomier igloos (2026-11-18)
 
 - The grey Rinse no longer draws the whole scene twice: every surface greys itself past the

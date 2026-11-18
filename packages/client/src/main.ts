@@ -30,6 +30,7 @@ import { Options } from './ui/options.ts';
 import { Wardrobe } from './ui/wardrobe.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 import { ZoneNames } from './ui/zone-names.ts';
+import { tr } from './i18n.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const hudEl = document.querySelector<HTMLElement>('#hud')!;
@@ -99,7 +100,7 @@ const menu = new MenuScreen(document.body, playerName(), {
     menu.setBusy(true);
     createRoom()
       .then((code) => joinRoom(code))
-      .catch((err: unknown) => menu.showError(`Couldn't reach the game server. ${err instanceof Error ? err.message : ''}`));
+      .catch((err: unknown) => menu.showError(`${tr("Couldn't reach the game server.")} ${err instanceof Error ? err.message : ''}`));
   },
   join: (name, code) => {
     saveName(name);
@@ -164,7 +165,7 @@ const options = new Options({
   leave: showMenu,
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
-tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>Space</kbd>`;
+tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
 // The hint is a button too: tapping (or clicking) it drops you off the blimp.
 tossHint.addEventListener('pointerdown', (e) => {
   e.preventDefault();
@@ -192,10 +193,10 @@ let shown: GameState | null = null;
 
 // Spectating: ◀ name ▶ switches between the plushies still in the match; ✕ goes back to the
 // results card (Again), or to the menu when only watching.
-spectateEl.innerHTML = `<button type="button" class="round small spec-prev" aria-label="Previous">${icon('arrow', 'icon flip')}</button>
+spectateEl.innerHTML = `<button type="button" class="round small spec-prev" aria-label="${tr('Previous')}">${icon('arrow', 'icon flip')}</button>
   <span class="spec-label"></span>
-  <button type="button" class="round small spec-next" aria-label="Next">${icon('arrow')}</button>
-  <button type="button" class="round small spec-menu" aria-label="Back">${icon('close')}</button>`;
+  <button type="button" class="round small spec-next" aria-label="${tr('Next')}">${icon('arrow')}</button>
+  <button type="button" class="round small spec-menu" aria-label="${tr('Back')}">${icon('close')}</button>`;
 const spectateLabel = spectateEl.querySelector<HTMLElement>('.spec-label')!;
 spectateEl.querySelector('.spec-prev')!.addEventListener('click', () => switchWatched(-1));
 spectateEl.querySelector('.spec-next')!.addEventListener('click', () => switchWatched(1));
@@ -331,9 +332,9 @@ function joinRoom(code: string): void {
 function playerName(): string {
   const fromUrl = params.get('name');
   try {
-    return fromUrl ?? localStorage.getItem('stuffed.name') ?? `Plush ${100 + Math.floor(Math.random() * 900)}`;
+    return fromUrl ?? localStorage.getItem('stuffed.name') ?? `${tr('Plush')} ${100 + Math.floor(Math.random() * 900)}`;
   } catch {
-    return fromUrl ?? 'Plush';
+    return fromUrl ?? tr('Plush');
   }
 }
 
@@ -501,7 +502,7 @@ function updatePhase(state: GameState): void {
       spectateEl.hidden = true;
       endScreen.show({
         tone: 'lose',
-        title: 'Over',
+        title: tr('Over'),
         subtitleHtml: winnerLine(state),
         placement: `${total}`,
         stats: [],
@@ -529,7 +530,7 @@ function updatePhase(state: GameState): void {
     renderer.celebrate(me.id, state);
     sound.play('win', { pitchSpread: 0 });
     reportSolo(carriedParts(me), true);
-    endScreen.show({ ...resultView(state, me, 'win', teamWon ? 'Team wins!' : 'Winner!', winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -540,7 +541,7 @@ function updatePhase(state: GameState): void {
     // Watch a teammate still in it; otherwise whoever got you.
     const mate = nextAlive(state, me.pos, me.team);
     followId = me.team !== 0 && state.players.find((p) => p.id === mate)?.team === me.team ? mate : me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
-    endScreen.show(resultView(state, me, 'lose', 'Unstitched!', knockedOutBy, state.status === 'playing'));
+    endScreen.show(resultView(state, me, 'lose', tr('Unstitched!'), knockedOutBy, state.status === 'playing'));
     return;
   }
 
@@ -549,7 +550,7 @@ function updatePhase(state: GameState): void {
     spectateEl.hidden = true;
     // Out, but your team won: a win for you too.
     if (teamWon) sound.play('win', { pitchSpread: 0 });
-    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', teamWon ? 'Team wins!' : 'Over', winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }
 
@@ -741,7 +742,7 @@ if (roomCode) {
     .then((code) => joinRoom(code))
     .catch((err: unknown) => {
       showMenu();
-      menu.showError(`Couldn't reach the game server. ${err instanceof Error ? err.message : ''}`);
+      menu.showError(`${tr("Couldn't reach the game server.")} ${err instanceof Error ? err.message : ''}`);
     });
 } else if (params.has('solo') || params.has('seed') || params.has('loadout')) {
   mode = 'solo';

@@ -28,6 +28,11 @@ function inReach(player: Player, z: number): boolean {
   return Math.abs(player.z - z) <= config.loot.reachHeight;
 }
 
+/** A chest this plush can open from where it stands: beside it, or on it (not from below a roof). */
+export function chestInReach(player: Player, chest: Chest): boolean {
+  return player.z >= chest.z - config.loot.reachHeight && player.z <= chest.z + config.chest.height + config.loot.reachHeight;
+}
+
 /** Just dropped by this plush: it can't take it back yet (so walking over it doesn't). */
 function lockedFor(state: GameState, player: Player, loot: GroundLoot): boolean {
   return loot.droppedBy === player.id && state.tick < (loot.pickupFromTick ?? 0);
@@ -98,10 +103,8 @@ export function findInteraction(state: GameState, player: Player): Interaction {
 
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
-  // A chest opens from the ground beside it or standing on it, not from a roof above.
-  if (player.z > config.chest.height + config.loot.reachHeight) return null;
   for (const c of state.chests) {
-    if (c.opened) continue;
+    if (c.opened || !chestInReach(player, c)) continue;
     const d = dist(player.pos, c.pos);
     if (d <= chestD) {
       chest = c;
@@ -219,9 +222,10 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
     x: chest.pos.x + Math.cos(a) * d,
     y: chest.pos.y + Math.sin(a) * d,
   }));
-  spawnLoot(world, state, spots[0]!, { type: 'weapon', weapon: makeWeapon(kind, rarity) });
-  spawnLoot(world, state, spots[1]!, { type: 'item', item: { kind: item, count: config.items[item].chestCount } });
-  spawnLoot(world, state, spots[2]!, { type: 'part', part });
+  // On a roof chest's roof (or off its edge, down to the ground).
+  spawnLoot(world, state, spots[0]!, { type: 'weapon', weapon: makeWeapon(kind, rarity) }, chest.z);
+  spawnLoot(world, state, spots[1]!, { type: 'item', item: { kind: item, count: config.items[item].chestCount } }, chest.z);
+  spawnLoot(world, state, spots[2]!, { type: 'part', part }, chest.z);
   state.events.push({ type: 'chestOpened', chestId: chest.id, playerId: opener?.id ?? 0 });
 }
 

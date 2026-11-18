@@ -125,10 +125,14 @@ function laundryDetail(): { map: THREE.Texture; normal: THREE.Texture } {
 
 export interface RoofView {
   object: THREE.Group;
+  /** The building it covers (loot lying on top fades with it). */
+  building: Building;
   materials: THREE.Material[];
   meshes: THREE.Mesh[];
+  /** The dark outline shells; they step aside while the roof is see-through. */
+  outlines: THREE.Mesh[];
   opacity: number;
-  /** How far it fades while you're inside (0: gone; an igloo's dome stays a faint ghost). */
+  /** How far it fades while you're inside: a translucent ghost, so you still see the house. */
   insideOpacity: number;
 }
 
@@ -136,7 +140,7 @@ const ROOF_THICKNESS = 0.32;
 const ROOF_OVERHANG = 0.2;
 const ROOF_FADE_RATE = 10;
 
-/** The roof over a building; its top is the walkable surface. Fades out while you're inside. */
+/** The roof over a building; its top is the walkable surface. Fades to a ghost while you're inside. */
 function roof(b: Building): RoofView {
   const g = new THREE.Group();
   g.position.set(b.x + b.w / 2, b.height - ROOF_THICKNESS / 2 + 0.01, b.y + b.h / 2);
@@ -275,14 +279,16 @@ function roof(b: Building): RoofView {
   // Every roof material fades with it.
   const materials: THREE.Material[] = [];
   const meshes: THREE.Mesh[] = [];
+  const outlines: THREE.Mesh[] = [];
   g.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
     const m = o.material as THREE.Material;
     m.transparent = true;
     materials.push(m);
     if (o.castShadow) meshes.push(o);
+    if (m instanceof THREE.MeshBasicMaterial && m.side === THREE.BackSide) outlines.push(o);
   });
-  return { object: g, materials, meshes, opacity: 1, insideOpacity: b.kind === 'igloo' ? 0.28 : 0 };
+  return { object: g, building: b, materials, meshes, outlines, opacity: 1, insideOpacity: b.kind === 'igloo' ? 0.28 : 0.2 };
 }
 
 /**
@@ -460,7 +466,7 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
 }
 
 /**
- * The roof over the building you are in fades out so you can see inside; the others stay.
+ * The roof over the building you are in fades to a ghost so you can see inside; the others stay.
  * In the debug view every roof is see-through.
  */
 export function updateRoofs(roofs: RoofView[], localBuilding: number, debug: boolean, dt: number): void {
@@ -474,6 +480,7 @@ export function updateRoofs(roofs: RoofView[], localBuilding: number, debug: boo
       m.depthWrite = r.opacity > 0.99;
     }
     for (const mesh of r.meshes) mesh.castShadow = r.opacity > 0.5;
+    for (const o of r.outlines) o.visible = r.opacity > 0.99;
   });
 }
 

@@ -164,3 +164,43 @@ export function lighten(color: string, amount: number): THREE.Color {
 export function darken(color: string, amount: number): THREE.Color {
   return new THREE.Color(color).lerp(new THREE.Color('#000000'), amount);
 }
+
+/**
+ * Fades a whole object (loot, a chest or a plush on the roof above you, out with the roof). While
+ * faded its meshes draw with their own see-through copies of their materials (others may share
+ * them), cast no shadow, and outlines step aside; at 0 nothing is drawn; back at 1 all returns.
+ */
+export function fadeObject(model: THREE.Object3D, opacity: number, skip: THREE.Object3D | null = null): void {
+  if ((model.userData.fade ?? 1) === opacity) return;
+  model.userData.fade = opacity;
+  const solid = opacity >= 1;
+  model.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || o === skip) return;
+    const d = o.userData as { shown?: boolean; shadow?: boolean; base?: THREE.Material };
+    if (solid) {
+      if (d.shown !== undefined) o.visible = d.shown;
+      if (d.shadow !== undefined) o.castShadow = d.shadow;
+      if (d.base) {
+        (o.material as THREE.Material).dispose();
+        o.material = d.base;
+      }
+      delete d.shown;
+      delete d.shadow;
+      delete d.base;
+      return;
+    }
+    d.shown ??= o.visible;
+    d.shadow ??= o.castShadow;
+    o.castShadow = false;
+    o.visible = d.shown && opacity > 0 && o.name !== 'outline';
+    if (o.name === 'outline') return;
+    if (!d.base) {
+      d.base = o.material as THREE.Material;
+      const copy = d.base.clone();
+      copy.transparent = true;
+      copy.depthWrite = false;
+      o.material = copy;
+    }
+    (o.material as THREE.Material).opacity = d.base.opacity * opacity;
+  });
+}

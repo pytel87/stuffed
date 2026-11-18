@@ -6,7 +6,7 @@ import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, Pa
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { crateTexture, picnicTexture, tiled, wickerTexture } from './props.ts';
-import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { fadeObject, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
@@ -84,7 +84,7 @@ function starShape(r: number): THREE.Shape {
 export function buildChest(chest: Chest): ChestView {
   const look = CHEST_LOOKS[chest.loot] ?? CHEST_LOOKS.medium;
   const root = new THREE.Group();
-  root.position.set(chest.pos.x, 0, chest.pos.y);
+  root.position.set(chest.pos.x, chest.z, chest.pos.y);
   root.rotation.y = (chest.id * 1.37) % (Math.PI * 2);
   const w = 1.15;
   const d = 0.8;
@@ -213,7 +213,7 @@ export class ChestViews {
 
   /** One open chest, for shader warm-up. */
   samples(): THREE.Object3D[] {
-    return (['low', 'medium', 'high', 'food'] as const).map((loot) => buildChest({ id: 0, pos: { x: 0, y: 0 }, opened: false, loot }).root);
+    return (['low', 'medium', 'high', 'food'] as const).map((loot) => buildChest({ id: 0, pos: { x: 0, y: 0 }, z: 0, opened: false, loot }).root);
   }
 
   clear(): void {
@@ -221,7 +221,8 @@ export class ChestViews {
     this.views.clear();
   }
 
-  update(state: GameState, dt: number, time: number): void {
+  /** `fade`: how see-through a chest at a spot is (one on the roof above you fades out with it). */
+  update(state: GameState, dt: number, time: number, fade: (x: number, y: number, z: number) => number = () => 1): void {
     const opening = new Set<EntityId>();
     for (const p of state.players) if (p.alive && p.action?.kind === 'openChest') opening.add(p.action.chestId);
 
@@ -237,8 +238,10 @@ export class ChestViews {
       // A chest being opened rattles its lid.
       const rattle = opening.has(chest.id) ? Math.sin(time * 40) * 0.06 : 0;
       view.lid.rotation.x = view.lidAngle + rattle;
+      const f = fade(chest.pos.x, chest.pos.y, chest.z);
+      fadeObject(view.root, f, view.glow);
       if (view.glow) {
-        view.glow.visible = !chest.opened;
+        view.glow.visible = !chest.opened && f >= 1;
         (view.glow.material as THREE.MeshBasicMaterial).opacity = 0.55 + Math.sin(time * 3 + chest.id) * 0.35;
       }
     }
@@ -647,7 +650,8 @@ export class LootViews {
     this.views.clear();
   }
 
-  update(state: GameState, dt: number, time: number): void {
+  /** `fade`: how see-through loot at a spot is (1 = solid; 0 on the roof of the building you're in). */
+  update(state: GameState, dt: number, time: number, fade: (x: number, y: number, z: number) => number = () => 1): void {
     const seen = new Set<EntityId>();
     for (const loot of state.loot) {
       seen.add(loot.id);
@@ -658,10 +662,15 @@ export class LootViews {
         this.scene.add(view.root);
       }
       view.age += dt;
+      // On the roof above you: fading out with the roof, its glow and beam first.
+      const f = fade(loot.pos.x, loot.pos.y, loot.z);
+      fadeObject(view.model, f);
+      view.glow.visible = view.halo.visible = f >= 1;
+      if (view.beam) view.beam.visible = f >= 1;
       if (view.sparkle && loot.content.type === 'part') {
         const part = loot.content.part;
         const sp = view.sparkle;
-        sp.root.visible = this.isNewPart(part.slot, part.animal);
+        sp.root.visible = f >= 1 && this.isNewPart(part.slot, part.animal);
         if (sp.root.visible) {
           sp.root.position.y = 1.35 + Math.sin(time * 3 + view.phase) * 0.12;
           (sp.star.material as THREE.SpriteMaterial).rotation = Math.sin(time * 2 + view.phase) * 0.4;
@@ -702,6 +711,9 @@ export class LootViews {
 function removeAndDispose(root: THREE.Object3D): void {
   root.removeFromParent();
   root.traverse((o) => {
-    if (o instanceof THREE.Mesh) o.geometry.dispose();
+    if (!(o instanceof THREE.Mesh)) return;
+    o.geometry.dispose();
+    // Its own faded copy of a shared material.
+    if (o.userData.base) (o.material as THREE.Material).dispose();
   });
 }

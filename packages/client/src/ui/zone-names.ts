@@ -1,6 +1,7 @@
 // The zone you just walked into ("Picnic Plateau"), shown briefly under the Rinse timer.
 import type { MapData, Player, Vec2 } from '@stuffed/sim';
 import { escapeHtml } from './escape.ts';
+import { tr } from '../i18n.ts';
 
 const SHOW_SECONDS = 2.4;
 
@@ -37,7 +38,7 @@ export class ZoneNames {
     }
     // Only entering a zone is announced (walking out onto the lawn is quiet).
     if (inside && inside !== this.current) {
-      this.el.innerHTML = escapeHtml(inside);
+      this.el.innerHTML = escapeHtml(tr(inside));
       this.el.hidden = false;
       this.el.classList.remove('pop');
       void this.el.offsetWidth;

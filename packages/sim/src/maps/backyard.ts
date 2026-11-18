@@ -191,6 +191,10 @@ const chestSpawns: ChestSpawn[] = [
   chest(57, 69, 'high'), chest(70.5, 58.5, 'high'), chest(64, 50.5), chest(64, 77.5),
   // treehouse: under the platform
   chest(24.5, 30, 'high'), chest(31.5, 24, 'high'),
+  // up on the roofs (the house's from the rain barrel, the shed's from its crate), the treehouse
+  // platform and the picnic table top
+  { ...chest(60, 62, 'high'), roof: true }, { ...chest(97, 25, 'high'), roof: true },
+  { ...chest(31, 29.5, 'high'), roof: true }, { ...chest(95, 101, 'food'), roof: true },
   // shed: one per room
   chest(92, 27.5, 'high'), chest(101.5, 21.5, 'high'), chest(101.5, 28.5, 'high'),
   // kiddie pool: around it, and one in the middle of the water

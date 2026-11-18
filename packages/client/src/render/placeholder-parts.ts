@@ -8,6 +8,7 @@ import { ANIMAL_COLORS } from './animal-colors.ts';
 import { BODIES } from './animal-bodies.ts';
 import { EVEN_MORE_PARTS } from './even-more-animals.ts';
 import { mergeStatic } from './merge-static.ts';
+import { coarsen } from './low-detail.ts';
 import { MORE_PARTS } from './more-animals.ts';
 import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
@@ -48,6 +49,8 @@ export function buildPart(slot: PartSlot, animal: Animal): PartObject {
       o.material.normalScale.setScalar(0.7);
     }
   });
+  // Phones and tablets: fewer triangles (before merging, while the shapes are still separate).
+  coarsen(part);
   mergeStatic(part, part.userData.swing ?? []);
   return part;
 }

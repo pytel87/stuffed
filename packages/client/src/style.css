@@ -983,6 +983,12 @@ body.touch-mode .help-touch {
   box-shadow: 0 4px 0 var(--ink);
 }
 
+/* The Wardrobe card has its own close button in that corner (on a phone they'd overlap). */
+body.wardrobe-open .gear,
+body.wardrobe-open .sheet {
+  display: none;
+}
+
 .gear .icon,
 .sheet .round .icon {
   width: 1.6rem;

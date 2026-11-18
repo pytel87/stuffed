@@ -17,7 +17,7 @@ import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
 import { RINSE_BW, RinseFog, RinseView } from './rinse-view.ts';
 import { buildPart } from './placeholder-parts.ts';
-import { makeTriplanar, toonMaterial } from './toon.ts';
+import { fadeObject, makeTriplanar, toonMaterial } from './toon.ts';
 import { foliage } from './props.ts';
 import { buildWeapon } from './weapon-models.ts';
 
@@ -181,6 +181,8 @@ export class GameRenderer {
     Object.assign(this.sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 60 });
     this.sun.shadow.bias = -0.0005;
     this.sun.shadow.normalBias = 0.02;
+    // Soft edges: the same blur in the world on both map sizes (phones' texels are twice as big).
+    this.sun.shadow.radius = handheld ? 2 : 4;
     this.scene.add(this.sun, this.sun.target);
 
     this.scene.add(this.mapLayer);
@@ -189,6 +191,22 @@ export class GameRenderer {
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
+
+  /**
+   * How see-through things at a spot are: on the roof of the building you're in, they fade out
+   * with the roof and are gone while you're inside (they'd look as if they were in the room).
+   */
+  private readonly roofFade = (x: number, y: number, z: number): number => {
+    if (this.debug) return 1;
+    for (const r of this.roofs) {
+      if (r.opacity >= 1) continue;
+      const b = r.building;
+      if (z >= b.height - 0.3 && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+        return Math.max(0, Math.min(1, (r.opacity - r.insideOpacity) / (1 - r.insideOpacity)));
+      }
+    }
+    return 1;
+  };
 
   /** Builds the map's ground, props, bushes, roofs, goals and water (once per map change). */
   setMap(map: MapData): void {
@@ -316,7 +334,7 @@ export class GameRenderer {
           break;
         case 'chestOpened': {
           const chest = state.chests.find((c) => c.id === e.chestId);
-          if (chest) this.effects.chestPop(chest.pos.x, chest.pos.y);
+          if (chest) this.effects.chestPop(chest.pos.x, chest.pos.y, chest.z);
           break;
         }
         case 'pickup':
@@ -492,6 +510,8 @@ export class GameRenderer {
       const z = before.z + (p.z - before.z) * alpha;
       const groundY = groundHeight(this.world, curr, pos, z);
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
+      // Up on the roof above you: gone while you're inside, under it.
+      fadeObject(view.root, this.roofFade(pos.x, pos.y, z));
       if (p.drop === 'gliding' && view.root.visible && Math.random() < opts.dt * 14) this.effects.glideTrail(pos.x, z, pos.y);
       // A set (3+ parts of one animal) leaves a trail while walking on the ground.
       const set = view.root.visible && !p.drop ? wornSet(p.parts) : null;
@@ -550,10 +570,10 @@ export class GameRenderer {
     }
 
     this.projectiles.update(prev, curr, alpha, opts.time);
-    this.chests.update(curr, opts.dt, opts.time);
+    this.chests.update(curr, opts.dt, opts.time, this.roofFade);
     // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
     for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
-    this.loot.update(curr, opts.dt, opts.time);
+    this.loot.update(curr, opts.dt, opts.time, this.roofFade);
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
     this.goals.update(curr, opts.dt);

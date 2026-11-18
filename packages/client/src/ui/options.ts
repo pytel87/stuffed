@@ -1,4 +1,5 @@
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 export interface OptionsActions {
   toggleSound: () => boolean;
@@ -20,20 +21,20 @@ export class Options {
     const canFullscreen = !!document.documentElement.requestFullscreen;
     document.body.insertAdjacentHTML(
       'beforeend',
-      `<button type="button" class="gear" aria-label="Options">${icon('gear')}</button>
+      `<button type="button" class="gear" aria-label="${tr('Options')}">${icon('gear')}</button>
        <div class="sheet" hidden>
-         <button type="button" class="round opt-sound" aria-label="Sound"></button>
-         <button type="button" class="round opt-music" aria-label="Music"></button>
-         ${canFullscreen ? `<button type="button" class="round opt-full" aria-label="Fullscreen">${icon('fullscreen')}</button>` : ''}
-         <button type="button" class="round opt-help" aria-label="Controls">${icon('help')}</button>
-         <button type="button" class="round opt-leave" aria-label="Leave">${icon('home')}</button>
+         <button type="button" class="round opt-sound" aria-label="${tr('Sound')}"></button>
+         <button type="button" class="round opt-music" aria-label="${tr('Music')}"></button>
+         ${canFullscreen ? `<button type="button" class="round opt-full" aria-label="${tr('Fullscreen')}">${icon('fullscreen')}</button>` : ''}
+         <button type="button" class="round opt-help" aria-label="${tr('Controls')}">${icon('help')}</button>
+         <button type="button" class="round opt-leave" aria-label="${tr('Leave')}">${icon('home')}</button>
        </div>
-       <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-label="Leave the match?">
+       <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-label="${tr('Leave the match?')}">
          <div class="card">
            <div class="leave-icon">${icon('home', 'icon large')}<b>?</b></div>
            <div class="row">
-             <button type="button" class="big primary leave-yes" aria-label="Leave">${icon('check')}</button>
-             <button type="button" class="big leave-no" aria-label="Stay">${icon('close')}</button>
+             <button type="button" class="big primary leave-yes" aria-label="${tr('Leave')}">${icon('check')}</button>
+             <button type="button" class="big leave-no" aria-label="${tr('Stay')}">${icon('close')}</button>
            </div>
          </div>
        </div>`,

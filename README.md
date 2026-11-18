@@ -78,7 +78,11 @@ around it:
 Chests have a loot level: high-level ones give rarer weapons and parts, low-level ones more
 common ones, and food crates more healing items. Loot lies on whatever surface it landed on
 (a plush knocked out on a roof drops its things there), and you can only pick up or open what's
-within reach of your feet: not the lawn below from a roof. The old 80 x 80 test map
+within reach of your feet: not the lawn below from a roof. Some chests stand up on the roofs
+you can climb (the house, the shed, the treehouse, the picnic table, the bed, the desk, the
+dollhouse, the log cabin): opened from up there, never from inside, and their loot stays up. From
+inside a building, whatever lies or stands on its roof (loot, a chest, a plush) fades out with the
+roof. The old 80 x 80 test map
 ([test-map.ts](packages/sim/src/maps/test-map.ts)) stays for the tests.
 
 ## The Bedroom
@@ -126,6 +130,12 @@ them. A knocked-out teammate leaves a pink ring and a floating stitched heart (t
 it) for 30 seconds: stand beside it and hold E (or the hand button) for 3 seconds to re-stitch
 them right there, with half their stuffing and a starting weapon. Their badge turns pink and
 pulses while there's still time.
+
+## Language
+
+The game's few words (buttons, results, area names) are in Czech; `?lang=en` switches to English
+and is remembered (`?lang=cs` switches back). The words live in `packages/client/src/i18n.ts`,
+looked up by their English text.
 
 ## Controls
 
@@ -284,6 +294,9 @@ interpolated between ticks. If it still looks choppy, press F1 and check `fps`:
   Performance) and Safari's Low Power Mode limit pages to 30 fps; plug in or turn it off.
 - **Below 50 and uneven:** the GPU is struggling. The game lowers its render resolution
   automatically (`gpu … x1.5` in F1); `?quality=high` keeps full resolution.
+- **Phones and tablets** draw plushies with about half the triangles and no real shadows (the
+  soft blob under each one stays), so a crowd on screen stays smooth. `?detail=low` tries that
+  on a computer; `?detail=high` turns it off on a phone.
 
 ## Layout
 
@@ -322,7 +335,7 @@ apps/server       Authoritative game server: Cloudflare Worker + one Durable Obj
   tests so nothing tunnels.
 - **Hiding**: walls block bullets but not sight (the camera looks over them). You hide in
   bushes (until you shoot) and under roofs: a plush inside a building is hidden from everyone
-  outside it, and that roof fades for whoever is inside. `canSee()` holds these rules; the
+  outside it, and that roof fades to a faint ghost for whoever is inside. `canSee()` holds these rules; the
   client uses it to decide what to draw, and the server will use it to decide what to send.
 - **Heights**: walls, chests and roofs have a top height. A plush (feet height `z`) is
   blocked by an obstacle only while its feet are below the top; above that it passes over or

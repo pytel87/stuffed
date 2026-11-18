@@ -4,6 +4,7 @@
 import { getMap, PLAYABLE_MAPS } from '@stuffed/sim';
 import type { MapData } from '@stuffed/sim';
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 const KEY = 'stuffed.map';
 
@@ -18,7 +19,7 @@ export function savedMap(): MapData {
 }
 
 export function mapChoiceHtml(): string {
-  return `<button type="button" class="round map-choice" aria-label="Map"></button>`;
+  return `<button type="button" class="round map-choice" aria-label="${tr('Map')}"></button>`;
 }
 
 /** Wires a button made by mapChoiceHtml(); `onChange` hears the new map. */
@@ -26,7 +27,7 @@ export function bindMapChoice(button: HTMLButtonElement, onChange: (map: MapData
   let map = savedMap();
   const show = () => {
     button.innerHTML = icon(`map-${map.id}`);
-    button.setAttribute('aria-label', map.id === 'bedroom' ? 'Bedroom' : map.id === 'park' ? 'Snowy Park' : 'Backyard');
+    button.setAttribute('aria-label', tr(map.id === 'bedroom' ? 'Bedroom' : map.id === 'park' ? 'Snowy Park' : 'Backyard'));
   };
   show();
   button.addEventListener('click', (e) => {

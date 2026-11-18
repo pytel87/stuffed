@@ -68,7 +68,8 @@ function collide(world: World, state: GameState, ball: Ball): void {
     const push = circleBoxPush(ball.pos.x, ball.pos.y, r, wall);
     if (push) reflect(ball, push.nx, push.ny, push.depth, B.restitution);
   }
-  for (const chest of state.chests) bounceOffCircle(ball, chest.pos, config.chest.radius, B.restitution);
+  // (Not off one up on a roof.)
+  for (const chest of state.chests) if (chest.z === 0) bounceOffCircle(ball, chest.pos, config.chest.radius, B.restitution);
   // The train knocks balls along when it runs into them.
   if (world.map.track) {
     for (const c of trainCircles(world.map.track, state.tick)) {

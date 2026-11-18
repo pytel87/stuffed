@@ -6,6 +6,7 @@ import { PlushView } from '../render/plush-view.ts';
 import type { ProfileStore } from '../session/profile.ts';
 import { renderPlushPictures } from '../render/model-icons.ts';
 import { icon, partIcon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 /**
  * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
@@ -38,14 +39,14 @@ export class Wardrobe {
       'beforeend',
       `<div class="overlay wardrobe" hidden>
          <div class="card">
-           <button type="button" class="round close" aria-label="Close">${icon('close')}</button>
-           <button type="button" class="round gallery-toggle" aria-label="Gallery">${icon('gallery')}</button>
-           <button type="button" class="round code-toggle" aria-label="Recovery code">${icon('code')}</button>
+           <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
+           <button type="button" class="round gallery-toggle" aria-label="${tr('Gallery')}">${icon('gallery')}</button>
+           <button type="button" class="round code-toggle" aria-label="${tr('Recovery code')}">${icon('code')}</button>
            <div class="gallery" hidden></div>
            <div class="wardrobe-body">
              <canvas class="wardrobe-preview"></canvas>
              <div class="wardrobe-slots">
-               ${PART_SLOTS.map((slot) => `<button type="button" class="wardrobe-slot" data-slot="${slot}" aria-label="${slot}"></button>`).join('')}
+               ${PART_SLOTS.map((slot) => `<button type="button" class="wardrobe-slot" data-slot="${slot}" aria-label="${tr(slot)}"></button>`).join('')}
              </div>
              <div class="wardrobe-picker"></div>
            </div>
@@ -54,12 +55,12 @@ export class Wardrobe {
              <p class="code-hint">Your code: type it on another phone or tablet to play with the same plush and parts.</p>
              <div class="row code-row">
                <b class="code-box code"></b>
-               <button type="button" class="round code-copy" aria-label="Copy code">${icon('copy')}</button>
+               <button type="button" class="round code-copy" aria-label="${tr('Copy code')}">${icon('copy')}</button>
              </div>
-             <p class="code-hint">Got a code from another device?</p>
+             <p class="code-hint">${tr('Got a code from another device?')}</p>
              <form class="row restore">
-               <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="Recovery code"></label>
-               <button type="submit" class="round primary" aria-label="Use code">${icon('arrow')}</button>
+               <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="${tr('Recovery code')}"></label>
+               <button type="submit" class="round primary" aria-label="${tr('Use code')}">${icon('arrow')}</button>
              </form>
            </div>
            <p class="error" role="alert"></p>
@@ -135,6 +136,8 @@ export class Wardrobe {
     const profile = this.store.profile;
     if (!profile) return;
     this.look = structuredClone(profile.look);
+    // Its own close button takes the corner where the options gear sits.
+    document.body.classList.add('wardrobe-open');
     this.code.textContent = profile.recovery;
     this.message.textContent = '';
     this.render();
@@ -150,7 +153,7 @@ export class Wardrobe {
     this.galleryToggle.hidden = on;
     const toggle = this.el.querySelector<HTMLElement>('.code-toggle')!;
     toggle.innerHTML = icon(on ? 'hanger' : 'code');
-    toggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Recovery code');
+    toggle.setAttribute('aria-label', tr(on ? 'Wardrobe' : 'Recovery code'));
     this.message.textContent = '';
   }
 
@@ -163,7 +166,7 @@ export class Wardrobe {
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
     this.el.querySelector<HTMLElement>('.code-toggle')!.hidden = on;
     this.galleryToggle.innerHTML = icon(on ? 'hanger' : 'gallery');
-    this.galleryToggle.setAttribute('aria-label', on ? 'Wardrobe' : 'Gallery');
+    this.galleryToggle.setAttribute('aria-label', tr(on ? 'Wardrobe' : 'Gallery'));
     this.el.querySelector('.card')!.classList.toggle('showing-gallery', on);
     if (on) this.renderGallery();
   }
@@ -193,6 +196,7 @@ export class Wardrobe {
   hide(): void {
     if (this.el.hidden) return;
     this.el.hidden = true;
+    document.body.classList.remove('wardrobe-open');
     this.preview.stop();
     const back = this.onClosed;
     this.onClosed = null;
@@ -242,7 +246,7 @@ export class Wardrobe {
     this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 5, Math.max(1, Math.ceil(most / rows)))));
     this.picker.innerHTML = owned
       .map(
-        (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${p.animal}">${partIcon(slot, p.animal)}</button>`,
+        (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${tr(p.animal)}">${partIcon(slot, p.animal)}</button>`,
       )
       .join('');
     this.preview.setLook(look);

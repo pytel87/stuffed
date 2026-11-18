@@ -322,7 +322,7 @@ export class Room extends Server<Env> {
         // for a while (tab in the background, dropped connection): stand still.
         const last = m.last.get(id);
         const stale = m.state.tick - (m.lastInputTick.get(id) ?? -Infinity) > INPUT_TIMEOUT_TICKS;
-        inputs.set(id, last && !stale ? { ...last, weaponSlot: -1, cycleWeapon: false, useItemSlot: -1, dropSlot: -1 } : { ...NEUTRAL_INPUT, aimX: last?.aimX ?? 0, aimY: last?.aimY ?? 0 });
+        inputs.set(id, last && !stale ? { ...last, weaponSlot: -1, cycleWeapon: false, useItemSlot: -1, dropSlot: -1, wearBagSlot: -1 } : { ...NEUTRAL_INPUT, aimX: last?.aimX ?? 0, aimY: last?.aimY ?? 0 });
       }
     }
     step(m.world, m.state, inputs);

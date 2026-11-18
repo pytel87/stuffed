@@ -3,6 +3,7 @@ import type { Animal, GameState, PartSlot, Player, Vec2 } from '@stuffed/sim';
 import * as THREE from 'three';
 import type { KeyboardMouseInput } from '../input/keyboard-mouse.ts';
 import { icon, partIcon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 /** Heights above the ground for things floating in the scene. */
 const PROMPT_HEIGHT = 1.5;
@@ -33,9 +34,10 @@ export class Hud {
   private readonly progressFill: HTMLElement;
   private readonly cache = new Map<string, string>();
   /** Where the prompt and progress float, in world space (null: not shown). */
-  private promptAnchor: Vec2 | null = null;
+  /** Where the prompt floats: a spot and the height of what's there (a roof's, say). */
+  private promptAnchor: (Vec2 & { z: number }) | null = null;
   /** The chest being opened; null while using an item (the bar floats over the plush then). */
-  private progressChest: Vec2 | null = null;
+  private progressChest: (Vec2 & { z: number }) | null = null;
   private readonly v = new THREE.Vector3();
   /** True when E/Grab would do something right now (lights the touch Grab button). */
   grabReady = false;
@@ -50,7 +52,7 @@ export class Hud {
          <div class="track"><div class="fill stuffing"></div><div class="fill buttons"></div></div>
          <b class="coat" hidden>${icon('buttons')}<span></span></b>
        </div>
-       <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="Bag ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
+       <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
        <div class="loadout">
          <div class="items">
            ${[0, 1, 2].map((i) => `<button type="button" class="item" data-item="${i}"><span class="art"></span><b class="count"></b><kbd>${i + 3}</kbd></button>`).join('')}
@@ -63,7 +65,7 @@ export class Hud {
        <div class="prompt in-world" hidden>
          <span class="opt use"><kbd>E</kbd>${icon('hand', 'icon tap')}</span>
          <span class="art"></span>
-         <button type="button" class="opt stash-opt" hidden aria-label="Stash"><kbd>Q</kbd>${icon('stash')}</button>
+         <button type="button" class="opt stash-opt" hidden aria-label="${tr('Stash')}"><kbd>Q</kbd>${icon('stash')}</button>
        </div>`,
     );
     const q = <T extends HTMLElement = HTMLElement>(sel: string, from: ParentNode = root) => from.querySelector<T>(sel)!;
@@ -162,7 +164,7 @@ export class Hud {
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
     const mate = action?.kind === 'revive' ? state.players.find((p) => p.id === action.targetId) : undefined;
-    this.progressChest = chest?.pos ?? mate?.pos ?? null;
+    this.progressChest = chest ? { ...chest.pos, z: chest.z } : mate ? { ...mate.pos, z: mate.z } : null;
     if (action) {
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
       // Opening a chest or re-stitching a teammate: just the bar over them. Using an item: its picture too.
@@ -178,7 +180,13 @@ export class Hud {
     this.grabReady = !!interaction;
     this.stashReady = interaction?.kind === 'part';
     this.promptAnchor =
-      interaction?.kind === 'chest' ? interaction.chest.pos : interaction?.kind === 'revive' ? interaction.target.pos : (interaction?.loot.pos ?? null);
+      interaction?.kind === 'chest'
+        ? { ...interaction.chest.pos, z: interaction.chest.z }
+        : interaction?.kind === 'revive'
+          ? { ...interaction.target.pos, z: interaction.target.z }
+          : interaction
+            ? { ...interaction.loot.pos, z: interaction.loot.z }
+            : null;
     let art = '';
     let color = '#ffffff';
     if (interaction?.kind === 'weapon' && interaction.loot.content.type === 'weapon') {
@@ -219,9 +227,9 @@ export class Hud {
     else this.float(this.progress, me, OVERHEAD_HEIGHT, camera, width, height);
   }
 
-  private float(el: HTMLElement, at: Vec2 | null, y: number, camera: THREE.Camera, width: number, height: number): void {
+  private float(el: HTMLElement, at: (Vec2 & { z?: number }) | null, y: number, camera: THREE.Camera, width: number, height: number): void {
     if (!at || el.hidden) return;
-    this.v.set(at.x, y, at.y).project(camera);
+    this.v.set(at.x, (at.z ?? 0) + y, at.y).project(camera);
     const sx = (this.v.x * 0.5 + 0.5) * width;
     const sy = (-this.v.y * 0.5 + 0.5) * height;
     el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%)`;

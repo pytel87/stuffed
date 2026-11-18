@@ -3,6 +3,7 @@ import { parseRoomCode } from '@stuffed/sim/net';
 import { bindBotLevel, botLevelHtml } from './bot-level.ts';
 import { bindMapChoice, mapChoiceHtml } from './map-choice.ts';
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 export interface MenuActions {
   solo: (name: string) => void;
@@ -28,18 +29,18 @@ export class MenuScreen {
          <div class="card">
            <h1 class="logo">STUFFED</h1>
            <div class="row">
-             <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="Your name"></label>
-             <button type="button" class="round menu-wardrobe" aria-label="Wardrobe" hidden>${icon('hanger')}</button>
+             <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="${tr('Your name')}"></label>
+             <button type="button" class="round menu-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>
            </div>
            <div class="row">
-             <button type="button" class="big primary menu-solo"><span>Solo</span></button>
-             <button type="button" class="big menu-create"><span>Room</span></button>
+             <button type="button" class="big primary menu-solo"><span>${tr('Solo')}</span></button>
+             <button type="button" class="big menu-create"><span>${tr('Room')}</span></button>
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>
            <form class="row menu-join">
-             <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Room code"></label>
-             <button type="submit" class="round primary" aria-label="Join">${icon('arrow')}</button>
+             <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="${tr('CODE')}" autocomplete="off" spellcheck="false" aria-label="${tr('Room code')}"></label>
+             <button type="submit" class="round primary" aria-label="${tr('Join')}">${icon('arrow')}</button>
            </form>
            <p class="error" role="alert"></p>
          </div>
@@ -52,7 +53,7 @@ export class MenuScreen {
     this.buttons = [...this.el.querySelectorAll('button')];
     this.name.value = initialName;
 
-    const name = () => this.name.value.trim().slice(0, 16) || 'Plush';
+    const name = () => this.name.value.trim().slice(0, 16) || tr('Plush');
     this.el.querySelector('.menu-solo')!.addEventListener('click', () => actions.solo(name()));
     bindBotLevel(this.el.querySelector('.bot-level')!);
     bindMapChoice(this.el.querySelector('.map-choice')!, (map) => actions.mapChanged?.(map));
@@ -61,7 +62,7 @@ export class MenuScreen {
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {
       e.preventDefault();
       const code = parseRoomCode(this.code.value);
-      if (!code) return this.showError('4 letters, like BNFJ');
+      if (!code) return this.showError(tr('4 letters, like BNFJ'));
       actions.join(name(), code);
     });
     this.code.addEventListener('input', () => (this.code.value = this.code.value.toUpperCase()));

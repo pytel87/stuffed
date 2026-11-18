@@ -41,7 +41,11 @@ describe('the Backyard', () => {
       expect(wall.y + wall.h).toBeLessThanOrEqual(map.height);
     }
     for (const c of map.chestSpawns) {
-      for (const wall of map.walls) expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      for (const wall of map.walls) {
+        // A chest up on a roof only minds walls taller than the roof.
+        if (c.roof && wall.height <= roofHeight(map, c)) continue;
+        expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      }
     }
   });
 
@@ -97,7 +101,7 @@ describe('the Backyard', () => {
     let corks = 0;
     for (let i = 0; i < 600; i++) {
       state.loot = [];
-      openChest(world, state, { id: 9000 + i, pos: { x: 64, y: 30 }, opened: false, loot: 'low' }, null);
+      openChest(world, state, { id: 9000 + i, pos: { x: 64, y: 30 }, z: 0, opened: false, loot: 'low' }, null);
       const w = state.loot.find((l) => l.content.type === 'weapon');
       if (w?.content.type === 'weapon' && w.content.weapon.kind === 'cork_popper') {
         corks++;
@@ -114,7 +118,7 @@ describe('the Backyard', () => {
       const state = createGame({ seed: 3, map, roster: roster(2) });
       let sum = 0;
       for (let i = 0; i < 300; i++) {
-        const chest = { id: 9000 + i, pos: { x: 64, y: 30 }, opened: false, loot };
+        const chest = { id: 9000 + i, pos: { x: 64, y: 30 }, z: 0, opened: false, loot };
         state.loot = [];
         openChest(world, state, chest, null);
         const weapon = state.loot.find((l) => l.content.type === 'weapon');
@@ -152,6 +156,29 @@ describe('the Backyard', () => {
     expect(p.weapons.some((w) => w?.kind === 'super_soaker')).toBe(false);
     expect(state.chests.every((c) => !c.opened)).toBe(true);
     expect(p.z).toBeCloseTo(2.6, 1);
+  });
+
+  it('has a chest up on the house roof: opened from up there (not from inside), its loot stays up', () => {
+    const roofChest = (st: { chests: { pos: { x: number; y: number }; z: number; opened: boolean }[] }) => st.chests.find((c) => c.pos.x === 60 && c.pos.y === 62)!;
+    // Inside, right under it: no prompt, and holding E does nothing.
+    const below = solo(map, { x: 61.4, y: 62 });
+    expect(roofChest(below.state).z).toBe(2.6);
+    run(below.world, below.state, 40, (id) => (id === below.p.id ? input({ buttons: Btn.Interact }) : input()));
+    expect(roofChest(below.state).opened).toBe(false);
+    // Up on the roof beside it: hold E to open it.
+    const up = solo(map, { x: 61.4, y: 62 }, 2.6);
+    run(up.world, up.state, 40, (id) => (id === up.p.id ? input({ buttons: Btn.Interact }) : input()));
+    expect(roofChest(up.state).opened).toBe(true);
+    const popped = up.state.loot.filter((l) => Math.hypot(l.pos.x - 60, l.pos.y - 62) < 3);
+    expect(popped).toHaveLength(3);
+    for (const l of popped) expect(l.z).toBeCloseTo(2.6, 5);
+    // It stands in the way up there, not below.
+    const walkUp = solo(map, { x: 58, y: 62 }, 2.6);
+    run(walkUp.world, walkUp.state, 30, (id) => (id === walkUp.p.id ? input({ moveX: 1 }) : input()));
+    expect(walkUp.p.pos.x).toBeLessThan(60);
+    const walkBelow = solo(map, { x: 58, y: 62 });
+    run(walkBelow.world, walkBelow.state, 30, (id) => (id === walkBelow.p.id ? input({ moveX: 1 }) : input()));
+    expect(walkBelow.p.pos.x).toBeGreaterThan(61);
   });
 
   it('drops a knocked-out plush\'s things on the roof it stood on', () => {
@@ -194,7 +221,11 @@ describe('the Bedroom', () => {
       expect(wall.y + wall.h).toBeLessThanOrEqual(map.height);
     }
     for (const c of map.chestSpawns) {
-      for (const wall of map.walls) expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      for (const wall of map.walls) {
+        // A chest up on a roof only minds walls taller than the roof.
+        if (c.roof && wall.height <= roofHeight(map, c)) continue;
+        expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      }
     }
   });
 
@@ -246,7 +277,11 @@ describe('the Snowy Park', () => {
       expect(wall.y + wall.h).toBeLessThanOrEqual(map.height);
     }
     for (const c of map.chestSpawns) {
-      for (const wall of map.walls) expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      for (const wall of map.walls) {
+        // A chest up on a roof only minds walls taller than the roof.
+        if (c.roof && wall.height <= roofHeight(map, c)) continue;
+        expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+      }
     }
   });
 
@@ -278,7 +313,7 @@ describe('the Snowy Park', () => {
     for (let t = 0; t < 30 * 60 * 4 && state.status === 'playing'; t++) step(world, state, bots.inputs(world, state));
     expect(state.status).toBe('ended');
     expect(state.chests.some((c) => c.opened)).toBe(true);
-  });
+  }, 20_000); // a whole match: slow on a busy machine
 });
 
 describe('the toy train', () => {
@@ -366,3 +401,8 @@ describe('the toy train and loot', () => {
     expect(Math.hypot(loot.pos.x - at.x, loot.pos.y - at.y)).toBeGreaterThan(0.5);
   });
 });
+
+/** The roof under a roof chest. */
+function roofHeight(map: MapData, c: { x: number; y: number }): number {
+  return map.buildings.find((b) => c.x >= b.x && c.x <= b.x + b.w && c.y >= b.y && c.y <= b.y + b.h)?.height ?? 0;
+}

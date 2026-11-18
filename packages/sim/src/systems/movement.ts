@@ -96,11 +96,9 @@ export function groundHeight(world: World, state: GameState, pos: Vec2, z: numbe
   for (const w of wallsNear(world, pos.x, pos.y, pos.x, pos.y)) {
     if (w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
   }
-  const h = config.chest.height;
-  if (h <= reach && h > best) {
-    for (const c of state.chests) {
-      if (Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= config.chest.radius) best = h;
-    }
+  for (const c of state.chests) {
+    const top = c.z + config.chest.height;
+    if (top <= reach && top > best && Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= config.chest.radius) best = top;
   }
   for (const b of world.map.buildings) {
     if (b.height <= reach && b.height > best && inBox(pos, b)) best = b.height;
@@ -139,8 +137,10 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
-    if (config.chest.height > feet) {
+    {
       for (const chest of state.chests) {
+        // Only one at the plush's own level: not one it's on, nor one on the roof above it.
+        if (chest.z + config.chest.height <= feet || chest.z > feet) continue;
         const dx = player.pos.x - chest.pos.x;
         const dy = player.pos.y - chest.pos.y;
         const min = r + config.chest.radius;

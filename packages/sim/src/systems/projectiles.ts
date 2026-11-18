@@ -98,10 +98,12 @@ export function updateProjectiles(world: World, state: GameState): void {
         }
       }
     }
-    if (lowest < config.chest.height) {
+    {
       for (const chest of state.chests) {
+        if (lowest >= chest.z + config.chest.height) continue;
         const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, chest.pos.x, chest.pos.y, config.chest.radius + r);
-        if (t !== null && t < wallT && proj.z + dz * t - r < config.chest.height) {
+        const z = proj.z + dz * (t ?? 0);
+        if (t !== null && t < wallT && z - r < chest.z + config.chest.height && z + r > chest.z) {
           wallT = t;
           wallHit = { chest: chest.pos };
           ballHit = null;

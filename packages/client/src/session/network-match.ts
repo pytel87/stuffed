@@ -1,4 +1,4 @@
-// A match played on the server. Snapshots arrive about 15 times a second; everyone else is drawn
+// A match played on the server. Snapshots arrive 30 times a second; everyone else is drawn
 // a little in the past (DELAY_TICKS) so there are always two snapshots to interpolate between,
 // and each snapshot's events play when the drawing reaches it. Inputs go up 30 times a second.
 //
@@ -16,6 +16,12 @@ import type { GameSession, InputSource, RenderFrame } from './session.ts';
 
 /** How far behind the newest snapshot to draw: a snapshot gap or two plus jitter room. */
 const DELAY_TICKS = 3;
+/**
+ * Your shots the server draws (thrown, bouncing and charged ones) were fired from where your plush
+ * was a moment ago; each starts at your plush as it's drawn now and eases onto its real path over
+ * this many ticks.
+ */
+const LEAD_FADE_TICKS = 10;
 /** Further off than this, jump instead of easing back. */
 const RESYNC_TICKS = 15;
 const KEEP_SNAPSHOTS = 30;
@@ -79,6 +85,8 @@ export class NetworkMatch implements GameSession {
   private lastShotTick = -1e9;
   private nextShotId = -1;
   private localEvents: GameEvent[] = [];
+  /** Your server-drawn shots: the offset to your drawn plush when each first showed, and when. */
+  private readonly lead = new Map<EntityId, { x: number; y: number; tick: number }>();
 
   constructor(
     you: EntityId | null,
@@ -304,12 +312,41 @@ export class NetworkMatch implements GameSession {
     // Your plush is drawn where prediction puts it now, not in the past with everyone else, and
     // so are your shots (in place of the server's copies of them).
     const mine = this.shotsNow();
+    this.updateLead(me, prev.state, curr.state, alpha);
     const withMe = (s: GameState): GameState => ({
       ...s,
       players: s.players.map((p) => (p.id === me.id ? me : p)),
-      projectiles: [...s.projectiles.filter((q) => q.ownerId !== me.id || !predictable(q.weapon)), ...mine],
+      projectiles: [...s.projectiles.filter((q) => q.ownerId !== me.id || !predictable(q.weapon)).map((q) => this.led(q)), ...mine],
     });
     return { prev: withMe(prev.state), curr: withMe(curr.state), alpha };
+  }
+
+  /**
+   * Your plush is drawn ahead of the server's states (prediction), so your shots the server draws
+   * would appear where you were a moment ago: off to the side while you run. Each new one remembers
+   * how far your drawn plush is from the server's, to start there.
+   */
+  private updateLead(me: Player, prev: GameState, curr: GameState, alpha: number): void {
+    const a = prev.players.find((p) => p.id === me.id);
+    const b = curr.players.find((p) => p.id === me.id);
+    const live = new Set<EntityId>();
+    for (const q of curr.projectiles) {
+      if (q.ownerId !== me.id || predictable(q.weapon)) continue;
+      live.add(q.id);
+      if (this.lead.has(q.id) || !b) continue;
+      const x = a ? a.pos.x + (b.pos.x - a.pos.x) * alpha : b.pos.x;
+      const y = a ? a.pos.y + (b.pos.y - a.pos.y) * alpha : b.pos.y;
+      this.lead.set(q.id, { x: me.pos.x - x, y: me.pos.y - y, tick: this.renderTick });
+    }
+    for (const id of this.lead.keys()) if (!live.has(id)) this.lead.delete(id);
+  }
+
+  /** A server-drawn shot of yours, eased from your drawn plush onto its real path. */
+  private led(q: Projectile): Projectile {
+    const l = this.lead.get(q.id);
+    if (!l) return q;
+    const k = Math.max(0, 1 - (this.renderTick - l.tick) / LEAD_FADE_TICKS);
+    return k > 0 ? { ...q, pos: { x: q.pos.x + l.x * k, y: q.pos.y + l.y * k } } : q;
   }
 
   /** Your plush as predicted for this moment: server facts (stuffing, weapons) with predicted motion. */

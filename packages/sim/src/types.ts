@@ -205,6 +205,8 @@ export type LootLevel = 'low' | 'medium' | 'high' | 'food';
 export interface Chest {
   id: EntityId;
   pos: Vec2;
+  /** Height of its base: 0 on the ground, a roof's height on a roof. */
+  z: number;
   opened: boolean;
   loot: LootLevel;
 }
@@ -399,6 +401,8 @@ export interface Ground {
 /** Where a chest stands and how good its loot is (medium when omitted). */
 export interface ChestSpawn extends Vec2 {
   loot?: LootLevel;
+  /** On top of the building it's in (opened from up there, not from inside). */
+  roof?: boolean;
 }
 
 /** A named area, for the name banner when you walk in. */

@@ -1,6 +1,7 @@
 // One plush on screen: a single rig with 5 part slots. Animation (walk, squash and stretch,
 // lean) is render-only and derived from interpolated sim velocity; the sim never sees it.
 import * as THREE from 'three';
+import { coarsen, LOW_DETAIL } from './low-detail.ts';
 import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
 import { bodyColor, buildPart, FACE_ACCESSORIES, HEAD_TOP_LIFT, type PartObject } from './placeholder-parts.ts';
@@ -243,7 +244,9 @@ export class PlushView {
     this.root.add(this.hitbox);
     this.blob = new THREE.Mesh(
       new THREE.CircleGeometry(0.55, 24).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: '#000000', map: shadowMap(), transparent: true, opacity: 0.35, depthWrite: false }),
+      // Pulled toward the camera: it lies on whatever flat surface is below (the pool's water,
+      // a blanket) without flickering against it.
+      new THREE.MeshBasicMaterial({ color: '#000000', map: shadowMap(), transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
     );
     this.root.add(this.blob);
     this.glowRing = new THREE.Mesh(
@@ -318,6 +321,8 @@ export class PlushView {
     this.beam.scale.z = 16;
     this.beam.visible = false;
     this.facing.add(this.beam);
+    // Phones and tablets: fewer triangles in the arms, bubble and parasol (parts do it as built).
+    coarsen(this.root);
     this.setParts(parts);
   }
 
@@ -367,6 +372,7 @@ export class PlushView {
     this.weaponKind = kind;
     if (kind) {
       const model = buildWeapon(kind, rarity, this.outlineColor);
+      coarsen(model);
       mergeStatic(model);
       this.weaponSocket.add(model);
     }
@@ -530,16 +536,22 @@ export class PlushView {
     return landed;
   }
 
-  /** Tiny parts (eyes, stitches, teeth, buttons) cast no shadow: invisible, but each costs a draw. */
+  /**
+   * Tiny parts (eyes, stitches, teeth, buttons) cast no shadow: invisible, but each costs a draw.
+   * On phones and tablets no part does: the soft blob under the plush is its shadow.
+   */
   private trimShadows(): void {
     this.root.traverse((o) => {
       if (!(o instanceof THREE.Mesh) || !o.castShadow) return;
+      if (LOW_DETAIL) return void (o.castShadow = false);
       if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
       if (o.geometry.boundingSphere!.radius < 0.12) o.castShadow = false;
     });
   }
 
   private collectMaterials(): void {
+    // New parts or a new weapon: faded again on the next frame if the plush is (see fadeObject).
+    delete this.root.userData.fade;
     const mats = new Set<THREE.MeshToonMaterial>();
     this.root.traverse((o) => {
       if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) mats.add(o.material);
