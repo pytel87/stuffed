@@ -154,8 +154,8 @@ export interface Player {
   chargeStartTick: Tick | null;
   /** Trapped in a bubble until this tick: can't move, shoot, pick up or use items. */
   bubbledUntil: Tick;
-  /** Glitter in the eyes until this tick: sees only what's very close. */
-  blindedUntil: Tick;
+  /** Covered in glitter until this tick: sparkles, and can't hide in bushes or under roofs. */
+  glitteredUntil: Tick;
   /** A Juice Box keeps healing and speeding this plush up until this tick. */
   juiceUntil: Tick;
   /**

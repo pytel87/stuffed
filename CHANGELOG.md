@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Glitter that gives you away (2026-11-18)
+
+- The Glitter Bomb no longer blinds: everyone in the burst is covered in glitter for 8 s, a
+  swirl of sparkles seen through bushes and roofs, and can't hide anywhere while it lasts.
+- The Bubble Wand traps for 2 s (was 1.5); more bubbles bounce off someone already trapped, so a
+  trap can't be stretched out.
+- The Marble Launcher hits harder: 38 per marble (was 30).
+- Protocol version 7.
+
 ## Shorter matches (2026-11-18)
 
 - The Rinse still waits a minute, then closes in over 5 minutes (was 9): a match lasts at most

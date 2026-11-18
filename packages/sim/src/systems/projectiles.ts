@@ -145,6 +145,11 @@ export function updateProjectiles(world: World, state: GameState): void {
         burst(world, state, proj, at, proj.z + dz * hitT);
         continue;
       }
+      // A bubble bounces off a plush that's already in one: it doesn't keep them trapped longer.
+      if (s.effect === 'bubble' && state.tick < hit.bubbledUntil) {
+        state.events.push({ type: 'impact', pos: at, weapon: proj.weapon });
+        continue;
+      }
       const len = Math.hypot(proj.vel.x, proj.vel.y) || 1;
       hit.knockback.x += (proj.vel.x / len) * proj.knockback;
       hit.knockback.y += (proj.vel.y / len) * proj.knockback;
@@ -207,7 +212,7 @@ function bounceOff(proj: Projectile, at: Vec2, hit: { box: Box } | { chest: Vec2
 
 /**
  * A marble or glitter bomb bursts: everyone within the radius (on about the same level and not
- * behind a tall wall) takes damage, more in the middle, and is pushed away; glitter also blinds,
+ * behind a tall wall) takes damage, more in the middle, and is pushed away; glitter also covers them in glitter (they can't hide for a while),
  * the thrower included. The thrower takes no damage from their own burst.
  */
 function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: number): void {
@@ -223,7 +228,7 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
     const share = Math.min(1, d / radius);
     // Teammates are spared (the thrower still gets glitter in the eyes).
     if (p.id !== proj.ownerId && teammates(owner, p)) continue;
-    if (s.effect === 'glitter' && s.effectTime) p.blindedUntil = Math.max(p.blindedUntil, state.tick + secondsToTicks(s.effectTime));
+    if (s.effect === 'glitter' && s.effectTime) p.glitteredUntil = Math.max(p.glitteredUntil, state.tick + secondsToTicks(s.effectTime));
     if (p.id === proj.ownerId) continue;
     const push = proj.knockback * (1 - share);
     if (push > 0 && d > 1e-6) {

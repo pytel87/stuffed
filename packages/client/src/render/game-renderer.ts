@@ -429,6 +429,10 @@ export class GameRenderer {
       view.setCharge(weapon ? chargeAmount(p, weapon.kind, curr.tick + alpha) : 0);
       if (view.setBubbled(curr.tick < p.bubbledUntil)) this.effects.bubblePop(p.pos.x, p.z + 0.85, p.pos.y);
       if (curr.tick < p.juiceUntil && Math.random() < opts.dt * 6) this.effects.juice(p.pos.x, p.z, p.pos.y);
+      // Glittered: sparkling (seen through bushes and roofs) and shedding flakes.
+      const glittered = p.alive && curr.tick < p.glitteredUntil;
+      view.setGlittered(glittered, opts.time);
+      if (glittered && Math.random() < opts.dt * 8) this.effects.glitterShed(p.pos.x, p.z, p.pos.y);
 
 
       const before = prevById.get(p.id) ?? p;

@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PlacedWall, Player, Projectile, Toss, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 10;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -110,7 +110,7 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius' | 
 export interface SeenPlayer extends Pick<
   Player,
   | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
-  | 'chargeStartTick' | 'bubbledUntil' | 'blindedUntil' | 'juiceUntil' | 'drop'
+  | 'chargeStartTick' | 'bubbledUntil' | 'glitteredUntil' | 'juiceUntil' | 'drop'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
 }
@@ -172,7 +172,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     others.push({
       id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
-      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, blindedUntil: p.blindedUntil, juiceUntil: p.juiceUntil, drop: p.drop,
+      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, glitteredUntil: p.glitteredUntil, juiceUntil: p.juiceUntil, drop: p.drop,
       weapons: [look(p.weapons[0]), look(p.weapons[1])],
     });
   }

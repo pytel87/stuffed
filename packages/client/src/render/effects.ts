@@ -373,6 +373,12 @@ export class Effects {
     this.emitters.push({ x, y, z, radius, left: seconds, acc: 0 });
   }
 
+  /** A flake or two of glitter falling off a glittered plush. */
+  glitterShed(x: number, y: number, z: number): void {
+    const pool = this.glitter[Math.floor(Math.random() * this.glitter.length)]!;
+    this.burst(pool, x, y + 1.2, z, 0, 0, 1, 0.8, 0.05, 0.9, 6);
+  }
+
   /** Someone got bonked by a Pillow Hammer: stars and a puff of fluff. */
   bonk(x: number, z: number): void {
     this.burst(this.stars, x, 1.4, z, 0, 0, 5, 2.5, 0.16, 0.7, 4);

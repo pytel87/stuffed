@@ -224,8 +224,8 @@ URL, for example
 | Rubber Band Rifle | hold to draw (a red line shows the aim), let go to fire; stronger the longer you held |
 | Marble Launcher | marbles bounce off walls twice, then burst for area damage |
 | Pillow Hammer | swing to bonk everyone in front and knock them away |
-| Glitter Bomb | lob it where you aim; the burst blinds everyone in it for 3 s (2 per pickup) |
-| Bubble Wand | traps whoever it hits in a bubble for 1.5 s |
+| Glitter Bomb | lob it where you aim; everyone in the burst sparkles for 8 s and can't hide in bushes or under roofs (2 per pickup) |
+| Bubble Wand | traps whoever it hits in a bubble for 2 s (more bubbles bounce off while they're trapped) |
 
 | Item | What it does |
 | --- | --- |

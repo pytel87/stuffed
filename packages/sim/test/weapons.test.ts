@@ -86,7 +86,7 @@ describe('Pillow Hammer', () => {
 });
 
 describe('Glitter Bomb', () => {
-  it('lands where you aim, blinds who is there, and is used up after two throws', () => {
+  it("lands where you aim, glitters who is there so they can't hide, and is used up after two throws", () => {
     const g = duel('glitter_bomb', 8);
     g.play(1, fire);
     expect(g.state.projectiles[0]!.lobbed).toBe(true);
@@ -94,9 +94,15 @@ describe('Glitter Bomb', () => {
     const burst = g.events.find((e) => e.type === 'burst');
     expect(burst).toBeDefined();
     expect(burst!.type === 'burst' && Math.abs(burst!.pos.x - 28)).toBeLessThan(1);
-    expect(g.state.tick).toBeLessThan(g.other.blindedUntil);
-    // Blinded: can't see someone 6 away.
-    expect(canSee(g.world, g.state, g.other, g.you)).toBe(false);
+    expect(g.state.tick).toBeLessThan(g.other.glitteredUntil);
+    // Glittered: seen even hiding in a bush.
+    g.other.inBush = true;
+    expect(canSee(g.world, g.state, g.you, g.other)).toBe(true);
+    const now = g.state.tick;
+    g.state.tick = g.other.glitteredUntil;
+    expect(canSee(g.world, g.state, g.you, g.other)).toBe(false);
+    g.state.tick = now;
+    g.other.inBush = false;
 
     g.play(30, fire);
     g.play(1, {});
@@ -115,8 +121,15 @@ describe('Bubble Wand', () => {
     g.play(10, {}, { moveX: 1, buttons: Btn.Fire, aimX: -1, aimY: 0 });
     expect(Math.abs(g.other.pos.x - x)).toBeLessThan(0.15); // only leftover drift
     expect(g.state.projectiles.filter((p) => p.ownerId === g.other.id)).toHaveLength(0);
+    // A second bubble bounces off: it doesn't trap them for longer.
+    const until = g.other.bubbledUntil;
+    g.you.weapons[0]!.ammo = 3;
+    g.other.pos.x = x;
+    g.play(1, fire);
+    g.play(8, {});
+    expect(g.other.bubbledUntil).toBe(until);
     // Free again after the trap time.
-    g.play(secondsToTicks(1.6), {}, { moveX: 1 });
+    g.play(secondsToTicks(config.weapons.bubble_wand.effectTime! + 0.1), {}, { moveX: 1 });
     expect(g.other.pos.x).toBeGreaterThan(x + 2);
   });
 });

@@ -58,7 +58,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       revealedUntilTick: 0,
       chargeStartTick: null,
       bubbledUntil: 0,
-      blindedUntil: 0,
+      glitteredUntil: 0,
       juiceUntil: 0,
       drop: null,
       parts: rollParts(rng, entry.parts),

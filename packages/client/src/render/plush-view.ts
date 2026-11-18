@@ -135,6 +135,33 @@ function umbrellaWeave(): THREE.Texture {
   return umbrellaNormal;
 }
 
+const GLITTER_COLORS = ['#ff7ac8', '#fff27a', '#7af0ff', '#ffffff', '#c58bff'];
+let glitterTex: THREE.CanvasTexture | null = null;
+/** A small four-point twinkle, white (tinted per flake). */
+function glitterFlakeTexture(): THREE.CanvasTexture {
+  if (glitterTex) return glitterTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  glow.addColorStop(0, 'rgba(255,255,255,1)');
+  glow.addColorStop(0.3, 'rgba(255,255,255,0.5)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 32, 32);
+  g.fillStyle = '#ffffff';
+  g.beginPath();
+  g.moveTo(16, 2);
+  g.quadraticCurveTo(17.5, 14.5, 30, 16);
+  g.quadraticCurveTo(17.5, 17.5, 16, 30);
+  g.quadraticCurveTo(14.5, 17.5, 2, 16);
+  g.quadraticCurveTo(14.5, 14.5, 16, 2);
+  g.fill();
+  glitterTex = new THREE.CanvasTexture(c);
+  glitterTex.colorSpace = THREE.SRGBColorSpace;
+  return glitterTex;
+}
+
 export class PlushView {
   readonly root = new THREE.Group();
   private readonly lean = new THREE.Group();
@@ -171,6 +198,8 @@ export class PlushView {
   private bubbleAmount = 0;
   /** A paper umbrella held up while gliding down from the Toss. */
   private readonly umbrella: THREE.Group;
+  /** Glitter swirling round a glittered plush (made the first time it's needed). */
+  private glitter: THREE.Group | null = null;
   /** The Rubber Band Rifle's aim line while drawing it. */
   private readonly beam: THREE.Mesh;
   /** Pillow Hammer swing in progress (1 → 0). */
@@ -355,6 +384,44 @@ export class PlushView {
     if (trapped && !this.bubble.visible) this.bubbleAmount = 0;
     this.bubble.visible = trapped;
     return popped;
+  }
+
+  /** Covered in glitter (a Glitter Bomb): a swirl of colored flakes, seen through bushes and
+   *  roofs, so everyone can tell they can't hide. */
+  setGlittered(on: boolean, time: number): void {
+    if (on && !this.glitter) {
+      this.glitter = new THREE.Group();
+      for (let i = 0; i < GLITTER_COLORS.length * 2; i++) {
+        const flake = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: glitterFlakeTexture(),
+            color: GLITTER_COLORS[i % GLITTER_COLORS.length]!,
+            depthTest: false,
+            depthWrite: false,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            toneMapped: false,
+          }),
+        );
+        flake.renderOrder = 20;
+        this.glitter.add(flake);
+      }
+      this.root.add(this.glitter);
+    }
+    if (!this.glitter) return;
+    this.glitter.visible = on;
+    if (!on) return;
+    const n = this.glitter.children.length;
+    this.glitter.children.forEach((f, i) => {
+      const k = i / n;
+      const a = time * (1.6 + (i % 3) * 0.4) + k * Math.PI * 2;
+      const y = 0.3 + ((time * 0.6 + k * 2.3) % 1) * 2.2;
+      const r = 0.55 + 0.15 * Math.sin(time * 3 + i);
+      f.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+      const twinkle = 0.5 + 0.5 * Math.sin(time * 9 + i * 1.7);
+      f.scale.setScalar(0.26 + twinkle * 0.2);
+      (f as THREE.Sprite).material.opacity = 0.55 + twinkle * 0.45;
+    });
   }
 
   /** Gliding down from the Toss under an umbrella. */

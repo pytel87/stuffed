@@ -110,7 +110,7 @@ const weapons: Record<WeaponKind, WeaponStats> = {
   marble_launcher: {
     name: 'Marble Launcher',
     // In the middle of the burst; less toward its edge.
-    damage: 30,
+    damage: 38,
     fireInterval: 0.9,
     magazine: 4,
     reloadTime: 2.6,
@@ -157,7 +157,7 @@ const weapons: Record<WeaponKind, WeaponStats> = {
     mode: 'throw',
     blastRadius: 3.5,
     effect: 'glitter',
-    effectTime: 3,
+    effectTime: 8,
     consumable: true,
   },
   bubble_wand: {
@@ -174,7 +174,7 @@ const weapons: Record<WeaponKind, WeaponStats> = {
     knockback: 0,
     barrelLength: 0.95,
     effect: 'bubble',
-    effectTime: 1.5,
+    effectTime: 2,
   },
 };
 
@@ -285,8 +285,6 @@ export const config = {
     chargeMoveMultiplier: 0.65,
     /** A burst at the edge of its radius does this share of its damage (full in the middle). */
     blastEdgeDamage: 0.4,
-    /** Seen this far while blinded by glitter. */
-    blindVision: 3,
     /**
      * Lag compensation: online, shots are tested against where plushies were when the shooter
      * saw them, at most this many ticks back (a third of a second), so laggy shots can't reach
