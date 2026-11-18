@@ -15,7 +15,7 @@ import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
-import { RINSE_BW, RinseGrade, RinseView } from './rinse-view.ts';
+import { RINSE_BW, RinseFog, RinseView } from './rinse-view.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { makeTriplanar, toonMaterial } from './toon.ts';
 import { foliage } from './props.ts';
@@ -140,9 +140,8 @@ export class GameRenderer {
   private rinse!: RinseView;
   private readonly shadowTarget = new THREE.Vector3();
   private snowfall: THREE.Points | null = null;
-  private readonly rinseGrade = RINSE_BW ? new RinseGrade() : null;
-  private zoneNow: import('@stuffed/sim').Zone | null = null;
-  private timeNow = 0;
+  /** The grey Rinse, applied by every material as it draws (see rinse-view.ts). */
+  private readonly rinseFog = RINSE_BW ? new RinseFog() : null;
   /** Everything that belongs to the map (rebuilt when a match is on another map). */
   private readonly mapLayer = new THREE.Group();
   private mapId = '';
@@ -176,6 +175,7 @@ export class GameRenderer {
     this.renderer.setClearColor('#8ccdee');
 
     this.scene.add(new THREE.HemisphereLight('#ffffff', '#9a8aa8', 1.25));
+    if (this.rinseFog) this.scene.fog = this.rinseFog as unknown as THREE.Fog;
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.setScalar(handheld ? 1024 : 2048);
     Object.assign(this.sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 60 });
@@ -562,8 +562,10 @@ export class GameRenderer {
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));
     this.rinse.update(curr.zone, opts.time, this.followPos, zoom);
-    this.zoneNow = curr.zone;
-    this.timeNow = opts.time;
+    if (this.rinseFog) {
+      this.rinseFog.set(curr.zone, opts.time);
+      this.rinse.mesh.visible = false;
+    }
     if (this.snowfall) fallSnow(this.snowfall, this.rig.target, opts.dt);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
@@ -581,13 +583,7 @@ export class GameRenderer {
     this.sun.target.position.copy(this.shadowTarget);
     this.sun.position.copy(this.shadowTarget).add(SUN_OFFSET);
 
-    // `?rinse=bw`: the Rinse greys out what's in it (a screen pass) instead of drawing water.
-    if (this.rinseGrade && this.rinse.mesh.visible && this.zoneNow) {
-      this.rinse.mesh.visible = false;
-      this.rinseGrade.render(this.renderer, this.scene, this.camera, this.zoneNow, this.timeNow);
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
     this.adaptQuality(opts.dt);
   }
 }

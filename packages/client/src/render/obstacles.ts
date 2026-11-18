@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
 import { buildWall, cardboardTexture, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
 import { detailMaps, repeated } from './image-textures.ts';
+import { mergeStatic } from './merge-static.ts';
 import { feltTexture } from './toon.ts';
 import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
@@ -126,6 +127,8 @@ export interface RoofView {
   materials: THREE.Material[];
   meshes: THREE.Mesh[];
   opacity: number;
+  /** How far it fades while you're inside (0: gone; an igloo's dome stays a faint ghost). */
+  insideOpacity: number;
 }
 
 const ROOF_THICKNESS = 0.32;
@@ -165,7 +168,8 @@ function roof(b: Building): RoofView {
     case 'igloo': {
       // A dome of snow blocks (rows of bricks drawn on it) down to the ground, with an entrance
       // tunnel at its doorway. Fades like any roof while you're inside.
-      const R = Math.min(b.w, b.h) / 2 + 0.5 + 0.55;
+      // Wide enough to cover the ring of snow blocks under it.
+      const R = Math.min(b.w, b.h) / 2 + 1.35;
       const H = b.height + 0.25;
       const base = -(b.height - ROOF_THICKNESS / 2 + 0.01);
       const bricks = toonMaterial('#ffffff', { map: iglooBricks() });
@@ -180,11 +184,17 @@ function roof(b: Building): RoofView {
       g.add(dome);
       // The tunnel: a half-tube out of the doorway (the side with no blocks, toward the open ground).
       const door = iglooDoor(b);
-      const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 1.8, 16, 1, true, 0, Math.PI), toonMaterial('#ffffff', { map: iglooBricks(), side: THREE.DoubleSide }));
+      const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 1.6, 18, 1, true, 0, Math.PI), toonMaterial('#ffffff', { map: iglooBricks(), side: THREE.FrontSide }));
       tunnel.rotation.set(0, -door, Math.PI / 2);
-      tunnel.position.set(Math.cos(door) * (R - 0.3), base, Math.sin(door) * (R - 0.3));
+      // Taller than it is wide: a proper arched doorway (local x is up once it's laid on its side).
+      tunnel.scale.set(1.35, 1, 1);
+      tunnel.position.set(Math.cos(door) * (R - 0.15), base, Math.sin(door) * (R - 0.15));
       tunnel.castShadow = true;
       g.add(tunnel);
+      // Its inside in shade, so the doorway reads as an opening.
+      const shade = new THREE.Mesh(tunnel.geometry, toonMaterial('#7f9fbf', { map: null, side: THREE.BackSide }));
+      shade.scale.setScalar(0.995);
+      tunnel.add(shade);
       break;
     }
     case 'cabin': {
@@ -271,7 +281,7 @@ function roof(b: Building): RoofView {
     materials.push(m);
     if (o.castShadow) meshes.push(o);
   });
-  return { object: g, materials, meshes, opacity: 1 };
+  return { object: g, materials, meshes, opacity: 1, insideOpacity: b.kind === 'igloo' ? 0.28 : 0 };
 }
 
 /**
@@ -298,7 +308,8 @@ function pine(circle: Circle, index: number): { object: THREE.Object3D; view: Bu
   const snow = toonMaterial('#ffffff', { map: snowTexture() });
   const materials = [needles, snow];
   const hull = outlineMaterial('#1f3f26');
-  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true });
+  // Pushed back a hair, so the see-through cones never fight their own depth copies.
+  const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
   const r = circle.radius;
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.8, 8), toonMaterial('#6b4630'));
   trunk.position.y = 0.4;
@@ -371,6 +382,24 @@ function iglooBricks(): THREE.CanvasTexture {
   return iglooTex;
 }
 
+/** An igloo's bottom: a smooth, low curved wall of snow bricks round it, open at the doorway.
+ *  It stays while the dome fades, so you see the walls round you inside. */
+function iglooBase(b: Building, door: number): THREE.Object3D {
+  const inner = Math.min(b.w, b.h) / 2 + 0.05;
+  const outer = inner + 1.05;
+  const h = 0.6;
+  const profile = [new THREE.Vector2(inner, 0), new THREE.Vector2(outer, 0), new THREE.Vector2(outer, h), new THREE.Vector2(inner, h), new THREE.Vector2(inner, 0)];
+  // Lathe angles run from +z toward +x; the door (map x/y) is at (cos, sin).
+  const gap = 0.6;
+  const phiDoor = Math.PI / 2 - door;
+  const geo = new THREE.LatheGeometry(profile, 40, phiDoor + gap, Math.PI * 2 - gap * 2);
+  const wall = new THREE.Mesh(geo, toonMaterial('#ffffff', { map: iglooBricks(), side: THREE.DoubleSide }));
+  wall.position.set(b.x + b.w / 2, 0, b.y + b.h / 2);
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  return wall;
+}
+
 /** Which way an igloo's doorway faces (radians, in the map's x/y): the gap in its block ring. */
 const iglooDoors = new Map<Building, number>();
 function iglooDoor(b: Building): number {
@@ -419,6 +448,7 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
       }
     });
     iglooDoors.set(b, door);
+    root.add(iglooBase(b, door));
   }
   const roofs = map.buildings.map((b) => {
     const view = roof(b);
@@ -434,7 +464,7 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
  */
 export function updateRoofs(roofs: RoofView[], localBuilding: number, debug: boolean, dt: number): void {
   roofs.forEach((r, i) => {
-    const target = i === localBuilding ? 0 : debug ? 0.3 : 1;
+    const target = i === localBuilding ? r.insideOpacity : debug ? 0.3 : 1;
     r.opacity += (target - r.opacity) * (1 - Math.exp(-ROOF_FADE_RATE * dt));
     if (Math.abs(r.opacity - target) < 0.01) r.opacity = target;
     r.object.visible = r.opacity > 0.01;

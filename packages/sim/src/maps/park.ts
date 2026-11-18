@@ -99,7 +99,7 @@ function igloo(cx: number, cy: number, door: number): { walls: Wall[]; building:
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
     const off = Math.atan2(Math.sin(a - door), Math.cos(a - door));
-    if (Math.abs(off) < 0.42) continue; // the doorway
+    if (Math.abs(off) < 0.62) continue; // the doorway (wide enough to walk in easily)
     walls.push({ x: cx + Math.cos(a) * IGLOO_R - 0.5, y: cy + Math.sin(a) * IGLOO_R - 0.5, w: 1, h: 1, height: 2, kind: 'igloo' });
   }
   const half = IGLOO_R - 0.5;

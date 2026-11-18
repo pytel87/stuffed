@@ -92,98 +92,92 @@ export class RinseView {
   }
 }
 
-/** The Rinse drains the color out of everything in it (a screen pass); `?rinse=water` draws the
- *  old water instead (also used where the screen pass can't run). */
+/** The Rinse drains the color out of everything in it; `?rinse=water` draws the old water instead. */
 export const RINSE_BW = typeof location === 'undefined' || new URLSearchParams(location.search).get('rinse') !== 'water';
 
-const gradeFragment = /* glsl */ `
-  uniform sampler2D tColor;
-  uniform sampler2D tDepth;
-  uniform mat4 uInvViewProj;
-  uniform vec2 uCenter;
-  uniform float uRadius;
-  uniform float uTime;
-  varying vec2 vUv;
-
-  void main() {
-    vec4 color = texture2D(tColor, vUv);
-    float depth = texture2D(tDepth, vUv).x;
-    vec4 world = uInvViewProj * vec4(vUv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
-    world /= world.w;
-    vec2 d = world.xz - uCenter;
+// The grey Rinse costs no extra pass: every material that takes fog turns grey past the edge as
+// it's drawn. Three.js's fog chunks are replaced with the Rinse's look, and the scene's "fog"
+// (RinseFog below) feeds them the circle each frame (center and radius in the fog color, the
+// time in fogNear).
+if (RINSE_BW) {
+  THREE.ShaderChunk.fog_pars_vertex = '#ifdef USE_FOG\n  varying vec3 vRinseWorld;\n#endif';
+  THREE.ShaderChunk.fog_vertex = `#ifdef USE_FOG
+  vRinseWorld = transpose( mat3( viewMatrix ) ) * ( mvPosition.xyz - viewMatrix[ 3 ].xyz );
+#endif`;
+  THREE.ShaderChunk.fog_pars_fragment = `#ifdef USE_FOG
+  uniform vec3 fogColor;
+  uniform float fogNear;
+  uniform float fogFar;
+  varying vec3 vRinseWorld;
+#endif`;
+  THREE.ShaderChunk.fog_fragment = /* glsl */ `#ifdef USE_FOG
+  {
+    float uTime = fogNear;
+    vec2 d = vRinseWorld.xz - fogColor.xy;
     float ang = atan(d.y, d.x);
     float wobble = sin(ang * 18.0 + uTime * 1.7) * 0.18 + sin(ang * 7.0 - uTime * 1.1) * 0.12;
-    float edge = length(d) - (uRadius + wobble);
-    float onScene = step(depth, 0.99999);
+    float edge = length(d) - (fogColor.z + wobble);
     // Grey (a washed-out, slightly cool grey) past the edge, with a soft step over it.
-    float out_ = smoothstep(-0.15, 0.25, edge) * onScene;
-    float grey = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-    vec3 washed = mix(vec3(grey), vec3(0.9, 0.93, 0.97), 0.18);
-    vec3 rgb = mix(color.rgb, washed, out_);
-    // The edge shines: a bright core line with a soft glow, a soap-bubble sheen (pink, gold, blue)
-    // running along it, glints sliding round, and sparkles twinkling just outside.
+    float out_ = smoothstep(-0.15, 0.25, edge);
+    vec3 rgb = gl_FragColor.rgb;
+    float grey = dot(rgb, vec3(0.299, 0.587, 0.114));
+    rgb = mix(rgb, mix(vec3(grey), vec3(0.9, 0.93, 0.97), 0.18), out_);
+    // The edge shines: a bright core line with a soft glow, a soap-bubble sheen running along it,
+    // glints sliding round, and sparkles twinkling just outside.
     float a = abs(edge - 0.05);
-    float core = 1.0 - smoothstep(0.02, 0.07, a);
-    float glow = (1.0 - smoothstep(0.0, 0.45, a)) * 0.45;
-    vec3 sheen = 0.5 + 0.5 * cos(6.2831 * (ang * 1.5 + uTime * 0.15 + vec3(0.0, 0.33, 0.67)));
-    float glint = pow(0.5 + 0.5 * sin(ang * 26.0 - uTime * 2.4), 12.0);
-    vec2 cell = floor(world.xz * 2.2);
-    float h = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
-    float twinkle = pow(max(0.0, sin(uTime * (2.0 + h * 3.0) + h * 40.0)), 8.0);
-    vec2 f = fract(world.xz * 2.2) - 0.5;
-    float sparkle = step(0.82, h) * twinkle * (1.0 - smoothstep(0.0, 0.12, length(f))) * (1.0 - smoothstep(0.0, 1.4, edge)) * step(0.0, edge);
-    vec3 shine = mix(vec3(1.0), mix(vec3(1.0), sheen, 0.35), glow / 0.45);
-    rgb = mix(rgb, shine, clamp(glow + core * (0.75 + 0.25 * glint), 0.0, 1.0) * onScene);
-    rgb += vec3(sparkle + glint * core * 0.4) * onScene;
-    gl_FragColor = vec4(rgb, 1.0);
-    #include <colorspace_fragment>
+    if (a < 1.5) {
+      float core = 1.0 - smoothstep(0.02, 0.07, a);
+      float glow = (1.0 - smoothstep(0.0, 0.45, a)) * 0.45;
+      vec3 sheen = 0.5 + 0.5 * cos(6.2831 * (ang * 1.5 + uTime * 0.15 + vec3(0.0, 0.33, 0.67)));
+      float glint = pow(0.5 + 0.5 * sin(ang * 26.0 - uTime * 2.4), 12.0);
+      vec2 cell = floor(vRinseWorld.xz * 2.2);
+      float h = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+      float twinkle = pow(max(0.0, sin(uTime * (2.0 + h * 3.0) + h * 40.0)), 8.0);
+      vec2 f = fract(vRinseWorld.xz * 2.2) - 0.5;
+      float sparkle = step(0.82, h) * twinkle * (1.0 - smoothstep(0.0, 0.12, length(f))) * (1.0 - smoothstep(0.0, 1.4, edge)) * step(0.0, edge);
+      vec3 shine = mix(vec3(1.0), mix(vec3(1.0), sheen, 0.35), glow / 0.45);
+      rgb = mix(rgb, shine, clamp(glow + core * (0.75 + 0.25 * glint), 0.0, 1.0));
+      rgb += vec3(sparkle + glint * core * 0.4);
+    }
+    gl_FragColor.rgb = rgb;
   }
-`;
+#endif`;
+}
 
-export class RinseGrade {
-  private target: THREE.WebGLRenderTarget | null = null;
-  private readonly quad: THREE.Mesh;
-  private readonly cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  private readonly uniforms = {
-    tColor: { value: null as THREE.Texture | null },
-    tDepth: { value: null as THREE.Texture | null },
-    uInvViewProj: { value: new THREE.Matrix4() },
-    uCenter: { value: new THREE.Vector2() },
-    uRadius: { value: 0 },
-    uTime: { value: 0 },
+/**
+ * The scene's fog, standing in for the Rinse: its "color" carries the circle (x, z, radius) and
+ * `near` the time, read by the fog chunks above. (A plain object: three.js's Color would convert
+ * the numbers between color spaces.)
+ */
+export class RinseFog {
+  readonly isFog = true;
+  readonly name = 'rinse';
+  near = 0;
+  far = 1;
+  private cx = 0;
+  private cz = 0;
+  private r = 1e6;
+  readonly color = {
+    getRGB: (target: { r: number; g: number; b: number }) => {
+      target.r = this.cx;
+      target.g = this.cz;
+      target.b = this.r;
+      return target;
+    },
   };
 
-  constructor() {
-    this.quad = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 2),
-      new THREE.ShaderMaterial({
-        vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-        fragmentShader: gradeFragment,
-        uniforms: this.uniforms,
-        depthTest: false,
-        depthWrite: false,
-      }),
-    );
+  set(zone: Zone, time: number): void {
+    this.cx = zone.current.center.x;
+    this.cz = zone.current.center.y;
+    this.r = zone.current.radius;
+    this.near = time;
   }
 
-  render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, zone: Zone, time: number): void {
-    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-    if (!this.target || this.target.width !== size.x || this.target.height !== size.y) {
-      this.target?.dispose();
-      // Phones get lighter anti-aliasing in this pass (it's a full extra copy of the screen).
-      const samples = matchMedia('(pointer: coarse)').matches ? 2 : 4;
-      this.target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples, depthTexture: new THREE.DepthTexture(size.x, size.y) });
-    }
-    renderer.setRenderTarget(this.target);
-    renderer.render(scene, camera);
-    renderer.setRenderTarget(null);
-    const u = this.uniforms;
-    u.tColor.value = this.target.texture;
-    u.tDepth.value = this.target.depthTexture;
-    u.uInvViewProj.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).invert();
-    u.uCenter.value.set(zone.current.center.x, zone.current.center.y);
-    u.uRadius.value = zone.current.radius;
-    u.uTime.value = time;
-    renderer.render(this.quad, this.cam);
+  clone(): RinseFog {
+    return this;
+  }
+
+  toJSON(): object {
+    return {};
   }
 }
