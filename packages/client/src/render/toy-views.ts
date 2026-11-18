@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { config, DT } from '@stuffed/sim';
 import type { Circle, GameState, MapData, ToyKind, ToyState } from '@stuffed/sim';
+import { groundRing } from './loot-views.ts';
 import { tiled, waterTexture } from './props.ts';
 import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -202,6 +203,13 @@ export class ToyView {
   private cracks: THREE.Mesh | null = null;
   private water: THREE.Group | null = null;
   private floes: THREE.Mesh[] = [];
+  /** Round what you press: a glowing ring filling up while it recharges, pulsing when ready. */
+  private fill: THREE.Mesh | null = null;
+  private fillStep = -1;
+  private fillRadius = 1;
+  private readyGlow: THREE.Group | null = null;
+  private readyParts: { glow: THREE.Mesh; halo: THREE.Mesh } | null = null;
+  private track: THREE.Mesh | null = null;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -212,6 +220,11 @@ export class ToyView {
     this.root?.removeFromParent();
     this.root = this.jack = this.wheel = this.head = this.ring = this.cracks = this.water = null;
     this.floes = [];
+    this.fill = null;
+    this.fillStep = -1;
+    this.readyGlow = null;
+    this.readyParts = null;
+    this.track = null;
     this.kind = null;
   }
 
@@ -222,6 +235,70 @@ export class ToyView {
     if (t.kind === 'jack') this.updateJack(t, tick, time);
     else if (t.kind === 'sprinkler') this.updateSprinkler(t, tick, time);
     else this.updateIce(t, tick, time);
+    this.updateCooldown(t, tick, time);
+  }
+
+  /** How far it has recharged (0 just pressed, 1 ready), from when it was last pressed. */
+  private updateCooldown(t: ToyState, tick: number, time: number): void {
+    const T = config.toys;
+    const rate = config.tickRate;
+    const pressed =
+      t.startTick < 0 ? 0 : t.kind === 'jack' ? t.startTick - T.jack.windup * rate : t.kind === 'icedrill' ? t.startTick - T.icedrill.windup * rate : t.startTick;
+    const span = Math.max(1, t.readyTick - pressed);
+    const ready = tick >= t.readyTick;
+    const progress = ready ? 1 : Math.max(0, (tick - pressed) / span);
+    // The filled part of the ring, rebuilt only when it has grown a step (64 to a full circle).
+    const step = ready ? 64 : Math.floor(progress * 64);
+    if (this.fill && step !== this.fillStep) {
+      this.fillStep = step;
+      this.fill.geometry.dispose();
+      const r = this.fillRadius;
+      // From the top round clockwise (as seen from the camera).
+      this.fill.geometry = new THREE.RingGeometry(r - 0.06, r + 0.06, 64, 1, Math.PI / 2 - (step / 64) * Math.PI * 2, (step / 64) * Math.PI * 2).rotateX(-Math.PI / 2);
+    }
+    if (this.fill) this.fill.visible = !ready && step > 0;
+    if (this.track) this.track.visible = !ready;
+    if (this.readyGlow && this.readyParts) {
+      this.readyGlow.visible = ready;
+      (this.readyParts.glow.material as THREE.MeshBasicMaterial).opacity = 0.8 + Math.sin(time * 3) * 0.2;
+      (this.readyParts.halo.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(time * 3) * 0.1;
+    }
+  }
+
+  /**
+   * The ring round the toy, like the ones under loot: while it recharges, a plain gold arc fills a
+   * dark track (no glow); once ready, the whole ring lights up with a soft glow, like loot's.
+   */
+  private buildCooldown(root: THREE.Group, x: number, z: number, y: number, radius: number): void {
+    const g = new THREE.Group();
+    g.position.set(x, z + 0.025, y);
+    const flat = (inner: number, outer: number, mat: THREE.Material, y0: number) => {
+      const m = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 64).rotateX(-Math.PI / 2), mat);
+      m.position.y = y0;
+      g.add(m);
+      return m;
+    };
+    // While it recharges: a dark track with a plain gold arc filling it (drawn after the track,
+    // or the track's shade dims the gold to brown).
+    const track = flat(radius - 0.08, radius + 0.08, new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, transparent: true, opacity: 0.5, depthWrite: false }), 0);
+    track.renderOrder = 1;
+    const fill = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: '#ffd23a', depthWrite: false, transparent: true, toneMapped: false }));
+    fill.position.y = 0.004;
+    fill.renderOrder = 2;
+    fill.visible = false;
+    g.add(fill);
+    this.fill = fill;
+    this.fillRadius = radius;
+    this.track = track;
+    // Ready: the very circle loot has, sized to the toy, breathing like it.
+    const ready = new THREE.Group();
+    const r = groundRing('#ffd23a');
+    r.glow.scale.setScalar(radius / 0.72);
+    ready.add(r.glow);
+    g.add(ready);
+    this.readyGlow = ready;
+    this.readyParts = r;
+    root.add(g);
   }
 
   private build(t: ToyState, map: MapData): void {
@@ -254,6 +331,10 @@ export class ToyView {
       const pond = map.ice?.[0];
       if (pond) this.buildPond(root, pond, t);
     }
+    // Round what it acts with: the box, the sprinkler out on the lawn (the tap sits against the
+    // house wall), the drill.
+    const at = t.kind === 'icedrill' ? t.pos : t.at;
+    this.buildCooldown(root, at.x, t.z, at.y, t.kind === 'jack' ? 1.6 : 1);
     this.scene.add(root);
     this.root = root;
   }

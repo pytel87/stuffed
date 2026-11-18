@@ -1,5 +1,5 @@
 import { ANIMAL_RARITY, canUseItem, config, findInteraction, reloadTicks } from '@stuffed/sim';
-import type { Animal, GameState, PartSlot, Player, Vec2 } from '@stuffed/sim';
+import type { Animal, GameState, PartSlot, Player, Vec2, World } from '@stuffed/sim';
 import * as THREE from 'three';
 import type { KeyboardMouseInput } from '../input/keyboard-mouse.ts';
 import { icon, partIcon } from './icons.ts';
@@ -109,7 +109,8 @@ export class Hud {
   }
 
   /** `alpha` is how far render time is past `state.tick` (0..1), for smooth progress. */
-  update(state: GameState, me: Player | undefined, alpha: number): void {
+  /** `world`: the map (its zip lines and tubes are offered too). */
+  update(state: GameState, me: Player | undefined, alpha: number, world?: World): void {
     if (!me) return;
     const stuffing = Math.ceil(me.stuffing);
     const buttons = Math.ceil(me.buttons);
@@ -164,7 +165,8 @@ export class Hud {
     const action = me.alive ? me.action : null;
     const chest = action?.kind === 'openChest' ? state.chests.find((c) => c.id === action.chestId) : undefined;
     const mate = action?.kind === 'revive' ? state.players.find((p) => p.id === action.targetId) : undefined;
-    this.progressChest = chest ? { ...chest.pos, z: chest.z } : mate ? { ...mate.pos, z: mate.z } : null;
+    const dug = action?.kind === 'dig' ? digAnchor(world, action.index) : null;
+    this.progressChest = chest ? { ...chest.pos, z: chest.z } : mate ? { ...mate.pos, z: mate.z } : dug ? { ...dug, z: 0 } : null;
     if (action) {
       const t = Math.min(1, (state.tick + alpha - action.startTick) / Math.max(1, action.endTick - action.startTick));
       // Opening a chest or re-stitching a teammate: just the bar over them. Using an item: its picture too.
@@ -176,7 +178,7 @@ export class Hud {
     }
     this.set('ps', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
 
-    const interaction = action || !me.alive ? null : findInteraction(state, me);
+    const interaction = action || !me.alive ? null : findInteraction(state, me, world);
     this.grabReady = !!interaction;
     this.stashReady = interaction?.kind === 'part';
     this.promptAnchor =
@@ -188,7 +190,11 @@ export class Hud {
             ? state.strikeButton && { ...state.strikeButton.pos, z: state.strikeButton.z + 0.6 }
             : interaction?.kind === 'toy'
               ? state.toy && { ...state.toy.pos, z: state.toy.z + 0.8 }
-              : interaction
+              : interaction?.kind === 'ride'
+                ? rideAnchor(world, interaction.index)
+                : interaction?.kind === 'dig'
+                  ? digAnchor(world, interaction.index)
+                  : interaction
               ? { ...interaction.loot.pos, z: interaction.loot.z }
               : null;
     let art = '';
@@ -205,6 +211,12 @@ export class Hud {
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
+    } else if (interaction?.kind === 'dig') {
+      // Hold to dig up the treasure: a little spade.
+      art = 'dig';
+    } else if (interaction?.kind === 'ride') {
+      // Off you go: along the zip line, or into the tube.
+      art = 'arrow';
     } else if (interaction?.kind === 'toy' && state.toy) {
       // The toy's crank, tap or drill.
       art = `toy:${state.toy.kind}`;
@@ -289,4 +301,16 @@ function pressable(el: HTMLElement, tap: () => void, long: () => void): void {
     e.preventDefault();
     if (!el.classList.contains('empty')) long();
   });
+}
+
+/** Over the start of a zip line or a tube, for the prompt. */
+function rideAnchor(world: World | undefined, index: number): (Vec2 & { z: number }) | null {
+  const r = world?.map.rides?.[index];
+  return r ? { x: r.from.x, y: r.from.y, z: r.from.z + 0.8 } : null;
+}
+
+/** Over a buried treasure spot, for the prompt and the dig bar. */
+function digAnchor(world: World | undefined, index: number): (Vec2 & { z: number }) | null {
+  const d = world?.map.digs?.[index];
+  return d ? { x: d.x, y: d.y, z: 0.2 } : null;
 }

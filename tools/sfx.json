@@ -201,6 +201,34 @@
     "ice_break": {
       "prompt": "a frozen pond's ice shattering and plunging into water: a crash of ice and a big splash",
       "seconds": 1.5
+    },
+    "slide_whoosh": {
+      "prompt": "sliding fast down a plastic playground slide: a squeaky swoosh",
+      "seconds": 1
+    },
+    "zip_line": {
+      "prompt": "a small trolley whizzing along a zip line cable: a rising metallic whir",
+      "seconds": 3.5
+    },
+    "tube_pop": {
+      "prompt": "a toy popping out of a plastic hamster tube: a hollow plasticky pop and a squeak",
+      "seconds": 0.7
+    },
+    "dig_scrape": {
+      "prompt": "a small plastic spade digging quickly into sand: a few scrapes and a soft thud",
+      "seconds": 1.6
+    },
+    "duck_ding": {
+      "prompt": "a fairground shooting gallery target hit: a bright metal ding with a tin rattle",
+      "seconds": 0.5
+    },
+    "pin_knock": {
+      "prompt": "a plastic toy bowling pin knocked over: a hollow clack and clatter",
+      "seconds": 0.6
+    },
+    "prize_fanfare": {
+      "prompt": "a short cheerful toy trumpet fanfare, a winning jingle, with a little confetti pop",
+      "seconds": 1.5
     }
   }
 }

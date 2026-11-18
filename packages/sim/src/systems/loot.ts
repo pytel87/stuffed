@@ -8,6 +8,8 @@ import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part,
 import { wallsNear, type World } from '../world.ts';
 import { groundHeight } from './movement.ts';
 import { callStrike, strikeReady } from './strikes.ts';
+import { digAt, finishDig } from './minigames.ts';
+import { rideAt, startRide } from './rides.ts';
 import { pressToy, toyReady } from './toys.ts';
 import { makeWeapon } from './weapons.ts';
 
@@ -27,6 +29,10 @@ export type Interaction =
   | { kind: 'strike' }
   /** The map's big toy (crank, tap or drill). */
   | { kind: 'toy' }
+  /** A zip line or a hamster tube to get on. */
+  | { kind: 'ride'; index: number }
+  /** Buried treasure to dig up. */
+  | { kind: 'dig'; index: number }
   | null;
 
 /** Loot (or a chest base) at height `z` is within vertical reach of this plush. */
@@ -79,7 +85,9 @@ export function dropFromSlot(world: World, state: GameState, player: Player, slo
   state.events.push({ type: 'dropped', playerId: player.id, lootId: loot.id });
 }
 
-export function findInteraction(state: GameState, player: Player): Interaction {
+/** `world`: for the map's zip lines and tubes (without it, they aren't offered). */
+export function findInteraction(state: GameState, player: Player, world?: World): Interaction {
+  if (player.ride) return null;
   // A teammate to re-stitch comes first (their dropped things lie all around them).
   if (player.team !== 0) {
     let mate: Player | null = null;
@@ -109,6 +117,12 @@ export function findInteraction(state: GameState, player: Player): Interaction {
 
   if (strikeReady(state, player)) return { kind: 'strike' };
   if (toyReady(state, player)) return { kind: 'toy' };
+  if (world) {
+    const ride = rideAt(world, state, player, true);
+    if (ride !== -1) return { kind: 'ride', index: ride };
+    const dig = digAt(world, state, player);
+    if (dig !== -1) return { kind: 'dig', index: dig };
+  }
 
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
@@ -144,6 +158,16 @@ export function updateInteraction(world: World, state: GameState, player: Player
     }
     return;
   }
+  if (action?.kind === 'dig') {
+    const spot = world.map.digs?.[action.index];
+    if (!held || !spot || state.games.digs[action.index] || Math.hypot(player.pos.x - spot.x, player.pos.y - spot.y) > config.games.digRange + 0.3) {
+      player.action = null;
+    } else if (state.tick >= action.endTick) {
+      player.action = null;
+      finishDig(world, state, action.index, player);
+    }
+    return;
+  }
   if (action?.kind === 'openChest') {
     const chest = state.chests.find((c) => c.id === action.chestId);
     if (!held || !chest || chest.opened || dist(player.pos, chest.pos) > config.chest.interactRange) {
@@ -156,7 +180,7 @@ export function updateInteraction(world: World, state: GameState, player: Player
   }
 
   if (stashPressed) {
-    const target = findInteraction(state, player);
+    const target = findInteraction(state, player, world);
     if (target?.kind === 'part') stashPart(world, state, player, target.loot, target.part);
     else wearFromBag(world, state, player, 0);
     return;
@@ -167,7 +191,7 @@ export function updateInteraction(world: World, state: GameState, player: Player
   }
 
   if (!pressed) return;
-  const target = findInteraction(state, player);
+  const target = findInteraction(state, player, world);
   if (target?.kind === 'weapon') pickUpWeapon(world, state, player, target.loot);
   else if (target?.kind === 'part') wearPart(world, state, player, target.loot, target.part);
   else if (target?.kind === 'chest') {
@@ -176,6 +200,10 @@ export function updateInteraction(world: World, state: GameState, player: Player
     callStrike(world, state, player);
   } else if (target?.kind === 'toy') {
     pressToy(state, player);
+  } else if (target?.kind === 'dig') {
+    player.action = { kind: 'dig', index: target.index, startTick: state.tick, endTick: state.tick + secondsToTicks(config.games.digTime) };
+  } else if (target?.kind === 'ride') {
+    startRide(world, state, player, target.index);
   } else if (target?.kind === 'revive') {
     player.action = { kind: 'revive', targetId: target.target.id, startTick: state.tick, endTick: state.tick + secondsToTicks(config.team.reviveTime) };
   }

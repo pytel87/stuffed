@@ -16,7 +16,7 @@ const LID_OPEN_ANGLE = -1.9;
 const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#d070ff', '#ffd23a'] as const;
 
 let glowTexture: THREE.CanvasTexture | null = null;
-function glowMap(): THREE.CanvasTexture {
+export function glowMap(): THREE.CanvasTexture {
   if (!glowTexture) {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
@@ -34,7 +34,7 @@ function glowMap(): THREE.CanvasTexture {
 
 let haloTexture: THREE.CanvasTexture | null = null;
 /** A soft band of light around the ring: clear at the center, brightest at the ring, fading out. */
-function haloMap(): THREE.CanvasTexture {
+export function haloMap(): THREE.CanvasTexture {
   if (!haloTexture) {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
@@ -552,37 +552,45 @@ export function sparkleGlowTexture(): THREE.CanvasTexture {
   return sparkleGlowTex;
 }
 
-function buildLoot(loot: GroundLoot): LootView {
-  const root = new THREE.Group();
-  root.position.set(loot.pos.x, loot.z, loot.pos.y);
-  const color = NEON[loot.rarity];
-
+/**
+ * The circle under loot: a soft disc of light, a halo hugging the ring, and a solid ring with a dark
+ * edge (readable even green-on-grass). Its ring is about 0.72 across; scale it for bigger things.
+ * Pulse `glow` (opacity 0.6..1) and `halo` (0.3..0.5) to make it breathe.
+ */
+export function groundRing(color: THREE.ColorRepresentation): { glow: THREE.Mesh; halo: THREE.Mesh } {
   const glow = new THREE.Mesh(
     new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color, map: glowMap(), transparent: true, depthWrite: false, opacity: 1, toneMapped: false }),
   );
-  glow.position.y = 0.025;
-  root.add(glow);
-  // Neon glow hugging the ring, inside and out.
   const halo = new THREE.Mesh(
     new THREE.CircleGeometry(1.05, 48).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color, map: haloMap(), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }),
   );
-  halo.position.y = 0.031;
+  halo.position.y = 0.006;
   glow.add(halo);
-  // A solid ring with a dark edge keeps the rarity readable even green-on-grass.
   const edge = new THREE.Mesh(
     new THREE.RingGeometry(0.66, 0.8, 40).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, transparent: true, opacity: 0.55, depthWrite: false }),
   );
-  edge.position.y = 0.027;
+  edge.position.y = 0.002;
   glow.add(edge);
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.67, 0.77, 48).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true, toneMapped: false }),
   );
-  ring.position.y = 0.029;
+  ring.position.y = 0.004;
   glow.add(ring);
+  return { glow, halo };
+}
+
+function buildLoot(loot: GroundLoot): LootView {
+  const root = new THREE.Group();
+  root.position.set(loot.pos.x, loot.z, loot.pos.y);
+  const color = NEON[loot.rarity];
+
+  const { glow, halo } = groundRing(color);
+  glow.position.y = 0.025;
+  root.add(glow);
 
   let beam: THREE.Mesh | null = null;
   if (loot.rarity >= 3) {

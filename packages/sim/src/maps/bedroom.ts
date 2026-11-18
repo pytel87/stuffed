@@ -7,7 +7,8 @@
 //   Bookshelf (SW)     long shelves and book piles; low loot
 //   Block Castle (C)   alphabet-block walls with doorways and a keep in the middle
 // Coordinates: x to the right, y down the screen.
-import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, TrainTrack, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, RideDef, TrainTrack, Vec2, Wall, WallKind } from '../types.ts';
+import { tubeWalls } from '../systems/rides.ts';
 
 const SIZE = 112;
 const C = SIZE / 2;
@@ -131,7 +132,18 @@ function offTrack<P extends Vec2>(p: P, margin: number): P {
 }
 
 // Small toys that would sit on the rails are left out; the big furniture is placed clear.
-const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...[...rugToys, ...scattered].filter(clearOfTrack)];
+// Bowling: a beach ball at the head of a lane, six pins at its far end (roll the ball into them).
+const PINS = [{ x: 60, y: 95 }, { x: 59.4, y: 96 }, { x: 60.6, y: 96 }, { x: 58.8, y: 97 }, { x: 60, y: 97 }, { x: 61.2, y: 97 }];
+const bowling: Wall[] = [ball(59.2, 89.2, 1.6, 1.6)];
+
+// A slide off the bed, and a hamster tube across the floor north of the rug (in at either end).
+const rides: RideDef[] = [
+    { kind: 'slide', from: { x: 32.1, y: 21, z: 2.2 }, to: { x: 37.8, y: 21, z: 0 }, seconds: 0.9, boost: 10 },
+    { kind: 'tube', from: { x: 40, y: 75, z: 0 }, to: { x: 75, y: 75, z: 0 }, seconds: 1.4, boost: 4 },
+    { kind: 'tube', from: { x: 75, y: 75, z: 0 }, to: { x: 40, y: 75, z: 0 }, seconds: 1.4, boost: 4 },
+  ];
+
+const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...tubeWalls(rides[1]!), ...bowling, ...[...rugToys, ...scattered].filter(clearOfTrack)];
 const buildings: Building[] = [BED, DESK, KEEP, TOYBOX, DOLLHOUSE];
 
 const bushes: Circle[] = ([
@@ -222,6 +234,10 @@ export const BEDROOM: MapData = {
   chestSpawns,
   // The air strike button: up on the desk (a shower of toy blocks).
   strikeButton: { x: 81, y: 12.5, z: 2.6, kind: 'blocks' },
+  rides,
+  // Bowling south-east of the rug, and a hill on the castle keep.
+  pins: PINS,
+  hills: [{ x: 56, y: 56, z: 2.4, radius: 2.2 }],
   // A jack-in-the-box by the rug.
   toy: { kind: 'jack', x: 66, y: 82, z: 0 },
   // A big wrapped present on the rug.

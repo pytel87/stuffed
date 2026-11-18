@@ -421,7 +421,7 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
   // Beach balls roll around: they're drawn from the match state (ball-views.ts); a pool's rim is
   // drawn with its pool (map-view.ts).
   map.walls.forEach((b, i) => {
-    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo') root.add(buildWall(underRoof(b, map), i));
+    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo' && b.kind !== 'ramp') root.add(buildWall(underRoof(b, map), i));
   });
   const indoors = map.theme === 'bedroom';
   const bushes = map.bushes.map((c, i) => {

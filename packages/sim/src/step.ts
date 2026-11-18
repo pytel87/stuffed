@@ -9,6 +9,7 @@ import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from '.
 import { updateProjectiles } from './systems/projectiles.ts';
 import { updateStrikes } from './systems/strikes.ts';
 import { updateToys } from './systems/toys.ts';
+import { updateMiniGames } from './systems/minigames.ts';
 import { updateWeapons } from './systems/weapons.ts';
 import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input, Player } from './types.ts';
@@ -78,6 +79,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateProjectiles(world, state);
   updateStrikes(world, state);
   updateToys(world, state);
+  updateMiniGames(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {

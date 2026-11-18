@@ -5,6 +5,7 @@ import { circleBoxPush } from '../collision/geometry.ts';
 import type { Ball, GameState, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { trainCircles } from './train.ts';
+import { goalScored } from './minigames.ts';
 
 const B = config.beachBall;
 const KEEP = Math.exp(-B.friction * DT);
@@ -44,6 +45,7 @@ function scoreGoal(world: World, state: GameState, ball: Ball): void {
     if (ball.pos.x < m.x || ball.pos.x > m.x + m.w || ball.pos.y < m.y || ball.pos.y > m.y + m.h) continue;
     state.goals[i] = (state.goals[i] ?? 0) + 1;
     state.events.push({ type: 'goal', goal: i, ballId: ball.id, pos: { x: ball.pos.x, y: ball.pos.y } });
+    goalScored(world, state, i);
     ball.pos = { ...ball.home };
     ball.vel = { x: 0, y: 0 };
     return;

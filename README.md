@@ -127,6 +127,41 @@ Shots, hammer whacks and bursts wear it down (it jiggles and sheds confetti); on
 showers two rare-or-better weapons, two items and a part around it. Bots whack it when nobody is
 around. See [pinata.ts](packages/sim/src/systems/pinata.ts) and `config.pinata`.
 
+## Getting around
+
+- **Trampoline** (Backyard, by the house's north wall): bounces you about 4 high, onto the roof.
+- **Seesaw** (Backyard lawn): land on one end (jump onto it) and whoever stands on the other end
+  is launched.
+- **Slides**: off the treehouse's south edge and off the bed. Step onto the top and you shoot down
+  and out across the floor. They're solid from the sides, and you can walk up one (onto the platform or the bed).
+- **Sled hill** (Snowy Park, west of the pond): climb the mound, step onto the run, and fly off
+  the little jump at the bottom.
+- **Zip line** (Backyard): press E at either end (the treehouse platform or the house roof) and you
+  whizz across to the other.
+- **Hamster tube** (Bedroom, north of the rug): a solid orange tube. Press E at either end and you
+  pop out at the other; nobody sees you inside.
+
+See [rides.ts](packages/sim/src/systems/rides.ts) and `config.rides`.
+
+## Mini-games
+
+Each pays out a prize: a rare-or-better weapon and an item (a goal: just the weapon).
+
+- **Buried treasure** (Backyard sandbox, Snowy Park's Snowman Garden): three sparkling heaps with a
+  red X on each. Hold E to dig one up (once per match).
+- **Shooting gallery** (Backyard, lawn west of the house): ducks pop up one at a time behind a
+  striped counter (shoot from the south).
+  Shoot five in a row (one dropping unhit starts the run over); the lights on the counter count
+  your run. Then it rests for 45 s.
+- **Bowling** (Bedroom, north of the rug): roll the beach ball into the six pins. All down pays
+  out; they stand back up 40 s later. Standing pins are in your way.
+- **King of the hill** (Bedroom castle keep, Snowy Park fort tower): stand on top alone (or with
+  only your team) for 10 s; the flag rises and a ring fills. Someone else up there stops the clock.
+- **Beach-ball goals** (Backyard): a goal drops a weapon in front of it (each goal at most every
+  30 s).
+
+See [minigames.ts](packages/sim/src/systems/minigames.ts) and `config.games`.
+
 ## Map toys
 
 Each map has one big toy to press with E (it needs a while before it works again):

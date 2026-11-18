@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, carriedBy, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
+import { ANIMALS, canSee, carriedBy, coveredBy, rampSurface, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
 import type { Animal, EntityId, GameEvent, GameState, MapData, PartLoadout, PartSlot, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
@@ -13,6 +13,8 @@ import { ChestViews, LootViews } from './loot-views.ts';
 import { buildDrop, buildStrikeButton, StrikeViews } from './strike-views.ts';
 import { PinataView } from './pinata-views.ts';
 import { ToyView } from './toy-views.ts';
+import { RideViews } from './ride-views.ts';
+import { MiniGameViews } from './minigame-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
@@ -118,6 +120,8 @@ export class GameRenderer {
   private readonly chests = new ChestViews(this.scene);
   private readonly strikes = new StrikeViews(this.scene);
   private readonly pinata = new PinataView(this.scene);
+  private readonly rides = new RideViews(this.scene);
+  private readonly games = new MiniGameViews(this.scene);
   private readonly toy = new ToyView(this.scene, (x, y, z, dx, dz) => this.effects.spray(x, y, z, dx, dz));
   private readonly placedWalls = new PlacedWallViews(this.scene);
   private readonly toss = new TossView(this.scene);
@@ -345,6 +349,14 @@ export class GameRenderer {
           if (p) this.effects.pinata(p.pos.x, p.z + config.pinata.lift[p.kind], p.pos.y, e.type === 'pinataBurst');
           break;
         }
+        case 'prize':
+          this.effects.pinata(e.pos.x, 0.8, e.pos.y, true);
+          break;
+        case 'bounced': {
+          const p = byId.get(e.playerId);
+          if (p) this.effects.landing(e.pos.x, p.z, e.pos.y);
+          break;
+        }
         case 'toyPop':
           if (e.kind === 'jack') this.effects.chestPop(e.pos.x, e.pos.y);
           else {
@@ -488,6 +500,8 @@ export class GameRenderer {
     this.strikes.clear();
     this.pinata.clear();
     this.toy.clear();
+    this.rides.clear();
+    this.games.clear();
     this.loot.clear();
     this.placedWalls.clear();
     this.toss.clear();
@@ -545,7 +559,11 @@ export class GameRenderer {
       if (this.world.map.track && p.id !== opts.localPlayerId && trainTick !== drawnTick) {
         pos = carriedBy(this.world.map.track, drawnTick, trainTick, pos, z) ?? pos;
       }
-      const groundY = groundHeight(this.world, trainState, pos, z);
+      let groundY = groundHeight(this.world, trainState, pos, z);
+      // On a slide or a sled run: its smooth slope, not the hidden steps under it (so the soft
+      // shadow glides down it instead of hopping from step to step inside it).
+      const ramp = rampSurface(this.world, pos);
+      if (ramp !== null && ramp <= z + 0.3) groundY = ramp;
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Up on the roof above you: gone while you're inside, under it.
       fadeObject(view.root, this.roofFade(pos.x, pos.y, z));
@@ -578,7 +596,9 @@ export class GameRenderer {
       }
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       // Riders are on board the blimp, out of sight (your own plush too).
-      view.root.visible = p.drop !== 'riding' && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
+      // Crawling through a hamster tube: out of sight (you too; the tube's too low for a plush).
+      const inTube = !!p.ride && this.world.map.rides?.[p.ride.index]?.kind === 'tube';
+      view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding');
       view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
       if ((p.soggy || curr.tick < p.soakedUntil) && view.root.visible) {
@@ -611,6 +631,8 @@ export class GameRenderer {
     this.strikes.update(this.world, curr, curr.tick - 1 + alpha, opts.dt, opts.time, this.roofFade);
     this.pinata.update(curr, this.world.map.pinata?.branch, opts.dt, opts.time);
     this.toy.update(curr, this.world.map, curr.tick - 1 + alpha, opts.time);
+    this.rides.update(this.world.map, curr);
+    this.games.update(this.world.map, curr, opts.time);
     // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
     for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
     this.loot.update(curr, opts.dt, opts.time, this.roofFade);
@@ -628,7 +650,8 @@ export class GameRenderer {
     }
     if (this.snowfall) fallSnow(this.snowfall, this.rig.target, opts.dt);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
-    updateRoofs(this.roofs, viewer?.alive ? viewer.building : -1, this.debug, opts.dt);
+    // (Not while jumping up onto a roof: only under it, feet well below it.)
+    updateRoofs(this.roofs, viewer?.alive ? coveredBy(this.world, viewer) : -1, this.debug, opts.dt);
 
     const following = opts.followId === opts.localPlayerId;
     // During the Toss the camera pulls back so you can pick a landing spot.

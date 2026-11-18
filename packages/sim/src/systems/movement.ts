@@ -7,6 +7,8 @@ import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
 import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
 import { iceOpen } from './toys.ts';
+import { landed, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
+import { pinsInTheWay } from './minigames.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -35,6 +37,8 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     tossMove(world, state, player, input);
     return;
   }
+  // On a slide, a sled run, a zip line or in a tube: carried along, no walking.
+  if (updateRide(world, state, player)) return;
   // Riding a train wagon: carried along with it (and turned with the track) first.
   if (world.map.track && player.z > 0.05) {
     const carried = carriedBy(world.map.track, state.tick - 1, state.tick, player.pos, player.z);
@@ -80,12 +84,26 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     player.z += player.vz * DT - 0.5 * g * DT * DT;
     player.vz -= g * DT;
   }
-  const floor = groundHeight(world, state, player.pos, player.z);
+  let floor = groundHeight(world, state, player.pos, player.z);
+  // Walking down a slope: stay on it rather than falling off each bit of it.
+  if (grounded && player.vz <= 0) {
+    const ramp = Math.max(rampSurface(world, player.pos) ?? -1, seesawSurface(world, state, player.pos) ?? -1);
+    if (ramp >= 0 && ramp < player.z && player.z - ramp < 0.4) {
+      player.z = ramp;
+      floor = Math.max(floor, ramp);
+    }
+  }
+  const falling = player.vz < -config.rides.landSpeed;
   if (player.z <= floor + EPS) {
     // Landed, or stepped up onto something low enough.
     player.z = floor;
     if (player.vz < 0) player.vz = 0;
+    // A trampoline bounces whoever is on it; a seesaw tips when someone lands on an end.
+    if (falling || onTrampoline(world, player)) landed(world, state, player);
   }
+  // Stepped onto the top of a slide or a sled run: off you go.
+  const slide = rideAt(world, state, player, false);
+  if (slide !== -1) startRide(world, state, player, slide);
 }
 
 /**
@@ -104,6 +122,10 @@ export function groundHeight(world: World, state: GameState, pos: Vec2, z: numbe
   }
   for (const b of world.map.buildings) {
     if (b.height <= reach && b.height > best && inBox(pos, b)) best = b.height;
+  }
+  // A slide's or sled run's smooth slope, or a seesaw's tilted plank.
+  for (const slope of [rampSurface(world, pos), seesawSurface(world, state, pos)]) {
+    if (slope !== null && slope <= reach && slope > best) best = slope;
   }
   // A train wagon's deck.
   if (world.map.track) best = Math.max(best, trainFloor(world.map.track, state.tick, pos, reach));
@@ -139,6 +161,12 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
+    // A slide or sled run walked into from the side (or from below its high end).
+    const ramp = rampInTheWay(world, player.pos, r, feet) ?? seesawInTheWay(world, state, player.pos, r, feet);
+    if (ramp) {
+      const push = circleBoxPush(player.pos.x, player.pos.y, r, ramp);
+      if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
+    }
     {
       for (const chest of state.chests) {
         // Only one at the plush's own level: not one it's on, nor one on the roof above it.
@@ -154,6 +182,18 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     }
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
+    }
+    // Standing bowling pins (it takes the ball to knock them down).
+    if (player.z < 0.8) {
+      for (const pin of pinsInTheWay(world, state)) {
+        const dx = player.pos.x - pin.x;
+        const dy = player.pos.y - pin.y;
+        const min = r + config.games.pins.radius;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2);
+        moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+      }
     }
     // The jack-in-the-box.
     const toy = state.toy;

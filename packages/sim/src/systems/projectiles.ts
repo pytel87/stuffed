@@ -7,6 +7,7 @@ import { TRAIN, trainCircles } from './train.ts';
 import { applyDamage, teammates } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
+import { galleryDuck, hitDuck } from './minigames.ts';
 import { hitPinata, levelWithPinata } from './pinata.ts';
 
 /**
@@ -123,9 +124,23 @@ export function updateProjectiles(world: World, state: GameState): void {
         pinataHit = true;
       }
     }
+    // The shooting gallery's duck that's up.
+    let duckHit = false;
+    const duck = galleryDuck(world, state);
+    if (duck) {
+      const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, duck.pos.x, duck.pos.y, config.games.gallery.radius + r);
+      if (t !== null && t < wallT && proj.z + dz * t < 1.6) {
+        wallT = t;
+        wallHit = null;
+        ballHit = null;
+        pinataHit = false;
+        duckHit = true;
+      }
+    }
     if (wallT !== Infinity && wallT <= hitT) {
       const at = { x: proj.pos.x + dx * wallT, y: proj.pos.y + dy * wallT };
       const zAt = proj.z + dz * wallT;
+      if (duckHit) hitDuck(world, state, proj.ownerId);
       // (A burst wears it down by itself, below.)
       if (pinataHit && !s.blastRadius) hitPinata(world, state, proj.damage, proj.ownerId);
       if (ballHit) {

@@ -13,6 +13,7 @@ import { OUTLINE_COLOR } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 import { buildStrikeButton } from './strike-views.ts';
 import { buildDrill, buildJack, buildTap } from './toy-views.ts';
+import { buildSpade } from './minigame-views.ts';
 
 const SIZE = 160;
 
@@ -89,6 +90,8 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
     for (const dot of button.dots) dot.removeFromParent();
     shoot(`strike:${kind}`, button.root, new THREE.Euler(0.4, -0.5, 0, 'YXZ'));
   }
+  // A spade, for digging up buried treasure.
+  shoot('dig', buildSpade(), new THREE.Euler(0.3, -0.5, 0.3, 'YXZ'));
   // The map toys, for their prompts: the jack-in-the-box, the garden tap, the ice drill.
   shoot('toy:jack', buildJack().root, new THREE.Euler(0.4, -0.5, 0, 'YXZ'));
   shoot('toy:sprinkler', buildTap().root, new THREE.Euler(0.3, -0.4, 0, 'YXZ'));

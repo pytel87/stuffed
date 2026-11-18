@@ -78,7 +78,9 @@ export type PlayerAction =
   | { kind: 'openChest'; chestId: EntityId; startTick: Tick; endTick: Tick }
   | { kind: 'useItem'; slot: number; item: ItemKind; startTick: Tick; endTick: Tick }
   /** Team mode: re-stitching a knocked-out teammate. */
-  | { kind: 'revive'; targetId: EntityId; startTick: Tick; endTick: Tick };
+  | { kind: 'revive'; targetId: EntityId; startTick: Tick; endTick: Tick }
+  /** Digging up buried treasure (map.digs[index]). */
+  | { kind: 'dig'; index: number; startTick: Tick; endTick: Tick };
 
 export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 /** Every animal has one part for each slot. */
@@ -166,6 +168,10 @@ export interface Player {
    * umbrella (steerable, can't shoot or be hurt), or null once on the ground.
    */
   drop: 'riding' | 'gliding' | null;
+  /** On a slide, a sled run, a zip line or in a hamster tube (see systems/rides.ts). */
+  ride: Ride | null;
+  /** Off a ride: not onto one again before this tick (so a slide's end doesn't start another). */
+  rideAgainTick: Tick;
   parts: PartLoadout;
   /**
    * The bag: up to config.parts.bagSize spare parts, not shown on the plush. Kept at the end of a
@@ -298,10 +304,57 @@ export type GameEvent =
   /** The piñata took a hit (it jiggles), or broke open and showered its loot. */
   | { type: 'pinataHit'; pos: Vec2; byId: EntityId | null }
   | { type: 'pinataBurst'; pos: Vec2; byId: EntityId | null }
+  /** Got on (or off) a slide, a sled run, a zip line or a tube. */
+  | { type: 'rideStarted'; playerId: EntityId; kind: RideDef['kind']; pos: Vec2 }
+  | { type: 'rideEnded'; playerId: EntityId; kind: RideDef['kind']; pos: Vec2 }
+  /** A mini-game paid out (a prize showered around `pos`). */
+  | { type: 'prize'; pos: Vec2 }
+  | { type: 'dug'; index: number; playerId: EntityId }
+  /** The shooting gallery: a duck hit (`hits` in a row so far), and the run of five won. */
+  | { type: 'duckHit'; pos: Vec2; hits: number }
+  | { type: 'galleryWon'; playerId: EntityId }
+  | { type: 'pinDown'; index: number; pos: Vec2 }
+  /** Someone new started holding a hill. */
+  | { type: 'hillTaken'; index: number; playerId: EntityId }
+  /** Bounced off a trampoline, or launched off a seesaw. */
+  | { type: 'bounced'; playerId: EntityId; pos: Vec2 }
   /** The map's toy was pressed (the jack-in-the-box's tune, the sprinkler, the ice cracking). */
   | { type: 'toyStarted'; kind: ToyKind; playerId: EntityId; pos: Vec2 }
   /** The jack-in-the-box popped, or the pond's ice broke. */
   | { type: 'toyPop'; kind: ToyKind; pos: Vec2 };
+
+export interface MiniGames {
+  /** Each buried treasure spot: dug up yet. */
+  digs: boolean[];
+  /** The duck that's up (-1: none) and until when, when the next pops up, the run so far. */
+  gallery: { up: number; upUntil: Tick; nextUpTick: Tick; hits: number; readyTick: Tick; last: number } | null;
+  /** Which pins are down, and when they're stood back up (-1: not yet all down). */
+  pins: { down: boolean[]; resetTick: Tick } | null;
+  /** Each hill: who's holding it (-1: nobody), for how many ticks, and when it works again. */
+  hills: { holder: EntityId; progress: number; readyTick: Tick }[];
+  /** Each beach-ball goal: when a goal pays out again. */
+  goalPrizeAt: Tick[];
+}
+
+/** Riding `map.rides[index]`, from `startTick` to `endTick`. */
+export interface Ride {
+  index: number;
+  startTick: Tick;
+  endTick: Tick;
+}
+
+/**
+ * Something that carries you: a slide or a sled run (step onto its top), a zip line or a hamster
+ * tube (press E at its start). `boost`: the push at the end; `hop`: a jump off its end.
+ */
+export interface RideDef {
+  kind: 'slide' | 'sled' | 'zip' | 'tube';
+  from: { x: number; y: number; z: number };
+  to: { x: number; y: number; z: number };
+  seconds: number;
+  boost: number;
+  hop?: number;
+}
 
 /** The map's big toy: a jack-in-the-box, a garden sprinkler, or an ice drill on the pond. */
 export type ToyKind = 'jack' | 'sprinkler' | 'icedrill';
@@ -387,6 +440,10 @@ export interface GameState {
   pinata: PinataState | null;
   /** The map's big toy (null on maps without one). */
   toy: ToyState | null;
+  /** The mini-games' state (see systems/minigames.ts). */
+  games: MiniGames;
+  /** Each of the map's seesaws: which end went down last, and when. */
+  seesaws: { down: 'a' | 'b'; tick: Tick }[];
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
@@ -426,6 +483,8 @@ export type WallKind =
   | 'bench' | 'table-leg' | 'sandcastle' | 'bucket' | 'planter' | 'ball' | 'basket' | 'goal' | 'train'
   /** A kiddie pool's inflatable rim, as small blocks round it (drawn with the pool). */
   | 'rim'
+  /** The steps under a slide or a sled run, so it's solid (drawn as the ramp itself). */
+  | 'ramp'
   /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
   | 'duck'
   // The Snowy Park.
@@ -511,6 +570,20 @@ export interface MapData {
    * tree branch that leaves the trunk at `branch` (drawn only).
    */
   pinata?: { x: number; y: number; z: number; kind: PinataKind; branch?: { x: number; y: number; z: number } };
+  /** Slides, sled runs, zip lines and hamster tubes. */
+  rides?: RideDef[];
+  /** Buried treasure spots (dig with E). */
+  digs?: Vec2[];
+  /** A shooting gallery: its row of ducks is centered here (shooters stand south of it). */
+  gallery?: Vec2;
+  /** Bowling pins (roll a beach ball into them). */
+  pins?: Vec2[];
+  /** Hills to hold alone: a circle on top of something at height `z`. */
+  hills?: { x: number; y: number; z: number; radius: number }[];
+  /** Trampolines: whoever stands on one is bounced high. */
+  trampolines?: Circle[];
+  /** Seesaws: landing on end `a` launches whoever stands on `b`, and the other way round. */
+  seesaws?: { a: Vec2; b: Vec2 }[];
   /** The map's big toy: pressed at (x, y, z), acting at `at` (the same spot when omitted). */
   toy?: { kind: ToyKind; x: number; y: number; z: number; at?: Vec2 };
   /** Beach ball goals: a ball whose center rolls into `mouth` scores (the frame is in walls). */

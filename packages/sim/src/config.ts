@@ -449,6 +449,35 @@ export const config = {
     finalCenterMargin: 0.25,
   },
 
+  /** Mini-games with prizes (see systems/minigames.ts). */
+  games: {
+    /** Hold E this long to dig, within this of the spot. */
+    digTime: 1.6,
+    digRange: 1.2,
+    gallery: { targets: 5, spacing: 1.6, radius: 0.45, upTime: 1.4, gap: 0.45, need: 5, cooldown: 45 },
+    pins: { radius: 0.25, minSpeed: 2, reset: 40 },
+    hill: { hold: 10, cooldown: 60 },
+    /** Seconds before the same goal pays out again. */
+    goalCooldown: 30,
+  },
+
+  /** Slides, zip lines, tubes, trampolines and seesaws (see systems/rides.ts). */
+  rides: {
+    /** How close to a zip line's or tube's start E works, and to a slide's top to set off. */
+    pressRange: 1.4,
+    stepRange: 0.8,
+    /** Seconds after a ride before another can start. */
+    again: 1,
+    /** Falling faster than this when landing counts as landing (for seesaws). */
+    landSpeed: 3,
+    /** Take-off speed off a trampoline: apex about 4, onto a roof. */
+    trampolineSpeed: 15.5,
+    /** A seesaw's ends are this big; the other end launches up at this speed and is pushed on. */
+    seesawEnd: 0.9,
+    seesawSpeed: 14,
+    seesawPush: 5,
+  },
+
   /** The map's big toy (see systems/toys.ts). */
   toys: {
     interactRange: 1.6,

@@ -444,7 +444,7 @@ function frame(now: number): void {
   tootIfTrainComing(state, dt);
   mateArrows.update(isBackdrop(session) ? null : state, state.players.find((p) => p.id === followId), renderer.camera, canvas.clientWidth, canvas.clientHeight);
 
-  hud.update(state, me, f.alpha);
+  hud.update(state, me, f.alpha, world);
   touch.setActive(phase === 'playing' && !!me?.alive && !isBackdrop(session));
   if (me) input.heldSlot = me.activeSlot;
   touch.setGrabReady(hud.grabReady);

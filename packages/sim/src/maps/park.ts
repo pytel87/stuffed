@@ -8,7 +8,7 @@
 //   Snowman Garden (SW)   snowmen, lamp posts and benches
 //   Frozen Pond (C)       slippery ice (you slide) with ice blocks for cover; high loot in the middle
 // Coordinates: x to the right, y down the screen.
-import type { Building, ChestSpawn, Circle, Decor, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Decor, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 120;
 const C = SIZE / 2;
@@ -107,7 +107,12 @@ function igloo(cx: number, cy: number, door: number): { walls: Wall[]; building:
 }
 const IGLOOS = [igloo(106, 38, Math.PI), igloo(10, 50, 0), igloo(100, 72, Math.PI)];
 
-const walls: Wall[] = [...IGLOOS.flatMap((i) => i.walls), ...pond, ...forest, ...alley, ...fort, ...cabin, ...market, ...garden, ...scattered];
+// A sled hill: a snow mound (a step up onto it) with a run down to the east and a little jump.
+const sledHill: Wall[] = [w('snowwall', 2)(34.5, 70.5, 3, 3), w('snowwall', 0.9)(32.4, 71.3, 1.6, 1.4)];
+
+const rides: RideDef[] = [{ kind: 'sled', from: { x: 37.6, y: 72, z: 2 }, to: { x: 46.2, y: 72, z: 0 }, seconds: 1.1, boost: 12, hop: 8 }];
+
+const walls: Wall[] = [...IGLOOS.flatMap((i) => i.walls), ...pond, ...forest, ...alley, ...fort, ...cabin, ...market, ...garden, ...scattered, ...sledHill];
 const buildings: Building[] = [CABIN, ...IGLOOS.map((i) => i.building)];
 
 const bushes: Circle[] = [
@@ -210,6 +215,10 @@ export const PARK: MapData = {
   chestSpawns,
   // The air strike button: in the snow fort's yard, by the snow pile (a snowball barrage).
   strikeButton: { x: FX + 9, y: FY + 13.5, z: 0, kind: 'snowballs' },
+  rides,
+  // Buried treasure in the Snowman Garden, and a hill on top of the snow fort's north-west tower.
+  digs: [{ x: 24, y: 104 }, { x: 10, y: 88 }, { x: 30, y: 92 }],
+  hills: [{ x: FX + 0.75, y: FY + 0.75, z: 2.6, radius: 1.1 }],
   // A toy ice drill out on the frozen pond (beside the chest in the middle).
   toy: { kind: 'icedrill', x: 64, y: 62, z: 0 },
   // A big pink present (gold ribbon, unlike the stacks around it) in the middle of the Gift Market.

@@ -20,6 +20,7 @@ interface Seen {
   reloading: boolean;
   slot: 0 | 1;
   opening: boolean;
+  digging: boolean;
   charging: boolean;
   bubbled: boolean;
   bagging: boolean;
@@ -143,6 +144,25 @@ export class GameAudio {
         case 'pinataBurst':
           s.play('pinata_burst', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
+        case 'prize':
+          s.play('prize_fanfare', { at: e.pos, volume: 1, pitchSpread: 0 });
+          s.play('pinata_burst', { at: e.pos, volume: 0.7, pitchSpread: 0 });
+          break;
+        case 'duckHit':
+          s.play('duck_ding', { at: e.pos, volume: 0.9, pitchSpread: 0 });
+          break;
+        case 'pinDown':
+          s.play('pin_knock', { at: e.pos, volume: 0.8 });
+          break;
+        case 'rideStarted':
+          s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
+          break;
+        case 'rideEnded':
+          if (e.kind === 'tube') s.play('tube_pop', { at: e.pos, volume: 0.9 });
+          break;
+        case 'bounced':
+          s.play('ball_boing', { at: e.pos, volume: 0.8 });
+          break;
         case 'toyStarted':
           s.play(e.kind === 'jack' ? 'jack_tune' : e.kind === 'sprinkler' ? 'sprinkler_spray' : 'ice_crack', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
@@ -165,6 +185,7 @@ export class GameAudio {
         reloading: !!weapon && weapon.reloadEndTick !== null,
         slot: p.activeSlot,
         opening: p.action?.kind === 'openChest',
+        digging: p.action?.kind === 'dig',
         charging: p.chargeStartTick !== null,
         bubbled: state.tick < p.bubbledUntil,
         bagging: p.action?.kind === 'useItem' && p.action.item === 'big_stuffing_bag',
@@ -183,6 +204,7 @@ export class GameAudio {
         this.rattles.get(p.id)?.();
         this.rattles.delete(p.id);
       }
+      if (!before.digging && now.digging) s.play('dig_scrape', { at: p.pos, volume: mine ? 0.8 : 0.45 });
       if (!before.charging && now.charging) s.play('band_stretch', { at: p.pos, volume: mine ? 0.6 : 0.35, pitchSpread: 0 });
       if (before.bubbled && !now.bubbled) s.play('bubble_pop', { at: p.pos, volume: 0.7 });
       if (!before.bagging && now.bagging) s.play('bag_rustle', { at: p.pos, volume: mine ? 0.7 : 0.4 });

@@ -7,7 +7,8 @@
 //   Sandbox Desert (SW)   open sand, low sandcastles, half-buried chests
 //   Veggie Jungle (W)     planter rows and leafy bushes; low loot
 // Coordinates: x to the right, y down the screen (north = small y).
-import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, Vec2, Wall, WallKind } from '../types.ts';
+import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
+import { galleryWalls } from '../systems/minigames.ts';
 
 const SIZE = 128;
 const C = SIZE / 2;
@@ -175,6 +176,21 @@ const lawnBushes: Circle[] = [
   bush(30, 36, 2), bush(36, 22, 2),
 ];
 
+// A slide down from the middle of the treehouse's south edge, and a zip line from the platform
+// A shooting gallery on the lawn west of the house (shoot the ducks from the south).
+const GALLERY = { x: 44, y: 70 };
+
+// A seesaw on the north lawn.
+const SEESAWS = [{ a: { x: 48.5, y: 30 }, b: { x: 52.5, y: 30 } }];
+
+// to the house roof.
+const rides: RideDef[] = [
+    { kind: 'slide', from: { x: 26, y: 32.1, z: 2.7 }, to: { x: 26, y: 38.6, z: 0 }, seconds: 0.9, boost: 10 },
+    { kind: 'zip', from: { x: 33.2, y: 24.5, z: 2.7 }, to: { x: 54, y: 57, z: 2.6 }, seconds: 3.5, boost: 3 },
+    // ...and back again from the house roof.
+    { kind: 'zip', from: { x: 54, y: 57, z: 2.6 }, to: { x: 33.2, y: 24.5, z: 2.7 }, seconds: 3.5, boost: 3 },
+  ];
+
 // A small tree of its own out on the north lawn (between the house and the shed), with the
 // donkey piñata hanging from its branch.
 const PINATA_TREE = { x: 69.3, y: 37.3, w: 1.4, h: 1.4 };
@@ -182,6 +198,7 @@ const pinataTree: Wall[] = [w('trunk', 4.2)(PINATA_TREE.x, PINATA_TREE.y, PINATA
 
 const walls: Wall[] = [
   ...pinataTree,
+  ...galleryWalls(GALLERY),
   ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...poolRim(POOL), ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
 ];
 
@@ -275,6 +292,13 @@ export const BACKYARD: MapData = {
   chestSpawns,
   // The air strike button: up on the treehouse platform (water balloons).
   strikeButton: { x: 24, y: 23.5, z: 2.7, kind: 'balloons' },
+  rides,
+  gallery: GALLERY,
+  // Buried treasure in the sandbox.
+  digs: [{ x: 38, y: 97 }, { x: 22, y: 108 }, { x: 18, y: 92 }],
+  // A trampoline by the house's north wall (bounce up onto the roof), and a seesaw on the lawn.
+  trampolines: [{ center: { x: 60, y: 50.5 }, radius: 1.4 }],
+  seesaws: SEESAWS,
   // A garden tap on the house's east wall; its hose runs to a sprinkler out on the lawn.
   toy: { kind: 'sprinkler', x: 76.6, y: 58, z: 0, at: { x: 86, y: 60 } },
   // A paper donkey piñata hanging from the branch of its own little tree.

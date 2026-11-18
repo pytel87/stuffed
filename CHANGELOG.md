@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Slides, zip line, trampoline and mini-games (2026-11-19)
+
+- Getting around: a trampoline (onto the house roof) and a seesaw in the Backyard; slides off the
+  treehouse and the bed (walk up them, solid from the sides); a sled hill with a little jump in
+  the Snowy Park; a two-way zip line between the treehouse and the house roof; a solid hamster
+  tube across the Bedroom floor (you're hidden inside).
+- Mini-games with prizes: buried treasure (Backyard sandbox, Snowman Garden), a shooting gallery
+  (five ducks in a row), bowling (Bedroom), king of the hill (castle keep, fort tower), and the
+  beach-ball goals now drop a weapon.
+- Map toys show a gold ring filling up while they recharge and the loot glow when ready.
+- Roofs no longer flicker (or hide you) while you jump up onto them.
+- Knocked out: "Vypárali tě!". Protocol 13.
+
 ## Air strikes, piñatas and map toys (2026-11-18)
 
 - An air strike button on every map (a red push button on a hazard-striped box): water balloons
