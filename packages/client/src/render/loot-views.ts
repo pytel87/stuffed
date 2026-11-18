@@ -336,26 +336,47 @@ export function buildItem(kind: ItemKind): THREE.Group {
       break;
     }
     case 'button_jar': {
-      // A glass jar full of colorful buttons, with a red lid.
-      const glass = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.22, 0.22, 0.4, 20),
-        new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.35, depthWrite: false }),
-      );
-      glass.position.y = 0.2;
-      g.add(glass);
-      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.235, 0.42, 20), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
-      rim.position.y = 0.2;
-      g.add(rim);
+      // A glass jar of colorful buttons tipped on its side, lid off, a few buttons spilled out of
+      // its mouth (from above you see the buttons, not just a lid).
       const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf'];
-      for (let i = 0; i < 12; i++) {
-        const button = toonMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.025, 12), colors[i % colors.length]!, { outline: false });
+      const jar = new THREE.Group();
+      jar.position.set(-0.06, 0.2, 0);
+      jar.rotation.z = Math.PI / 2;
+      const glass = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.2, 0.42, 20, 1, true),
+        new THREE.MeshBasicMaterial({ color: '#d4f4ff', transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
+      );
+      jar.add(glass);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.215, 0.44, 20, 1, true), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
+      jar.add(rim);
+      const bottom = toonMesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 20), '#bfe6f5', { outline: false });
+      bottom.position.y = -0.21;
+      jar.add(bottom);
+      // Buttons heaped inside.
+      for (let i = 0; i < 10; i++) {
+        const button = toonMesh(new THREE.CylinderGeometry(0.065, 0.065, 0.025, 12), colors[i % colors.length]!, { outline: false });
         const a = i * 2.4;
-        button.position.set(Math.cos(a) * 0.11 * ((i % 3) / 2), 0.05 + Math.floor(i / 3) * 0.075, Math.sin(a) * 0.11 * ((i % 3) / 2));
+        button.position.set(-0.08 - Math.abs(Math.sin(a)) * 0.06, -0.15 + (i / 10) * 0.32, Math.cos(a) * 0.09);
         button.rotation.set(i * 0.7, 0, i * 0.4);
-        g.add(button);
+        jar.add(button);
       }
-      const lid = toonMesh(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 20), '#e2433f', { outline: 0.06 });
-      lid.position.y = 0.44;
+      g.add(jar);
+      // Spilled out of the open mouth.
+      for (const [x, z, c, r] of [[0.24, 0.04, 0, 0.2], [0.32, -0.1, 1, 1.1], [0.36, 0.13, 2, 2.3], [0.2, -0.18, 3, 0.7]] as const) {
+        const button = toonMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 14), colors[c]!, { outline: 0.1 });
+        button.position.set(x, 0.02, z);
+        button.rotation.y = r;
+        g.add(button);
+        for (const [hx, hz] of [[-0.02, -0.02], [0.02, -0.02], [-0.02, 0.02], [0.02, 0.02]] as const) {
+          const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.035, 5), toonMaterial(OUTLINE_COLOR, { map: null }));
+          hole.position.set(x + hx, 0.022, z + hz);
+          g.add(hole);
+        }
+      }
+      // The red lid lying beside it.
+      const lid = toonMesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 20), '#e2433f', { outline: 0.06 });
+      lid.position.set(-0.12, 0.03, -0.32);
+      lid.rotation.x = 0.15;
       g.add(lid);
       break;
     }
