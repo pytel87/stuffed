@@ -121,6 +121,8 @@ export class Room extends Server<Env> {
         if (seat?.profileToken) void this.attachProfile(seat, seat.profileToken);
         return;
       }
+      case 'lobby':
+        return this.backToLobby(conn);
       case 'ping':
         return this.send(conn, { t: 'pong', c: Number(msg.c) || 0, s: Date.now() });
       default:
@@ -204,6 +206,17 @@ export class Room extends Server<Env> {
 
   private broadcastLobby(): void {
     this.broadcast(JSON.stringify(this.lobbyMessage()));
+  }
+
+  /** The host, after a match: everyone goes back to the lobby (same room, same seats). */
+  private backToLobby(conn: Connection<ConnState>): void {
+    const seat = conn.state?.seat;
+    if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
+    if (this.phase !== 'ended') return;
+    this.phase = 'lobby';
+    this.match = null;
+    this.stopLoop();
+    this.broadcastLobby();
   }
 
   private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean, level: unknown, mapId: unknown): void {

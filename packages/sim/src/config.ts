@@ -281,6 +281,8 @@ export const config = {
     /** Lobbed throws: launch height above the feet and how fast they fall (units/s²). */
     throwHeight: 1.4,
     throwGravity: 22,
+    /** Movement speed while covered in glitter (sticky, and sparkling for all to see). */
+    glitterMoveMultiplier: 0.7,
     /** Movement speed while charging a Rubber Band Rifle. */
     chargeMoveMultiplier: 0.65,
     /** A burst at the edge of its radius does this share of its damage (full in the middle). */

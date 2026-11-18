@@ -74,11 +74,18 @@ const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floa
 const mateArrows = new TeammateArrows(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const zoneNames = new ZoneNames(hudEl);
-const endScreen = new EndScreen(document.body, playAgain, spectate, showMenu, () =>
-  // Back to the results card, unless the next match started meanwhile.
-  openWardrobe(endScreen, () => {
-    if (phase === 'over' || phase === 'out') endScreen.reopen();
-  }),
+const endScreen = new EndScreen(
+  document.body,
+  playAgain,
+  spectate,
+  showMenu,
+  () =>
+    // Back to the results card, unless the next match started meanwhile.
+    openWardrobe(endScreen, () => {
+      if (phase === 'over' || phase === 'out') endScreen.reopen();
+    }),
+  () => room?.toLobby(),
+  () => !!room?.isHost && room.lobby?.phase === 'ended',
 );
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
@@ -309,8 +316,16 @@ function joinRoom(code: string): void {
     // (Not over the Wardrobe: the lobby comes back when it closes.)
     if (room.lobby?.phase === 'lobby' && !room.match && !wardrobe.visible) lobbyScreen.show();
     else lobbyScreen.render();
+    endScreen.refreshLobby();
   };
   room.onMatch = (match) => beginMatch(match);
+  // The host took everyone back to the lobby: bots play in the background again until the next start.
+  room.onBackToLobby = () => {
+    endScreen.hide();
+    spectateEl.hidden = true;
+    beginMatch(newBackdrop());
+    hudEl.classList.add('idle');
+  };
 }
 
 function playerName(): string {

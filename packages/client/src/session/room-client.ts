@@ -55,6 +55,8 @@ export class RoomClient {
   onMatch: (match: NetworkMatch) => void = () => {};
   /** After a match: the parts that went into your collection. */
   onKept: (parts: Part[]) => void = () => {};
+  /** The host took everyone back to the lobby after a match. */
+  onBackToLobby: () => void = () => {};
   private readonly socket: PartySocket;
 
   /**
@@ -100,6 +102,11 @@ export class RoomClient {
     this.send({ t: 'start', bots, teams, level, ...(mapId ? { mapId } : {}) });
   }
 
+  /** Host, after a match: take everyone back to the lobby. */
+  toLobby(): void {
+    this.send({ t: 'lobby' });
+  }
+
   /** Your look changed in the Wardrobe: the next match starts you in it. */
   lookChanged(): void {
     this.send({ t: 'look' });
@@ -115,6 +122,7 @@ export class RoomClient {
     this.onLobby = () => {};
     this.onMatch = () => {};
     this.onKept = () => {};
+    this.onBackToLobby = () => {};
     this.socket.close();
   }
 
@@ -125,6 +133,11 @@ export class RoomClient {
         break;
       case 'lobby':
         this.lobby = msg;
+        // The host took everyone back to the lobby: the match is over for good.
+        if (msg.phase === 'lobby' && this.match) {
+          this.match = null;
+          this.onBackToLobby();
+        }
         this.onLobby();
         break;
       case 'start':

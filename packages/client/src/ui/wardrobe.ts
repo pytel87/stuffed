@@ -107,14 +107,12 @@ export class Wardrobe {
       const pick = (e.target as HTMLElement).closest<HTMLElement>('[data-animal]');
       if (pick) this.wear({ [this.selected]: pick.dataset.animal as Animal });
     });
-    // In the gallery: an owned part puts it on; a complete set puts on all five.
+    // In the gallery: tapping an animal's card puts on every part of it you own, and goes back
+    // to the Wardrobe to show the look.
     this.gallery.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const part = target.closest<HTMLElement>('.gallery-part.owned');
-      const card = target.closest<HTMLElement>('.gallery-card.complete');
-      if (part) this.wear({ [part.dataset.slot as PartSlot]: part.dataset.animal as Animal }, part.dataset.slot as PartSlot);
-      else if (card) this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, card.dataset.animal as Animal])));
-      else return;
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.gallery-card.owned');
+      if (!card) return;
+      this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, card.dataset.animal as Animal])));
       this.showGallery(false);
     });
 
@@ -183,7 +181,7 @@ export class Wardrobe {
         (slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}" data-slot="${slot}" data-animal="${animal}">${partIcon(slot, animal)}</span>`,
       ).join('');
       const picture = pictures.get(animal);
-      return `<div class="gallery-card tier-${tier}${count === PART_SLOTS.length ? ' complete' : ''}" data-animal="${animal}">
+      return `<div class="gallery-card tier-${tier}${count > 0 ? ' owned' : ''}${count === PART_SLOTS.length ? ' complete' : ''}" data-animal="${animal}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
         <b class="gallery-tier">${'★'.repeat(tier)}</b>
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>

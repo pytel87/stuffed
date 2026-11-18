@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Back to the lobby (2026-11-18)
+
+- After a room match, the host gets a Lobby button: everyone goes back to the same room's lobby
+  (same code, same seats) to change the map, bots, teams or bot level before the next match.
+  Protocol version 8.
+- Gallery: tapping an animal's card puts on every part of it you own and goes back to the
+  Wardrobe.
+- Glitter also slows plushies down (to 70% speed) while they sparkle.
+
 ## Glitter that gives you away (2026-11-18)
 
 - The Glitter Bomb no longer blinds: everyone in the burst is covered in glitter for 8 s, a

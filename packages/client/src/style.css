@@ -515,6 +515,10 @@ button {
   padding: 0.2rem;
 }
 
+.gallery-card.owned {
+  cursor: pointer;
+}
+
 .gallery-card {
   position: relative;
   display: grid;

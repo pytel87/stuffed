@@ -45,6 +45,7 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     (player.action?.kind === 'useItem' ? config.itemUseMoveMultiplier : 1) *
     (player.chargeStartTick !== null ? config.combat.chargeMoveMultiplier : 1) *
     (state.tick < player.juiceUntil ? config.itemEffects.juice.speedMultiplier : 1) *
+    (state.tick < player.glitteredUntil ? config.combat.glitterMoveMultiplier : 1) *
     (player.soggy ? config.player.soggySpeedMultiplier : 1) *
     (wading(world, player) ? config.player.wadeSpeedMultiplier : 1);
   player.vel.x += (move.x * speed - player.vel.x) * ACCEL_BLEND;

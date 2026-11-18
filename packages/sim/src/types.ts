@@ -154,7 +154,7 @@ export interface Player {
   chargeStartTick: Tick | null;
   /** Trapped in a bubble until this tick: can't move, shoot, pick up or use items. */
   bubbledUntil: Tick;
-  /** Covered in glitter until this tick: sparkles, and can't hide in bushes or under roofs. */
+  /** Covered in glitter until this tick: sparkles, can't hide in bushes or under roofs, and moves slower. */
   glitteredUntil: Tick;
   /** A Juice Box keeps healing and speeding this plush up until this tick. */
   juiceUntil: Tick;

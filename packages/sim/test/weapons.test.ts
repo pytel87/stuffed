@@ -103,6 +103,14 @@ describe('Glitter Bomb', () => {
     expect(canSee(g.world, g.state, g.you, g.other)).toBe(false);
     g.state.tick = now;
     g.other.inBush = false;
+    // ...and slowed down while it lasts.
+    const x0 = g.other.pos.x;
+    g.play(15, {}, { moveX: 1 });
+    const glittered = g.other.pos.x - x0;
+    g.other.glitteredUntil = 0;
+    const x1 = g.other.pos.x;
+    g.play(15, {}, { moveX: 1 });
+    expect(glittered).toBeLessThan((g.other.pos.x - x1) * 0.8);
 
     g.play(30, fire);
     g.play(1, {});

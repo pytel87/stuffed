@@ -29,8 +29,21 @@ export class EndScreen {
   private readonly spectate: HTMLButtonElement;
 
   private readonly wardrobe: HTMLButtonElement;
+  private readonly lobby: HTMLButtonElement;
 
-  constructor(root: HTMLElement, onPlayAgain: () => void, onSpectate: () => void, onMenu: () => void, onWardrobe: () => void) {
+  /**
+   * `canLobby`: whether to offer Lobby (online, the host, once the match is over) — back to the
+   * room's lobby to change the map, bots or teams.
+   */
+  constructor(
+    root: HTMLElement,
+    onPlayAgain: () => void,
+    onSpectate: () => void,
+    onMenu: () => void,
+    onWardrobe: () => void,
+    onLobby: () => void = () => {},
+    private readonly canLobby: () => boolean = () => false,
+  ) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="overlay end" hidden role="dialog" aria-modal="true" aria-labelledby="end-title">
@@ -45,6 +58,7 @@ export class EndScreen {
            <div class="row">
              <button type="button" class="big primary end-again"></button>
              <button type="button" class="big end-spectate"><span>Watch</span></button>
+             <button type="button" class="big end-lobby" hidden><span>Lobby</span></button>
            </div>
          </div>
        </div>`,
@@ -62,6 +76,13 @@ export class EndScreen {
     this.el.querySelector('.end-menu')!.addEventListener('click', onMenu);
     this.wardrobe = this.el.querySelector('.end-wardrobe')!;
     this.wardrobe.addEventListener('click', onWardrobe);
+    this.lobby = this.el.querySelector('.end-lobby')!;
+    this.lobby.addEventListener('click', onLobby);
+  }
+
+  /** Shows or hides Lobby (it becomes available when the room's match ends). */
+  refreshLobby(): void {
+    this.lobby.hidden = !this.canLobby();
   }
 
   get visible(): boolean {
@@ -79,6 +100,7 @@ export class EndScreen {
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
     this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>Host…</span>` : `<span>Again</span><kbd>Enter</kbd>`;
+    this.refreshLobby();
     this.el.hidden = false;
   }
 
