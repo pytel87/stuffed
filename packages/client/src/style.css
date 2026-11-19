@@ -1632,14 +1632,9 @@ body.touch-mode .prompt .icon.tap {
   display: none;
 }
 
-/* On touch: just a round jump button at the bottom middle (no pill, no key). */
+/* On touch the jump button already drops you (or lets go of a zip line): no second one. */
 body.touch-mode #toss-hint {
-  bottom: calc(var(--safe-b) + var(--edge));
-  width: 4.6rem;
-  height: 4.6rem;
-  padding: 0;
-  justify-content: center;
-  border-radius: 50%;
+  display: none;
 }
 
 #spectating .spec-label {

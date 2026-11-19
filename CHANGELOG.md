@@ -17,6 +17,12 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Backyard: the lawnmower's lane is mowed short, a lighter striped strip with wheel tracks, so you
   can see where it'll drive (the snowplow already had its plowed lane).
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
+- On touch, no second jump button in the middle while on the blimp or a zip line: the jump
+  button drops you.
+- Snowy Park's lampposts: a matte cap with snow on its tip (a glossy highlight and a ball of snow
+  overlapped on top).
+- No more thin lines on the log cabin's snowy roof (the snow along the tops of its walls showed
+  through).
 - Cardboard Walls stand until they're shot down: no more folding away after 20 seconds, and no
   limit of three per plush. Protocol 17.
 - Jumping off the zip line stops its whir.

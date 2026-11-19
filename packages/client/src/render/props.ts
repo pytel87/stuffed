@@ -928,9 +928,10 @@ export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 +
     }
     case 'log': {
       if (H > 1.5) {
-        // A log wall: stacked logs, snow along the top.
+        // A log wall: stacked logs, snow along the top (not under a roof: none falls there, and its
+        // outline showed through the cabin's roof as thin lines).
         add(outlinedBox(b.w, H, b.h, toonMaterial('#ffffff', { map: tiled(logWallTexture(), Math.max(b.w, b.h) / 3, H / 2.8) })), H / 2);
-        add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.1, 0.12, b.h + 0.1), toonMaterial('#ffffff', { map: snowTexture() })), H + 0.02);
+        if (!underRoof) add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.1, 0.12, b.h + 0.1), toonMaterial('#ffffff', { map: snowTexture() })), H + 0.02);
         break;
       }
       // A fallen log lying along its long side, rings on its ends and snow on top.
@@ -957,14 +958,16 @@ export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 +
       break;
     }
     case 'lamppost': {
-      // An old park lamp: a dark green post, a glowing lantern and a little snow cap.
+      // An old park lamp: a dark green post, a glowing lantern and a pointed cap with snow on its tip.
       const green = makePlastic(flat('#2f5d4a'));
       add(toonMesh(new THREE.CylinderGeometry(0.22, 0.28, 0.3, 12), '#2f5d4a', { outline: 0.08, material: green }), 0.15);
       add(toonMesh(new THREE.CylinderGeometry(0.08, 0.1, H - 0.6, 10), '#2f5d4a', { outline: 0.12, material: green }), (H - 0.6) / 2 + 0.2);
       const glow = new THREE.MeshToonMaterial({ color: '#fff3b0', emissive: '#ffcf5a', emissiveIntensity: 0.9, gradientMap: null });
       add(toonMesh(new THREE.BoxGeometry(0.34, 0.4, 0.34), '#fff3b0', { outline: 0.1, material: glow }), H - 0.3);
-      add(toonMesh(new THREE.ConeGeometry(0.3, 0.22, 4), '#2f5d4a', { outline: 0.1, material: green }).rotateY(Math.PI / 4), H - 0.02);
-      add(toonMesh(new THREE.SphereGeometry(0.16, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#ffffff', { outline: false }), H + 0.05);
+      // (Matte: glossy, one flat face of it caught a big pale highlight.)
+      add(toonMesh(new THREE.ConeGeometry(0.3, 0.22, 4), '#2f5d4a', { outline: 0.1, material: flat('#2f5d4a') }).rotateY(Math.PI / 4), H - 0.02);
+      // The snow: the cap's top, a hair bigger, fitting over it (a ball on its point overlapped it).
+      add(toonMesh(new THREE.ConeGeometry(0.2, 0.15, 4), '#ffffff', { outline: false, material: toonMaterial('#ffffff', { map: snowTexture() }) }).rotateY(Math.PI / 4), H + 0.025);
       break;
     }
     case 'train': {
