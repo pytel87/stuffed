@@ -55,8 +55,8 @@ let seed = Number(params.get('seed')) || Date.now() >>> 0;
 const profiles = new ProfileStore();
 const newSolo = () =>
   new LocalSession(input, { seed, zoneTimeScale, map: savedMap(), botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
-/** Bots only, behind the title menu and the lobby. */
-const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 9, watchOnly: true, map: savedMap() });
+/** Bots only, behind the title menu and the lobby (a few: it runs on the player's device the whole time). */
+const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 4, watchOnly: true, map: savedMap() });
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
 let mode: 'menu' | 'solo' | 'online' = 'menu';
 /** The match being shown: solo (in the browser), online (from the server) or the menu backdrop. */

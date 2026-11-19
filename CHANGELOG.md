@@ -14,6 +14,9 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   instead of a house and a question mark.
 - Online, the lobby's and the results card's leave buttons ask before you give up your seat in
   the room (solo, the results card still goes straight to the menu).
+- Backyard: the lawnmower's lane is mowed short, a lighter striped strip with wheel tracks, so you
+  can see where it'll drive (the snowplow already had its plowed lane).
+- Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 
 ## Fixes (2026-11-19)
 

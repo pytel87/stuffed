@@ -587,7 +587,7 @@ export interface Ground {
   kind:
     | 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor' | 'rug'
     // The Backyard's
-    | 'mulch' | 'gravel' | 'patio' | 'clover'
+    | 'mulch' | 'gravel' | 'patio' | 'clover' | 'mowed'
     // the Bedroom's
     | 'carpet' | 'playmat' | 'drawing'
     // and the Snowy Park's.

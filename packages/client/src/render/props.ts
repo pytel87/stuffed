@@ -257,6 +257,8 @@ export const bigDrawingTexture = () => plainUntilLoaded('paper_drawing', '#fbf8f
 export const needlesTexture = () => plainUntilLoaded('ground_needles', '#a27a58', { seamless: true, soften: 0.35 });
 /** Snowy cobblestones (Gift Market). */
 export const cobblesTexture = () => plainUntilLoaded('ground_cobbles', '#b9c3d0', { soften: 0.15 });
+/** Short mowed grass with stripes and wheel tracks running north-south (the lawnmower's lane). */
+export const mowedTexture = () => plainUntilLoaded('ground_mowed', '#8cc63f', { seamless: true, soften: 0.15 });
 /** Packed, plowed snow with tire tracks (the snowplow's lane). */
 export const plowedTexture = () => plainUntilLoaded('ground_packed_snow', '#e4edf6', { seamless: true });
 

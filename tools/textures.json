@@ -99,6 +99,9 @@
     "ground_packed_snow": {
       "prompt": "A snowplowed path for toys: packed smooth snow, slightly bluish white, with faint tire tread tracks running left to right and a few boot prints, cheerful storybook style"
     },
+    "ground_mowed": {
+      "prompt": "Green felt lawn for toys freshly mowed short and even, a little lighter and more yellow-green than long grass, with soft mowing stripes and two faint wheel tracks running top to bottom and a few scattered grass clippings, cheerful storybook style"
+    },
     "rug_braided": {
       "prompt": "A round braided rag rug seen from straight above, the circle filling the whole square and touching all four edges, concentric coils of chunky three-strand fabric braid in soft pastel rainbow colors (pink, cream, sky blue, lilac, mint green), cozy storybook style. Flat top-down orthographic view, even soft lighting, no shadows, no perspective, plain light cream in the corners outside the rug, no text",
       "panel": true

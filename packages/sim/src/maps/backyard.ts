@@ -257,6 +257,8 @@ const grounds: Ground[] = [
   { kind: 'mulch', circle: { center: { x: 28, y: 27 }, radius: 11 } },
   { kind: 'clover', circle: { center: { x: 68, y: 26 }, radius: 8 } },
   { kind: 'clover', circle: { center: { x: 74, y: 112 }, radius: 7 } },
+  // The lawnmower's lane, mowed short (so you can see where it'll drive).
+  { kind: 'mowed', box: { x: 54.6, y: 78.6, w: 2.8, h: 30.8 } },
   // Stepping stones up to the patio from each side.
   { kind: 'stones', box: { x: 62.5, y: 77, w: 3, h: 7 } },
   { kind: 'stones', box: { x: 62.5, y: 42.3, w: 3, h: 4.7 } },

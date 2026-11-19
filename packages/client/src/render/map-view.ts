@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
 import {
-  carpetTexture, cloverTexture, bigDrawingTexture, cobblesTexture, dirtTexture, drift, gravelTexture, iceTexture, lawnTexture, mulchTexture, needlesTexture,
+  carpetTexture, cloverTexture, bigDrawingTexture, cobblesTexture, dirtTexture, drift, gravelTexture, iceTexture, lawnTexture, mowedTexture, mulchTexture, needlesTexture,
   outlineProp, patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
 } from './props.ts';
 import { mergeStatic } from './merge-static.ts';
@@ -53,13 +53,15 @@ export function buildMapView(map: MapData): THREE.Group {
 /** How the newer patches look: their texture, the size of one repeat, how much they're tinted
  *  in soft blobs (like the lawn, so a meadow matches the grass round it), how wide their edge
  *  fades into the ground round them (none: a crisp edge, for things laid down like a patio or a
- *  mat), and how high they lie (underlays, like the patio round the house, below the floor on them). */
+ *  mat), how high they lie (underlays, like the patio round the house, below the floor on them), and a tint. */
 interface Look {
   texture: () => THREE.Texture;
   tile: number;
   tint?: number;
   feather?: number;
   y?: number;
+  /** Multiplies the texture (to match it to the ground round it). */
+  color?: string;
 }
 const LOOKS: Partial<Record<Ground['kind'], Look>> = {
   dirt: { texture: dirtTexture, tile: 8, tint: 0.1, feather: 1.6 },
@@ -72,6 +74,7 @@ const LOOKS: Partial<Record<Ground['kind'], Look>> = {
   needles: { texture: needlesTexture, tile: 5, tint: 0.12, feather: 2.6 },
   cobbles: { texture: cobblesTexture, tile: 9, feather: 1.8 },
   plowed: { texture: plowedTexture, tile: 6, feather: 1.2 },
+  mowed: { texture: mowedTexture, tile: 4, tint: 0.2, feather: 1, color: '#d6ecc8' },
 };
 
 function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
@@ -151,7 +154,7 @@ function lookPatch(ground: Ground, look: Look, map: MapData): THREE.Mesh {
   const h = (circle ? circle.radius * 2.2 : box.h) + feather * 2;
   const step = feather ? 0.5 : 8;
   const geometry = new THREE.PlaneGeometry(w, h, Math.ceil(w / step), Math.ceil(h / step)).rotateX(-Math.PI / 2);
-  const material = toonMaterial('#ffffff', { map: tiled(look.texture(), w / look.tile, h / look.tile) });
+  const material = toonMaterial(look.color ?? '#ffffff', { map: tiled(look.texture(), w / look.tile, h / look.tile) });
   if (look.tint) patches(geometry, map, look.tint, cx, cz);
   if (feather) {
     // How far outside its shape each point is (negative inside); a circle's edge wobbles round it.
