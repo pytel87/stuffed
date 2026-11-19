@@ -557,12 +557,11 @@ export interface Toss {
   endTick: Tick;
 }
 
-/** A Cardboard Wall someone put up: a wall that breaks when shot enough and folds away in time. */
+/** A Cardboard Wall someone put up: a wall that stands until it's shot down. */
 export interface PlacedWall extends Wall {
   id: EntityId;
   ownerId: EntityId;
   health: number;
-  expireTick: Tick;
 }
 
 /** A solid box standing on the ground. Plushies can jump onto and over walls low enough. */

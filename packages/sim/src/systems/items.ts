@@ -63,7 +63,7 @@ function applyItem(state: GameState, player: Player, kind: ItemKind, input: Inpu
 
 /**
  * Cardboard Wall: stands up in front of you, across your aim (walls are boxes, so it faces the
- * nearest of the four directions). Each plush has only so many up at once; the oldest goes.
+ * nearest of the four directions). It stays until it's shot (or bonked, or blown) down.
  */
 function placeWall(state: GameState, player: Player): void {
   const w = config.itemEffects.wall;
@@ -82,10 +82,7 @@ function placeWall(state: GameState, player: Player): void {
     height: w.height,
     kind: 'cardboard',
     health: w.health,
-    expireTick: state.tick + secondsToTicks(w.seconds),
   };
-  const mine = state.placedWalls.filter((p) => p.ownerId === player.id);
-  if (mine.length >= w.perPlayer) removeWall(state, mine[0]!.id);
   state.placedWalls.push(wall);
   state.events.push({ type: 'wallPlaced', wallId: wall.id, playerId: player.id });
 }
@@ -96,9 +93,3 @@ export function removeWall(state: GameState, id: number): void {
   if (i !== -1) state.placedWalls.splice(i, 1);
 }
 
-/** Cardboard Walls fold away when their time is up. */
-export function expireWalls(state: GameState): void {
-  for (let i = state.placedWalls.length - 1; i >= 0; i--) {
-    if (state.tick >= state.placedWalls[i]!.expireTick) state.placedWalls.splice(i, 1);
-  }
-}

@@ -1,13 +1,10 @@
-// Cardboard Walls put up during the match: they pop up, wobble when hit, flicker when about to
-// fold away, and burst into cardboard bits when shot down (see Effects.cardboard).
+// Cardboard Walls put up during the match: they pop up, wobble when hit, and burst into cardboard
+// bits when shot down (see Effects.cardboard). They stand until then.
 import * as THREE from 'three';
-import { DT } from '@stuffed/sim';
 import type { EntityId, GameState, PlacedWall } from '@stuffed/sim';
 import { buildWall } from './props.ts';
 
 const POP_SECONDS = 0.2;
-/** Starts flickering this long before it folds away. */
-const WARN_SECONDS = 3;
 
 interface View {
   obj: THREE.Object3D;
@@ -46,8 +43,6 @@ export class PlacedWallViews {
       const pop = Math.min(1, view.age / POP_SECONDS);
       view.obj.scale.set(1, pop, 1);
       view.obj.rotation.z = Math.sin(time * 60) * 0.03 * view.shake;
-      const left = (wall.expireTick - state.tick) * DT;
-      view.obj.visible = left > WARN_SECONDS || Math.sin(time * 18) > -0.3;
     }
     const gone: PlacedWall[] = [];
     for (const [id, view] of this.views) {

@@ -211,7 +211,8 @@ const itemEffects = {
   /** Juice Box: stuffing per second while it lasts, for this long, and a speed boost meanwhile. */
   juice: { regenPerSecond: 5, seconds: 10, speedMultiplier: 1.15 },
   /** Cardboard Wall: size, how far in front it stands, how long, how many hits' worth of damage. */
-  wall: { length: 3, thickness: 0.5, height: 1.4, distance: 1.6, seconds: 20, health: 60, perPlayer: 3 },
+  /** A Cardboard Wall: stands until shot down (no time limit, no limit on how many). */
+  wall: { length: 3, thickness: 0.5, height: 1.4, distance: 1.6, health: 60 },
 } as const;
 
 export interface RarityStats {

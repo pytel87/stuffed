@@ -3,7 +3,7 @@ import { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
 import { updateBalls } from './systems/balls.ts';
 import { plowLoot } from './systems/train.ts';
 import { checkWinner } from './systems/damage.ts';
-import { expireWalls, updateItemUse } from './systems/items.ts';
+import { updateItemUse } from './systems/items.ts';
 import { autoPickupItems, dropEverything, dropFromSlot, hasDrops, updateInteraction } from './systems/loot.ts';
 import { applyAim, buildingAt, insideBush, movePlayer, separatePlayers } from './systems/movement.ts';
 import { updateProjectiles } from './systems/projectiles.ts';
@@ -30,7 +30,6 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   state.tick++;
   state.events = [];
   // Walls put up this match count as walls for everything below.
-  expireWalls(state);
   world.placed = state.placedWalls;
 
   const clean = new Map<EntityId, Input>();

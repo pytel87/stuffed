@@ -97,15 +97,15 @@ describe('Cardboard Wall', () => {
     expect(g.events.some((e) => e.type === 'wallBroken')).toBe(true);
   });
 
-  it('folds away after a while, and only so many stand per plush', () => {
+  it('stands until shot down: no time limit, and every one put up stays', () => {
     const g = holding('cardboard_wall', config.items.cardboard_wall.maxStack);
     for (let i = 0; i < 2; i++) {
       g.play(1, use);
       g.play(secondsToTicks(1.1), { aimX: i ? 0 : 1, aimY: i ? 1 : 0 });
     }
     expect(g.state.placedWalls).toHaveLength(2);
-    g.play(secondsToTicks(config.itemEffects.wall.seconds));
-    expect(g.state.placedWalls).toHaveLength(0);
+    g.play(secondsToTicks(120));
+    expect(g.state.placedWalls).toHaveLength(2);
   });
 
   it("can't be put up from a roof", () => {

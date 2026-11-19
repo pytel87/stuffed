@@ -76,8 +76,9 @@ export class GameAudio {
   private readonly seen = new Map<EntityId, Seen>();
   /** Chest rattles still playing, to cut short when the opening stops early. */
   private readonly rattles = new Map<EntityId, () => void>();
-  /** Item-use sounds still playing, likewise. */
+  /** Item-use sounds still playing, likewise; and zip line whirs (cut short on letting go). */
   private readonly uses = new Map<EntityId, () => void>();
+  private readonly zips = new Map<EntityId, () => void>();
   /** When each plush last yelped (so a hail of darts is a yelp or two, not one per dart). */
   private readonly yelped = new Map<EntityId, number>();
   /** The winners have cheered (the victory lap is on). */
@@ -90,9 +91,10 @@ export class GameAudio {
     this.seen.clear();
     this.yelped.clear();
     this.cheered = false;
-    for (const stop of [...this.rattles.values(), ...this.uses.values()]) stop();
+    for (const stop of [...this.rattles.values(), ...this.uses.values(), ...this.zips.values()]) stop();
     this.rattles.clear();
     this.uses.clear();
+    this.zips.clear();
   }
 
   private map: MapData | null = null;
@@ -248,11 +250,18 @@ export class GameAudio {
         case 'pinDown':
           s.play('pin_knock', { at: e.pos, volume: 0.8 });
           break;
-        case 'rideStarted':
-          s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : e.kind === 'catapult' ? 'ball_boing' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
+        case 'rideStarted': {
+          const stop = s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : e.kind === 'catapult' ? 'ball_boing' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
+          if (e.kind === 'zip') this.zips.set(e.playerId, stop);
           break;
+        }
         case 'rideEnded':
           if (e.kind === 'tube') s.play('tube_pop', { at: e.pos, volume: 0.9 });
+          // Off the zip line (at its end, or let go early with Jump): its whir stops.
+          if (e.kind === 'zip') {
+            this.zips.get(e.playerId)?.();
+            this.zips.delete(e.playerId);
+          }
           break;
         case 'bounced':
           s.play('ball_boing', { at: e.pos, volume: 0.8 });
