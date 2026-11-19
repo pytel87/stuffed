@@ -179,6 +179,8 @@ function glitterFlakeTexture(): THREE.CanvasTexture {
 export class PlushView {
   readonly root = new THREE.Group();
   private readonly lean = new THREE.Group();
+  /** How far into the winner's dance (0..1, eased; see dance). */
+  private danceAmount = 0;
   private readonly facing = new THREE.Group();
   private readonly squash = new THREE.Group();
   private readonly slots = {} as Record<PartSlot, THREE.Group>;
@@ -447,6 +449,26 @@ export class PlushView {
   }
 
   /** Gliding down from the Toss under an umbrella. */
+  /**
+   * The winner's dance (after update, which it adds to): hops in time, wiggles side to side and
+   * spins round now and then. `on` eases it in and out, so walking off to loot stops it smoothly.
+   */
+  dance(on: boolean, dt: number, time: number): void {
+    this.danceAmount += ((on ? 1 : 0) - this.danceAmount) * (1 - Math.exp(-6 * dt));
+    const k = this.danceAmount;
+    if (k < 0.01) return;
+    const beat = time * 7;
+    // The whole plush hops (feet and all; update put it back on the ground this frame).
+    this.root.position.y += Math.abs(Math.sin(beat)) * 0.28 * k;
+    const s = Math.sin(beat * 2) * 0.08 * k;
+    this.squash.scale.set(this.squash.scale.x * (1 + s), this.squash.scale.y * (1 - s), this.squash.scale.z * (1 + s));
+    this.lean.rotation.z += Math.sin(beat * 0.5) * 0.22 * k;
+    // A full turn every couple of seconds, quick, then a pause facing the camera's way.
+    const cycle = (time % 2.4) / 2.4;
+    const turn = cycle < 0.35 ? (1 - Math.cos((cycle / 0.35) * Math.PI)) * Math.PI : 0;
+    this.facing.rotation.y += turn * k;
+  }
+
   setGliding(gliding: boolean): void {
     this.umbrella.visible = gliding;
   }

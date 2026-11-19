@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PinataState, PlacedWall, Player, Projectile, Strike, StrikeButtonState, Toss, ToyState, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -129,6 +129,7 @@ export interface CompactSnapshot {
   status: GameState['status'];
   winnerId: EntityId | null;
   winnerTeam?: number | null;
+  victoryUntil?: number | null;
   mapId: string;
   nextId: number;
   me?: MovingPlayer;
@@ -192,6 +193,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     status: state.status,
     winnerId: state.winnerId,
     winnerTeam: state.winnerTeam,
+    victoryUntil: state.victoryUntil,
     mapId: state.mapId,
     nextId: state.nextId,
     ...(me ? { me } : {}),
@@ -333,6 +335,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     status: msg.status,
     winnerId: msg.winnerId,
     winnerTeam: msg.winnerTeam ?? null,
+    victoryUntil: msg.victoryUntil ?? null,
     players: players.filter((p) => !(p.alive && fallenIds.has(p.id))),
     projectiles: msg.projectiles.map((q) => ({ ...q, vz: 0, zEnd: q.z, radius: 0.15, damage: 0, knockback: 0, expireTick: msg.tick + 60 })),
     chests: parts.chests,

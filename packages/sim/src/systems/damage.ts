@@ -1,3 +1,4 @@
+import { config, secondsToTicks } from '../config.ts';
 import type { EntityId, GameState, KnockoutCause, Player, Vec2 } from '../types.ts';
 
 /**
@@ -11,7 +12,8 @@ export function applyDamage(
   sourceId: EntityId | null,
   { ignoreArmor = false, from, cause }: { ignoreArmor?: boolean; from?: Vec2; cause?: KnockoutCause } = {},
 ): void {
-  if (!target.alive || amount <= 0) return;
+  // The victory lap: nobody can be hurt any more.
+  if (!target.alive || amount <= 0 || state.victoryUntil !== null) return;
   const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
   target.buttons -= armorDamage;
   const damage = amount - armorDamage;
@@ -45,14 +47,18 @@ export function countAlive(state: GameState): number {
   return n;
 }
 
-/** Ends the match when at most one plush is left standing. */
+/**
+ * Decides the winner when at most one plush (or one team) is left standing, and starts the
+ * victory lap; the match ends when it's over (see step).
+ */
 export function checkWinner(state: GameState): void {
-  if (state.status !== 'playing' || state.players.length < 2) return;
+  if (state.status !== 'playing' || state.victoryUntil !== null || state.players.length < 2) return;
   const alive = state.players.filter((p) => p.alive);
   const team = alive[0]?.team ?? 0;
   // Team mode: it's over when everyone left is on one team; they all win.
   if (alive.length > 1 && (team === 0 || alive.some((p) => p.team !== team))) return;
-  state.status = 'ended';
+  state.victoryUntil = state.tick + secondsToTicks(config.victoryLap);
+  if (state.victoryUntil <= state.tick) state.status = 'ended';
   if (team !== 0) {
     state.winnerTeam = team;
     state.winnerId = null;

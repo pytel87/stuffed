@@ -34,6 +34,12 @@ export class Toast {
     if (this.left <= 0) this.el.hidden = true;
   }
 
+  /** A message of our own, shown for `seconds`. */
+  announce(text: string, seconds: number): void {
+    this.show(text);
+    this.left = seconds;
+  }
+
   private show(text: string): void {
     this.el.innerHTML = escapeHtml(text);
     this.el.hidden = false;

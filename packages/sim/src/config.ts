@@ -235,6 +235,9 @@ const rarity = [
 export const config = {
   tickRate: 30,
 
+  /** Seconds the winner gets after the last knockout (to loot, and a little dance) before the end. */
+  victoryLap: 8,
+
   player: {
     radius: 0.5,
     maxStuffing: 100,

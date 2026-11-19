@@ -59,9 +59,26 @@ describe('damage and armor', () => {
     expect(b.stuffing).toBe(0);
     expect(b.placement).toBe(2);
     run(world, state, 1, () => idle);
-    expect(state.status).toBe('ended');
+    // The winner is decided at once; the match ends after the victory lap.
     expect(state.winnerId).toBe(a.id);
     expect(a.placement).toBe(1);
+    expect(state.status).toBe('playing');
+    run(world, state, secondsToTicks(config.victoryLap), () => idle);
+    expect(state.status).toBe('ended');
+  });
+
+  it('during the victory lap the winner can move and loot, and nobody can be hurt', () => {
+    const { world, state, a, b } = duel(5);
+    applyDamage(state, b, 150, a.id);
+    run(world, state, 1, () => idle);
+    expect(state.victoryUntil).not.toBeNull();
+    const start = { ...a.pos };
+    run(world, state, 15, () => input({ moveX: 1 }));
+    expect(a.pos.x).toBeGreaterThan(start.x + 1);
+    const before = a.stuffing;
+    applyDamage(state, a, 50, null);
+    expect(a.stuffing).toBe(before);
+    expect(a.alive).toBe(true);
   });
 });
 
@@ -356,7 +373,7 @@ describe('team mode', () => {
   it('after the match ends, the last events are not repeated', () => {
     const { world, state, a, c } = teamGame();
     applyDamage(state, c, 1000, a.id);
-    run(world, state, 1, () => idle);
+    run(world, state, 1 + secondsToTicks(config.victoryLap), () => idle);
     expect(state.status).toBe('ended');
     // Whatever happened on the final tick (the last knockout, its hits)...
     state.events = [{ type: 'eliminated', playerId: c.id, byId: a.id, placement: 2 }];
@@ -368,7 +385,7 @@ describe('team mode', () => {
   it('the match ends when only one team is left, and the whole team wins', () => {
     const { world, state, a, b, c } = teamGame();
     applyDamage(state, c, 1000, a.id);
-    run(world, state, 1, () => idle);
+    run(world, state, 1 + secondsToTicks(config.victoryLap), () => idle);
     expect(state.status).toBe('ended');
     expect(state.winnerTeam).toBe(1);
     expect(state.winnerId).toBeNull();

@@ -48,6 +48,9 @@ const CS: Record<string, string> = {
   'Hard bots': 'Těžcí boti',
   // Results
   'Winner!': 'Vítěz!',
+  'You win! Grab the loot!': 'Vyhráváš! Seber kořist!',
+  'Your team wins! Grab the loot!': 'Tvůj tým vyhrál! Seberte kořist!',
+  '{name} wins!': '{name} vyhrává!',
   'Team wins!': 'Tým vyhrál!',
   'Unstitched!': 'Vypárali tě!',
   Over: 'Konec',

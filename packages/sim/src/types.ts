@@ -469,6 +469,11 @@ export interface GameState {
   winnerId: EntityId | null;
   /** Team mode: the team left standing at the end (winnerId is then null). */
   winnerTeam: number | null;
+  /**
+   * Once the winner is decided: the victory lap runs until this tick (they can still move about
+   * and loot, nobody can be hurt), then the match ends. Null until then.
+   */
+  victoryUntil: Tick | null;
   /** Arrays stay sorted by id so iteration order is deterministic. */
   players: Player[];
   projectiles: Projectile[];

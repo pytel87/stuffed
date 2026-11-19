@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Victory lap (2026-11-19)
+
+- Knocking out the last plush no longer ends the match on the spot: the winner (or winning team)
+  gets an 8 s victory lap to grab the loot, with confetti, the win tune and a banner right away;
+  nobody can be hurt during it. Standing still, the winner dances (hops, wiggles and spins). The
+  results come up when it's over. Protocol 16.
+
 ## Fixes (2026-11-19)
 
 - Loot up on a roof, in the pool or on the frozen pond glows again (the roof, the water or the ice

@@ -619,6 +619,9 @@ export class GameRenderer {
       const inTube = !!p.ride && this.world.map.rides?.[p.ride.index]?.kind === 'tube';
       view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding' || p.umbrella);
+      // The victory lap: the winner (or winning team) dances while standing still.
+      const won = curr.victoryUntil !== null && p.alive && (curr.winnerId === p.id || (curr.winnerTeam !== null && p.team === curr.winnerTeam));
+      view.dance(won && speedNow < 0.6 && z - groundY < 0.05, opts.dt, opts.time);
       view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
       if ((p.soggy || curr.tick < p.soakedUntil) && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;

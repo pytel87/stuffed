@@ -183,6 +183,8 @@ tossHint.addEventListener('lostpointercapture', releaseTossHint);
 let phase: 'playing' | 'out' | 'spectating' | 'over' = 'playing';
 let followId: EntityId = -1;
 /** Who knocked you out and with what, captured when it happened. */
+/** The winner of this match has been celebrated (the victory lap is on). */
+let celebrated = false;
 let knockedOutBy = '';
 /** Solo: the match result went to the server already (which parts you keep). */
 let soloReported = false;
@@ -250,6 +252,7 @@ function beginMatch(next: GameSession): void {
   lobbyScreen?.hide();
   knockedOutBy = '';
   soloReported = false;
+  celebrated = false;
   hitDirection.clear();
   zoneNames.reset();
   toast.reset();
@@ -530,10 +533,21 @@ function updatePhase(state: GameState): void {
   }
 
   const teamWon = state.winnerTeam !== null && state.winnerTeam === me.team;
+  // The winner is decided: celebrate right away, then a victory lap to loot (and dance) before the end.
+  if (!celebrated && state.victoryUntil !== null) {
+    celebrated = true;
+    const lap = Math.max(1, (state.victoryUntil - state.tick) / config.tickRate);
+    if (state.winnerId === me.id || teamWon) {
+      if (me.alive) renderer.celebrate(me.id, state);
+      sound.play('win', { pitchSpread: 0 });
+      toast.announce(tr(teamWon ? 'Your team wins! Grab the loot!' : 'You win! Grab the loot!'), lap);
+    } else {
+      const winner = state.players.find((p) => p.id === state.winnerId);
+      if (winner) toast.announce(tr('{name} wins!').replace('{name}', winner.name), lap);
+    }
+  }
   if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
-    renderer.celebrate(me.id, state);
-    sound.play('win', { pitchSpread: 0 });
     reportSolo(carriedParts(me), true);
     endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
@@ -553,8 +567,7 @@ function updatePhase(state: GameState): void {
   if ((phase === 'out' || phase === 'spectating') && state.status === 'ended') {
     phase = 'over';
     spectateEl.hidden = true;
-    // Out, but your team won: a win for you too.
-    if (teamWon) sound.play('win', { pitchSpread: 0 });
+    // (Out, but your team won: the win sound played when it was decided.)
     endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }

@@ -92,6 +92,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
     status: 'playing',
     winnerId: null,
     winnerTeam: null,
+    victoryUntil: null,
     players,
     projectiles: [],
     chests,

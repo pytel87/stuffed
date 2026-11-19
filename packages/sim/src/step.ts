@@ -88,6 +88,8 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     if (!player.alive && hasDrops(player)) dropEverything(world, state, player);
   }
   checkWinner(state);
+  // The victory lap is over: the match ends.
+  if (state.victoryUntil !== null && state.tick >= state.victoryUntil) state.status = 'ended';
   return state;
 }
 
