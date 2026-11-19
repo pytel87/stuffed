@@ -14,7 +14,7 @@ import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
 import { MYTHIC_PARTS } from './mythic-animals.ts';
 import { detailMaps, repeated } from './image-textures.ts';
-import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
 
@@ -31,6 +31,25 @@ export interface PartObject extends THREE.Object3D {
 /** Main color of a body part; arms are dyed to match it. */
 export function bodyColor(animal: Animal): string {
   return ANIMAL_COLORS[animal]?.main ?? '#cccccc';
+}
+
+/** How thick a plush part's outline is (world units): the same on its head as on its toes. */
+const PART_OUTLINE = 0.024;
+
+/** Every outline hull of a part the same thickness (its small bits got hairlines, its head a heavy line). */
+function thickenOutlines(part: THREE.Object3D): void {
+  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  part.traverse((o) => {
+    // (Hulls toonMesh made, and ones built by hand: dark, drawn from the back.)
+    if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshBasicMaterial) || o.material.side !== THREE.BackSide) return;
+    let g = smooth.get(o.geometry);
+    if (!g) smooth.set(o.geometry, (g = smoothNormals(o.geometry)));
+    o.geometry = g;
+    // One weight for every part: hulls toonMesh grew by a share of their size go back to their
+    // shape's size, and all are pushed out by the same amount (ones built bigger by hand keep that).
+    if (o.name === 'outline') o.scale.set(1, 1, 1);
+    o.material = thickOutlineMaterial('#' + o.material.color.getHexString(), PART_OUTLINE);
+  });
 }
 
 export function buildPart(slot: PartSlot, animal: Animal): PartObject {
@@ -51,6 +70,7 @@ export function buildPart(slot: PartSlot, animal: Animal): PartObject {
   });
   // Phones and tablets: fewer triangles (before merging, while the shapes are still separate).
   coarsen(part);
+  thickenOutlines(part);
   mergeStatic(part, part.userData.swing ?? []);
   return part;
 }

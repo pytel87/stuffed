@@ -273,7 +273,8 @@ export class BotController {
           m.strafe = nextFloat(m.rng) < 0.5 ? 1 : -1;
           m.strafeUntil = state.tick + Math.round(nextRange(m.rng, 0.6, 1.6) * T);
         }
-        const away = unit(bot.pos.x - enemy.pos.x, bot.pos.y - enemy.pos.y);
+        // (Right under or over it: "away" is the way it's facing from, not the jittery tiny gap.)
+        const away = d < OVERHEAD ? { x: -bot.aim.x, y: -bot.aim.y } : unit(bot.pos.x - enemy.pos.x, bot.pos.y - enemy.pos.y);
         const radial = d > range + 1.5 ? -1 : d < range - 1.5 ? 1 : 0;
         const side = { x: -away.y * m.strafe, y: away.x * m.strafe };
         const dir = unit(away.x * radial + side.x, away.y * radial + side.y);
@@ -468,6 +469,13 @@ export class BotController {
     }
     const tx = enemy.pos.x + enemy.vel.x * lead + m.aimOffset.x;
     const ty = enemy.pos.y + enemy.vel.y * lead + m.aimOffset.y;
+    // Nearly straight above or below it (up on a roof over it): keep facing as it does, or the tiny
+    // gap between them, changing every tick, spun it round and round.
+    if (Math.hypot(tx - bot.pos.x, ty - bot.pos.y) < OVERHEAD) {
+      input.aimX = bot.aim.x;
+      input.aimY = bot.aim.y;
+      return;
+    }
     input.aimX = tx - bot.pos.x;
     input.aimY = ty - bot.pos.y;
   }
@@ -727,6 +735,9 @@ export class BotController {
     return path[0]!;
   }
 }
+
+/** An enemy closer than this sideways is (nearly) straight above or below the bot. */
+const OVERHEAD = 0.6;
 
 /** Highest top a jump can land on, above the current feet. */
 function jumpReach(): number {

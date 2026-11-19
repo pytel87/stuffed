@@ -226,6 +226,8 @@ function sandBits(box: { x: number; y: number; w: number; h: number }, map: MapD
     const x = box.x + 0.5 + rand() * (box.w - 1);
     const z = box.y + 0.5 + rand() * (box.h - 1);
     const kind = rand();
+    // Clear of the buried treasure (a pebble stuck into its mound).
+    if ((map.digs ?? []).some((d) => Math.hypot(d.x - x, d.y - z) < 1.6)) continue;
     if (kind < 0.35) {
       // a scallop shell: a flat fan with ribs
       const shell = toonMesh(new THREE.SphereGeometry(0.22, 10, 6, 0, Math.PI), shellColors[i % 3]!, { outline: 0.08 });

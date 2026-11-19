@@ -6,7 +6,7 @@ import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, Pa
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { crateTexture, picnicTexture, tiled, wickerTexture } from './props.ts';
-import { fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
@@ -119,8 +119,10 @@ export function buildChest(chest: Chest): ChestView {
     wall.receiveShadow = true;
     root.add(wall);
   }
-  // One outline around the whole box (outlining each wall would draw lines inside it).
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(w + 0.07, h + 0.05, d + 0.07), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
+  // One outline around the whole box (outlining each wall would draw lines inside it), as thick
+  // all round and kept behind what touches it (the lid, the trim).
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(w + CHEST_OUTLINE * 2, h + CHEST_OUTLINE * 2, d + CHEST_OUTLINE * 2), pushedOutlineMaterial(OUTLINE_COLOR));
+  hull.name = 'outline';
   hull.position.y = h / 2;
   root.add(hull);
 
@@ -167,7 +169,24 @@ export function buildChest(chest: Chest): ChestView {
   const lidGeo = look.round
     ? new THREE.CylinderGeometry(d / 2 + 0.03, d / 2 + 0.03, w + 0.06, 24, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).scale(1, 0.7, 1)
     : new THREE.BoxGeometry(w + 0.08, 0.14, d + 0.06);
-  const lidMesh = toonMesh(lidGeo, look.lid, { outline: 0.04, material: lidMat });
+  const lidMesh = toonMesh(lidGeo, look.lid, { outline: false, material: lidMat });
+  // Its outline: the same shape a little bigger all round (a scaled copy was a hairline on its sides).
+  const o = CHEST_OUTLINE;
+  const lidHull = new THREE.Mesh(
+    look.round
+      ? new THREE.CylinderGeometry(d / 2 + 0.03 + o, d / 2 + 0.03 + o, w + 0.06 + o * 2, 24, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).scale(1, 0.7, 1)
+      : new THREE.BoxGeometry(w + 0.08 + o * 2, 0.14 + o * 2, d + 0.06 + o * 2),
+    pushedOutlineMaterial(OUTLINE_COLOR),
+  );
+  lidHull.name = 'outline';
+  lidMesh.add(lidHull);
+  if (look.round) {
+    // The dome's outline is open underneath: close it with a flat one under its rim, or the floor
+    // showed through between it and the box's outline where the lid overhangs the box.
+    const base = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06 + o * 2, o * 2, d + 0.06 + o * 2), pushedOutlineMaterial(OUTLINE_COLOR));
+    base.name = 'outline';
+    lidMesh.add(base);
+  }
   lidMesh.position.set(0, look.round ? 0 : 0.07, d / 2);
   lid.add(lidMesh);
   if (chest.loot === 'food') {
@@ -571,6 +590,8 @@ export function groundRing(color: THREE.ColorRepresentation, radius = 0.72): { g
   );
   halo.position.y = 0.004;
   glow.add(halo);
+  // After roofs (see-through, so sorted with these): loot up on one was painted over by it.
+  glow.renderOrder = halo.renderOrder = 2;
   const ring = hoop(radius, HOOP_TUBE, neonPlastic(color));
   glow.add(ring);
   return { glow, halo };
@@ -633,6 +654,9 @@ function beamMap(): THREE.CanvasTexture {
   return beamTexture;
 }
 
+/** How far a chest's outline stands out from it. */
+const CHEST_OUTLINE = 0.035;
+
 function buildLoot(loot: GroundLoot): LootView {
   const root = new THREE.Group();
   root.position.set(loot.pos.x, loot.z, loot.pos.y);
@@ -656,6 +680,7 @@ function buildLoot(loot: GroundLoot): LootView {
       new THREE.MeshBasicMaterial({ color, map: beamMap(), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending }),
     );
     beam.add(core);
+    beam.renderOrder = core.renderOrder = 2;
     root.add(beam);
   }
 

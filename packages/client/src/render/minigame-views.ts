@@ -6,7 +6,7 @@ import { config, galleryTargets } from '@stuffed/sim';
 import type { GameState, MapData } from '@stuffed/sim';
 import { glowMap, sparkleTexture } from './loot-views.ts';
 import { outlinedBox } from './props.ts';
-import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 const GOLD = '#ffd23a';
@@ -70,6 +70,15 @@ function stripes(): THREE.CanvasTexture {
   stripeTex.colorSpace = THREE.SRGBColorSpace;
   stripeTex.wrapS = THREE.RepeatWrapping;
   return stripeTex;
+}
+
+/** A dark ring on the ground round the foot of a dome `r` across, as wide as its outline (`outline`
+ *  of its size): the ground hides the outline itself there. */
+function footRing(r: number, outline: number): THREE.Mesh {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.005, r * (1 + outline), 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+  // (Above the gold glow on the ground, or it tints the line.)
+  ring.position.y = 0.03;
+  return ring;
 }
 
 function booth(x: number, y: number): { root: THREE.Group; ducks: THREE.Group[]; lights: THREE.Mesh[] } {
@@ -225,9 +234,11 @@ export class MiniGameViews {
       // A darker heap of dug-over sand (or snow) with a red X on it and a soft gold glow round it.
       const mound = new THREE.Group();
       mound.position.set(d.x, 0, d.y);
-      const heap = toonMesh(new THREE.SphereGeometry(0.7, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), snow ? '#e4eef8' : '#c9a36a', { outline: 0.05 });
+      // A dome on the ground, with a dark ring round its foot joining its outline (the ground cut
+      // the outline off there).
+      const heap = toonMesh(new THREE.SphereGeometry(0.7, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), snow ? '#e4eef8' : '#c9a36a', { outline: 0.06 });
       heap.scale.y = 0.4;
-      mound.add(heap);
+      mound.add(heap, footRing(0.7, 0.06));
       for (const turn of [Math.PI / 4, -Math.PI / 4]) {
         const bar = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.05, 0.18), toonMaterial('#d63a2f', { map: null }));
         bar.rotation.y = turn;
@@ -245,10 +256,12 @@ export class MiniGameViews {
       const pit = new THREE.Mesh(new THREE.CircleGeometry(0.55, 20).rotateX(-Math.PI / 2), toonMaterial(snow ? '#9db8cf' : '#7a5a34', { map: null }));
       pit.position.y = 0.03;
       hole.add(pit);
-      const pile = toonMesh(new THREE.SphereGeometry(0.35, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), snow ? '#ffffff' : '#e8cf95', { outline: 0.05 });
+      const pile = toonMesh(new THREE.SphereGeometry(0.35, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), snow ? '#ffffff' : '#e8cf95', { outline: 0.08 });
       pile.scale.y = 0.5;
       pile.position.set(0.8, 0, 0.3);
-      hole.add(pile);
+      const pileFoot = footRing(0.35, 0.08);
+      pileFoot.position.set(0.8, 0, 0.3);
+      hole.add(pile, pileFoot);
       hole.position.set(d.x, 0, d.y);
       hole.visible = false;
       root.add(hole);

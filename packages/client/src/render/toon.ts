@@ -155,6 +155,62 @@ export function pushedOutlineMaterial(color: string, push = 0.008): THREE.MeshBa
   return mat;
 }
 
+const thickOutlines = new Map<string, THREE.MeshBasicMaterial>();
+/**
+ * An outline hull pushed out `extra` world units beyond its shape along its normals (give it
+ * smoothed ones, see smoothNormals), on top of however much bigger it already is: a plush's tiny
+ * parts (feet, ears, spikes) got hairline outlines from a hull only a share of their size bigger.
+ */
+export function thickOutlineMaterial(color: string, extra = 0.016): THREE.MeshBasicMaterial {
+  const key = `${color}|${extra}`;
+  let mat = thickOutlines.get(key);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        mvPosition.xyz += normalize( normalMatrix * normal ) * ${extra.toFixed(4)};
+        gl_Position = projectionMatrix * mvPosition;`,
+      );
+    };
+    mat.customProgramCacheKey = () => `thickOutline${extra}`;
+    thickOutlines.set(key, mat);
+  }
+  return mat;
+}
+
+/** A copy of `geometry` whose normals are averaged where its vertices meet (so a hull pushed out
+ *  along them stays closed at hard edges: a cylinder's rim, a cone's base). */
+export function smoothNormals(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  const g = geometry.clone();
+  const pos = g.getAttribute('position');
+  let normal = g.getAttribute('normal');
+  if (!normal) {
+    g.computeVertexNormals();
+    normal = g.getAttribute('normal');
+  }
+  const sums = new Map<string, THREE.Vector3>();
+  const keyOf = (i: number) => `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`;
+  for (let i = 0; i < pos.count; i++) {
+    const k = keyOf(i);
+    const v = sums.get(k) ?? new THREE.Vector3();
+    v.x += normal.getX(i);
+    v.y += normal.getY(i);
+    v.z += normal.getZ(i);
+    sums.set(k, v);
+  }
+  const out = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const v = sums.get(keyOf(i))!.clone();
+    if (v.lengthSq() < 1e-8) v.set(normal.getX(i), normal.getY(i), normal.getZ(i));
+    v.normalize();
+    out.set([v.x, v.y, v.z], i * 3);
+  }
+  g.setAttribute('normal', new THREE.BufferAttribute(out, 3));
+  return g;
+}
+
 export interface ToonMeshOptions {
   /** Outline thickness as a fraction of the mesh size; false for none. */
   outline?: number | false;

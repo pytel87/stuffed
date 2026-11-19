@@ -2,6 +2,17 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Fixes (2026-11-19)
+
+- Loot up on a roof glows again (the roof was drawn over its glow and beam).
+- Chests have an even outline all round, closed or open, domed lids included (it was missing on
+  some sides, with the floor showing through under the lid's edge).
+- A bot fighting someone right above it (up on a roof) no longer spins round and round.
+- Plushes: every part has the same outline weight, head to toes (small parts like feet, ears,
+  spikes, horns and fins had hairlines or none). Parts lying on the ground match.
+- Buried treasure mounds (and the pile once dug) are outlined all round, with a line along their
+  foot; the sandbox's pebbles and shells stay off them.
+
 ## Neon loot rings (2026-11-19)
 
 - The circle under loot (and round a ready toy) is a raised glossy plastic hoop with an outline,

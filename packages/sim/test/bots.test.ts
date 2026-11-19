@@ -113,3 +113,43 @@ describe('bots', () => {
     expect(shooters.size).toBeGreaterThanOrEqual(3); // knockouts came from fights, not only the water
   });
 });
+
+describe('bots and the trampoline', () => {
+  for (const [label, start] of [
+    ['up on the house roof by it', 'roof'],
+    ['bouncing on it', 'bouncing'],
+  ] as const) {
+    it(`${label}: gets down and away without turning back and forth`, async () => {
+      const { BACKYARD } = await import('../src/index.ts');
+      const world = createWorld(BACKYARD);
+      const state = createGame({ seed: 3, map: BACKYARD, roster: [{ name: 'Bot', isBot: true }, { name: 'Far', isBot: true }] });
+      const [bot, far] = state.players as [Player, Player];
+      far.pos = { x: 10, y: 120 };
+      const t = BACKYARD.trampolines![0]!;
+      const house = BACKYARD.buildings.find((b) => b.kind === 'house')!;
+      // Calm (no chests worth going for nearby): nothing pulls it back.
+      state.chests = [];
+      if (start === 'roof') {
+        bot.pos = { x: t.center.x, y: house.y + 0.8 };
+        bot.z = house.height;
+      } else {
+        bot.pos = { ...t.center };
+        bot.z = 0;
+      }
+      const bots = new BotController(3);
+      let flips = 0;
+      let lastX = 0;
+      let lastY = 0;
+      for (let i = 0; i < 30 * 8; i++) {
+        const inputs = bots.inputs(world, state);
+        const me = inputs.get(bot.id)!;
+        if (me.moveX * lastX + me.moveY * lastY < -0.5) flips++;
+        if (me.moveX || me.moveY) [lastX, lastY] = [me.moveX, me.moveY];
+        step(world, state, new Map([[bot.id, me]]));
+      }
+      expect(flips).toBeLessThan(4);
+      expect(bot.z).toBeLessThan(0.05);
+      expect(Math.hypot(bot.pos.x - t.center.x, bot.pos.y - t.center.y)).toBeGreaterThan(t.radius + 0.5);
+    });
+  }
+});
