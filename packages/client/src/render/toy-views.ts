@@ -7,7 +7,7 @@ import { config, DT } from '@stuffed/sim';
 import type { Circle, GameState, MapData, ToyKind, ToyState } from '@stuffed/sim';
 import { groundRing } from './loot-views.ts';
 import { tiled, waterTexture } from './props.ts';
-import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const WARN = '#ff3b5c';
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
@@ -119,7 +119,12 @@ function hose(from: THREE.Vector3, to: THREE.Vector3): THREE.Mesh {
     mid.clone().sub(side.clone().multiplyScalar(0.5)).setY(0.05),
     to.clone().setY(0.05),
   ];
-  return toonMesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 48, 0.06, 6), '#3fa34d', { outline: 0.12 });
+  const curve = new THREE.CatmullRomCurve3(points);
+  const hose = toonMesh(new THREE.TubeGeometry(curve, 48, 0.06, 6), '#3fa34d', { outline: false });
+  // Its outline: a slightly fatter tube along the same curve (its points are in world space, so
+  // scaling a copy, as toonMesh does, would push it off across the lawn).
+  hose.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.08, 6), outlineMaterial(OUTLINE_COLOR)));
+  return hose;
 }
 
 /** The sprinkler on its spike: a little dome with a turning bar of nozzles. */
