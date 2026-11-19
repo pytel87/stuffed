@@ -5,7 +5,7 @@ import { TRAIN, trainCars } from '@stuffed/sim';
 import type { MapData, TrainTrack } from '@stuffed/sim';
 import { mergeStatic } from './merge-static.ts';
 import { outlinedBox } from './props.ts';
-import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 const COLORS = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#9b7bd8'];
 
@@ -56,6 +56,9 @@ function buildCar(index: number): THREE.Group {
     inner.position.y = TRAIN.deckHeight - 0.01;
     g.add(inner);
   }
+  // One outline weight on every part (wheels and the chimney had scaled ones, uneven), each kept a
+  // little behind what it touches (the body on its base, the cab on the body).
+  evenOutlines(g, 0.03, -0.03);
   mergeStatic(g);
   // Painted wood, lacquered: it catches the light.
   g.traverse((o) => {

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { GameState, PinataKind } from '@stuffed/sim';
 import { sparkleGlowTexture, sparkleTexture } from './loot-views.ts';
-import { foliage, giftWrapTexture, tiled } from './props.ts';
+import { foliage, giftWrapTexture, nextMark, outlineProp, tiled } from './props.ts';
 import { makePlastic, makeTriplanar, toonMaterial, toonMesh } from './toon.ts';
 
 const FRINGE = ['#ff6fa8', '#ffd23a', '#5dc8f5', '#7ad66b', '#ff9f43', '#b86bff'];
@@ -76,6 +76,8 @@ function present(): THREE.Group {
   const knot = toonMesh(new THREE.SphereGeometry(0.09, 10, 8), '#ffd23a', { outline: 0.1, material: ribbon });
   knot.position.y = 0.55;
   g.add(knot);
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(g, nextMark(), 0.025);
   return g;
 }
 

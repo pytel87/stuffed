@@ -31,7 +31,7 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
   canvas.width = canvas.height = SIZE;
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true, stencil: true });
   } catch {
     return;
   }
@@ -140,7 +140,7 @@ export function renderPlushPictures(): Map<string, string> {
   canvas.width = canvas.height = size;
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true, stencil: true });
   } catch {
     return urls;
   }

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { config, DT } from '@stuffed/sim';
 import type { Circle, GameState, MapData, ToyKind, ToyState } from '@stuffed/sim';
 import { glowMap } from './loot-views.ts';
-import { tiled, waterTexture } from './props.ts';
+import { nextMark, outlineProp, tiled, waterTexture } from './props.ts';
 import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const WARN = '#ff3b5c';
@@ -170,6 +170,8 @@ function buildSprinkler(): { root: THREE.Group; head: THREE.Group } {
   bar.position.y = 0.08;
   head.add(bar);
   root.add(head);
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(root, nextMark(), 0.025);
   return { root, head };
 }
 

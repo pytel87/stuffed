@@ -293,7 +293,7 @@ class Preview {
 
   start(): void {
     // Its own small WebGL context, made on first open (the game's renderer keeps running behind).
-    this.renderer ??= new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+    this.renderer ??= new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     cancelAnimationFrame(this.frame);
     const draw = (now: number) => {

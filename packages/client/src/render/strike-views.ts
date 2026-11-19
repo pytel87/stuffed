@@ -1,9 +1,10 @@
 // The air strike: the big toy button on the map, the circles marked where each drop will land,
 // and the drops themselves (water balloons, toy blocks or snowballs) falling the last moment.
 import * as THREE from 'three';
+import { nextMark, outlineProp } from './props.ts';
 import { config, groundHeight } from '@stuffed/sim';
 import type { EntityId, GameState, Strike, StrikeKind, World } from '@stuffed/sim';
-import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const RADIUS = config.strike.radius;
 /** Ticks a drop takes to fall from the sky onto its circle. */
@@ -43,11 +44,58 @@ export function buildDrop(kind: StrikeKind, n = 0): THREE.Object3D {
   } else {
     g.add(toonMesh(new THREE.IcosahedronGeometry(0.45, 2), '#ffffff', { outline: 0.06, outlineColor: '#8aa4bd' }));
   }
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(g, nextMark(), 0.025);
   return g;
 }
 
 /** Black and yellow hazard stripes with a black border, for the button's top plate. */
 let hazard: THREE.CanvasTexture | null = null;
+let roundHazard: THREE.CanvasTexture | null = null;
+/**
+ * The top of a round button plate: a ring of slanted black and yellow hazard segments round the
+ * rim, between thin dark edges, and plain yellow inside (under the collar).
+ */
+function roundHazardTexture(): THREE.CanvasTexture {
+  if (roundHazard) return roundHazard;
+  const S = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  const m = S / 2;
+  const outer = m - 4;
+  const inner = m * 0.7;
+  g.fillStyle = '#f7c331';
+  g.fillRect(0, 0, S, S);
+  // The segments, slanted: each one's inner edge a little further round than its outer edge.
+  const n = 16;
+  const slant = 0.22;
+  g.fillStyle = '#231f26';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const b = a + Math.PI / n;
+    g.beginPath();
+    g.moveTo(m + Math.cos(a) * outer, m + Math.sin(a) * outer);
+    g.arc(m, m, outer, a, b);
+    g.lineTo(m + Math.cos(b + slant) * inner, m + Math.sin(b + slant) * inner);
+    g.arc(m, m, inner, b + slant, a + slant, true);
+    g.closePath();
+    g.fill();
+  }
+  // Dark edges round the ring.
+  g.strokeStyle = '#231f26';
+  for (const [r, w] of [[outer - 6, 14], [inner, 10]] as const) {
+    g.lineWidth = w;
+    g.beginPath();
+    g.arc(m, m, r, 0, Math.PI * 2);
+    g.stroke();
+  }
+  roundHazard = new THREE.CanvasTexture(c);
+  roundHazard.colorSpace = THREE.SRGBColorSpace;
+  roundHazard.anisotropy = 4;
+  return roundHazard;
+}
+
 export function hazardTexture(): THREE.CanvasTexture {
   if (hazard) return hazard;
   const c = document.createElement('canvas');
@@ -79,16 +127,26 @@ export function hazardTexture(): THREE.CanvasTexture {
  */
 export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots: THREE.Mesh[]; glow: THREE.Mesh } {
   const root = new THREE.Group();
-  const base = toonMesh(new THREE.BoxGeometry(1.05, 0.42, 1.05), '#2b2730', { outline: 0.04 });
+  // Round: a dark drum base and a yellow plate, the hazard stripes on the plate's top face.
+  const base = toonMesh(new THREE.CylinderGeometry(0.56, 0.6, 0.42, 40), '#2b2730', { outline: false });
   base.position.y = 0.21;
   root.add(base);
   const yellow = makePlastic(toonMaterial('#f7c331', { map: null }));
-  const plate = toonMesh(new THREE.BoxGeometry(1.18, 0.1, 1.18), '#f7c331', { outline: 0.03, material: yellow });
-  // The hazard stripes on its top face (a separate sheet just above it flickered against it).
-  const stripes = makePlastic(toonMaterial('#ffffff', { map: hazardTexture() }), true);
-  plate.material = [yellow, yellow, stripes, yellow, yellow, yellow];
+  const stripes = makePlastic(toonMaterial('#ffffff', { map: roundHazardTexture() }), true);
+  // (Cylinder faces: its side, its top, its bottom.)
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.64, 0.64, 0.1, 40), [yellow, stripes, yellow]);
+  plate.castShadow = plate.receiveShadow = true;
   plate.position.y = 0.47;
   root.add(plate);
+  // One even outline round the base and plate together.
+  const hull = new THREE.Group();
+  for (const [r0, r1, h, y] of [[0.56, 0.6, 0.42, 0.21], [0.64, 0.64, 0.1, 0.47]] as const) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, 40), outlineMaterial(OUTLINE_COLOR));
+    m.position.y = y;
+    hull.add(m);
+  }
+  evenOutlines(hull, 0.03);
+  root.add(hull);
   const collar = toonMesh(new THREE.CylinderGeometry(0.44, 0.46, 0.05, 32).translate(0, 0.025, 0), '#b9bdc6', {
     outline: 0.04,
     material: makePlastic(toonMaterial('#b9bdc6', { map: null })),

@@ -6,7 +6,7 @@ import { buildWall, cardboardTexture, outlinedBox, softBox, corrugatedTexture, f
 import { detailMaps, repeated } from './image-textures.ts';
 import { mergeStatic } from './merge-static.ts';
 import { feltTexture } from './toon.ts';
-import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const OUTLINE = 0.03;
 const BUSH = '#3f8f4a';
@@ -199,10 +199,15 @@ function roof(b: Building): RoofView {
       dome.position.y = base;
       dome.castShadow = true;
       dome.receiveShadow = true;
+      // Its outline: the dome an even width bigger (a scaled copy was thick on top, thin round it).
       const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide }));
-      hull.scale.set(1.03, 1.03, 1.03);
+      hull.scale.set((R + 0.05) / R, (H + 0.05) / H, (R + 0.05) / R);
       dome.add(hull);
       g.add(dome);
+      // And a dark line on the snow round its foot (the ground hides the outline's lower edge there).
+      const foot = new THREE.Mesh(new THREE.RingGeometry(R - 0.01, R + 0.06, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+      foot.position.y = base + 0.02;
+      g.add(foot);
       // The tunnel: a half-tube out of the doorway (the side with no blocks, toward the open ground).
       const door = iglooDoor(b);
       const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 1.6, 18, 1, true, 0, Math.PI), toonMaterial('#ffffff', { map: iglooBricks(), side: THREE.FrontSide }));
@@ -211,6 +216,8 @@ function roof(b: Building): RoofView {
       tunnel.scale.set(1.35, 1, 1);
       tunnel.position.set(Math.cos(door) * (R - 0.15), base, Math.sin(door) * (R - 0.15));
       tunnel.castShadow = true;
+      // Outlined like the dome: the same half tube a little bigger, closed at its ends.
+      tunnel.add(new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 1.62, 18, 1, false, 0, Math.PI), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide })));
       g.add(tunnel);
       // Its inside in shade, so the doorway reads as an opening.
       const shade = new THREE.Mesh(tunnel.geometry, toonMaterial('#7f9fbf', { map: null, side: THREE.BackSide }));
@@ -246,7 +253,8 @@ function roof(b: Building): RoofView {
       lid(toonMaterial('#ffffff', { map: tiled(plankTexture(), w / 1.6, d / 4) }));
       // corner posts with a rope railing between them (for looks; the edge is open)
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-        on(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 8), flat('#8e6036')), (sx * w) / 2 - sx * 0.2, top + 0.45, (sz * d) / 2 - sz * 0.2);
+        const post = on(toonMesh(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 8), '#8e6036', { material: flat('#8e6036') }), (sx * w) / 2 - sx * 0.2, top + 0.45, (sz * d) / 2 - sz * 0.2);
+        evenOutlines(post, 0.025);
       }
       break;
     }
@@ -264,24 +272,38 @@ function roof(b: Building): RoofView {
     case 'desk': {
       // A wooden desktop with a sheet of paper, crayons and a little lamp.
       lid(toonMaterial('#ffffff', { map: tiled(plankTexture(), w / 2, d / 4) }));
-      on(new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 4), flat('#ffffff')), -w / 5, top + 0.011, 0).rotation.y = 0.2;
+      // Outlined like everything else, all the same weight (they had none).
+      const outlined = (geo: THREE.BufferGeometry, color: string) => {
+        const m = toonMesh(geo, color, { material: flat(color) });
+        evenOutlines(m, 0.03);
+        return m;
+      };
+      // The paper: a flat dark sheet a little bigger under it is its outline (a hull this thin
+      // fought the desk top and broke up).
+      const sheet = on(new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 4), flat('#ffffff')), -w / 5, top + 0.03, 0);
+      sheet.rotation.y = 0.2;
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(3.08, 0.01, 4.08), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+      edge.position.y = -0.012;
+      sheet.add(edge);
       ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a'].forEach((c, i) => {
-        const crayon = on(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 8), flat(c)), 1 + i * 0.35, top + 0.1, 1.2);
+        // (Resting on their outlines: level with the desk top, the outline flickered against it.)
+        const crayon = on(outlined(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 8), c), 1 + i * 0.35, top + 0.145, 1.2);
         crayon.rotation.z = Math.PI / 2;
         crayon.rotation.y = 0.3;
       });
-      const lampBase = on(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 16), flat('#5d9cf5')), w / 2 - 2, top + 0.1, -d / 2 + 1.6);
+      const lampBase = on(outlined(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 16), '#5d9cf5'), w / 2 - 2, top + 0.145, -d / 2 + 1.6);
       lampBase.castShadow = true;
-      const lampShade = on(new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.9, 16, 1, true), flat('#fde39a')), w / 2 - 2, top + 1.4, -d / 2 + 1.6);
+      // The shade closed (a hollow cone couldn't be outlined).
+      const lampShade = on(outlined(new THREE.ConeGeometry(0.9, 0.9, 16), '#fde39a'), w / 2 - 2, top + 1.4, -d / 2 + 1.6);
       lampShade.castShadow = true;
-      on(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), flat('#5d9cf5')), w / 2 - 2, top + 0.65, -d / 2 + 1.6);
+      on(outlined(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), '#5d9cf5'), w / 2 - 2, top + 0.65, -d / 2 + 1.6);
       break;
     }
     case 'table': {
       // Blue gingham with a red hem, so it doesn't look like the blanket under the table.
       lid(toonMaterial('#ffffff', { map: tiled(tableclothTexture(), w / 4.8, d / 4.8) }));
       for (const [sx, sz, x, z] of [[w + 0.04, 0.12, 0, d / 2], [w + 0.04, 0.12, 0, -d / 2], [0.12, d + 0.04, w / 2, 0], [0.12, d + 0.04, -w / 2, 0]] as const) {
-        on(new THREE.Mesh(new THREE.BoxGeometry(sx, ROOF_THICKNESS + 0.04, sz), flat('#e25b5b')), x, 0, z);
+        on(outlinedBox(sx, ROOF_THICKNESS + 0.04, sz, flat('#e25b5b')), x, 0, z);
       }
       // Plates and a cake on the cloth, outlined like everything else (a snug closed copy a little
       // bigger all round, kept behind what it touches).
@@ -320,6 +342,23 @@ function roof(b: Building): RoofView {
  * A wall reaching up to a roof (house and shed walls, table legs) is drawn a little shorter,
  * so its top and outline stay under the roof instead of poking through it.
  */
+/** For each wall, the index of the first wall in the group of walls touching it (directly or through others). */
+function touchingGroups(walls: readonly Wall[]): number[] {
+  const parent = walls.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i]!)));
+  const touch = (a: Wall, b: Wall) => a.x <= b.x + b.w + 0.05 && b.x <= a.x + a.w + 0.05 && a.y <= b.y + b.h + 0.05 && b.y <= a.y + a.h + 0.05;
+  for (let i = 0; i < walls.length; i++) {
+    for (let j = i + 1; j < walls.length; j++) {
+      if (walls[i]!.kind === walls[j]!.kind && touch(walls[i]!, walls[j]!)) {
+        const a = find(i);
+        const b = find(j);
+        parent[Math.max(a, b)] = Math.min(a, b);
+      }
+    }
+  }
+  return walls.map((_, i) => find(i));
+}
+
 function underRoof(wall: Wall, map: MapData): Wall {
   for (const b of map.buildings) {
     const inside = wall.x >= b.x - 0.01 && wall.y >= b.y - 0.01 && wall.x + wall.w <= b.x + b.w + 0.01 && wall.y + wall.h <= b.y + b.h + 0.01;
@@ -445,8 +484,14 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
   const root = new THREE.Group();
   // Beach balls roll around: they're drawn from the match state (ball-views.ts); a pool's rim is
   // drawn with its pool (map-view.ts).
+  // Walls that touch (a corner of two pieces, a row of blocks) share an outline mark, so their
+  // outline goes round them together instead of one's drawing over the other at the joint.
+  const group = touchingGroups(map.walls);
   map.walls.forEach((b, i) => {
-    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo' && b.kind !== 'ramp') root.add(buildWall(underRoof(b, map), i));
+    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo' && b.kind !== 'ramp') {
+      const fitted = underRoof(b, map);
+      root.add(buildWall(fitted, i, fitted !== b, 32 + (group[i]! % 220)));
+    }
   });
   const indoors = map.theme === 'bedroom';
   const bushes = map.bushes.map((c, i) => {

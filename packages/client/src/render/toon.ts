@@ -161,27 +161,45 @@ const thickOutlines = new Map<string, THREE.MeshBasicMaterial>();
  * smoothed ones, see smoothNormals), on top of however much bigger it already is: a plush's tiny
  * parts (feet, ears, spikes) got hairline outlines from a hull only a share of their size bigger.
  */
-export function thickOutlineMaterial(color: string, extra = 0.016): THREE.MeshBasicMaterial {
-  const key = `${color}|${extra}`;
+export function thickOutlineMaterial(color: string, extra = 0.016, stencilMark = 0, pull = 0, openFoot = false): THREE.MeshBasicMaterial {
+  const key = `${color}|${extra}|${stencilMark}|${pull}|${openFoot}`;
   let mat = thickOutlines.get(key);
   if (!mat) {
     mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+    if (stencilMark) {
+      // Drawn only off what wrote `stencilMark` (round a heap of pieces, not across them).
+      mat.stencilWrite = true;
+      mat.stencilRef = stencilMark;
+      mat.stencilFunc = THREE.NotEqualStencilFunc;
+      mat.stencilFail = mat.stencilZFail = mat.stencilZPass = THREE.KeepStencilOp;
+    }
     mat.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader.replace(
         '#include <project_vertex>',
         `#include <project_vertex>
-        mvPosition.xyz += normalize( normalMatrix * normal ) * ${extra.toFixed(4)};
-        gl_Position = projectionMatrix * mvPosition;`,
+        mvPosition.xyz += normalize( normalMatrix * normal ) * length( normal ) * ${extra.toFixed(4)};
+        gl_Position = projectionMatrix * mvPosition;
+        ${pull ? `{
+          vec4 pulled = projectionMatrix * vec4( mvPosition.xy, mvPosition.z + ${pull.toFixed(3)}, 1.0 );
+          gl_Position.z = pulled.z / pulled.w * gl_Position.w;
+        }` : ''}`,
       );
     };
-    mat.customProgramCacheKey = () => `thickOutline${extra}`;
+    // An open foot: no line where it stands (it reads as standing on the floor, not as a cut-out
+    // lying on it); its sides still run down to the floor.
+    if (openFoot) cutBelowFloor(mat, 0);
+    // (The stencil mark too: merging keys on this, and marked and unmarked hulls mustn't merge.)
+    mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}|${stencilMark}`;
     thickOutlines.set(key, mat);
   }
   return mat;
 }
 
-/** A copy of `geometry` whose normals are averaged where its vertices meet (so a hull pushed out
- *  along them stays closed at hard edges: a cylinder's rim, a cone's base). */
+/**
+ * A copy of `geometry` whose normals are averaged where its vertices meet (so a hull pushed out
+ * along them stays closed at hard edges: a box's corner, a cylinder's rim), and lengthened there
+ * so each face beside it still moves out the full width (a box corner's diagonal by √3).
+ */
 export function smoothNormals(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   const g = geometry.clone();
   const pos = g.getAttribute('position');
@@ -190,25 +208,67 @@ export function smoothNormals(geometry: THREE.BufferGeometry): THREE.BufferGeome
     g.computeVertexNormals();
     normal = g.getAttribute('normal');
   }
-  const sums = new Map<string, THREE.Vector3>();
+  const groups = new Map<string, number[]>();
   const keyOf = (i: number) => `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`;
   for (let i = 0; i < pos.count; i++) {
     const k = keyOf(i);
-    const v = sums.get(k) ?? new THREE.Vector3();
-    v.x += normal.getX(i);
-    v.y += normal.getY(i);
-    v.z += normal.getZ(i);
-    sums.set(k, v);
+    const list = groups.get(k);
+    if (list) list.push(i);
+    else groups.set(k, [i]);
   }
   const out = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const v = sums.get(keyOf(i))!.clone();
-    if (v.lengthSq() < 1e-8) v.set(normal.getX(i), normal.getY(i), normal.getZ(i));
-    v.normalize();
-    out.set([v.x, v.y, v.z], i * 3);
+  const n = new THREE.Vector3();
+  const avg = new THREE.Vector3();
+  for (const list of groups.values()) {
+    avg.set(0, 0, 0);
+    for (const i of list) avg.add(n.set(normal.getX(i), normal.getY(i), normal.getZ(i)));
+    if (avg.lengthSq() < 1e-8) avg.set(normal.getX(list[0]!), normal.getY(list[0]!), normal.getZ(list[0]!));
+    avg.normalize();
+    // The face it leans furthest from sets how much longer it has to be (capped for sharp tips).
+    let least = 1;
+    for (const i of list) least = Math.min(least, avg.dot(n.set(normal.getX(i), normal.getY(i), normal.getZ(i)).normalize()));
+    avg.multiplyScalar(1 / Math.max(least, 0.5));
+    for (const i of list) out.set([avg.x, avg.y, avg.z], i * 3);
   }
   g.setAttribute('normal', new THREE.BufferAttribute(out, 3));
   return g;
+}
+
+/** How thick a weapon's or an item's outline is (world units). */
+export const GEAR_OUTLINE = 0.018;
+
+/**
+ * Every outline hull under `model` (dark, drawn from the back) the same `width` (world units):
+ * hulls made a share bigger than their shape (toonMesh's) go back to its size, and all are pushed
+ * out along smoothed normals by `width`, so small bits get a line as heavy as big ones.
+ */
+export function evenOutlines(model: THREE.Object3D, width: number, pull = 0): void {
+  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  model.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshBasicMaterial) || o.material.side !== THREE.BackSide) return;
+    let g = smooth.get(o.geometry);
+    if (!g) smooth.set(o.geometry, (g = smoothNormals(o.geometry)));
+    o.geometry = g;
+    if (o.name === 'outline') o.scale.set(1, 1, 1);
+    o.material = thickOutlineMaterial('#' + o.material.color.getHexString(), width, 0, pull);
+  });
+}
+
+/**
+ * Cuts off the part of an outline hull lower than `y` (world units; measured after it's pushed
+ * out, so 0 is the floor): the line along an object's foot goes, its sides still reach the floor.
+ */
+export function cutBelowFloor(mat: THREE.Material, y: number): void {
+  const compile = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    compile.call(mat, shader, renderer);
+    shader.vertexShader = shader.vertexShader
+      .replace('void main() {', 'varying float vFootY;\nvoid main() {')
+      .replace('#include <logdepthbuf_vertex>', 'vFootY = ( inverse( viewMatrix ) * vec4( mvPosition.xyz, 1.0 ) ).y;\n#include <logdepthbuf_vertex>');
+    shader.fragmentShader = shader.fragmentShader.replace('void main() {', `varying float vFootY;\nvoid main() {\n  if ( vFootY < ${y.toFixed(3)} ) discard;`);
+  };
+  const key = mat.customProgramCacheKey.bind(mat);
+  mat.customProgramCacheKey = () => `${key()}|cut${y}`;
 }
 
 export interface ToonMeshOptions {

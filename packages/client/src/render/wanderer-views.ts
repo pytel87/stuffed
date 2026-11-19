@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { GameState, MapData, WandererDef } from '@stuffed/sim';
 import { sparkleGlowTexture } from './loot-views.ts';
-import { snowTexture } from './props.ts';
+import { nextMark, outlineProp, snowTexture } from './props.ts';
 import { buildStrikeButton, hazardTexture } from './strike-views.ts';
 import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
@@ -26,6 +26,8 @@ function vacuum(): { root: THREE.Group; light: THREE.Mesh } {
   const light = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: '#39ff7a', toneMapped: false }));
   light.position.set(0.35, 0.36, 0);
   root.add(light);
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(root, nextMark(), 0.025);
   return { root, light };
 }
 
@@ -103,6 +105,8 @@ function mower(): THREE.Group {
     w.position.set(x, 0.28, z);
     g.add(w);
   }
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(g, nextMark(), 0.025);
   return g;
 }
 
@@ -166,6 +170,8 @@ function plow(): { root: THREE.Group; light: THREE.Mesh } {
   glow.visible = false;
   glow.name = 'beacon';
   root.add(glow);
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(root, nextMark(), 0.025);
   return { root, light };
 }
 

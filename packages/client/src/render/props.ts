@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { Wall } from '@stuffed/sim';
 import { detailMaps, noteClone, repeated, upgradeTexture } from './image-textures.ts';
 import type { ImageOptions } from './image-textures.ts';
-import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const OUTLINE = 0.03;
 
@@ -19,6 +19,101 @@ export function outlinedBox(w: number, h: number, d: number, material: THREE.Mat
   const hull = new THREE.Mesh(new THREE.BoxGeometry(w + OUTLINE * 2, h + OUTLINE * 2, d + OUTLINE * 2), pushedOutlineMaterial(OUTLINE_COLOR));
   mesh.add(hull);
   return mesh;
+}
+
+/**
+ * One outline round a heap of pieces (a sandcastle), not round each: its pieces mark where they're
+ * drawn (`mark`, a stencil number of its own) and its outlines are drawn only off them, after them.
+ */
+function silhouetteOutline(g: THREE.Object3D, mark: number, width = 0.03, pull = 0): void {
+  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  g.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    const m = o.material as THREE.Material;
+    if (m instanceof THREE.MeshBasicMaterial && m.side === THREE.BackSide) {
+      // As thick on every piece (small battlements got hairlines), and after the pieces.
+      let geo = smooth.get(o.geometry);
+      if (!geo) smooth.set(o.geometry, (geo = smoothNormals(o.geometry)));
+      o.geometry = geo;
+      o.scale.set(1, 1, 1);
+      // (Round things keep their whole outline: their bottom edge is their own curve, not the floor's.)
+      o.material = thickOutlineMaterial('#' + m.color.getHexString(), width, mark, pull);
+      o.renderOrder = 3;
+      return;
+    }
+    m.stencilWrite = true;
+    m.stencilRef = mark;
+    m.stencilZPass = THREE.ReplaceStencilOp;
+  });
+}
+
+let markSeq = 0;
+/** Another stencil number for one model's outlineProp (wrapping round; see its mark). */
+export function nextMark(): number {
+  return 32 + (markSeq++ % 220);
+}
+
+/** How far a prop's outline is pulled toward the camera (see outlineProp). */
+const PROP_PULL = 0.15;
+const claimed = new WeakMap<THREE.Material, number>();
+/**
+ * Every prop's outline, made one way: each solid piece gets a hull pushed out the same `width`
+ * (the lines its pieces had, scaled copies of different shares of their sizes, or none, go), and
+ * the pieces mark where they're drawn (`mark`) so the hulls show only round the whole prop, never
+ * across it. The hulls' depth is pulled toward the camera (PROP_PULL): along a prop's near side
+ * its outline is the hull's underside, just below the floor, which the floor hid (no line up the
+ * near edges, a gap at the foot). So every prop is outlined all round, its foot included. Pieces an
+ * earlier silhouetteOutline already did are left as they are.
+ */
+export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull = PROP_PULL): void {
+  const solid: THREE.Mesh[] = [];
+  const hullColor = new Map<THREE.Object3D, THREE.Color>();
+  const old: THREE.Mesh[] = [];
+  g.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    const m = o.material as THREE.Material;
+    if (Array.isArray(o.material) ? false : m.stencilWrite) return; // done already
+    if (!Array.isArray(o.material) && m instanceof THREE.MeshBasicMaterial && m.side === THREE.BackSide) {
+      old.push(o);
+      if (o.parent) hullColor.set(o.parent, m.color);
+      return;
+    }
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    // (Glows and see-through bits skipped; nearly solid ones, like ice, are outlined.)
+    if (mats.some((x) => x.transparent && x.opacity < 0.7) || mats.some((x) => !x.depthWrite)) return;
+    solid.push(o);
+  });
+  for (const h of old) h.removeFromParent();
+  // Standing things keep an open foot; low things lying on the floor are outlined all round.
+  const openFoot = pull > 0 && new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()).y > 0.5;
+  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  for (const o of solid) {
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const marked = mats.map((m) => {
+      // A material another prop already marks (shared): this one gets its own copy.
+      let mm = m;
+      const owner = claimed.get(m);
+      if (owner !== undefined && owner !== mark) {
+        mm = m.clone();
+        mm.onBeforeCompile = m.onBeforeCompile;
+        mm.customProgramCacheKey = m.customProgramCacheKey;
+      }
+      claimed.set(mm, mark);
+      mm.stencilWrite = true;
+      mm.stencilRef = mark;
+      mm.stencilZPass = THREE.ReplaceStencilOp;
+      return mm;
+    });
+    o.material = Array.isArray(o.material) ? marked : marked[0]!;
+    let geo = smooth.get(o.geometry);
+    if (!geo) smooth.set(o.geometry, (geo = smoothNormals(o.geometry)));
+    const color = '#' + (hullColor.get(o)?.getHexString() ?? new THREE.Color(OUTLINE_COLOR).getHexString());
+    const hull = new THREE.Mesh(geo, thickOutlineMaterial(color, width, mark, pull, openFoot));
+    hull.name = 'outline';
+    hull.renderOrder = 3;
+    hull.castShadow = false;
+    o.add(hull);
+  }
 }
 
 /** A rounded box (a pillow, a slide's rail) with a snug outline as wide all round (see outlinedBox). */
@@ -521,7 +616,9 @@ function letterTexture(color: string, letter: string): THREE.CanvasTexture {
 const flat = (color: THREE.ColorRepresentation) => toonMaterial(color, { map: null });
 
 /** A prop for one wall, positioned at the wall's center on the ground. */
-export function buildWall(b: Wall, index: number): THREE.Object3D {
+/** `underRoof`: it's trimmed to just under a roof (its outline isn't pulled toward the camera, or
+ *  it showed through the roof). */
+export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 + (index % 220)): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(b.x + b.w / 2, 0, b.y + b.h / 2);
   const kind = b.kind ?? guessKind(b);
@@ -616,13 +713,20 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     case 'trunk': {
       const r = Math.min(b.w, b.h) / 2;
       add(toonMesh(new THREE.CylinderGeometry(r * 0.85, r * 1.05, H, 16), '#7a5236', { outline: 0.03 }), H / 2);
-      // a small leafy crown on top (kept small so it doesn't hide the platform)
+      // a small leafy crown on top (kept small so it doesn't hide the platform), with one outline
+      // round the whole crown (each ball's own was broken where the others hid it)
+      const leaves = new THREE.Group();
+      // A trunk cut off under a roof (the treehouse's): its crown rests on the roof instead of
+      // half sunk into it (the roof hid its lower half, outline and all).
+      if (H < 3) leaves.position.y = 1.3;
       for (const [x, y, z, s] of [[0, 0.3, 0, 1.5], [1, 0, -0.4, 1.1], [-1, -0.1, -0.5, 1.1], [0.2, 0.2, -1.1, 1]] as const) {
         const crown = makeTriplanar(toonMaterial('#4ea34a', { map: foliage(1).map }), 0.9);
         const leaf = toonMesh(new THREE.IcosahedronGeometry(s, 2), '#4ea34a', { outline: 0.04, outlineColor: '#1f3f26', material: crown });
         leaf.position.set(x, H + y, z);
-        g.add(leaf);
+        leaves.add(leaf);
       }
+      silhouetteOutline(leaves, 150 + (index % 50), 0.04);
+      g.add(leaves);
       break;
     }
     case 'bench':
@@ -645,15 +749,16 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     case 'sandcastle': {
       const sand = '#f6e3b4';
       const sandy = () => toonMaterial(sand, { map: tiled(sandTexture(), 0.4, 0.4) });
-      add(outlinedBox(b.w, H * 0.65, b.h, sandy()), (H * 0.65) / 2);
+      add(toonMesh(new THREE.BoxGeometry(b.w, H * 0.65, b.h), sand, { material: sandy() }), (H * 0.65) / 2);
       const hole = flat('#9c7a45');
       // an arched door on the front (+z) and a little window each side of it
-      const door = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.04, 16, 1, false, 0, Math.PI), hole);
-      door.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-      door.position.set(0, 0.02, b.h / 2 + 0.01);
-      door.scale.set(1, 1, 1.5);
+      // (A flat arch painted on the front: a half disc turned on edge poked out below it.)
+      const door = new THREE.Mesh(new THREE.CircleGeometry(0.32, 16, 0, Math.PI), hole);
+      door.scale.set(1, 1.5, 1);
+      door.position.set(0, 0.0, b.h / 2 + 0.005);
       g.add(door);
       // four towers with crenellated tops and a window each
+      // (One outline round the whole castle at the end: each piece's own crossed the others.)
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
         const tower = toonMesh(new THREE.CylinderGeometry(0.42, 0.5, H, 12), sand, { outline: 0.05, material: sandy() });
         const tx = (sx * b.w) / 2 - sx * 0.4;
@@ -662,7 +767,7 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
         g.add(tower);
         for (let c = 0; c < 4; c++) {
           const a = (c / 4) * Math.PI * 2 + Math.PI / 4;
-          const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), sandy());
+          const merlon = toonMesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), sand, { outline: 0.05, material: sandy() });
           merlon.position.set(tx + Math.cos(a) * 0.32, H + 0.1, tz + Math.sin(a) * 0.32);
           merlon.rotation.y = -a;
           g.add(merlon);
@@ -671,10 +776,10 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
         win.position.set(tx, H * 0.7, tz + sz * 0.44);
         g.add(win);
       }
-      const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), flat('#7a5236'));
+      const flagPole = toonMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), '#7a5236', { outline: 0.1, material: flat('#7a5236') });
       flagPole.position.set(b.w / 2 - 0.4, H + 0.45, -b.h / 2 + 0.4);
       g.add(flagPole);
-      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.02), flat('#ff5a5a'));
+      const flag = toonMesh(new THREE.BoxGeometry(0.4, 0.25, 0.04), '#ff5a5a', { outline: 0.1, material: flat('#ff5a5a') });
       flag.position.set(b.w / 2 - 0.2, H + 0.75, -b.h / 2 + 0.4);
       g.add(flag);
       break;
@@ -682,16 +787,16 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     case 'bucket': {
       const r = Math.min(b.w, b.h) / 2;
       const body = add(toonMesh(new THREE.CylinderGeometry(r, r * 0.78, H, 32, 1, true), '#3f8fe0', { outline: false, material: toonMaterial('#3f8fe0', { side: THREE.DoubleSide }) }), H / 2);
-      // Its outline: a closed copy a little bigger all round (a scaled copy of the open tube hid behind it).
-      body.add(new THREE.Mesh(new THREE.CylinderGeometry(r + OUTLINE * 1.5, r * 0.78 + OUTLINE * 1.5, H + OUTLINE, 32), outlineMaterial(OUTLINE_COLOR)));
+      // Its outline: a closed copy (an open tube can't take one), made even round the whole bucket below.
+      body.add(new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.78, H, 32), outlineMaterial(OUTLINE_COLOR)));
       const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 28), flat('#ffd23a'));
-      rim.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.07 + OUTLINE, 8, 28), outlineMaterial(OUTLINE_COLOR)));
+      rim.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 28), outlineMaterial(OUTLINE_COLOR)));
       rim.rotation.x = Math.PI / 2;
       add(rim, H);
       const sandTop = new THREE.Mesh(new THREE.CircleGeometry(r * 0.95, 20).rotateX(-Math.PI / 2), flat('#e8cf8f'));
       add(sandTop, H * 0.8);
       const handle = new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04, 6, 24, Math.PI), flat('#ffd23a'));
-      handle.add(new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04 + OUTLINE, 6, 24, Math.PI), outlineMaterial(OUTLINE_COLOR)));
+      handle.add(new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04, 6, 24, Math.PI), outlineMaterial(OUTLINE_COLOR)));
       add(handle, H);
       // a little red spade stuck in the sand, leaning out
       const spade = new THREE.Group();
@@ -704,6 +809,10 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       grip.position.y = H * 0.9;
       spade.add(grip);
       g.add(spade);
+      // One even outline round the whole bucket (its own were uneven, with gaps down the sides).
+      // (Its depth pulled toward the camera by its width: along its lower sides the outline is its
+      // far side, which dips below the floor. Still drawn only off the bucket.)
+      silhouetteOutline(g, 100 + (index % 50), 0.03, r * 2);
       break;
     }
     case 'planter': {
@@ -902,6 +1011,9 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       break;
     }
   }
+  // One even outline round the whole prop (see outlineProp).
+  // (Walls that touch share `mark`: one outline round them all, none across the joint.)
+  outlineProp(g, mark, 0.03, underRoof ? -0.01 : PROP_PULL);
   return g;
 }
 

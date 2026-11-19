@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import type { WeaponKind } from '@stuffed/sim';
 import { WEAPON_GRIPS } from './weapon-models.ts';
-import { lighten, outlineMaterial, toonMaterial } from './toon.ts';
+import { lighten, smoothNormals, thickOutlineMaterial, toonMaterial } from './toon.ts';
 
 const ARM_RADIUS = 0.065;
 /** Shoulders sit on the body's front sides (rig space, +z forward, +x = plush's left). */
@@ -34,13 +34,13 @@ export class PlushArms {
   private readonly dir = new THREE.Vector3();
 
   constructor(outlineColor: string) {
-    const hull = outlineMaterial(outlineColor);
+    // As thick as the parts' outlines on every piece (scaled copies were hairlines on a mitten).
+    const hull = thickOutlineMaterial(outlineColor, 0.024);
     this.arms = SHOULDERS.map((shoulder, i) => {
       const tube = new THREE.Mesh(tubeGeo, this.armMat);
       tube.castShadow = true;
       tube.position.copy(shoulder);
-      const tubeHull = new THREE.Mesh(tubeGeo, hull);
-      tubeHull.scale.set(1.35, 1.35, 1);
+      const tubeHull = new THREE.Mesh(smoothNormals(tubeGeo), hull);
       tube.add(tubeHull);
       this.group.add(tube);
 
@@ -52,14 +52,12 @@ export class PlushArms {
       const palm = new THREE.Mesh(mittenGeo, this.mittenMat);
       palm.scale.set(1, 0.85, 1.1);
       palm.castShadow = true;
-      const palmHull = new THREE.Mesh(mittenGeo, hull);
-      palmHull.scale.setScalar(1.12);
+      const palmHull = new THREE.Mesh(smoothNormals(mittenGeo), hull);
       palm.add(palmHull);
       mitten.add(palm);
       const thumb = new THREE.Mesh(thumbGeo, this.mittenMat);
       thumb.position.set(i === 0 ? 0.07 : -0.07, 0.04, 0.03);
-      const thumbHull = new THREE.Mesh(thumbGeo, hull);
-      thumbHull.scale.setScalar(1.2);
+      const thumbHull = new THREE.Mesh(smoothNormals(thumbGeo), hull);
       thumb.add(thumbHull);
       mitten.add(thumb);
       this.group.add(mitten);

@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { Rarity, WeaponKind } from '@stuffed/sim';
-import { lighten, makePlastic, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, GEAR_OUTLINE, lighten, makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 type Point = [number, number, number];
 
@@ -236,5 +236,7 @@ export function buildWeapon(kind: WeaponKind, rarity: Rarity, outline: string, s
       if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) makePlastic(o.material);
     });
   }
+  // One outline weight on every bit (small ones had hairlines).
+  evenOutlines(g, GEAR_OUTLINE);
   return g;
 }

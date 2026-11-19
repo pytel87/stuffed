@@ -4,10 +4,10 @@ import * as THREE from 'three';
 import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
 import {
   carpetTexture, cloverTexture, bigDrawingTexture, cobblesTexture, dirtTexture, drift, gravelTexture, iceTexture, lawnTexture, mulchTexture, needlesTexture,
-  patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
+  outlineProp, patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
 } from './props.ts';
 import { mergeStatic } from './merge-static.ts';
-import { makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
 const LAWN_BEYOND = 64;
@@ -101,6 +101,12 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
       const stone = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, 0.08, 14), toonMaterial('#ffffff', { map: stoneTexture() }));
       stone.position.set(cx + (long ? t * length : (rand() - 0.5) * 0.6), 0.04, cz + (long ? (rand() - 0.5) * 0.6 : t * length));
       stone.receiveShadow = true;
+      // Outlined like everything else: round its top, and a dark ring on the lawn round its foot
+      // (the lawn hides the outline's lower half).
+      stone.add(new THREE.Mesh(new THREE.CylinderGeometry(r + 0.035, r * 1.05 + 0.035, 0.08 + 0.04, 14), pushedOutlineMaterial(OUTLINE_COLOR)));
+      const foot = new THREE.Mesh(new THREE.RingGeometry(r * 1.05 - 0.01, r * 1.05 + 0.045, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+      foot.position.y = -0.04 + 0.016;
+      stone.add(foot);
       g.add(stone);
     }
     return g;
@@ -216,6 +222,20 @@ function patches(geo: THREE.BufferGeometry, map: MapData, amount: number, cx = 0
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
+let scallopGeo: THREE.BufferGeometry | null = null;
+/** A scallop shell lying flat: a rounded fan, closed (so it takes an outline all round). */
+function scallop(): THREE.BufferGeometry {
+  if (scallopGeo) return scallopGeo;
+  const fan = new THREE.Shape();
+  fan.moveTo(0, -0.05);
+  fan.absarc(0, 0.02, 0.2, Math.PI * 0.05, Math.PI * 0.95, false);
+  fan.lineTo(0, -0.05);
+  scallopGeo = new THREE.ExtrudeGeometry(fan, { depth: 0.02, bevelEnabled: true, bevelSize: 0.025, bevelThickness: 0.025, bevelSegments: 3, curveSegments: 16 })
+    .rotateX(-Math.PI / 2)
+    .translate(0, -0.01, 0.06);
+  return scallopGeo;
+}
+
 /** Shells, pebbles and little mounds scattered on a sandpit (merged into a few meshes). */
 function sandBits(box: { x: number; y: number; w: number; h: number }, map: MapData): THREE.Object3D {
   const g = new THREE.Group();
@@ -230,16 +250,22 @@ function sandBits(box: { x: number; y: number; w: number; h: number }, map: MapD
     if ((map.digs ?? []).some((d) => Math.hypot(d.x - x, d.y - z) < 1.6)) continue;
     if (kind < 0.35) {
       // a scallop shell: a flat fan with ribs
-      const shell = toonMesh(new THREE.SphereGeometry(0.22, 10, 6, 0, Math.PI), shellColors[i % 3]!, { outline: 0.08 });
-      shell.scale.set(1, 0.35, 1);
+      // (Low things are outlined all round: resting on their outlines, not sunk into the sand,
+      // or only a crescent of outline showed along their far edge.)
+      const shell = toonMesh(scallop(), shellColors[i % 3]!);
       shell.rotation.y = rand() * Math.PI * 2;
-      shell.position.set(x, 0.03, z);
+      evenOutlines(shell, 0.025);
+      const geo = shell.geometry;
+      if (!geo.boundingBox) geo.computeBoundingBox();
+      shell.position.set(x, -geo.boundingBox!.min.y + 0.035, z);
       g.add(shell);
     } else if (kind < 0.75) {
-      const pebble = toonMesh(new THREE.SphereGeometry(0.1 + rand() * 0.08, 8, 6), rand() < 0.5 ? '#c9c2b6' : '#a9a197', { outline: 0.1 });
+      const pr = 0.1 + rand() * 0.08;
+      const pebble = toonMesh(new THREE.SphereGeometry(pr, 10, 8), rand() < 0.5 ? '#c9c2b6' : '#a9a197');
       pebble.scale.set(1.3, 0.55, 1);
       pebble.rotation.y = rand() * Math.PI;
-      pebble.position.set(x, 0.04, z);
+      evenOutlines(pebble, 0.025);
+      pebble.position.set(x, pr * 0.55 + 0.03, z);
       g.add(pebble);
     } else {
       // a little heap of darker, damp sand
@@ -280,6 +306,14 @@ function iceView(pond: Circle): THREE.Object3D {
   return g;
 }
 
+/** A flat dark sheet `w` x `d` plus an outline's width all round, `y` below its owner's middle:
+ *  the outline of something lying flat (paper). */
+function flatEdge(w: number, d: number, y: number): THREE.Mesh {
+  const edge = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.07, d + 0.07).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+  edge.position.y = y;
+  return edge;
+}
+
 /** A kiddie pool: shallow water inside an inflatable striped ring, and a rubber duck. */
 function poolView(pool: Circle): THREE.Object3D {
   const g = new THREE.Group();
@@ -305,6 +339,10 @@ function poolView(pool: Circle): THREE.Object3D {
     tube.position.y = y;
     g.add(tube);
   }
+  // A dark line on the water along the rim's inner edge (the water hides the outline there).
+  const inner = new THREE.Mesh(new THREE.RingGeometry(pool.radius + 0.35 - 0.33, pool.radius + 0.35 - 0.24, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+  inner.position.y = 0.035;
+  g.add(inner);
   const valve = toonMesh(new THREE.CylinderGeometry(0.09, 0.11, 0.14, 10), '#fff8ef', { outline: 0.1 });
   valve.position.set(pool.radius + 0.35, 0.72, 0);
   g.add(valve);
@@ -452,9 +490,13 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
       const n = Math.round((Math.PI * (rx + ry)) / 0.85);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
-        const sleeper = toonMesh(new THREE.BoxGeometry(1.5, 0.1, 0.32), '#e2574c', { outline: 0.06 });
-        sleeper.material = toonMaterial('#e2574c', { map: null });
-        sleeper.position.set(Math.cos(a) * rx, 0.07, Math.sin(a) * ry);
+        // Outlined evenly all round (a scaled copy was heavy at its ends, missing along its sides),
+        // resting on its outline (lower, the track's strip cut it off).
+        const sleeper = toonMesh(new THREE.BoxGeometry(1.5, 0.1, 0.32), '#e2574c', { material: toonMaterial('#e2574c', { map: null }) });
+        evenOutlines(sleeper, 0.03, -0.02);
+        // (High enough that the outline's underside, the line seen round it from above, clears the
+        // track's strip.)
+        sleeper.position.set(Math.cos(a) * rx, 0.14, Math.sin(a) * ry);
         // Across the track: along the outward direction of the oval.
         sleeper.rotation.y = -Math.atan2(Math.sin(a) * rx, Math.cos(a) * ry);
         sleeper.receiveShadow = true;
@@ -463,9 +505,12 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
       // Rails: a thin tube along each oval (scaling a ring would stretch its thickness too), with
       // a dark hull for an outline.
       for (const off of [-0.45, 0.45]) {
-        const curve = oval(off, 0.16);
+        // Resting on the sleepers' tops (0.19), so its outline runs unbroken over them.
+        const curve = oval(off, 0.265);
         g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 240, 0.085, 8, true), flat('#cfd6e2')));
-        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 240, 0.12, 8, true), new THREE.MeshBasicMaterial({ color: '#2a1f2d', side: THREE.BackSide })));
+        // (Its depth pulled toward the camera: along its near side the outline is the shell's
+        // underside, which the sleepers it rests on hid.)
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 240, 0.115, 8, true), thickOutlineMaterial('#2a1f2d', 0, 0, 0.12)));
       }
       break;
     }
@@ -487,35 +532,43 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
     }
     case 'paper': {
       const sheet = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2).rotateX(-Math.PI / 2), toonMaterial('#ffffff', { map: drawingTexture() }));
-      sheet.position.y = 0.02;
+      sheet.position.y = 0.03;
       sheet.receiveShadow = true;
+      // Outlined like everything else: a dark sheet a little bigger under it (a sheet this thin
+      // can't take an outline of its own).
+      sheet.add(flatEdge(1.5, 2, -0.008));
       g.add(sheet);
       break;
     }
     case 'sock': {
+      // Lying flat on the floor: a leg along x and a foot turned off it, with a white band; all
+      // one outline weight, and resting on their outlines (sunk in, the floor cut them off).
       const color = CRAYONS[Math.floor(rand() * CRAYONS.length)]!;
-      const leg = toonMesh(new THREE.CapsuleGeometry(0.22, 0.7, 4, 10), color, { outline: 0.08 });
-      leg.rotation.z = Math.PI / 2;
-      leg.scale.y = 1;
-      leg.scale.z = 0.5;
-      leg.position.y = 0.12;
+      const flatH = 0.45;
+      const lie = 0.22 * flatH + 0.03;
+      const leg = toonMesh(new THREE.CapsuleGeometry(0.22, 0.7, 6, 14).rotateZ(Math.PI / 2), color);
+      leg.scale.y = flatH;
+      leg.position.y = lie;
       g.add(leg);
-      const foot = toonMesh(new THREE.CapsuleGeometry(0.22, 0.35, 4, 10), color, { outline: 0.08 });
-      foot.scale.z = 0.5;
-      foot.position.set(0.55, 0.12, 0.25);
+      const foot = toonMesh(new THREE.CapsuleGeometry(0.22, 0.35, 6, 14).rotateX(Math.PI / 2), color);
+      foot.scale.y = flatH;
+      foot.position.set(0.6, lie, 0.22);
       g.add(foot);
-      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.12, 12), flat('#fffaf3'));
-      stripe.rotation.z = Math.PI / 2;
-      stripe.scale.z = 0.52;
-      stripe.position.set(-0.35, 0.12, 0);
+      const stripe = toonMesh(new THREE.CylinderGeometry(0.235, 0.235, 0.14, 16).rotateZ(Math.PI / 2), '#fffaf3', { material: flat('#fffaf3') });
+      stripe.scale.y = flatH;
+      stripe.position.set(-0.35, lie, 0);
       g.add(stripe);
+      for (const m of [leg, foot, stripe]) evenOutlines(m, 0.025);
       break;
     }
     case 'puzzle': {
       for (let i = 0; i < 3; i++) {
-        const piece = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.55), flat(CRAYONS[(i * 2 + Math.floor(rand() * 7)) % CRAYONS.length]!));
-        // Each a little higher than the last, so overlapping pieces don't flicker.
-        piece.position.set((rand() - 0.5) * 1.4, 0.03 + i * 0.015, (rand() - 0.5) * 1.4);
+        const color = CRAYONS[(i * 2 + Math.floor(rand() * 7)) % CRAYONS.length]!;
+        const piece = toonMesh(new THREE.BoxGeometry(0.55, 0.06, 0.55), color, { castShadow: false, material: flat(color) });
+        evenOutlines(piece, 0.025);
+        // Resting on their outlines (lower, the floor cut the outline off along the near edge),
+        // each a little higher than the last, so overlapping pieces don't flicker.
+        piece.position.set((rand() - 0.5) * 1.4, 0.06 + i * 0.03, (rand() - 0.5) * 1.4);
         piece.rotation.y = rand() * Math.PI;
         piece.receiveShadow = true;
         g.add(piece);
@@ -577,6 +630,8 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
       break;
     }
     case 'car': {
+      // Resting on its wheels' outlines (lower, the open foot cut a notch out of each wheel's line).
+      g.position.y = 0.03;
       const color = CRAYONS[Math.floor(rand() * CRAYONS.length)]!;
       const body = toonMesh(new THREE.BoxGeometry(1.1, 0.3, 0.6), color, { outline: 0.06 });
       body.position.y = 0.3;
@@ -585,14 +640,19 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
       cab.position.set(-0.05, 0.55, 0);
       g.add(cab);
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12), flat('#2a1f2d'));
+        // Charcoal rubber (as dark as the outline, a wheel and its line were one blob) with a hub.
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 24), flat('#4a4552'));
         wheel.rotation.x = Math.PI / 2;
         wheel.position.set(sx * 0.35, 0.15, sz * 0.32);
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.104, 16), flat('#e8e4ec'));
+        wheel.add(hub);
         g.add(wheel);
       }
       break;
     }
   }
+  // Small things on the floor: one even outline round each (the track keeps its own, see above).
+  if (d.kind !== 'track') outlineProp(g, 32 + (Math.round(d.x * 7 + d.y * 13) % 220), 0.025);
   mergeStatic(g);
   return g;
 }

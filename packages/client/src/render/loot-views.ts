@@ -6,7 +6,7 @@ import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, Pa
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { crateTexture, picnicTexture, tiled, wickerTexture } from './props.ts';
-import { fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, fadeObject, GEAR_OUTLINE, makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
@@ -489,6 +489,8 @@ export function buildItem(kind: ItemKind): THREE.Group {
       break;
     }
   }
+  // One outline weight on every bit, like weapons.
+  evenOutlines(g, GEAR_OUTLINE);
   return g;
 }
 
@@ -663,7 +665,8 @@ function buildLoot(loot: GroundLoot): LootView {
   const color = NEON[loot.rarity];
 
   const { glow, halo } = groundRing(color);
-  glow.position.y = 0.025;
+  // Above the pool's water (0.03) and the pond's ice, or they cover it.
+  glow.position.y = 0.06;
   root.add(glow);
 
   let beam: THREE.Mesh | null = null;

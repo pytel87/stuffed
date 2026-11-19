@@ -4,12 +4,43 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Fixes (2026-11-19)
 
-- Loot up on a roof glows again (the roof was drawn over its glow and beam).
+- Loot up on a roof, in the pool or on the frozen pond glows again (the roof, the water or the ice
+  was drawn over its glow).
 - Chests have an even outline all round, closed or open, domed lids included (it was missing on
   some sides, with the floor showing through under the lid's edge).
 - A bot fighting someone right above it (up on a roof) no longer spins round and round.
 - Plushes: every part has the same outline weight, head to toes (small parts like feet, ears,
   spikes, horns and fins had hairlines or none). Parts lying on the ground match.
+- Plushes: two clean outlines, one round the head and what it wears, one round the body with its
+  tail and feet; the only line inside is where the head meets the body (a lion's mane tufts no
+  longer cross each other in slivers, gems and inner ears no longer leave gaps). Arms and mittens
+  are outlined as thick as the rest.
+- Weapons and items: one even outline on every bit, closed round boxy corners; stepping stones
+  are outlined all round.
+- Sandcastles: one even outline round the whole castle, battlements and flag included (the
+  pieces' own lines were broken and crossed each other).
+- The king of the hill flag is outlined (it was a flat sheet with none).
+- Treetops (the treehouse's and the piñata tree's): one outline round the whole crown; the
+  treehouse's rests on the platform (it was half sunk into it, hiding its outline). The treehouse's
+  corner posts and the zip line's poles are outlined.
+- Push buttons are round: a round base and a round plate with a ring of hazard stripes under the
+  red button.
+- The desk's lamp, crayons and sheet of paper are outlined (they had none), and the drawings and
+  puzzle pieces on the Bedroom floor too; socks lie flat, outlined all round.
+- The toy train: one outline weight on every part (wheels, chimney, cow catcher had uneven ones);
+  the track's sleepers are outlined evenly and sit clear of its strip; the hamster tube is outlined.
+- Every prop and every bit of floor clutter is outlined the same way: one even line round the
+  whole thing, never crossing over it. Standing things have an open foot (their outline runs down
+  their sides to the floor, with no line where they stand, so they read as standing on it); low
+  things lying on the floor are outlined all round. The catapult's base stands on its little feet,
+  outlined like the rest. Toy cars' wheels are charcoal with a
+  light hub (as dark as the outline, they read as blobs). Ice blocks, mittens, marbles, sleds and the picnic table's hem got theirs; props
+  tucked under a roof don't show through it.
+- The rest outlined the same way: seesaw, sprinkler, robot vacuum, lawnmower, snowplow, the
+  gallery's ducks, the present piñata and air strike drops; igloos are outlined round their dome,
+  foot and tunnel; the pool's rim has a line along its inner edge.
+- Wall pieces that meet (a corner of two cardboard walls, a fort's walls and towers, a row of
+  blocks) share one outline round them, with no dark block where one's outline crossed the other.
 - Buried treasure mounds (and the pile once dug) are outlined all round, with a line along their
   foot; the sandbox's pebbles and shells stay off them.
 
@@ -21,7 +52,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - The light beam over Limited Edition loot and up is a soft shaft fading upward, not a
   see-through tube.
 - Umbrellas have a clear dark outline round their rim (it was a hairline over the top only).
-- Outlines on the toy drums and sand buckets (body, rim and handle) and on the roofs' chimneys.
+- Outlines on the toy drums and sand buckets (one even line round the whole bucket, down its sides
+  too) and on the roofs' chimneys.
 - Outlines on the picnic table's plates and cake (now with a strawberry), and snug ones on the
   shooting gallery's boards (no dark blocks past their ends).
 - The garden tap is one brass fixture: a plate on the wall, a valve with a red spoked wheel on

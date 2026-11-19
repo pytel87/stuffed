@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { config, galleryTargets } from '@stuffed/sim';
 import type { GameState, MapData } from '@stuffed/sim';
 import { glowMap, sparkleTexture } from './loot-views.ts';
-import { outlinedBox } from './props.ts';
-import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { nextMark, outlineProp, outlinedBox } from './props.ts';
+import { evenOutlines, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 const GOLD = '#ffd23a';
@@ -51,6 +51,8 @@ function duck(): THREE.Group {
   }
   // Face the shooters (south, +z: toward the camera).
   g.rotation.y = -Math.PI / 2;
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(g, nextMark(), 0.025);
   return g;
 }
 
@@ -142,7 +144,9 @@ function hillView(radius: number): { root: THREE.Group; flag: THREE.Mesh; fill: 
   const pole = toonMesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), '#c9cfd8', { outline: 0.3, material: plastic('#c9cfd8') });
   pole.position.y = 1.2;
   root.add(pole);
-  const flag = toonMesh(new THREE.PlaneGeometry(0.8, 0.5).translate(0.4, -0.25, 0), GOLD, { outline: false, material: toonMaterial(GOLD, { map: null, side: THREE.DoubleSide }) });
+  // A thin cloth panel (a flat sheet couldn't be outlined), outlined as thick as the pole.
+  const flag = toonMesh(new THREE.BoxGeometry(0.8, 0.5, 0.04).translate(0.43, -0.25, 0), GOLD, { material: toonMaterial(GOLD, { map: null }) });
+  evenOutlines(flag, 0.022);
   root.add(flag);
   const track = new THREE.Mesh(
     new THREE.RingGeometry(radius - 0.08, radius + 0.08, 64).rotateX(-Math.PI / 2),

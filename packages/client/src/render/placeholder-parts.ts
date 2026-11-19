@@ -14,7 +14,7 @@ import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
 import { MYTHIC_PARTS } from './mythic-animals.ts';
 import { detailMaps, repeated } from './image-textures.ts';
-import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, evenOutlines, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
 
@@ -36,20 +36,50 @@ export function bodyColor(animal: Animal): string {
 /** How thick a plush part's outline is (world units): the same on its head as on its toes. */
 const PART_OUTLINE = 0.024;
 
-/** Every outline hull of a part the same thickness (its small bits got hairlines, its head a heavy line). */
-function thickenOutlines(part: THREE.Object3D): void {
-  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+/**
+ * Each slot's stencil mark (no other model uses these; see outlinePart). Slots sharing one are
+ * outlined as one: the head with what it wears, and the body with its tail and feet, so the only
+ * line inside a plush is where its head meets its body.
+ */
+const SLOT_MARK: Record<PartSlot, number> = { head: 240, accessory: 240, body: 241, legs: 241, tail: 241 };
+
+/**
+ * One clean outline round each part as a whole: every piece of it marks where it's drawn (its
+ * slot's number) and every piece's outline is drawn only off them. A mane's tufts and a head
+ * ball, an ear and its inner patch, no longer cross each other in slivers or leave gaps where a
+ * piece had none; the line where one part meets another (a head over a body) stays.
+ */
+function outlinePart(part: THREE.Object3D, mark: number): void {
+  const bare: THREE.Mesh[] = [];
   part.traverse((o) => {
-    // (Hulls toonMesh made, and ones built by hand: dark, drawn from the back.)
-    if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshBasicMaterial) || o.material.side !== THREE.BackSide) return;
-    let g = smooth.get(o.geometry);
-    if (!g) smooth.set(o.geometry, (g = smoothNormals(o.geometry)));
-    o.geometry = g;
-    // One weight for every part: hulls toonMesh grew by a share of their size go back to their
-    // shape's size, and all are pushed out by the same amount (ones built bigger by hand keep that).
-    if (o.name === 'outline') o.scale.set(1, 1, 1);
-    o.material = thickOutlineMaterial('#' + o.material.color.getHexString(), PART_OUTLINE);
+    if (!(o instanceof THREE.Mesh)) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const hull = mats.find((m) => m instanceof THREE.MeshBasicMaterial && m.side === THREE.BackSide) as THREE.MeshBasicMaterial | undefined;
+    if (hull) {
+      o.material = thickOutlineMaterial('#' + hull.color.getHexString(), PART_OUTLINE, mark);
+      o.renderOrder = 3;
+      return;
+    }
+    if (mats.some((m) => m.transparent || !m.depthWrite)) return;
+    for (const m of mats) {
+      m.stencilWrite = true;
+      m.stencilRef = mark;
+      m.stencilZPass = THREE.ReplaceStencilOp;
+    }
+    const hasHull = o.children.some((c) => c instanceof THREE.Mesh && c.material instanceof THREE.MeshBasicMaterial && c.material.side === THREE.BackSide);
+    if (!hasHull) bare.push(o);
   });
+  // Pieces that had none get one too (only shown round the part, like the rest).
+  const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+  for (const o of bare) {
+    let geo = smooth.get(o.geometry);
+    if (!geo) smooth.set(o.geometry, (geo = smoothNormals(o.geometry)));
+    const hull = new THREE.Mesh(geo, thickOutlineMaterial(OUTLINE_COLOR, PART_OUTLINE, mark));
+    hull.name = 'outline';
+    hull.renderOrder = 3;
+    hull.castShadow = false;
+    o.add(hull);
+  }
 }
 
 export function buildPart(slot: PartSlot, animal: Animal): PartObject {
@@ -70,7 +100,8 @@ export function buildPart(slot: PartSlot, animal: Animal): PartObject {
   });
   // Phones and tablets: fewer triangles (before merging, while the shapes are still separate).
   coarsen(part);
-  thickenOutlines(part);
+  evenOutlines(part, PART_OUTLINE);
+  outlinePart(part, SLOT_MARK[slot]);
   mergeStatic(part, part.userData.swing ?? []);
   return part;
 }

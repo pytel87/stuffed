@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { CATAPULT_SIZE, config, slopeAt } from '@stuffed/sim';
 import type { GameState, MapData, RideDef } from '@stuffed/sim';
-import { snowTexture, softBox, tiled } from './props.ts';
-import { fadeObject, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { nextMark, outlineProp, snowTexture, softBox, tiled } from './props.ts';
+import { evenOutlines, fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 
@@ -29,6 +29,8 @@ function trampoline(radius: number): THREE.Group {
     leg.position.set(Math.cos(a) * radius, 0.22, Math.sin(a) * radius);
     g.add(leg);
   }
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(g, nextMark(), 0.025);
   return g;
 }
 
@@ -56,6 +58,8 @@ function seesaw(a: THREE.Vector3, b: THREE.Vector3): { root: THREE.Group; plank:
     plank.add(handle);
   }
   root.add(plank);
+  // One even outline round the whole thing (see outlineProp).
+  outlineProp(root, nextMark(), 0.025);
   return { root, plank };
 }
 
@@ -114,6 +118,8 @@ function zipLine(r: RideDef): THREE.Group {
   g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.03, 6), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR })));
   for (const [p, z] of [[r.from, r.from.z], [r.to, r.to.z]] as const) {
     const pole = toonMesh(new THREE.CylinderGeometry(0.09, 0.11, top + 0.3, 8), '#a8743f', { outline: 0.06 });
+    // As thick an outline as everything else (a share of a thin pole's size was a hairline).
+    evenOutlines(pole, 0.025);
     pole.position.set(p.x, z + (top + 0.3) / 2, p.y);
     g.add(pole);
   }
@@ -121,10 +127,12 @@ function zipLine(r: RideDef): THREE.Group {
 }
 
 /** The spring's height squashed down (loaded, ready to throw) and sprung up (it just threw). */
-const SQUASHED = 0.41;
+const SQUASHED = 0.29;
 const SPRUNG = 1.35;
 /** The base's height, the platform's thickness, and how far it leans toward the throw. */
 const BASE = 0.36;
+/** The base stands this high on its little feet (it reads as standing, not lying flat). */
+const LIFT = 0.12;
 const PLATFORM = 0.14;
 const LEAN = 0.18;
 const RINGS = 6;
@@ -138,13 +146,13 @@ function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group 
   const root = new THREE.Group();
   const size = CATAPULT_SIZE;
   const base = toonMesh(new RoundedBoxGeometry(size * 0.9, BASE, size * 0.9, 3, 0.12), '#9be3c4', { outline: 0.03, material: plastic('#9be3c4') });
-  base.position.y = BASE / 2;
+  base.position.y = LIFT + BASE / 2;
   root.add(base);
   // Little round feet at the corners.
   for (const [x, z] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
     const foot = toonMesh(new THREE.SphereGeometry(0.16, 14, 10), '#ff9cbf', { outline: 0.08, material: plastic('#ff9cbf') });
     foot.scale.y = 0.6;
-    foot.position.set(x * size * 0.36, 0.06, z * size * 0.36);
+    foot.position.set(x * size * 0.36, 0.1, z * size * 0.36);
     root.add(foot);
   }
   // The spring: a stack of rings (they keep their shape however far apart it is).
@@ -179,6 +187,8 @@ function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group 
   paint.position.y = PLATFORM + 0.005;
   lean.add(paint);
   root.add(top);
+  // One even outline round it, with an open foot like every standing prop (see outlineProp).
+  outlineProp(root, nextMark(), 0.025);
   return { root, rings, top };
 }
 
@@ -203,9 +213,9 @@ function springHeight(since: number | null, cooldown: number): number {
 /** Stretches a launcher's spring to `height`, with its platform on top. */
 function setSpring(v: { rings: THREE.Mesh[]; top: THREE.Group }, height: number): void {
   v.rings.forEach((r, i) => {
-    r.position.y = BASE + 0.04 + ((i + 0.5) / RINGS) * height;
+    r.position.y = LIFT + BASE + 0.04 + ((i + 0.5) / RINGS) * height;
   });
-  v.top.position.y = BASE + 0.04 + height;
+  v.top.position.y = LIFT + BASE + 0.04 + height;
 }
 
 /** A hamster tube: a solid arching tube between its two mouths. */
@@ -216,15 +226,16 @@ function tube(r: RideDef): THREE.Group {
     const t = i / 30;
     pts.push(new THREE.Vector3(r.from.x + (r.to.x - r.from.x) * t, 0.5 + 2.5 * 4 * t * (1 - t), r.from.y + (r.to.y - r.from.y) * t));
   }
-  // Solid (you're hidden inside): a chunky orange plastic tube.
-  // Built round its own middle, so its outline (a slightly bigger copy) stays around it.
+  // Solid (you're hidden inside): a chunky orange plastic tube, built round its own middle.
   const mid = pts[Math.floor(pts.length / 2)]!.clone().setY(0);
-  const local = pts.map((p) => p.clone().sub(mid));
-  // No outline copy: scaled up, it stuck out past the ends as a dark block (the rims frame it).
-  const shell = toonMesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(local), 80, 0.55, 14, false), '#ff9f43', {
+  const curve = new THREE.CatmullRomCurve3(pts.map((p) => p.clone().sub(mid)));
+  const shell = toonMesh(new THREE.TubeGeometry(curve, 80, 0.55, 14, false), '#ff9f43', {
     outline: false,
     material: toonMaterial('#ff9f43', { map: null, side: THREE.DoubleSide }),
   });
+  // Its outline: a slightly fatter tube along the same curve (a scaled-up copy stuck out past its
+  // ends as a dark block); the rims frame its open ends.
+  shell.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.55 + 0.035, 14, false), outlineMaterial(OUTLINE_COLOR)));
   shell.position.copy(mid);
   g.add(shell);
   for (const p of [pts[0]!, pts[pts.length - 1]!]) {
