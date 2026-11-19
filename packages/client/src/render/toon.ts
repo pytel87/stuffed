@@ -188,8 +188,9 @@ export function thickOutlineMaterial(color: string, extra = 0.016, stencilMark =
     // An open foot: no line where it stands (it reads as standing on the floor, not as a cut-out
     // lying on it); its sides still run down to the floor.
     if (openFoot) cutBelowFloor(mat, 0);
-    // (The stencil mark too: merging keys on this, and marked and unmarked hulls mustn't merge.)
-    mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}|${stencilMark}`;
+    // (Not the stencil mark: that's render state, not shader code, so every mark shares one
+    // program. Merging keys on the stencil settings itself, see merge-static.ts.)
+    mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}`;
     thickOutlines.set(key, mat);
   }
   return mat;

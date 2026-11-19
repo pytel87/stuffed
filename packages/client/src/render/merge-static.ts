@@ -23,6 +23,8 @@ function lookKey(mesh: THREE.Mesh, m: THREE.Material): string | null {
     mesh.receiveShadow,
     mesh.renderOrder,
     m.customProgramCacheKey(),
+    // Stencil settings (outlines drawn only round a model): pieces that differ can't share a mesh.
+    m.stencilWrite ? `${m.stencilRef}/${m.stencilFunc}/${m.stencilZPass}` : '-',
   ].join('|');
 }
 
