@@ -37,11 +37,16 @@ export class CameraRig {
    * `aimOffset` is the vector from the player to the cursor's ground point; `groundY` the
    * height of the surface the player stands over (the camera rises with it, not with jumps).
    */
-  /** Extra distance factor (the Toss zooms out); eased toward. */
+  /** Extra distance factor (the Toss and catapults zoom out); eased toward, out quickly and back in gently. */
   private zoom = 1;
 
+  /** How far out it's zoomed now (1: normal). */
+  get zoomedOut(): number {
+    return this.zoom;
+  }
+
   update(player: Vec2, aimOffset: Vec2, dt: number, groundY = 0, zoomTarget = 1): void {
-    this.zoom += (zoomTarget - this.zoom) * (1 - Math.exp(-2.5 * dt));
+    this.zoom += (zoomTarget - this.zoom) * (1 - Math.exp(-(zoomTarget > this.zoom ? 6 : 2.5) * dt));
     const len = Math.hypot(aimOffset.x, aimOffset.y);
     const lean = Math.min(len * CAMERA.leanFactor, CAMERA.maxLean);
     const lx = len > 1e-6 ? (aimOffset.x / len) * lean : 0;

@@ -168,7 +168,12 @@ export interface Player {
    * umbrella (steerable, can't shoot or be hurt), or null once on the ground.
    */
   drop: 'riding' | 'gliding' | null;
-  /** On a slide, a sled run, a zip line or in a hamster tube (see systems/rides.ts). */
+  /**
+   * Flung by a catapult: gliding down under an umbrella (steerable; no shooting or looting, but
+   * unlike the Toss you can be hit). Jump folds it and you drop.
+   */
+  umbrella: boolean;
+  /** On a slide, a sled run, a zip line, in a hamster tube or flung by a catapult (see systems/rides.ts). */
   ride: Ride | null;
   /** Off a ride: not onto one again before this tick (so a slide's end doesn't start another). */
   rideAgainTick: Tick;
@@ -385,10 +390,11 @@ export interface Ride {
 
 /**
  * Something that carries you: a slide or a sled run (step onto its top), a zip line or a hamster
- * tube (press E at its start). `boost`: the push at the end; `hop`: a jump off its end.
+ * tube (press E at its start). `boost`: the push at the end; `hop`: a jump off its end. A catapult
+ * (press E at its cup, `from`) flings you up to `to`, where your umbrella opens.
  */
 export interface RideDef {
-  kind: 'slide' | 'sled' | 'zip' | 'tube';
+  kind: 'slide' | 'sled' | 'zip' | 'tube' | 'catapult';
   from: { x: number; y: number; z: number };
   to: { x: number; y: number; z: number };
   seconds: number;
@@ -489,6 +495,8 @@ export interface GameState {
   games: MiniGames;
   /** Each of the map's seesaws: which end went down last, and when. */
   seesaws: { down: 'a' | 'b'; tick: Tick }[];
+  /** Each of the map's catapults (by its index in the map's rides): when it last flung someone (-1: never). */
+  catapults: { ride: number; firedTick: Tick }[];
   zone: Zone;
   /** Events produced during the last step only (for effects and audio). */
   events: GameEvent[];
@@ -571,7 +579,14 @@ export interface Building extends Box {
 
 /** A patch of ground drawn differently (no effect on play). */
 export interface Ground {
-  kind: 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor' | 'rug';
+  kind:
+    | 'sand' | 'dirt' | 'blanket' | 'stones' | 'floor' | 'rug'
+    // The Backyard's
+    | 'mulch' | 'gravel' | 'patio' | 'clover'
+    // the Bedroom's
+    | 'carpet' | 'playmat' | 'drawing'
+    // and the Snowy Park's.
+    | 'needles' | 'cobbles' | 'plowed';
   box?: Box;
   circle?: Circle;
 }

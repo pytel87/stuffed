@@ -406,3 +406,22 @@ describe('the toy train and loot', () => {
 function roofHeight(map: MapData, c: { x: number; y: number }): number {
   return map.buildings.find((b) => c.x >= b.x && c.x <= b.x + b.w && c.y >= b.y && c.y <= b.y + b.h)?.height ?? 0;
 }
+
+describe('hideouts', () => {
+  for (const map of [BACKYARD, BEDROOM, PARK]) {
+    it(`${map.id}: no bush, laundry pile or pine sits on a prop, a building or a chest`, () => {
+      const clashes: string[] = [];
+      map.bushes.forEach((b) => {
+        for (const w of [...map.walls, ...map.buildings.filter((x) => x.kind !== 'igloo')]) {
+          const dx = Math.max(w.x - b.center.x, 0, b.center.x - (w.x + w.w));
+          const dy = Math.max(w.y - b.center.y, 0, b.center.y - (w.y + w.h));
+          if (Math.hypot(dx, dy) < b.radius + 0.3) clashes.push(`(${b.center.x}, ${b.center.y}) and ${'kind' in w ? w.kind : 'a building'} at (${w.x}, ${w.y})`);
+        }
+        for (const c of map.chestSpawns) {
+          if (!c.roof && Math.hypot(c.x - b.center.x, c.y - b.center.y) < b.radius + 0.9) clashes.push(`(${b.center.x}, ${b.center.y}) and a chest at (${c.x}, ${c.y})`);
+        }
+      });
+      expect(clashes).toEqual([]);
+    });
+  }
+});

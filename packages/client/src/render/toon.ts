@@ -128,6 +128,33 @@ export function outlineMaterial(color: string): THREE.MeshBasicMaterial {
   return mat;
 }
 
+const pushedOutlines = new Map<string, THREE.MeshBasicMaterial>();
+/**
+ * An outline hull whose depth is pushed `push` units away from the camera (where it's drawn
+ * doesn't move): where a box touches another (a row of blocks, a wall's pieces) its outline stays
+ * behind the neighbor's face instead of fighting it in broken steps.
+ */
+export function pushedOutlineMaterial(color: string, push = 0.008): THREE.MeshBasicMaterial {
+  const key = `${color}|${push}`;
+  let mat = pushedOutlines.get(key);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        {
+          vec4 pushed = projectionMatrix * vec4( mvPosition.xy, mvPosition.z - ${push.toFixed(4)}, 1.0 );
+          gl_Position.z = pushed.z / pushed.w * gl_Position.w;
+        }`,
+      );
+    };
+    mat.customProgramCacheKey = () => `pushedOutline${push}`;
+    pushedOutlines.set(key, mat);
+  }
+  return mat;
+}
+
 export interface ToonMeshOptions {
   /** Outline thickness as a fraction of the mesh size; false for none. */
   outline?: number | false;
@@ -150,11 +177,26 @@ export function toonMesh(
   mesh.receiveShadow = true;
   if (outline !== false) {
     const hull = new THREE.Mesh(geometry, outlineMaterial(outlineColor));
-    hull.scale.setScalar(1 + outline);
+    hull.scale.copy(outlineScale(geometry, outline));
     hull.name = 'outline';
     mesh.add(hull);
   }
   return mesh;
+}
+
+/** How much bigger an outline hull is along each axis: evenly bigger, except a long cylinder (a
+ *  pole, a log). Scaled evenly, that poked out past its ends as dark caps (and hid a log's rings),
+ *  so it grows past its ends only as much as it does round its sides. */
+function outlineScale(geometry: THREE.BufferGeometry, outline: number): THREE.Vector3 {
+  const even = new THREE.Vector3().setScalar(1 + outline);
+  if (!(geometry instanceof THREE.CylinderGeometry)) return even;
+  if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const size = geometry.boundingBox!.getSize(new THREE.Vector3());
+  const [thin, mid, long] = [size.x, size.y, size.z].sort((a, b) => a - b) as [number, number, number];
+  if (long < mid * 1.2) return even;
+  // Round its sides it grows by `outline` of its radius; the same distance past each end.
+  const grow = outline * thin;
+  return new THREE.Vector3(1 + grow / size.x, 1 + grow / size.y, 1 + grow / size.z);
 }
 
 export function lighten(color: string, amount: number): THREE.Color {

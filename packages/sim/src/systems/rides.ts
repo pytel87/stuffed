@@ -3,7 +3,9 @@
 //   (press E at its start): you're carried along, then let go with a push (a hop off a ski jump);
 //   inside a tube nobody sees you;
 // - trampolines: landing on one bounces you high (onto roofs);
-// - seesaws: landing on one end launches whoever stands on the other.
+// - seesaws: landing on one end launches whoever stands on the other;
+// - catapults (press E at the cup): flung high, where your umbrella opens and you glide down.
+//   One flings again only after a while.
 import { config, secondsToTicks } from '../config.ts';
 import type { Box, GameState, Player, Ride, RideDef, Vec2, Wall } from '../types.ts';
 import type { World } from '../world.ts';
@@ -12,12 +14,19 @@ const R = config.rides;
 
 /** The ride whose start this plush stands at (for E: zip lines and tubes), or -1. */
 export function rideAt(world: World, state: GameState, player: Player, needsPress: boolean): number {
-  if (player.ride || player.drop || state.tick < player.rideAgainTick) return -1;
+  if (player.ride || player.drop || player.umbrella || state.tick < player.rideAgainTick) return -1;
   const rides = world.map.rides ?? [];
   for (let i = 0; i < rides.length; i++) {
     const r = rides[i]!;
-    const pressed = r.kind === 'zip' || r.kind === 'tube';
+    const pressed = r.kind === 'zip' || r.kind === 'tube' || r.kind === 'catapult';
     if (pressed !== needsPress) continue;
+    if (r.kind === 'catapult' && !catapultReady(state, i)) continue;
+    if (r.kind === 'catapult') {
+      // From the ground (or on top of it) anywhere round it.
+      if (player.z > CATAPULT_SIZE / 2) continue;
+      if (Math.max(Math.abs(player.pos.x - r.from.x), Math.abs(player.pos.y - r.from.y)) <= CATAPULT_SIZE / 2 + R.catapultReach) return i;
+      continue;
+    }
     if (Math.abs(player.z - r.from.z) > (pressed ? config.loot.reachHeight : 0.3)) continue;
     if (pressed) {
       if (Math.hypot(player.pos.x - r.from.x, player.pos.y - r.from.y) <= R.pressRange) return i;
@@ -34,9 +43,17 @@ export function rideAt(world: World, state: GameState, player: Player, needsPres
   return -1;
 }
 
+/** A catapult (by its ride index) that can fling someone now. */
+export function catapultReady(state: GameState, ride: number): boolean {
+  const c = state.catapults.find((x) => x.ride === ride);
+  return !!c && (c.firedTick < 0 || state.tick >= c.firedTick + secondsToTicks(R.catapultCooldown));
+}
+
 export function startRide(world: World, state: GameState, player: Player, index: number): void {
   const r = world.map.rides![index]!;
   player.ride = { index, startTick: state.tick, endTick: state.tick + secondsToTicks(r.seconds) };
+  const catapult = state.catapults.find((x) => x.ride === index);
+  if (catapult) catapult.firedTick = state.tick;
   player.vel = { x: 0, y: 0 };
   player.knockback = { x: 0, y: 0 };
   player.vz = 0;
@@ -48,12 +65,14 @@ export function startRide(world: World, state: GameState, player: Player, index:
 export function ridePose(world: World, ride: Ride, tick: number): { pos: Vec2; z: number } {
   const r = world.map.rides![ride.index]!;
   const t = Math.min(1, Math.max(0, (tick - ride.startTick) / Math.max(1, ride.endTick - ride.startTick)));
-  // Slides and sled runs speed up as they go; a zip line sags in the middle; a tube arcs up.
+  // Slides and sled runs speed up as they go; a zip line sags in the middle; a tube arcs up; a
+  // catapult's throw rises fast and slows toward its top.
   const k = r.kind === 'slide' || r.kind === 'sled' ? t * t : t;
   const lift = r.kind === 'zip' ? -0.8 * 4 * t * (1 - t) : r.kind === 'tube' ? 2.5 * 4 * t * (1 - t) : 0;
+  const rise = r.kind === 'catapult' ? 1 - (1 - t) * (1 - t) : k;
   return {
     pos: { x: r.from.x + (r.to.x - r.from.x) * k, y: r.from.y + (r.to.y - r.from.y) * k },
-    z: r.from.z + (r.to.z - r.from.z) * k + lift,
+    z: r.from.z + (r.to.z - r.from.z) * rise + lift,
   };
 }
 
@@ -72,6 +91,14 @@ export function updateRide(world: World, state: GameState, player: Player): bool
   const dx = r.to.x - r.from.x;
   const dy = r.to.y - r.from.y;
   const len = Math.hypot(dx, dy) || 1;
+  if (r.kind === 'catapult') {
+    // At the top of the throw: the umbrella opens, still heading on the way you were flung.
+    player.umbrella = true;
+    player.vel = { x: (dx / len) * R.catapultCarry, y: (dy / len) * R.catapultCarry };
+    player.vz = 0;
+    state.events.push({ type: 'rideEnded', playerId: player.id, kind: r.kind, pos: { ...pos } });
+    return true;
+  }
   player.knockback.x += (dx / len) * r.boost;
   player.knockback.y += (dy / len) * r.boost;
   player.vz = r.hop ?? 0;
@@ -306,4 +333,30 @@ export function tubeWalls(r: RideDef, arch = 2.5, radius = 0.55, base = 0.5): Wa
     });
   }
   return out;
+}
+
+/** A catapult (a spring launcher) is this big across (a solid low box), and the top of its
+ *  platform, squashed down ready to throw, this high: a plush is loaded in its middle. */
+export const CATAPULT_SIZE = 2;
+export const CATAPULT_CUP = 0.95;
+
+/**
+ * A catapult standing at `at`, throwing toward `toward`: its ride (from its platform up to where
+ * the umbrella opens, `reach` along and `height` up) and its body as a solid wall (drawn with the ride).
+ */
+export function catapult(at: Vec2, toward: Vec2, reach = 12, height = 14): { ride: RideDef; wall: Wall } {
+  const dx = toward.x - at.x;
+  const dy = toward.y - at.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const half = CATAPULT_SIZE / 2;
+  return {
+    ride: {
+      kind: 'catapult',
+      from: { x: at.x, y: at.y, z: CATAPULT_CUP },
+      to: { x: at.x + (dx / len) * reach, y: at.y + (dy / len) * reach, z: height },
+      seconds: 1.2,
+      boost: 0,
+    },
+    wall: { kind: 'ramp', x: at.x - half, y: at.y - half, w: CATAPULT_SIZE, h: CATAPULT_SIZE, height: CATAPULT_CUP },
+  };
 }

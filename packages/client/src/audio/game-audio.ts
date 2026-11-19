@@ -25,6 +25,7 @@ interface Seen {
   bubbled: boolean;
   bagging: boolean;
   drop: 'riding' | 'gliding' | null;
+  umbrella: boolean;
 }
 
 export class GameAudio {
@@ -165,7 +166,7 @@ export class GameAudio {
           s.play('pin_knock', { at: e.pos, volume: 0.8 });
           break;
         case 'rideStarted':
-          s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
+          s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : e.kind === 'catapult' ? 'ball_boing' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
           break;
         case 'rideEnded':
           if (e.kind === 'tube') s.play('tube_pop', { at: e.pos, volume: 0.9 });
@@ -200,6 +201,7 @@ export class GameAudio {
         bubbled: state.tick < p.bubbledUntil,
         bagging: p.action?.kind === 'useItem' && p.action.item === 'big_stuffing_bag',
         drop: p.drop,
+        umbrella: p.umbrella,
       };
       const before = this.seen.get(p.id);
       this.seen.set(p.id, now);
@@ -221,6 +223,9 @@ export class GameAudio {
       // The Toss: a whoosh when you drop off the blimp, a thump when you land.
       if (mine && before.drop === 'riding' && now.drop === 'gliding') s.play('pillow_swing', { at: p.pos, volume: 0.8, pitchSpread: 0 });
       if (before.drop === 'gliding' && now.drop === null) s.play('land', { at: p.pos, volume: mine ? 0.8 : 0.4 });
+      // A catapult: the umbrella opening at the top of the throw, a thump when you land.
+      if (!before.umbrella && now.umbrella) s.play('pillow_swing', { at: p.pos, volume: mine ? 0.8 : 0.4, pitchSpread: 0 });
+      if (before.umbrella && !now.umbrella && p.z < 0.05) s.play('land', { at: p.pos, volume: mine ? 0.8 : 0.4 });
     }
   }
 }

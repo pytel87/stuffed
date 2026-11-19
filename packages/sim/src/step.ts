@@ -52,8 +52,8 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     if (!player.alive || !input) continue;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
-    if (player.drop) {
-      // Still on the Toss: no shooting, looting or items until you land.
+    if (player.drop || player.umbrella) {
+      // Still on the Toss, or holding an umbrella: no shooting, looting or items until you land.
       player.heldButtons = input.buttons;
       continue;
     }

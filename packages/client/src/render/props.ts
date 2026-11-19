@@ -2,18 +2,32 @@
 // becomes a brick wall, a crate, a bench, a sandcastle... All code-built, toon-shaded and outlined,
 // with small canvas textures (one per kind, shared).
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { Wall } from '@stuffed/sim';
 import { detailMaps, noteClone, repeated, upgradeTexture } from './image-textures.ts';
-import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import type { ImageOptions } from './image-textures.ts';
+import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
-const OUTLINE = 0.045;
+const OUTLINE = 0.03;
 
-/** Box mesh with a constant-width outline (scaling a hull would make long walls uneven). */
+/** Box mesh with a constant-width outline (scaling a hull would make long walls uneven), kept
+ *  behind any box it touches (see pushedOutlineMaterial). */
 export function outlinedBox(w: number, h: number, d: number, material: THREE.Material | THREE.Material[]): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(w + OUTLINE * 2, h + OUTLINE * 2, d + OUTLINE * 2), outlineMaterial(OUTLINE_COLOR));
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(w + OUTLINE * 2, h + OUTLINE * 2, d + OUTLINE * 2), pushedOutlineMaterial(OUTLINE_COLOR));
+  mesh.add(hull);
+  return mesh;
+}
+
+/** A rounded box (a pillow, a slide's rail) with a snug outline as wide all round (see outlinedBox). */
+export function softBox(w: number, h: number, d: number, radius: number, material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, radius), material);
+  mesh.receiveShadow = true;
+  const hull = new THREE.Mesh(new RoundedBoxGeometry(w + OUTLINE * 2, h + OUTLINE * 2, d + OUTLINE * 2, 3, radius + OUTLINE), pushedOutlineMaterial(OUTLINE_COLOR));
+  // (Named so a faded ramp hides it, like toonMesh's.)
+  hull.name = 'outline';
   mesh.add(hull);
   return mesh;
 }
@@ -121,6 +135,35 @@ export const waterTexture = () => upgradeTexture(canvasTexture('water', 16, (g, 
   g.fillStyle = '#ffffff';
   g.fillRect(0, 0, s, s);
 }), 'water_pool', { seamless: true });
+
+/** The generated image `name`, plain `color` until it loads. */
+const plainUntilLoaded = (name: string, color: string, opts: ImageOptions) =>
+  upgradeTexture(canvasTexture(name, 16, (g, s) => {
+    g.fillStyle = color;
+    g.fillRect(0, 0, s, s);
+  }), name, opts);
+
+// Ground patches, one look per area.
+/** Wood-chip mulch (under the treehouse). */
+export const mulchTexture = () => plainUntilLoaded('ground_mulch', '#9a6440', { seamless: true, soften: 0.3 });
+/** Pale gravel (round the tool shed). */
+export const gravelTexture = () => plainUntilLoaded('ground_gravel', '#cfc8bc', { seamless: true, soften: 0.15 });
+/** Sandstone paving slabs (round the house). */
+export const patioTexture = () => plainUntilLoaded('ground_patio', '#e8dcc4', { periodic: true, soften: 0.2 });
+/** Clover with daisies (meadows on the lawn). */
+export const cloverTexture = () => plainUntilLoaded('ground_clover', '#78c066', { seamless: true, soften: 0.15 });
+/** Dusty blue shag carpet (by the bed). */
+export const carpetTexture = () => plainUntilLoaded('floor_carpet', '#8fa8c8', { seamless: true, soften: 0.15 });
+/** Foam puzzle tiles in bright colors (Toy Corner). */
+export const playmatTexture = () => plainUntilLoaded('floor_playmat', '#f2c14e', { periodic: true, soften: 0.15 });
+/** A big sheet of paper covered in crayon drawings (by the desk; one sheet, not repeated). */
+export const bigDrawingTexture = () => plainUntilLoaded('paper_drawing', '#fbf8f0', {});
+/** Pine needles and snow (Pine Forest). */
+export const needlesTexture = () => plainUntilLoaded('ground_needles', '#a27a58', { seamless: true, soften: 0.35 });
+/** Snowy cobblestones (Gift Market). */
+export const cobblesTexture = () => plainUntilLoaded('ground_cobbles', '#b9c3d0', { soften: 0.15 });
+/** Packed, plowed snow with tire tracks (the snowplow's lane). */
+export const plowedTexture = () => plainUntilLoaded('ground_packed_snow', '#e4edf6', { seamless: true });
 
 /** Slowly drifts a texture (water ripples) while `mesh` is drawn. */
 export function drift(mesh: THREE.Mesh, tex: THREE.Texture, speed = 0.02): void {
@@ -332,7 +375,10 @@ const drawnCrateTexture = () =>
   });
 
 /** A round braided rug: rings of soft colors. */
-export const rugTexture = () =>
+/** A round braided rag rug: the generated image (rug_braided), drawn rings until it loads. */
+export const rugTexture = () => upgradeTexture(drawnRugTexture(), 'rug_braided', { soften: 0.1 });
+
+const drawnRugTexture = () =>
   canvasTexture('rug', 256, (g, s) => {
     const colors = ['#f2a7a0', '#fbe3b5', '#9fc7e8', '#fbe3b5', '#c9b2e6', '#fbe3b5', '#a8d8a8'];
     g.fillStyle = '#fbe3b5';

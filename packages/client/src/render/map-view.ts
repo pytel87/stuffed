@@ -2,7 +2,10 @@
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
 import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
-import { dirtTexture, drift, iceTexture, lawnTexture, picnicTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture } from './props.ts';
+import {
+  carpetTexture, cloverTexture, bigDrawingTexture, cobblesTexture, dirtTexture, drift, gravelTexture, iceTexture, lawnTexture, mulchTexture, needlesTexture,
+  patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
+} from './props.ts';
 import { mergeStatic } from './merge-static.ts';
 import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -47,7 +50,41 @@ export function buildMapView(map: MapData): THREE.Group {
   return g;
 }
 
+/** How the newer patches look: their texture, the size of one repeat, how much they're tinted
+ *  in soft blobs (like the lawn, so a meadow matches the grass round it), how wide their edge
+ *  fades into the ground round them (none: a crisp edge, for things laid down like a patio or a
+ *  mat), and how high they lie (underlays, like the patio round the house, below the floor on them). */
+interface Look {
+  texture: () => THREE.Texture;
+  tile: number;
+  tint?: number;
+  feather?: number;
+  y?: number;
+}
+const LOOKS: Partial<Record<Ground['kind'], Look>> = {
+  dirt: { texture: dirtTexture, tile: 8, tint: 0.1, feather: 1.6 },
+  mulch: { texture: mulchTexture, tile: 9, tint: 0.1, feather: 1.4 },
+  gravel: { texture: gravelTexture, tile: 5, feather: 1.2, y: 0.006 },
+  patio: { texture: patioTexture, tile: 6, y: 0.006 },
+  clover: { texture: cloverTexture, tile: 11, tint: 0.3, feather: 2.2 },
+  carpet: { texture: carpetTexture, tile: 5 },
+  playmat: { texture: playmatTexture, tile: 14 },
+  needles: { texture: needlesTexture, tile: 5, tint: 0.12, feather: 2.6 },
+  cobbles: { texture: cobblesTexture, tile: 9, feather: 1.8 },
+  plowed: { texture: plowedTexture, tile: 6, feather: 1.2 },
+};
+
 function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
+  const look = LOOKS[ground.kind];
+  if (look) return lookPatch(ground, look, map);
+  if (ground.kind === 'drawing') {
+    // One big sheet of paper, the drawing stretched over it once.
+    const box = ground.box!;
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(box.w, box.h).rotateX(-Math.PI / 2), toonMaterial('#ffffff', { map: bigDrawingTexture() }));
+    sheet.position.set(box.x + box.w / 2, 0.012, box.y + box.h / 2);
+    sheet.receiveShadow = true;
+    return sheet;
+  }
   const box = ground.box ?? { x: 0, y: 0, w: 0, h: 0 };
   const cx = box.x + box.w / 2;
   const cz = box.y + box.h / 2;
@@ -82,8 +119,8 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
       ? toonMaterial('#ffffff', { map: tiled(picnicTexture(), box.w / 15, box.h / 15) })
       : ground.kind === 'floor'
         ? toonMaterial('#ffffff', { map: tiled(woodFloorTexture(), box.w / 3, box.h / 3) })
-        : toonMaterial('#ffffff', { map: tiled(ground.kind === 'sand' ? sandTexture() : dirtTexture(), box.w / 8, box.h / 8) });
-  if (ground.kind === 'sand' || ground.kind === 'dirt') {
+        : toonMaterial('#ffffff', { map: tiled(sandTexture(), box.w / 8, box.h / 8) });
+  if (ground.kind === 'sand') {
     patches(geometry, map, 0.1, cx, cz);
     material.vertexColors = true;
   }
@@ -94,6 +131,67 @@ function groundPatch(ground: Ground, map: MapData): THREE.Object3D {
   const g = new THREE.Group();
   g.add(patch, sandBits(box, map));
   return g;
+}
+
+/** A patch with one of the newer looks, a box or a circle. With a feather, it's a fine grid a
+ *  little bigger than its shape whose corners fade out across a ragged, gently wobbling edge. */
+function lookPatch(ground: Ground, look: Look, map: MapData): THREE.Mesh {
+  const feather = look.feather ?? 0;
+  const circle = ground.circle;
+  const box = ground.box ?? { x: 0, y: 0, w: 0, h: 0 };
+  const cx = circle ? circle.center.x : box.x + box.w / 2;
+  const cz = circle ? circle.center.y : box.y + box.h / 2;
+  const w = (circle ? circle.radius * 2.2 : box.w) + feather * 2;
+  const h = (circle ? circle.radius * 2.2 : box.h) + feather * 2;
+  const step = feather ? 0.5 : 8;
+  const geometry = new THREE.PlaneGeometry(w, h, Math.ceil(w / step), Math.ceil(h / step)).rotateX(-Math.PI / 2);
+  const material = toonMaterial('#ffffff', { map: tiled(look.texture(), w / look.tile, h / look.tile) });
+  if (look.tint) patches(geometry, map, look.tint, cx, cz);
+  if (feather) {
+    // How far outside its shape each point is (negative inside); a circle's edge wobbles round it.
+    const rand = mapRandom(map, Math.round(cx * 5 + cz * 3));
+    const phases = [rand(), rand(), rand()].map((p) => p * Math.PI * 2);
+    const outside = circle
+      ? (x: number, z: number) => {
+          const a = Math.atan2(z, x);
+          const r = circle.radius * (1 + 0.05 * Math.sin(3 * a + phases[0]!) + 0.03 * Math.sin(5 * a + phases[1]!));
+          return Math.hypot(x, z) - r;
+        }
+      : (x: number, z: number) => {
+          const qx = Math.abs(x) - box.w / 2;
+          const qz = Math.abs(z) - box.h / 2;
+          return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+        };
+    fadeEdge(geometry, (x, z) => outside(x, z) + feather * 0.45 * ragged(x + cx + phases[2]!, z + cz), feather);
+    material.transparent = true;
+    material.depthWrite = false;
+  }
+  if (look.tint || feather) material.vertexColors = true;
+  const patch = new THREE.Mesh(geometry, material);
+  patch.position.set(cx, look.y ?? 0.012, cz);
+  // Underneath anything else see-through (and an underlay under the patches on it).
+  patch.renderOrder = look.y ? -2 : -1;
+  patch.receiveShadow = true;
+  return patch;
+}
+
+/** Small-scale noise, about -1..1, for a ragged edge (in world units). */
+function ragged(x: number, z: number): number {
+  return 0.55 * Math.sin(x * 1.3 + z * 0.7) * Math.sin(z * 1.1 - x * 0.5) + 0.3 * Math.sin(x * 2.3 - z * 1.9 + Math.sin(z * 0.9) * 2) + 0.15 * Math.sin(x * 4.1 + z * 3.7 + Math.sin(x * 0.7) * 3);
+}
+
+/** Fades a flat patch's vertices out where `outside(x, z)` (local units outside its edge) runs
+ *  from -feather/2 to +feather/2, keeping any tint already on them. */
+function fadeEdge(geo: THREE.BufferGeometry, outside: (x: number, z: number) => number, feather: number): void {
+  const pos = geo.attributes.position!;
+  const tint = geo.attributes.color;
+  const colors = new Float32Array(pos.count * 4);
+  for (let i = 0; i < pos.count; i++) {
+    const t = THREE.MathUtils.clamp(outside(pos.getX(i), pos.getZ(i)) / feather + 0.5, 0, 1);
+    for (let c = 0; c < 3; c++) colors[i * 4 + c] = tint ? tint.getComponent(i, c) : 1;
+    colors[i * 4 + 3] = 1 - t * t * (3 - 2 * t);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 4));
 }
 
 /** Tints a flat ground's vertices lighter and darker in big soft blobs (`amount` either way).

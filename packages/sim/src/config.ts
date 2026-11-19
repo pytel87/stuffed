@@ -485,6 +485,11 @@ export const config = {
     seesawEnd: 0.9,
     seesawSpeed: 14,
     seesawPush: 5,
+    /** Seconds before a catapult flings anyone again; how fast you head on as your umbrella opens;
+     *  how far from its frame E works. */
+    catapultCooldown: 20,
+    catapultCarry: 6,
+    catapultReach: 1,
   },
 
   /** The map's big toy (see systems/toys.ts). */

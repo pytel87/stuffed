@@ -128,7 +128,7 @@ function pin(): THREE.Group {
 /** A hill: a pole with a flag (raised as it's held) and a ring that fills up. */
 function hillView(radius: number): { root: THREE.Group; flag: THREE.Mesh; fill: THREE.Mesh } {
   const root = new THREE.Group();
-  const pole = toonMesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), '#c9cfd8', { outline: 0.1, material: plastic('#c9cfd8') });
+  const pole = toonMesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), '#c9cfd8', { outline: 0.3, material: plastic('#c9cfd8') });
   pole.position.y = 1.2;
   root.add(pole);
   const flag = toonMesh(new THREE.PlaneGeometry(0.8, 0.5).translate(0.4, -0.25, 0), GOLD, { outline: false, material: toonMaterial(GOLD, { map: null, side: THREE.DoubleSide }) });

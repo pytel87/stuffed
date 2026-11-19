@@ -25,5 +25,5 @@ export { PARK } from './maps/park.ts';
 export { onIce, wading } from './systems/movement.ts';
 export { BotController, BOT, BOT_LEVELS, type BotLevel } from './bots/brain.ts';
 export * as rng from './rng.ts';
-export { rampSurface, SEESAW, slopeAt } from './systems/rides.ts';
+export { CATAPULT_CUP, CATAPULT_SIZE, catapultReady, rampSurface, SEESAW, slopeAt } from './systems/rides.ts';
 export { galleryTargets } from './systems/minigames.ts';

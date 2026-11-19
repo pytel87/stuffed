@@ -67,6 +67,41 @@
     },
     "gift_wrap": {
       "prompt": "Plain light grey gift wrapping paper with a subtle pattern of small stars and dots, slightly glossy paper, evenly lit (to be tinted later)"
+    },
+    "ground_mulch": {
+      "prompt": "Garden bark mulch for toys: chunky wood chips in warm reddish and golden browns, loosely scattered and overlapping, cheerful storybook style"
+    },
+    "ground_gravel": {
+      "prompt": "Garden gravel for toys: small rounded pebbles in soft warm greys, beige and off-white, packed closely, cheerful storybook style"
+    },
+    "ground_patio": {
+      "prompt": "Toy garden patio paving: square light sandstone paving slabs, 4 across and 4 rows, slightly different warm cream and beige tones with thin soft grey joints, cheerful storybook style"
+    },
+    "ground_clover": {
+      "prompt": "Green felt lawn for toys thick with little three-leaf clovers and a scattering of small white daisies and yellow buttercups, fresh cheerful green, cheerful storybook style"
+    },
+    "floor_carpet": {
+      "prompt": "Soft fluffy shag carpet with short dense pile in a calm dusty blue, cozy storybook style"
+    },
+    "floor_playmat": {
+      "prompt": "Children's foam puzzle play mat seen from above: interlocking square foam tiles with jigsaw edges, 4 across and 4 rows, each tile a different bright color (red, yellow, blue, green, orange, purple), subtle soft foam texture"
+    },
+    "paper_drawing": {
+      "prompt": "A big sheet of white drawing paper lying flat, seen from straight above, covered in a child's crayon drawings: a smiling sun, a house, a tree, flowers, a cat, a rainbow and scribbles, bright crayon colors. Flat top-down view, the paper filling the whole square edge to edge, even soft lighting, no shadows, no perspective, no text, no letters",
+      "panel": true
+    },
+    "ground_needles": {
+      "prompt": "Winter forest floor for toys: brown pine needles and a few small pine cones with soft patches of white snow between them, cheerful storybook style"
+    },
+    "ground_cobbles": {
+      "prompt": "Old town square cobblestones dusted with snow: rounded grey-blue cobbles in neat rows with white snow in the gaps, cheerful storybook style"
+    },
+    "ground_packed_snow": {
+      "prompt": "A snowplowed path for toys: packed smooth snow, slightly bluish white, with faint tire tread tracks running left to right and a few boot prints, cheerful storybook style"
+    },
+    "rug_braided": {
+      "prompt": "A round braided rag rug seen from straight above, the circle filling the whole square and touching all four edges, concentric coils of chunky three-strand fabric braid in soft pastel rainbow colors (pink, cream, sky blue, lilac, mint green), cozy storybook style. Flat top-down orthographic view, even soft lighting, no shadows, no perspective, plain light cream in the corners outside the rug, no text",
+      "panel": true
     }
   }
 }

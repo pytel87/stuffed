@@ -66,6 +66,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       rideAgainTick: 0,
       juiceUntil: 0,
       drop: null,
+      umbrella: false,
       parts: rollParts(rng, entry.parts),
       stash: [],
       lastInputSeq: -1,
@@ -113,6 +114,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       : null,
     strikes: [],
     seesaws: (map.seesaws ?? []).map(() => ({ down: 'a' as const, tick: -1 })),
+    catapults: (map.rides ?? []).flatMap((r, ride) => (r.kind === 'catapult' ? [{ ride, firedTick: -1 }] : [])),
     games: initialGames(map),
     wanderers: initialWanderers(map),
     toy: map.toy

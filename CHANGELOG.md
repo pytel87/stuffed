@@ -2,6 +2,39 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Catapults, more floors (2026-11-19)
+
+- Catapults, one on each side of every map (throwing toward its middle): press E by one and
+  you're flung high, your umbrella opens, and you steer as you glide down (no shooting or looting,
+  but you can be hit; Jump folds it). Each is a spring launcher (a pink spring under a wooden
+  platform with an arrow showing where it throws), squashed down when ready; it throws again 20 s
+  later. The camera pulls back quickly from the moment you're thrown, and shadows reach as far
+  as it sees (they no longer pop in at the edge while you glide). Protocol 15.
+- Each area gets its own ground: a paved patio round the house, gravel round the tool shed, wood
+  chips under the treehouse and clover meadows on the lawn (Backyard); a shaggy carpet by the bed,
+  a foam puzzle mat in Toy Corner and a big crayon drawing by the desk (Bedroom); pine needles in
+  the forest, cobbles under the Gift Market and the snowplow's cleared lane (Snowy Park).
+- Natural grounds (dirt, wood chips, clover, gravel, pine needles, cobbles, plowed snow) fade into
+  the lawn or snow over a ragged edge; laid-down ones (floors, patio, blanket, rugs, mat, drawing)
+  keep a crisp edge. Meadows take on the lawn's light and shade so they blend in.
+- The patio is wider on the north, a terrace the trampoline stands on. The shooting gallery moved
+  west, away from the house (and a book out of its way).
+- The round rugs in the Bedroom are braided (a generated image instead of drawn rings); the log
+  cabin has a wooden floor (no snow indoors); the pine needles are smaller; floor clutter (toy
+  cars...) stays off the chests and the hideouts. Bushes, laundry piles and pines no longer sit on
+  props or chests (a few moved a little).
+- Push buttons: the hazard stripes are the plate's top face (a sheet just above it flickered).
+- Long poles and logs: their outline no longer pokes out past their ends as a dark cap (it hid the
+  logs' rings); the king of the hill pole's outline is a little bolder.
+- Bushes and laundry piles: one outline round the whole heap, down to the floor, without stray
+  slivers of outline across the balls. Blocks, crates, books and walls: thinner outlines that hug
+  them down to the floor, with no broken steps where one touches the next. Heaps' lower balls sit
+  on the floor (no strip of floor between them and their outline). The bed's pillows are plump
+  and outlined, like its turned-down sheet; slides have rounded rails and board with snug
+  outlines (no dark blocks past their ends).
+- The garden hose's outline follows the hose (it lay off across the lawn by the pool), and the hose
+  no longer dips under the ground by the tap.
+
 ## Robot vacuum, lawnmower, snowplow (2026-11-19)
 
 - Things that move about: a robot vacuum in the Bedroom (bumps you aside, sucks up loot and spits it

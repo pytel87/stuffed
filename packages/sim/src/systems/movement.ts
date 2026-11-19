@@ -38,6 +38,10 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     tossMove(world, state, player, input);
     return;
   }
+  if (player.umbrella) {
+    umbrellaMove(world, state, player, input);
+    return;
+  }
   // On a slide, a sled run, a zip line or in a tube: carried along, no walking.
   if (updateRide(world, state, player)) return;
   // Riding a train wagon: carried along with it (and turned with the track) first.
@@ -408,6 +412,25 @@ function tossMove(world: World, state: GameState, player: Player, input: Input):
     if (pressed || !toss || state.tick >= toss.endTick) player.drop = 'gliding';
     return;
   }
+  if (glide(world, state, player, input)) player.drop = null;
+}
+
+/**
+ * Flung by a catapult, under an umbrella: steer while you sink, like gliding off the Toss. Jump
+ * folds the umbrella and you drop. Landing (or folding it) puts it away.
+ */
+function umbrellaMove(world: World, state: GameState, player: Player, input: Input): void {
+  const pressed = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
+  if (pressed) {
+    player.umbrella = false;
+    return;
+  }
+  if (glide(world, state, player, input)) player.umbrella = false;
+}
+
+/** Steers a plush under an umbrella as it sinks. True once it has landed on whatever is below. */
+function glide(world: World, state: GameState, player: Player, input: Input): boolean {
+  const t = config.toss;
   const move = clampLength1(input.moveX, input.moveY);
   player.vel.x += (move.x * t.glideSpeed - player.vel.x) * ACCEL_BLEND;
   player.vel.y += (move.y * t.glideSpeed - player.vel.y) * ACCEL_BLEND;
@@ -417,9 +440,8 @@ function tossMove(world: World, state: GameState, player: Player, input: Input):
   resolveObstacles(world, state, player);
   clampToMap(world, player);
   const floor = groundHeight(world, state, player.pos, player.z);
-  if (player.z <= floor + EPS) {
-    player.z = floor;
-    player.vz = 0;
-    player.drop = null;
-  }
+  if (player.z > floor + EPS) return false;
+  player.z = floor;
+  player.vz = 0;
+  return true;
 }

@@ -8,7 +8,8 @@
 //   Snowman Garden (SW)   snowmen, lamp posts and benches
 //   Frozen Pond (C)       slippery ice (you slide) with ice blocks for cover; high loot in the middle
 // Coordinates: x to the right, y down the screen.
-import type { Building, ChestSpawn, Circle, Decor, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
+import { catapult } from '../systems/rides.ts';
+import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 120;
 const C = SIZE / 2;
@@ -110,15 +111,23 @@ const IGLOOS = [igloo(106, 38, Math.PI), igloo(10, 50, 0), igloo(100, 72, Math.P
 // A sled hill: a snow mound (a step up onto it) with a run down to the east and a little jump.
 const sledHill: Wall[] = [w('snowwall', 2)(34.5, 70.5, 3, 3), w('snowwall', 0.9)(32.4, 71.3, 1.6, 1.4)];
 
-const rides: RideDef[] = [{ kind: 'sled', from: { x: 37.6, y: 72, z: 2 }, to: { x: 46.2, y: 72, z: 0 }, seconds: 1.1, boost: 12, hop: 8 }];
+// A catapult on each side of the park, throwing you up toward the frozen pond: south of Snowball
+// Alley, east of the pond, between the pond and the Gift Market, and by the west igloo.
+const CATAPULTS = [
+  catapult({ x: 51, y: 36 }, { x: C, y: C }),
+  catapult({ x: 105, y: 61 }, { x: C, y: C }),
+  catapult({ x: 64, y: 88 }, { x: C, y: C }),
+  catapult({ x: 19, y: 59 }, { x: C, y: 59 }),
+];
+const rides: RideDef[] = [{ kind: 'sled', from: { x: 37.6, y: 72, z: 2 }, to: { x: 46.2, y: 72, z: 0 }, seconds: 1.1, boost: 12, hop: 8 }, ...CATAPULTS.map((c) => c.ride)];
 
-const walls: Wall[] = [...IGLOOS.flatMap((i) => i.walls), ...pond, ...forest, ...alley, ...fort, ...cabin, ...market, ...garden, ...scattered, ...sledHill];
+const walls: Wall[] = [...CATAPULTS.map((c) => c.wall), ...IGLOOS.flatMap((i) => i.walls), ...pond, ...forest, ...alley, ...fort, ...cabin, ...market, ...garden, ...scattered, ...sledHill];
 const buildings: Building[] = [CABIN, ...IGLOOS.map((i) => i.building)];
 
 const bushes: Circle[] = [
   // Pine Forest: dense
   pine(8, 8), pine(14, 14, 2.6), pine(8, 18), pine(20, 8), pine(20, 20, 2.6), pine(32, 22), pine(24, 30), pine(10, 34),
-  pine(34, 8), pine(16, 44, 2), pine(36, 40, 2),
+  pine(34, 8), pine(16.5, 45, 2), pine(36, 40, 2),
   // round the pond and the fields
   pine(44, 44, 2), pine(76, 76, 2), pine(78, 44, 2), pine(42, 76, 2),
   pine(112, 26), pine(110, 80), pine(78, 112), pine(30, 112), pine(6, 74), pine(104, 112, 2), pine(112, 6, 2),
@@ -159,10 +168,21 @@ const decor: Decor[] = [];
     const turn = rand() * Math.PI * 2;
     const kind = kinds[i % kinds.length]!;
     const clear = [...walls, ...buildings].every((b) => p.x < b.x - 1.2 || p.x > b.x + b.w + 1.2 || p.y < b.y - 1.2 || p.y > b.y + b.h + 1.2);
+    // ...and off the chests (a toy car once sat in one) and the pines.
+    const offChests = chestSpawns.every((c) => Math.hypot(c.x - p.x, c.y - p.y) > 1.8) && bushes.every((b) => Math.hypot(b.center.x - p.x, b.center.y - p.y) > b.radius + 0.6);
     const onPond = Math.hypot(p.x - POND.center.x, p.y - POND.center.y) < POND.radius + 1;
-    if (clear && !onPond) decor.push({ kind, x: p.x, y: p.y, turn });
+    if (clear && offChests && !onPond) decor.push({ kind, x: p.x, y: p.y, turn });
   }
 }
+
+// Pine needles on the forest floor, cobbles under the Gift Market, the snowplow's cleared lane, and
+// floorboards in the log cabin (no snow indoors).
+const grounds: Ground[] = [
+  { kind: 'floor', box: CABIN },
+  { kind: 'needles', circle: { center: { x: 18, y: 20 }, radius: 18 } },
+  { kind: 'cobbles', box: { x: 40, y: 93, w: 38, h: 21 } },
+  { kind: 'plowed', box: { x: 37, y: 28, w: 44, h: 4.5 } },
+];
 
 const zones: MapZone[] = [
   { name: 'Frozen Pond', center: { x: C, y: C }, radius: 14 },
@@ -226,6 +246,7 @@ export const PARK: MapData = {
   // A big pink present (gold ribbon, unlike the stacks around it) in the middle of the Gift Market.
   pinata: { x: 60, y: 100, z: 0, kind: 'present' },
   ice: [POND],
+  grounds,
   zones,
   decor,
 };

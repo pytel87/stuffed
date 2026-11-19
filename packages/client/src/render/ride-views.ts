@@ -1,10 +1,12 @@
 // What moves you around the map, drawn: trampolines, seesaws (tipping to the end that went down
 // last), slides and the sled run (straight ramps, as the ride follows), zip lines (poles and a
-// sagging cable) and hamster tubes (a clear arching tube between two mouths).
+// sagging cable), hamster tubes (a clear arching tube between two mouths) and catapults (spring
+// launchers: the spring shoots up when it throws, and is pushed back down as it gets ready again).
 import * as THREE from 'three';
-import { slopeAt } from '@stuffed/sim';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { CATAPULT_SIZE, config, slopeAt } from '@stuffed/sim';
 import type { GameState, MapData, RideDef } from '@stuffed/sim';
-import { snowTexture, tiled } from './props.ts';
+import { snowTexture, softBox, tiled } from './props.ts';
 import { fadeObject, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
@@ -74,14 +76,12 @@ function ramp(r: RideDef): THREE.Group {
   body.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
   body.rotation.z = Math.atan2(b.y - a.y, horiz);
   // Matte (a glossy slide glared white on its lower half).
-  const bed = toonMesh(new THREE.BoxGeometry(len, 0.12, width), sled ? '#ffffff' : '#e2433f', {
-    outline: 0.03,
-    material: toonMaterial(sled ? '#ffffff' : '#e2433f', { map: sled ? tiled(snowTexture(), len / 3, width / 3) : null }),
-  });
+  // Rounded, with snug outlines: scaled-up copies stuck out past their long ends as dark blocks.
+  const bed = softBox(len, 0.12, width, 0.05, toonMaterial(sled ? '#ffffff' : '#e2433f', { map: sled ? tiled(snowTexture(), len / 3, width / 3) : null }));
   body.add(bed);
   if (!sled) {
     for (const s of [-1, 1]) {
-      const rail = toonMesh(new THREE.BoxGeometry(len, 0.3, 0.1), '#ffd23a', { outline: 0.06, material: toonMaterial('#ffd23a', { map: null }) });
+      const rail = softBox(len, 0.3, 0.12, 0.059, toonMaterial('#ffd23a', { map: null }));
       rail.position.set(0, 0.18, s * (width / 2));
       body.add(rail);
     }
@@ -120,6 +120,94 @@ function zipLine(r: RideDef): THREE.Group {
   return g;
 }
 
+/** The spring's height squashed down (loaded, ready to throw) and sprung up (it just threw). */
+const SQUASHED = 0.41;
+const SPRUNG = 1.35;
+/** The base's height, the platform's thickness, and how far it leans toward the throw. */
+const BASE = 0.36;
+const PLATFORM = 0.14;
+const LEAN = 0.18;
+const RINGS = 6;
+
+/**
+ * A spring launcher throwing toward +x (turned by the caller): a rounded mint base, a pink slinky
+ * spring, and on top a round wooden platform with a soft rim, leaning a little toward the throw,
+ * with an arrow painted the way it throws. A plush is loaded in the platform's middle.
+ */
+function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group } {
+  const root = new THREE.Group();
+  const size = CATAPULT_SIZE;
+  const base = toonMesh(new RoundedBoxGeometry(size * 0.9, BASE, size * 0.9, 3, 0.12), '#9be3c4', { outline: 0.03, material: plastic('#9be3c4') });
+  base.position.y = BASE / 2;
+  root.add(base);
+  // Little round feet at the corners.
+  for (const [x, z] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
+    const foot = toonMesh(new THREE.SphereGeometry(0.16, 14, 10), '#ff9cbf', { outline: 0.08, material: plastic('#ff9cbf') });
+    foot.scale.y = 0.6;
+    foot.position.set(x * size * 0.36, 0.06, z * size * 0.36);
+    root.add(foot);
+  }
+  // The spring: a stack of rings (they keep their shape however far apart it is).
+  const rings: THREE.Mesh[] = [];
+  const ring = new THREE.TorusGeometry(0.42, 0.075, 10, 28).rotateX(Math.PI / 2);
+  for (let i = 0; i < RINGS; i++) {
+    const r = toonMesh(ring, '#ff9cbf', { outline: 0.06, material: plastic('#ff9cbf') });
+    root.add(r);
+    rings.push(r);
+  }
+  // The platform: a wooden disc with a butter-yellow rim and a cream arrow on top.
+  const top = new THREE.Group();
+  const lean = new THREE.Group();
+  lean.rotation.z = -LEAN;
+  top.add(lean);
+  const disc = toonMesh(new THREE.CylinderGeometry(0.78, 0.78, PLATFORM, 32), '#e8b77a', { outline: 0.03, material: toonMaterial('#e8b77a', { map: null }) });
+  disc.position.y = PLATFORM / 2;
+  lean.add(disc);
+  const rim = toonMesh(new THREE.TorusGeometry(0.78, 0.075, 10, 40).rotateX(Math.PI / 2), '#ffe08a', { outline: 0.06, material: plastic('#ffe08a') });
+  rim.position.y = PLATFORM / 2;
+  lean.add(rim);
+  const arrow = new THREE.Shape();
+  arrow.moveTo(0.5, 0);
+  arrow.lineTo(0.12, 0.3);
+  arrow.lineTo(0.12, 0.12);
+  arrow.lineTo(-0.42, 0.12);
+  arrow.lineTo(-0.42, -0.12);
+  arrow.lineTo(0.12, -0.12);
+  arrow.lineTo(0.12, -0.3);
+  arrow.closePath();
+  const paint = new THREE.Mesh(new THREE.ShapeGeometry(arrow).rotateX(-Math.PI / 2), toonMaterial('#fff6e0', { map: null }));
+  paint.position.y = PLATFORM + 0.005;
+  lean.add(paint);
+  root.add(top);
+  return { root, rings, top };
+}
+
+/** Seconds the spring takes to shoot up, and to be pushed back down before it's ready. */
+const SNAP = 0.12;
+const WIND = 1.5;
+
+/** The spring's height `since` seconds after it threw (with `cooldown` seconds until it's ready). */
+function springHeight(since: number | null, cooldown: number): number {
+  if (since === null || since >= cooldown) return SQUASHED;
+  if (since < SNAP) return SQUASHED + (SPRUNG - SQUASHED) * (1 - (1 - since / SNAP) ** 2);
+  const left = cooldown - since;
+  if (left > WIND) {
+    // A wobble as it settles, sprung up.
+    const after = since - SNAP;
+    return SPRUNG + 0.15 * Math.sin(after * 18) * Math.exp(-after * 4);
+  }
+  const k = 1 - left / WIND;
+  return SPRUNG + (SQUASHED - SPRUNG) * k * k * (3 - 2 * k);
+}
+
+/** Stretches a launcher's spring to `height`, with its platform on top. */
+function setSpring(v: { rings: THREE.Mesh[]; top: THREE.Group }, height: number): void {
+  v.rings.forEach((r, i) => {
+    r.position.y = BASE + 0.04 + ((i + 0.5) / RINGS) * height;
+  });
+  v.top.position.y = BASE + 0.04 + height;
+}
+
 /** A hamster tube: a solid arching tube between its two mouths. */
 function tube(r: RideDef): THREE.Group {
   const g = new THREE.Group();
@@ -155,6 +243,8 @@ export class RideViews {
   /** Each slide or sled run, and how faded it is (a plush under it shows through). */
   private ramps: { ride: RideDef; group: THREE.Group; fade: number }[] = [];
   private tilts: number[] = [];
+  /** Each catapult's spring and platform, by its ride's index. */
+  private launchers: { ride: number; rings: THREE.Mesh[]; top: THREE.Group }[] = [];
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -164,6 +254,7 @@ export class RideViews {
     this.planks = [];
     this.tilts = [];
     this.ramps = [];
+    this.launchers = [];
     this.mapId = '';
   }
 
@@ -182,6 +273,11 @@ export class RideViews {
       const s = state.seesaws[i];
       plank.rotation.z = s && s.tick >= 0 && s.down === 'b' ? -this.tilts[i]! : this.tilts[i]!;
     });
+    for (const v of this.launchers) {
+      const c = state.catapults.find((x) => x.ride === v.ride);
+      const since = c && c.firedTick >= 0 ? (state.tick - c.firedTick) / config.tickRate : null;
+      setSpring(v, springHeight(since, config.rides.catapultCooldown));
+    }
   }
 
   private build(map: MapData): void {
@@ -202,7 +298,18 @@ export class RideViews {
       this.tilts.push(Math.asin(Math.min(1, (PIVOT_Y - 0.06) / half)));
     }
     const seen = new Set<string>();
+    (map.rides ?? []).forEach((r, index) => {
+      if (r.kind !== 'catapult') return;
+      const v = catapult();
+      // Its platform's middle over the ride's start, throwing toward its end.
+      v.root.position.set(r.from.x, 0, r.from.y);
+      v.root.rotation.y = -Math.atan2(r.to.y - r.from.y, r.to.x - r.from.x);
+      setSpring(v, SQUASHED);
+      root.add(v.root);
+      this.launchers.push({ ride: index, rings: v.rings, top: v.top });
+    });
     for (const r of map.rides ?? []) {
+      if (r.kind === 'catapult') continue;
       if (r.kind === 'slide' || r.kind === 'sled') {
         const group = ramp(r);
         root.add(group);

@@ -151,6 +151,8 @@ export class GameRenderer {
   private roofs: RoofView[] = [];
   private rinse!: RinseView;
   private readonly shadowTarget = new THREE.Vector3();
+  /** How many times the normal area the sun's shadows cover (see setShadowReach). */
+  private shadowReach = 0;
   private snowfall: THREE.Points | null = null;
   /** The grey Rinse, applied by every material as it draws (see rinse-view.ts). */
   private readonly rinseFog = RINSE_BW ? new RinseFog() : null;
@@ -177,7 +179,8 @@ export class GameRenderer {
     map: MapData,
     private readonly fixedQuality = false,
   ) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // (A stencil: bushes and laundry piles outline only round the whole heap, see obstacles.ts.)
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', stencil: true });
     // Phones and tablets: dense screens, small GPUs. 1.5x still looks sharp at arm's length.
     const handheld = matchMedia('(pointer: coarse)').matches;
     this.pixelRatio = Math.min(handheld ? 1.5 : 2, window.devicePixelRatio || 1);
@@ -190,7 +193,7 @@ export class GameRenderer {
     if (this.rinseFog) this.scene.fog = this.rinseFog as unknown as THREE.Fog;
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.setScalar(handheld ? 1024 : 2048);
-    Object.assign(this.sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 60 });
+    this.setShadowReach(1);
     this.sun.shadow.bias = -0.0005;
     this.sun.shadow.normalBias = 0.02;
     // Soft edges: the same blur in the world on both map sizes (phones' texels are twice as big).
@@ -480,6 +483,16 @@ export class GameRenderer {
   }
 
   /** Lowers the render resolution while frames are slow (never below 1x). */
+  /** The sun's shadows cover `k` times the normal square round the player (44 across), the sun
+   *  as many times further back so the whole square fits in its depth range. */
+  private setShadowReach(k: number): void {
+    if (k === this.shadowReach) return;
+    this.shadowReach = k;
+    const half = 22 * k;
+    Object.assign(this.sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: 60 * k });
+    this.sun.shadow.camera.updateProjectionMatrix();
+  }
+
   private adaptQuality(dt: number): void {
     if (this.fixedQuality || dt <= 0 || this.pixelRatio <= 1) return;
     this.qualityCooldown -= dt;
@@ -573,7 +586,7 @@ export class GameRenderer {
       if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Up on the roof above you: gone while you're inside, under it.
       fadeObject(view.root, this.roofFade(pos.x, pos.y, z));
-      if (p.drop === 'gliding' && view.root.visible && Math.random() < opts.dt * 14) this.effects.glideTrail(pos.x, z, pos.y);
+      if ((p.drop === 'gliding' || p.umbrella) && view.root.visible && Math.random() < opts.dt * 14) this.effects.glideTrail(pos.x, z, pos.y);
       // A set (3+ parts of one animal) leaves a trail while walking on the ground.
       const set = view.root.visible && !p.drop ? wornSet(p.parts) : null;
       if (set && Math.hypot(vel.x, vel.y) > 1.5 && z - groundY < 0.05) {
@@ -605,7 +618,7 @@ export class GameRenderer {
       // Crawling through a hamster tube: out of sight (you too; the tube's too low for a plush).
       const inTube = !!p.ride && this.world.map.rides?.[p.ride.index]?.kind === 'tube';
       view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
-      view.setGliding(p.drop === 'gliding');
+      view.setGliding(p.drop === 'gliding' || p.umbrella);
       view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
       if ((p.soggy || curr.tick < p.soakedUntil) && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
@@ -663,17 +676,22 @@ export class GameRenderer {
     updateRoofs(this.roofs, viewer?.alive ? coveredBy(this.world, viewer) : -1, this.debug, opts.dt);
 
     const following = opts.followId === opts.localPlayerId;
-    // During the Toss the camera pulls back so you can pick a landing spot.
-    const dropping = !!viewer?.drop;
+    // During the Toss (and from a catapult's throw until you land) the camera pulls back so you can
+    // pick a landing spot.
+    const flung = !!viewer?.ride && this.world.map.rides?.[viewer.ride.index]?.kind === 'catapult';
+    const dropping = !!viewer?.drop || !!viewer?.umbrella || flung;
     this.rig.update(this.followPos, following && !dropping ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround, dropping ? 2.6 : 1);
     this.toss.update(curr, curr.tick - 1 + alpha, opts.time);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
+    // Shadows reach as far as the camera sees: zoomed out (gliding), further, in a few steps (a
+    // smooth change would make their edges crawl as the camera moves).
+    this.setShadowReach(1 + Math.max(0, Math.ceil((this.rig.zoomedOut - 1.02) / 0.4)) * 0.4);
     // Keep the shadow camera centered on what the player sees.
     // ...moving it in whole shadow-map texels, so shadow edges stay still instead of crawling.
     snapToTexels(this.rig.target, this.sun, this.shadowTarget);
     this.sun.target.position.copy(this.shadowTarget);
-    this.sun.position.copy(this.shadowTarget).add(SUN_OFFSET);
+    this.sun.position.copy(this.shadowTarget).addScaledVector(SUN_OFFSET, this.shadowReach);
 
     this.renderer.render(this.scene, this.camera);
     this.adaptQuality(opts.dt);

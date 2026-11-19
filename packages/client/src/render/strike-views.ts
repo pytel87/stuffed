@@ -82,12 +82,13 @@ export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots:
   const base = toonMesh(new THREE.BoxGeometry(1.05, 0.42, 1.05), '#2b2730', { outline: 0.04 });
   base.position.y = 0.21;
   root.add(base);
-  const plate = toonMesh(new THREE.BoxGeometry(1.18, 0.1, 1.18), '#f7c331', { outline: 0.03, material: makePlastic(toonMaterial('#f7c331', { map: null })) });
+  const yellow = makePlastic(toonMaterial('#f7c331', { map: null }));
+  const plate = toonMesh(new THREE.BoxGeometry(1.18, 0.1, 1.18), '#f7c331', { outline: 0.03, material: yellow });
+  // The hazard stripes on its top face (a separate sheet just above it flickered against it).
+  const stripes = makePlastic(toonMaterial('#ffffff', { map: hazardTexture() }), true);
+  plate.material = [yellow, yellow, stripes, yellow, yellow, yellow];
   plate.position.y = 0.47;
   root.add(plate);
-  const stripes = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 1.18).rotateX(-Math.PI / 2), makePlastic(toonMaterial('#ffffff', { map: hazardTexture() }), true));
-  stripes.position.y = 0.524;
-  root.add(stripes);
   const collar = toonMesh(new THREE.CylinderGeometry(0.44, 0.46, 0.05, 32).translate(0, 0.025, 0), '#b9bdc6', {
     outline: 0.04,
     material: makePlastic(toonMaterial('#b9bdc6', { map: null })),

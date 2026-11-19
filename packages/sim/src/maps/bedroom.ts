@@ -8,7 +8,7 @@
 //   Block Castle (C)   alphabet-block walls with doorways and a keep in the middle
 // Coordinates: x to the right, y down the screen.
 import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, RideDef, TrainTrack, Vec2, Wall, WallKind } from '../types.ts';
-import { tubeWalls } from '../systems/rides.ts';
+import { catapult, tubeWalls } from '../systems/rides.ts';
 
 const SIZE = 112;
 const C = SIZE / 2;
@@ -137,20 +137,29 @@ const PINS = [{ x: 60, y: 95 }, { x: 59.4, y: 96 }, { x: 60.6, y: 96 }, { x: 58.
 const bowling: Wall[] = [ball(59.2, 89.2, 1.6, 1.6)];
 
 // A slide off the bed, and a hamster tube across the floor north of the rug (in at either end).
+// A catapult on each side of the room, throwing you up toward the block castle: between the bed and
+// the desk, below the dollhouse, off the rug, and on the west floor.
+const CATAPULTS = [
+  catapult({ x: 56, y: 14 }, { x: C, y: C }),
+  catapult({ x: 98, y: 65 }, { x: C, y: C }),
+  catapult({ x: 50, y: 98 }, { x: C, y: C }),
+  catapult({ x: 17, y: 72 }, { x: C, y: C }),
+];
 const rides: RideDef[] = [
     { kind: 'slide', from: { x: 32.1, y: 21, z: 2.2 }, to: { x: 37.8, y: 21, z: 0 }, seconds: 0.9, boost: 10 },
     // (Its east mouth well clear of the chest at 78, 76.)
     { kind: 'tube', from: { x: 40, y: 75, z: 0 }, to: { x: 72, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
     { kind: 'tube', from: { x: 72, y: 75, z: 0 }, to: { x: 40, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
+    ...CATAPULTS.map((c) => c.ride),
   ];
 
-const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...tubeWalls(rides[1]!), ...bowling, ...[...rugToys, ...scattered].filter(clearOfTrack)];
+const walls: Wall[] = [...CATAPULTS.map((c) => c.wall), ...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...tubeWalls(rides[1]!), ...bowling, ...[...rugToys, ...scattered].filter(clearOfTrack)];
 const buildings: Building[] = [BED, DESK, KEEP, TOYBOX, DOLLHOUSE];
 
 const bushes: Circle[] = ([
   // laundry piles: hide in them
-  pile(42, 88, 2.2), pile(60, 80, 2.2), pile(30, 58, 2.2), pile(82, 58, 2.4), pile(70, 34, 2.2), pile(40, 36, 2),
-  pile(88, 44, 2.2), pile(68, 102, 2.4), pile(22, 42, 2.2), pile(104, 62, 2.2), pile(14, 64, 2), pile(50, 104, 2),
+  pile(42, 88, 2.2), pile(60, 80, 2.2), pile(30, 60.5, 2.2), pile(82, 60.5, 2.4), pile(70, 34, 2.2), pile(40, 36, 2),
+  pile(88, 44, 2.2), pile(67, 103.5, 2.4), pile(22, 42, 2.2), pile(104, 64.5, 2.2), pile(14, 64, 2), pile(50, 104, 2),
 ] as Circle[]).map((c) => ({ ...c, center: offTrack(c.center, c.radius) }));
 
 const chestSpawns: ChestSpawn[] = ([
@@ -181,12 +190,20 @@ const decor: Decor[] = [{ kind: 'track', x: TRACK.center.x, y: TRACK.center.y, r
     const turn = rand() * Math.PI * 2;
     const kind = kinds[i % kinds.length]!;
     const clear = [...walls, ...buildings].every((b) => p.x < b.x - 1.2 || p.x > b.x + b.w + 1.2 || p.y < b.y - 1.2 || p.y > b.y + b.h + 1.2);
+    // ...and off the chests (a toy car once sat in one) and the laundry piles.
+    const offChests = chestSpawns.every((c) => Math.hypot(c.x - p.x, c.y - p.y) > 1.8) && bushes.every((b) => Math.hypot(b.center.x - p.x, b.center.y - p.y) > b.radius + 0.6);
     const onTrack = !clearOfTrack({ x: p.x - 0.8, y: p.y - 0.8, w: 1.6, h: 1.6 });
-    if (clear && !onTrack) decor.push({ kind, x: p.x, y: p.y, turn });
+    if (clear && offChests && !onTrack) decor.push({ kind, x: p.x, y: p.y, turn });
   }
 }
 
-const grounds: Ground[] = [{ kind: 'rug', box: RUG }, { kind: 'rug', box: { x: 49, y: 49, w: 14, h: 14 } }];
+const grounds: Ground[] = [
+  { kind: 'rug', box: RUG }, { kind: 'rug', box: { x: 49, y: 49, w: 14, h: 14 } },
+  // A shaggy carpet by the bed, a foam puzzle mat in Toy Corner, and a big crayon drawing by the desk.
+  { kind: 'carpet', box: { x: 7, y: 7, w: 30, h: 21 } },
+  { kind: 'playmat', box: { x: 78, y: 82, w: 28, h: 24 } },
+  { kind: 'drawing', box: { x: 86, y: 24, w: 10, h: 10 } },
+];
 
 const zones: MapZone[] = [
   { name: 'The Bed', center: { x: 21, y: 17 }, radius: 13 },

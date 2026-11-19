@@ -2,13 +2,13 @@
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
-import { buildWall, cardboardTexture, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
+import { buildWall, cardboardTexture, softBox, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
 import { detailMaps, repeated } from './image-textures.ts';
 import { mergeStatic } from './merge-static.ts';
 import { feltTexture } from './toon.ts';
 import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
 
-const OUTLINE = 0.045;
+const OUTLINE = 0.03;
 const BUSH = '#3f8f4a';
 
 export interface BushView {
@@ -35,13 +35,20 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
   const detail = leafy ? foliage(1) : laundryDetail();
   // Leaves are projected from three sides (no stretching at the top of each ball); the knitted
   // laundry keeps its weave's normal map.
+  // Its balls mark where they're drawn (a number of its own), and its outline is drawn only off
+  // them: round the whole heap, with no stray slivers of one ball's outline across a neighbor.
+  const mark = (index % 255) + 1;
   const materials = colors.map((c) => {
-    if (leafy) return makeTriplanar(toonMaterial(c, { map: detail.map }), 0.6);
-    const m = toonMaterial(c, { map: detail.map });
-    m.normalMap = detail.normal;
+    const m = leafy ? makeTriplanar(toonMaterial(c, { map: detail.map }), 0.6) : toonMaterial(c, { map: detail.map });
+    if (!leafy) m.normalMap = detail.normal;
+    m.stencilWrite = true;
+    m.stencilRef = mark;
+    m.stencilZPass = THREE.ReplaceStencilOp;
     return m;
   });
-  const hull = outlineMaterial(outlineColor);
+  const hull = new THREE.MeshBasicMaterial({ color: outlineColor, side: THREE.BackSide, stencilWrite: true, stencilRef: mark, stencilFunc: THREE.NotEqualStencilFunc });
+  // (Its stencil test stays put: nothing else writes to the stencil.)
+  hull.stencilFail = hull.stencilZFail = hull.stencilZPass = THREE.KeepStencilOp;
   // Pushed back a hair, so the see-through leaves never fight their own depth copies.
   const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
   const r = circle.radius;
@@ -53,10 +60,15 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
   const depth: THREE.Mesh[] = [];
   const outlines: THREE.Mesh[] = [];
   const ballMeshes: THREE.Mesh[] = [];
-  balls.forEach(([x, z, y, size], i) => {
+  // A ball that would sink into the floor is squashed onto it instead: cut off by the floor, its
+  // outline (cut off further out) left a strip of floor between them.
+  const squash = ([, , y, size]: (typeof balls)[number]) => Math.min(1, y / size);
+  balls.forEach((b, i) => {
+    const [x, z, y, size] = b;
     const geo = new THREE.IcosahedronGeometry(size, 2);
     const ball = new THREE.Mesh(geo, materials[i % materials.length]!);
     ball.position.set(x, y, z);
+    ball.scale.y = squash(b);
     ball.castShadow = true;
     ball.receiveShadow = true;
     // After the depth-only copies (renderOrder 1) when see-through.
@@ -64,10 +76,13 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
     ballMeshes.push(ball);
     const outline = new THREE.Mesh(geo, hull);
     outline.scale.setScalar(1.06);
+    // After every ball of the heap has marked where it's drawn.
+    outline.renderOrder = 3;
     ball.add(outline);
     outlines.push(outline);
     const d = new THREE.Mesh(geo, depthOnly);
     d.position.copy(ball.position);
+    d.scale.copy(ball.scale);
     d.visible = false;
     d.renderOrder = 1;
     depth.push(d);
@@ -82,13 +97,14 @@ function bush(circle: Circle, colors: readonly string[] = [BUSH], outlineColor =
     let seed = index * 7919 + 13;
     const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     for (let k = 0; k < 9; k++) {
-      const [bx, bz, by, size] = balls[k % balls.length]!;
+      const b = balls[k % balls.length]!;
+      const [bx, bz, by, size] = b;
       // On the upper half of a ball, facing outward.
       const a = rand() * Math.PI * 2;
       const up = 0.35 + rand() * 0.6;
       const n = new THREE.Vector3(Math.cos(a) * Math.sqrt(1 - up * up), up, Math.sin(a) * Math.sqrt(1 - up * up));
       const spot = new THREE.Group();
-      spot.position.set(bx, by, bz).addScaledVector(n, size * 0.98);
+      spot.position.set(bx + n.x * size * 0.98, by + n.y * size * 0.98 * squash(b), bz + n.z * size * 0.98);
       spot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
       if (flowers) {
         for (let p = 0; p < 5; p++) {
@@ -237,11 +253,12 @@ function roof(b: Building): RoofView {
     case 'bed': {
       // A patchwork quilt, a pillow at the headboard end and a teddy on it.
       lid(toonMaterial('#ffffff', { map: tiled(quiltTexture(), w / 6, d / 6) }));
-      const pillow = on(new THREE.Mesh(new THREE.BoxGeometry(w * 0.32, 0.35, 2.4), flat('#fffaf3')), -w / 4, top + 0.17, -d / 2 + 1.6);
-      pillow.castShadow = true;
-      const pillow2 = on(new THREE.Mesh(new THREE.BoxGeometry(w * 0.32, 0.35, 2.4), flat('#fffaf3')), w / 4, top + 0.17, -d / 2 + 1.6);
-      pillow2.castShadow = true;
-      on(new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, 0.06, d * 0.25), flat('#fffaf3')), 0, top + 0.03, -d / 2 + d * 0.33);
+      // Two plump pillows and the sheet turned down over the quilt, outlined like everything else.
+      for (const sx of [-1, 1]) {
+        const pillow = on(softBox(w * 0.32, 0.45, 2.4, 0.2, flat('#fffaf3')), (sx * w) / 4, top + 0.2, -d / 2 + 1.6);
+        pillow.castShadow = true;
+      }
+      on(softBox(w + 0.04, 0.06, d * 0.25, 0.02, flat('#fffaf3')), 0, top + 0.03, -d / 2 + d * 0.33);
       break;
     }
     case 'desk': {

@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PinataState, PlacedWall, Player, Projectile, Strike, StrikeButtonState, Toss, ToyState, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -112,7 +112,7 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius' | 
 export interface SeenPlayer extends Pick<
   Player,
   | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
-  | 'chargeStartTick' | 'bubbledUntil' | 'glitteredUntil' | 'soakedUntil' | 'juiceUntil' | 'drop' | 'ride'
+  | 'chargeStartTick' | 'bubbledUntil' | 'glitteredUntil' | 'soakedUntil' | 'juiceUntil' | 'drop' | 'umbrella' | 'ride'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
 }
@@ -141,6 +141,7 @@ export interface CompactSnapshot {
   pinata?: PinataState | null;
   toy?: ToyState | null;
   seesaws?: GameState['seesaws'];
+  catapults?: GameState['catapults'];
   games?: GameState['games'];
   wanderers?: GameState['wanderers'];
   /** Loot that appeared or changed (moved) since the last update, and ids that are gone. */
@@ -158,7 +159,7 @@ export interface CompactSnapshot {
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'strikeButton' | 'strikes' | 'pinata' | 'toy' | 'seesaws' | 'games' | 'wanderers' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>> & {
+export type SnapshotMemory = Partial<Record<'chests' | 'strikeButton' | 'strikes' | 'pinata' | 'toy' | 'seesaws' | 'catapults' | 'games' | 'wanderers' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>> & {
   /** Each loot item as last sent (only what changed goes out). */
   lootById?: Map<EntityId, string>;
 };
@@ -181,7 +182,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     others.push({
       id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
-      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, glitteredUntil: p.glitteredUntil, soakedUntil: p.soakedUntil, ride: p.ride, juiceUntil: p.juiceUntil, drop: p.drop,
+      revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, glitteredUntil: p.glitteredUntil, soakedUntil: p.soakedUntil, ride: p.ride, juiceUntil: p.juiceUntil, drop: p.drop, umbrella: p.umbrella,
       weapons: [look(p.weapons[0]), look(p.weapons[1])],
     });
   }
@@ -206,6 +207,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     pinata: state.pinata,
     toy: state.toy,
     seesaws: state.seesaws,
+    catapults: state.catapults,
     games: state.games,
     wanderers: state.wanderers,
     walls: state.placedWalls,
@@ -252,6 +254,7 @@ export interface SnapshotParts {
   pinata: PinataState | null;
   toy: ToyState | null;
   seesaws: GameState['seesaws'];
+  catapults: GameState['catapults'];
   games: GameState['games'] | null;
   wanderers: GameState['wanderers'];
   loot: GroundLoot[];
@@ -265,7 +268,7 @@ export interface SnapshotParts {
 }
 
 export function emptySnapshotParts(): SnapshotParts {
-  return { chests: [], strikeButton: null, strikes: [], pinata: null, toy: null, seesaws: [], games: null, wanderers: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [], goals: [] };
+  return { chests: [], strikeButton: null, strikes: [], pinata: null, toy: null, seesaws: [], catapults: [], games: null, wanderers: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [], goals: [] };
 }
 
 /**
@@ -279,6 +282,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   if (msg.pinata !== undefined) parts.pinata = msg.pinata;
   if (msg.toy !== undefined) parts.toy = msg.toy;
   if (msg.seesaws) parts.seesaws = msg.seesaws;
+  if (msg.catapults) parts.catapults = msg.catapults;
   if (msg.games) parts.games = msg.games;
   if (msg.wanderers) parts.wanderers = msg.wanderers;
   if (msg.lootUp || msg.lootGone) {
@@ -337,6 +341,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     pinata: parts.pinata,
     toy: parts.toy,
     seesaws: parts.seesaws,
+    catapults: parts.catapults,
     wanderers: parts.wanderers,
     games: parts.games ?? { digs: [], gallery: null, pins: null, hills: [], goalPrizeAt: [] },
     loot: parts.loot,

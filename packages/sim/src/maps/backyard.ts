@@ -9,6 +9,7 @@
 // Coordinates: x to the right, y down the screen (north = small y).
 import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 import { galleryWalls } from '../systems/minigames.ts';
+import { catapult } from '../systems/rides.ts';
 
 const SIZE = 128;
 const C = SIZE / 2;
@@ -167,28 +168,37 @@ const jungleBushes: Circle[] = [
 const lawn: Wall[] = [
   block(63, 40, 2, 2), block(40, 63, 2, 2), block(86, 63, 2, 2), block(63, 86, 2, 2),
   block(44, 44, 2, 2), block(82, 44, 2, 2), block(44, 82, 2, 2), block(82, 82, 2, 2),
-  book(56, 34, 7, 1.6), book(70, 92, 7, 1.6), book(34, 70, 1.6, 7), book(92, 37, 1.6, 7),
+  book(56, 34, 7, 1.6), book(70, 92, 7, 1.6), book(33, 70, 1.6, 7), book(92, 37, 1.6, 7),
 ];
 const lawnBushes: Circle[] = [
   bush(50, 40), bush(78, 40), bush(40, 50), bush(88, 78), bush(50, 88), bush(78, 88),
-  bush(64, 20, 2.6), bush(64, 108, 2.6), bush(20, 64, 2), bush(116, 40, 2.4), bush(116, 92, 2.4),
+  bush(64, 20, 2.6), bush(64, 108, 2.6), bush(27.5, 67, 2), bush(116, 40, 2.4), bush(116, 92, 2.4),
   bush(38, 14, 2.4), bush(14, 38, 2.4), // around the treehouse
-  bush(30, 36, 2), bush(36, 22, 2),
+  bush(30, 36, 2), bush(37, 22, 2),
 ];
 
 // A slide down from the middle of the treehouse's south edge, and a zip line from the platform
 // A shooting gallery on the lawn west of the house (shoot the ducks from the south).
-const GALLERY = { x: 44, y: 70 };
+const GALLERY = { x: 40, y: 68 };
 
 // A seesaw on the north lawn.
 const SEESAWS = [{ a: { x: 48.5, y: 30 }, b: { x: 52.5, y: 30 } }];
 
 // to the house roof.
+// A catapult on each side of the yard, throwing you up toward the house: on the north lawn, past
+// the pool, on the south lawn, and between the Veggie Jungle and the house.
+const CATAPULTS = [
+  catapult({ x: 64, y: 13 }, { x: C, y: C }),
+  catapult({ x: 121, y: 64 }, { x: C, y: C }),
+  catapult({ x: 77, y: 108 }, { x: C, y: C }),
+  catapult({ x: 34, y: 59 }, { x: C, y: C }),
+];
 const rides: RideDef[] = [
     { kind: 'slide', from: { x: 26, y: 32.1, z: 2.7 }, to: { x: 26, y: 38.6, z: 0 }, seconds: 0.9, boost: 10 },
     { kind: 'zip', from: { x: 33.2, y: 24.5, z: 2.7 }, to: { x: 54, y: 57, z: 2.6 }, seconds: 3.5, boost: 3 },
     // ...and back again from the house roof.
     { kind: 'zip', from: { x: 54, y: 57, z: 2.6 }, to: { x: 33.2, y: 24.5, z: 2.7 }, seconds: 3.5, boost: 3 },
+    ...CATAPULTS.map((c) => c.ride),
   ];
 
 // A small tree of its own out on the north lawn (between the house and the shed), with the
@@ -198,6 +208,7 @@ const pinataTree: Wall[] = [w('trunk', 4.2)(PINATA_TREE.x, PINATA_TREE.y, PINATA
 
 const walls: Wall[] = [
   ...pinataTree,
+  ...CATAPULTS.map((c) => c.wall),
   ...galleryWalls(GALLERY),
   ...house, ...houseProps, ...treehouse, ...shed, ...shedProps, ...poolProps, ...poolRim(POOL), ...goalFrames, ...picnic, ...sandbox, ...planters, ...lawn,
 ];
@@ -239,10 +250,18 @@ const grounds: Ground[] = [
   { kind: 'blanket', box: { x: 83, y: 87, w: 30, h: 24 } },
   { kind: 'floor', box: HOUSE },
   { kind: 'floor', box: { x: 88, y: 18, w: 18, h: 14 } },
-  { kind: 'stones', box: { x: 62.5, y: 74, w: 3, h: 10 } },
-  { kind: 'stones', box: { x: 62.5, y: 44, w: 3, h: 10 } },
-  { kind: 'stones', box: { x: 42, y: 62.5, w: 10, h: 3 } },
-  { kind: 'stones', box: { x: 76, y: 62.5, w: 10, h: 3 } },
+  // A paved patio round the house (wider on the north, a terrace with the trampoline on it), gravel
+  // round the shed, wood chips under the treehouse, and clover meadows on the north and south lawns.
+  { kind: 'patio', box: { x: HOUSE.x - 3, y: HOUSE.y - 7, w: HOUSE.w + 6, h: HOUSE.h + 10 } },
+  { kind: 'gravel', box: { x: 84, y: 15, w: 26, h: 22 } },
+  { kind: 'mulch', circle: { center: { x: 28, y: 27 }, radius: 11 } },
+  { kind: 'clover', circle: { center: { x: 68, y: 26 }, radius: 8 } },
+  { kind: 'clover', circle: { center: { x: 74, y: 112 }, radius: 7 } },
+  // Stepping stones up to the patio from each side.
+  { kind: 'stones', box: { x: 62.5, y: 77, w: 3, h: 7 } },
+  { kind: 'stones', box: { x: 62.5, y: 42.3, w: 3, h: 4.7 } },
+  { kind: 'stones', box: { x: 42, y: 62.5, w: 7, h: 3 } },
+  { kind: 'stones', box: { x: 79, y: 62.5, w: 7, h: 3 } },
 ];
 
 const zones: MapZone[] = [

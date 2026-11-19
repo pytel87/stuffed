@@ -112,14 +112,18 @@ export function buildTap(): { root: THREE.Group; wheel: THREE.Mesh } {
 function hose(from: THREE.Vector3, to: THREE.Vector3): THREE.Mesh {
   const mid = from.clone().lerp(to, 0.5);
   const side = new THREE.Vector3(-(to.z - from.z), 0, to.x - from.x).normalize().multiplyScalar(1.2);
+  // Lying on the ground (its center a radius up, clear of the patio under the tap).
+  const lie = 0.08;
   const points = [
     from.clone(),
-    new THREE.Vector3(from.x + 0.2, 0.05, from.z),
-    from.clone().lerp(mid, 0.5).add(side).setY(0.05),
-    mid.clone().sub(side.clone().multiplyScalar(0.5)).setY(0.05),
-    to.clone().setY(0.05),
+    new THREE.Vector3(from.x + 0.2, lie, from.z),
+    from.clone().lerp(mid, 0.5).add(side).setY(lie),
+    mid.clone().sub(side.clone().multiplyScalar(0.5)).setY(lie),
+    to.clone().setY(lie),
   ];
-  const curve = new THREE.CatmullRomCurve3(points);
+  // The curve swings below its points after the steep drop from the spout (and the hose vanished
+  // into the ground there): follow it closely, kept up off the ground.
+  const curve = new THREE.CatmullRomCurve3(new THREE.CatmullRomCurve3(points).getPoints(96).map((p) => p.setY(Math.max(p.y, lie))));
   const hose = toonMesh(new THREE.TubeGeometry(curve, 48, 0.06, 6), '#3fa34d', { outline: false });
   // Its outline: a slightly fatter tube along the same curve (its points are in world space, so
   // scaling a copy, as toonMesh does, would push it off across the lawn).

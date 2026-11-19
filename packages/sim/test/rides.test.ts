@@ -200,3 +200,67 @@ describe('the seesaw', () => {
     expect(top).toBeGreaterThan(2);
   });
 });
+
+describe('the catapult', () => {
+  for (const map of [BACKYARD, BEDROOM, PARK]) {
+    it(`${map.id}: one on each side of the map`, () => {
+      const at = map.rides!.filter((x) => x.kind === 'catapult').map((r) => r.from);
+      const mid = { x: map.width / 2, y: map.height / 2 };
+      const sides = new Set(at.map((p) => (Math.abs(p.x - mid.x) > Math.abs(p.y - mid.y) ? (p.x > mid.x ? 'E' : 'W') : p.y > mid.y ? 'S' : 'N')));
+      expect([...sides].sort()).toEqual(['E', 'N', 'S', 'W']);
+    });
+
+    map.rides!.forEach((r) => {
+      if (r.kind !== 'catapult') return;
+      it(`${map.id} (${r.from.x.toFixed(0)}, ${r.from.y.toFixed(0)}): E beside it flings you high, your umbrella opens and you glide down (no shooting meanwhile)`, () => {
+        const g = game(map);
+        g.you.pos = { x: r.from.x - 1.2, y: r.from.y };
+        g.go(1, { buttons: Btn.Interact });
+        expect(g.you.ride).not.toBeNull();
+        g.go(Math.ceil(r.seconds * 30) + 1);
+        expect(g.you.ride).toBeNull();
+        expect(g.you.umbrella).toBe(true);
+        expect(g.you.z).toBeGreaterThan(13);
+        expect(Math.hypot(g.you.pos.x - r.to.x, g.you.pos.y - r.to.y)).toBeLessThan(1);
+        g.go(1, { buttons: Btn.Fire, aimX: 5, aimY: 0 });
+        expect(g.state.projectiles).toHaveLength(0);
+        let ticks = 0;
+        while (g.you.umbrella && ticks++ < 30 * 10) g.go(1);
+        expect(g.you.umbrella).toBe(false);
+        expect(ticks).toBeGreaterThan(30 * 2);
+      });
+    });
+  }
+
+  it('flings again only after its cooldown', () => {
+    const g = game(BACKYARD);
+    const r = BACKYARD.rides!.find((x) => x.kind === 'catapult')!;
+    const beside = { x: r.from.x - 1.2, y: r.from.y };
+    g.you.pos = { ...beside };
+    g.go(1, { buttons: Btn.Interact });
+    expect(g.you.ride).not.toBeNull();
+    // Someone else right after: nothing.
+    g.other.pos = { ...beside };
+    g.go(2, {}, { buttons: Btn.Interact });
+    g.go(1);
+    expect(g.other.ride).toBeNull();
+    g.go(20 * 30);
+    g.other.pos = { ...beside };
+    g.other.z = 0;
+    g.go(1, {}, { buttons: Btn.Interact });
+    expect(g.other.ride).not.toBeNull();
+  });
+
+  it('Jump folds the umbrella and you drop', () => {
+    const g = game(BACKYARD);
+    const r = BACKYARD.rides!.find((x) => x.kind === 'catapult')!;
+    g.you.pos = { x: r.from.x - 1.2, y: r.from.y };
+    g.go(1, { buttons: Btn.Interact });
+    g.go(Math.ceil(r.seconds * 30) + 1);
+    expect(g.you.umbrella).toBe(true);
+    g.go(1, { buttons: Btn.Jump });
+    expect(g.you.umbrella).toBe(false);
+    g.go(45);
+    expect(g.you.z).toBeLessThan(0.05);
+  });
+});

@@ -142,6 +142,12 @@ around. See [pinata.ts](packages/sim/src/systems/pinata.ts) and `config.pinata`.
   whizz across to the other.
 - **Hamster tube** (Bedroom, north of the rug): a solid orange tube. Press E at either end and you
   pop out at the other; nobody sees you inside.
+- **Catapults** (one on each side of every map, all throwing toward its middle: the house, the
+  block castle, the frozen pond): spring launchers, with an arrow on the platform showing where
+  each throws. Press E by one and you're flung about 14 high (as high as the Toss blimp), where
+  your umbrella opens. Steer as you glide down, like after the Toss, but you can't shoot or loot
+  and you can be hit; Jump folds the umbrella and you drop. Each throws again 20 s later, once its
+  spring is squashed back down.
 
 See [rides.ts](packages/sim/src/systems/rides.ts) and `config.rides`.
 
