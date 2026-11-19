@@ -19,6 +19,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 - On touch, no second jump button in the middle while on the blimp or a zip line: the jump
   button drops you.
+- The results card shows damage dealt with a broken heart instead of a lightning bolt.
 - Snowy Park's lampposts: a matte cap with snow on its tip (a glossy highlight and a ball of snow
   overlapped on top).
 - No more thin lines on the log cabin's snowy roof (the snow along the tops of its walls showed

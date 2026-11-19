@@ -608,7 +608,8 @@ function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: s
     placement: `#${me.placement ?? 1}`,
     stats: [
       ['knockout', String(me.knockouts)],
-      ['damage', String(Math.round(me.damageDealt))],
+      // Damage dealt: a broken heart (a plain one would read as your own health).
+      ['broken', String(Math.round(me.damageDealt))],
       ['timer', clock(until / config.tickRate)],
     ],
     canSpectate,
