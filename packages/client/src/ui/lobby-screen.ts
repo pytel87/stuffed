@@ -6,6 +6,9 @@ import { escapeHtml } from './escape.ts';
 import { icon } from './icons.ts';
 import { tr } from '../i18n.ts';
 
+/** A big robot head with the bot count on its face (between − and +). */
+const BOT_FACE = `<svg class="bot-face" viewBox="0 0 48 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 9V4"/><circle cx="24" cy="3.5" r="2.4" fill="#f7c331"/><rect x="1.5" y="18" width="4" height="10" rx="2" fill="#fff"/><rect x="42.5" y="18" width="4" height="10" rx="2" fill="#fff"/><rect x="5.5" y="9" width="37" height="29" rx="9" fill="#fff"/></svg>`;
+
 /** Room card before a match: the code to share, who's in, bots, Start (host) and Leave. */
 export class LobbyScreen {
   private readonly el: HTMLElement;
@@ -42,10 +45,9 @@ export class LobbyScreen {
              <button type="button" class="round lobby-wardrobe" aria-label="${tr('Wardrobe')}">${icon('hanger')}</button>
            </div>
            <ul class="chips"></ul>
-           <div class="bots">
-             <span class="bot-label">${icon('bot')}</span>
+           <div class="bots bot-row">
              <button type="button" class="round lobby-less" aria-label="${tr('Fewer bots')}">−</button>
-             <span class="bot-number"><b class="bot-count"></b></span>
+             <span class="bot-number">${BOT_FACE}<b class="bot-count"></b></span>
              <button type="button" class="round lobby-more" aria-label="${tr('More bots')}">+</button>
            </div>
            <div class="bots lobby-options">

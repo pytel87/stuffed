@@ -78,6 +78,7 @@ const CS: Record<string, string> = {
   Fullscreen: 'Celá obrazovka',
   Controls: 'Ovládání',
   'Leave the match?': 'Opustit hru?',
+  'Leave the room?': 'Opustit místnost?',
   Stay: 'Zůstat',
   Close: 'Zavřít',
   Previous: 'Předchozí',

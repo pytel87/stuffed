@@ -81,7 +81,8 @@ const endScreen = new EndScreen(
   document.body,
   playAgain,
   spectate,
-  showMenu,
+  // Online, the room is lost on the way out (solo, there's nothing to lose).
+  () => (room ? options.askToLeave() : showMenu()),
   () =>
     // Back to the results card, unless the next match started meanwhile.
     openWardrobe(endScreen, () => {
@@ -165,6 +166,8 @@ const options = new Options({
   isMuted: () => sound.isMuted,
   help: () => help.show(),
   leave: showMenu,
+  // Online between matches (lobby, results, watching), leaving gives up your seat in the room.
+  leaveQuestion: () => tr(room && phase !== 'playing' ? 'Leave the room?' : 'Leave the match?'),
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
 tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
@@ -305,7 +308,7 @@ function joinRoom(code: string): void {
   lobbyScreen = new LobbyScreen(
     document.body,
     room,
-    showMenu,
+    () => options.askToLeave(),
     (name) => {
       saveName(name);
       room?.rename(name);

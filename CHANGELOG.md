@@ -8,6 +8,12 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   gets an 8 s victory lap to grab the loot, with confetti, the win tune and a banner right away;
   nobody can be hurt during it. Standing still, the winner dances (hops, wiggles and spins). The
   results come up when it's over. Protocol 16.
+- Online lobby: the bot count sits on the face of a big robot between − and + (it was a small
+  icon off to the side).
+- The leave dialog asks in words ("Leave the match?", or "Leave the room?" between matches)
+  instead of a house and a question mark.
+- Online, the lobby's and the results card's leave buttons ask before you give up your seat in
+  the room (solo, the results card still goes straight to the menu).
 
 ## Fixes (2026-11-19)
 

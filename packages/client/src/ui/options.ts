@@ -9,6 +9,8 @@ export interface OptionsActions {
   isMuted: () => boolean;
   help: () => void;
   leave: () => void;
+  /** What to ask before leaving ("Leave the match?", or the room between matches). */
+  leaveQuestion: () => string;
 }
 
 /** The ⚙ button: sound, fullscreen, controls help, and leave (when there's something to leave). */
@@ -16,6 +18,7 @@ export class Options {
   private readonly sheet: HTMLElement;
   private readonly sound: HTMLButtonElement;
   private readonly leave: HTMLButtonElement;
+  private readonly confirm: HTMLElement;
 
   constructor(private readonly actions: OptionsActions) {
     const canFullscreen = !!document.documentElement.requestFullscreen;
@@ -29,9 +32,9 @@ export class Options {
          <button type="button" class="round opt-help" aria-label="${tr('Controls')}">${icon('help')}</button>
          <button type="button" class="round opt-leave" aria-label="${tr('Leave')}">${icon('home')}</button>
        </div>
-       <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-label="${tr('Leave the match?')}">
+       <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-labelledby="leave-question">
          <div class="card">
-           <div class="leave-icon">${icon('home', 'icon large')}<b>?</b></div>
+           <p class="leave-question" id="leave-question">${tr('Leave the match?')}</p>
            <div class="row">
              <button type="button" class="big primary leave-yes" aria-label="${tr('Leave')}">${icon('check')}</button>
              <button type="button" class="big leave-no" aria-label="${tr('Stay')}">${icon('close')}</button>
@@ -73,11 +76,11 @@ export class Options {
       this.sheet.hidden = true;
       actions.help();
     });
-    // Leaving ends your match: ask first (✓ leave, ✕ stay).
-    const confirm = document.querySelector<HTMLElement>('.leave-confirm')!;
+    // Leaving ends your match (or gives up your seat in the room): ask first (✓ leave, ✕ stay).
+    const confirm = (this.confirm = document.querySelector<HTMLElement>('.leave-confirm')!);
     this.leave.addEventListener('click', () => {
       this.sheet.hidden = true;
-      confirm.hidden = false;
+      this.askToLeave();
     });
     confirm.querySelector('.leave-yes')!.addEventListener('click', () => {
       confirm.hidden = true;
@@ -87,6 +90,12 @@ export class Options {
     confirm.addEventListener('click', (e) => {
       if (e.target === confirm) confirm.hidden = true;
     });
+  }
+
+  /** Asks before leaving; ✓ calls `leave`. (Also for the lobby's and the results card's leave buttons.) */
+  askToLeave(): void {
+    this.confirm.querySelector('.leave-question')!.textContent = this.actions.leaveQuestion();
+    this.confirm.hidden = false;
   }
 
   /** Leave is offered only during a match or in a room. */

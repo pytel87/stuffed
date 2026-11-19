@@ -360,28 +360,28 @@ button {
   gap: 0.2rem;
 }
 
-/* The bot icon sits left of the − button, outside the grid, so the columns stay put. */
-.bots {
+/* The bot count: on the face of a big robot head between − and + (which stay in the same columns
+   as the buttons below; the head is a little wider than its column, centered on it). */
+.bots .bot-number {
   position: relative;
+  width: 4.2rem;
+  height: 3.6rem;
+  justify-content: center;
+  justify-self: center;
 }
 
-.bots .bot-label {
+.bots .bot-face {
   position: absolute;
-  top: 50%;
-  /* The grid is 3 x 3.2rem + 2 x 1.4rem = 12.4rem wide, centered. */
-  right: calc(50% + 6.2rem + 0.6rem);
-  transform: translateY(-50%);
-  display: flex;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--ink);
 }
 
-.bots .bot-label .icon {
-  width: 1.6rem;
-  height: 1.6rem;
-}
-
-.bots > .icon {
-  width: 1.6rem;
-  height: 1.6rem;
+.bots .bot-number b {
+  position: relative;
+  /* Centered on the face, below the antenna. */
+  margin-top: 0.7rem;
 }
 
 /* Team mode toggle: light blue when on, faded when off. */
@@ -2076,13 +2076,10 @@ body.touch-mode .gear {
   width: min(17rem, 100%);
 }
 
-.leave-confirm .leave-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
+.leave-confirm .leave-question {
+  margin: 0.2rem 0 0.1rem;
   color: var(--ink);
-  font: 900 2.6rem/1 var(--font);
+  font: 900 1.7rem/1.15 var(--font);
 }
 
 .leave-confirm .big .icon {
