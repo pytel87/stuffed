@@ -2174,3 +2174,19 @@ body.touch-mode .gear {
   height: 1.8rem;
 }
 
+/* A menu button's name, after a long hover or press (ui/tooltips.ts). */
+.tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  max-width: 14rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.7rem;
+  background: var(--cream);
+  box-shadow: 0 3px 0 var(--ink);
+  color: var(--ink);
+  font: 800 0.95rem/1.2 var(--font);
+  pointer-events: none;
+}

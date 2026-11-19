@@ -17,6 +17,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Backyard: the lawnmower's lane is mowed short, a lighter striped strip with wheel tracks, so you
   can see where it'll drive (the snowplow already had its plowed lane).
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
+- Menu icon buttons name themselves in a little bubble after a moment's hover, or on a long press
+  on touch (which then doesn't press the button).
 - Damage numbers for buttons knocked off are yellow, like the buttons bar (they were pale blue).
 - Catapults in bright toy colors: a teal base, a hot-pink spring, a red platform with a sunny
   yellow rim and a white arrow (they were washed-out pastels).

@@ -25,6 +25,7 @@ import { savedMap } from './ui/map-choice.ts';
 import { Hud } from './ui/hud.ts';
 import { icon, setModelPictures } from './ui/icons.ts';
 import { LobbyScreen } from './ui/lobby-screen.ts';
+import { installTooltips } from './ui/tooltips.ts';
 import { MenuScreen } from './ui/menu-screen.ts';
 import { Options } from './ui/options.ts';
 import { Wardrobe } from './ui/wardrobe.ts';
@@ -146,6 +147,8 @@ renderer.isNewPart = isNewPart;
 const audio = new GameAudio(sound);
 const music = new Music(sound, import.meta.env.BASE_URL);
 /** The soft button click. */
+// Menu icon buttons name themselves on a long hover or press (installed before the click sound below).
+installTooltips();
 const uiClick = () => sound.play('click', { pitchSpread: 0, volume: 0.8 });
 // Every button on the cards, the options and the spectate bar clicks (not the in-match HUD).
 document.addEventListener(
