@@ -82,7 +82,7 @@ export function updateZone(state: GameState): void {
   if (state.tick % config.tickRate === 0) {
     const dps = zoneDamagePerSecond(z, state.tick);
     for (const p of state.players) {
-      if (p.alive && p.soggy) applyDamage(state, p, dps, null, { ignoreArmor: true });
+      if (p.alive && p.soggy) applyDamage(state, p, dps, null, { ignoreArmor: true, cause: 'rinse' });
     }
   }
 }

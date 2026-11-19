@@ -449,6 +449,15 @@ export const config = {
     finalCenterMargin: 0.25,
   },
 
+  /** Robot vacuums, mowers and plows (see systems/wanderers.ts). */
+  wanderers: {
+    /** Seconds into the match before the mower's or plow's switch works. */
+    firstReady: 30,
+    switchRange: 1.4,
+    vacuum: { radius: 0.75, speed: 2.4, turnEvery: 4, bump: 7, binSize: 3, holdFor: 10 },
+    vehicle: { radius: 1.1, mowerSpeed: 5, plowSpeed: 3.6, mowerDamage: 14, mowerKnock: 14, plowPush: 2.2, cooldown: 40 },
+  },
+
   /** Mini-games with prizes (see systems/minigames.ts). */
   games: {
     /** Hold E this long to dig, within this of the spot. */

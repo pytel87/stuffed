@@ -216,6 +216,8 @@ export const PARK: MapData = {
   // The air strike button: in the snow fort's yard, by the snow pile (a snowball barrage).
   strikeButton: { x: FX + 9, y: FY + 13.5, z: 0, kind: 'snowballs' },
   rides,
+  // A snowplow south of Snowball Alley; its switch is beside where it's parked.
+  wanderers: [{ kind: 'plow', x: 40, y: 30, to: { x: 76, y: 30 }, switch: { x: 39.5, y: 32.2 } }],
   // Buried treasure in the Snowman Garden, and a hill on top of the snow fort's north-west tower.
   digs: [{ x: 24, y: 104 }, { x: 10, y: 88 }, { x: 30, y: 92 }],
   hills: [{ x: FX + 0.75, y: FY + 0.75, z: 2.6, radius: 1.1 }],

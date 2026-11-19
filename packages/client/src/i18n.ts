@@ -83,6 +83,12 @@ const CS: Record<string, string> = {
   Bag: 'Batoh',
   Stash: 'Do batohu',
   Space: 'Mezerník',
+  // Toasts when something big is set off
+  'Water balloons!': 'Vodní bomby!',
+  'Falling blocks!': 'Padají kostky!',
+  'Snowball barrage!': 'Sněhová palba!',
+  'Lawnmower!': 'Sekačka!',
+  'Snowplow!': 'Sněžný pluh!',
   // Areas you walk into
   'Block Castle': 'Kostkový hrad',
   Bookshelf: 'Knihovna',

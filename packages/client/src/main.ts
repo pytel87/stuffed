@@ -1,7 +1,7 @@
 import './style.css';
 import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
-import type { Animal, EntityId, GameState, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Music } from './audio/music.ts';
 import { Sound } from './audio/sound.ts';
@@ -30,6 +30,7 @@ import { Options } from './ui/options.ts';
 import { Wardrobe } from './ui/wardrobe.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 import { ZoneNames } from './ui/zone-names.ts';
+import { Toast } from './ui/toast.ts';
 import { tr } from './i18n.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -75,6 +76,7 @@ const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floa
 const mateArrows = new TeammateArrows(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
 const zoneNames = new ZoneNames(hudEl);
+const toast = new Toast(hudEl);
 const endScreen = new EndScreen(
   document.body,
   playAgain,
@@ -250,6 +252,7 @@ function beginMatch(next: GameSession): void {
   soloReported = false;
   hitDirection.clear();
   zoneNames.reset();
+  toast.reset();
   endScreen.setKept(null);
   me = undefined;
   hudEl.classList.remove('out');
@@ -402,6 +405,7 @@ function frame(now: number): void {
   shown = state;
   const events = session.takeEvents();
   renderer.playEvents(events, state);
+  toast.events(events);
   const localId = session.localPlayerId;
   for (const e of events) {
     if (e.type === 'hit' && e.sourceId === session.localPlayerId) {
@@ -410,7 +414,7 @@ function frame(now: number): void {
       if (e.armorDamage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.armorDamage)), 'armor');
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
-    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId);
+    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId, e.cause);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
     // Someone firing nearby (seen or not, not a teammate): a softer arc toward them.
@@ -452,6 +456,7 @@ function frame(now: number): void {
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
   zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft());
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
+  toast.update(dt);
   debug.update(dt, {
     seed,
     tick: state.tick,
@@ -588,11 +593,12 @@ function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: s
 }
 
 /**
- * Who knocked you out: a picture of their weapon and their name, or the water.
+ * Who knocked you out: a picture of their weapon and their name; anything else (the Rinse, an air
+ * strike, a map toy, the mower) is a broken heart.
  * Online, a hidden attacker (in a bush, say) isn't in your state: their name still shows.
  */
-function describeKiller(s: GameSession, state: GameState, byId: EntityId | null): string {
-  if (byId === null) return icon('water');
+function describeKiller(s: GameSession, state: GameState, byId: EntityId | null, cause?: KnockoutCause): string {
+  if (cause || byId === null) return icon('broken');
   const killer = state.players.find((p) => p.id === byId);
   const weapon = killer?.weapons[killer.activeSlot];
   const art = weapon ? icon(weapon.kind, 'icon killer-weapon') : '';
@@ -699,14 +705,14 @@ function tootIfTrainComing(state: GameState, dt: number): void {
   }
 }
 
-/** Who won, for the results card: a crown and the winner's name (or the whole team's), or the water. */
+/** Who won, for the results card: a crown and the winner's name (or the whole team's), or a broken heart. */
 function winnerLine(state: GameState): string {
   if (state.winnerTeam !== null) {
     const names = state.players.filter((p) => p.team === state.winnerTeam).map((p) => escapeHtml(p.name));
     return `${icon('crown')}<span>${names.join(', ')}</span>`;
   }
   const winner = state.players.find((p) => p.id === state.winnerId);
-  return winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('water');
+  return winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('broken');
 }
 
 function clock(seconds: number): string {

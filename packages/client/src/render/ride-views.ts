@@ -2,8 +2,10 @@
 // last), slides and the sled run (straight ramps, as the ride follows), zip lines (poles and a
 // sagging cable) and hamster tubes (a clear arching tube between two mouths).
 import * as THREE from 'three';
+import { slopeAt } from '@stuffed/sim';
 import type { GameState, MapData, RideDef } from '@stuffed/sim';
-import { makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { snowTexture, tiled } from './props.ts';
+import { fadeObject, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 
@@ -72,7 +74,10 @@ function ramp(r: RideDef): THREE.Group {
   body.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
   body.rotation.z = Math.atan2(b.y - a.y, horiz);
   // Matte (a glossy slide glared white on its lower half).
-  const bed = toonMesh(new THREE.BoxGeometry(len, 0.12, width), sled ? '#ffffff' : '#e2433f', { outline: 0.03, material: toonMaterial(sled ? '#f4f9ff' : '#e2433f', { map: null }) });
+  const bed = toonMesh(new THREE.BoxGeometry(len, 0.12, width), sled ? '#ffffff' : '#e2433f', {
+    outline: 0.03,
+    material: toonMaterial(sled ? '#ffffff' : '#e2433f', { map: sled ? tiled(snowTexture(), len / 3, width / 3) : null }),
+  });
   body.add(bed);
   if (!sled) {
     for (const s of [-1, 1]) {
@@ -87,16 +92,12 @@ function ramp(r: RideDef): THREE.Group {
     if (o instanceof THREE.Mesh) o.castShadow = false;
   });
   if (sled) {
-    // A little kicker at the bottom, and a red sled waiting at the top.
+    // A little kicker at the bottom.
     const kick = toonMesh(new THREE.BoxGeometry(1, 0.5, width), '#f4f9ff', { outline: 0.04, material: toonMaterial('#f4f9ff', { map: null }) });
     kick.position.copy(b).add(new THREE.Vector3(0, 0.12, 0));
     kick.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
     kick.rotation.z = 0.35;
     g.add(kick);
-    const s = toonMesh(new THREE.BoxGeometry(1.1, 0.12, 0.6), '#e2433f', { outline: 0.06, material: plastic('#e2433f') });
-    s.position.copy(a).add(new THREE.Vector3(0, 0.1, 0));
-    s.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
-    g.add(s);
   }
   return g;
 }
@@ -151,6 +152,8 @@ export class RideViews {
   private root: THREE.Group | null = null;
   private mapId = '';
   private planks: THREE.Group[] = [];
+  /** Each slide or sled run, and how faded it is (a plush under it shows through). */
+  private ramps: { ride: RideDef; group: THREE.Group; fade: number }[] = [];
   private tilts: number[] = [];
 
   constructor(private readonly scene: THREE.Scene) {}
@@ -160,11 +163,20 @@ export class RideViews {
     this.root = null;
     this.planks = [];
     this.tilts = [];
+    this.ramps = [];
     this.mapId = '';
   }
 
-  update(map: MapData, state: GameState): void {
+  /** `viewer`: the plush we follow; a slide it stands under fades so it can be seen. */
+  update(map: MapData, state: GameState, viewer?: { pos: { x: number; y: number }; z: number }): void {
     if (this.mapId !== map.id) this.build(map);
+    for (const r of this.ramps) {
+      const h = viewer ? slopeAt(r.ride, viewer.pos) : null;
+      const above = h !== null && h > viewer!.z + 1;
+      r.fade += ((above ? 0.3 : 1) - r.fade) * 0.25;
+      if (Math.abs(r.fade - (above ? 0.3 : 1)) < 0.02) r.fade = above ? 0.3 : 1;
+      fadeObject(r.group, r.fade);
+    }
     // Each seesaw tips toward the end that went down last.
     this.planks.forEach((plank, i) => {
       const s = state.seesaws[i];
@@ -191,7 +203,11 @@ export class RideViews {
     }
     const seen = new Set<string>();
     for (const r of map.rides ?? []) {
-      if (r.kind === 'slide' || r.kind === 'sled') root.add(ramp(r));
+      if (r.kind === 'slide' || r.kind === 'sled') {
+        const group = ramp(r);
+        root.add(group);
+        this.ramps.push({ ride: r, group, fade: 1 });
+      }
       else {
         // A zip line or a tube both ways is one line or tube.
         const key = [r.from.x, r.from.y, r.to.x, r.to.y].map((n) => n.toFixed(1)).sort().join();

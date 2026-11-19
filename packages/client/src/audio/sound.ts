@@ -14,6 +14,7 @@ export const SOUNDS = [
   'jack_tune', 'jack_pop', 'sprinkler_spray', 'ice_crack', 'ice_break',
   'slide_whoosh', 'zip_line', 'tube_pop',
   'dig_scrape', 'duck_ding', 'pin_knock', 'prize_fanfare',
+  'vacuum_slurp', 'vacuum_bump', 'mower_engine', 'plow_horn',
 ] as const;
 export type SoundName = (typeof SOUNDS)[number];
 

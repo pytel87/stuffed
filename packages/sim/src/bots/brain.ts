@@ -326,7 +326,7 @@ export class BotController {
     }
     // An air strike marked where it stands, a jack-in-the-box about to pop or the pond cracking
     // under it: get out of the way.
-    const run = this.dodgeStrike(state, bot) ?? this.dodgeToy(world, state, bot);
+    const run = this.dodgeStrike(state, bot) ?? this.dodgeToy(world, state, bot) ?? this.dodgeWanderer(world, state, bot);
     if (run) {
       input.moveX = run.x;
       input.moveY = run.y;
@@ -624,6 +624,28 @@ export class BotController {
     const d = Math.hypot(dx, dy);
     if (d > reach) return null;
     return d > 1e-6 ? { x: dx / d, y: dy / d } : { x: 1, y: 0 };
+  }
+
+  /** A mower or plow coming at it: the way out of it. */
+  private dodgeWanderer(world: World, state: GameState, bot: Player): Vec2 | null {
+    const defs = world.map.wanderers ?? [];
+    for (let i = 0; i < defs.length; i++) {
+      const d = defs[i]!;
+      const s = state.wanderers[i];
+      if (!s) continue;
+      const dx = bot.pos.x - s.pos.x;
+      const dy = bot.pos.y - s.pos.y;
+      const dist = Math.hypot(dx, dy);
+      if ((d.kind === 'mower' || d.kind === 'plow') && s.mode === 'moving' && dist < 5) {
+        // Coming this way: step off its line, to the side it's already on.
+        const ux = Math.cos(s.dir);
+        const uy = Math.sin(s.dir);
+        if (dx * ux + dy * uy < 0) continue;
+        const side = dx * -uy + dy * ux >= 0 ? 1 : -1;
+        return { x: -uy * side, y: ux * side };
+      }
+    }
+    return null;
   }
 
   /** Inside a marked air strike circle: the way out (away from its middle), else null. */

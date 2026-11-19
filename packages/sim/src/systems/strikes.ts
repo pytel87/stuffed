@@ -76,7 +76,7 @@ export function updateStrikes(world: World, state: GameState): void {
       const dy = p.pos.y - s.pos.y;
       const d = Math.hypot(dx, dy);
       if (d > S.radius + p.radius) continue;
-      applyDamage(state, p, k.damage, s.byId, { from: s.pos });
+      applyDamage(state, p, k.damage, s.byId, { from: s.pos, cause: 'strike' });
       const ux = d > 1e-6 ? dx / d : 1;
       const uy = d > 1e-6 ? dy / d : 0;
       p.knockback.x += ux * k.knockback;

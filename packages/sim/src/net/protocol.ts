@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PinataState, PlacedWall, Player, Projectile, Strike, StrikeButtonState, Toss, ToyState, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -142,6 +142,7 @@ export interface CompactSnapshot {
   toy?: ToyState | null;
   seesaws?: GameState['seesaws'];
   games?: GameState['games'];
+  wanderers?: GameState['wanderers'];
   /** Loot that appeared or changed (moved) since the last update, and ids that are gone. */
   lootUp?: GroundLoot[];
   lootGone?: EntityId[];
@@ -157,7 +158,7 @@ export interface CompactSnapshot {
 }
 
 /** Per-connection memory of the slow parts last sent (as JSON), so unchanged ones are skipped. */
-export type SnapshotMemory = Partial<Record<'chests' | 'strikeButton' | 'strikes' | 'pinata' | 'toy' | 'seesaws' | 'games' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>> & {
+export type SnapshotMemory = Partial<Record<'chests' | 'strikeButton' | 'strikes' | 'pinata' | 'toy' | 'seesaws' | 'games' | 'wanderers' | 'walls' | 'toss' | 'zone' | 'roster' | 'fallen' | 'balls' | 'goals', string>> & {
   /** Each loot item as last sent (only what changed goes out). */
   lootById?: Map<EntityId, string>;
 };
@@ -206,6 +207,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     toy: state.toy,
     seesaws: state.seesaws,
     games: state.games,
+    wanderers: state.wanderers,
     walls: state.placedWalls,
     toss: state.toss,
     zone: zonePlan,
@@ -251,6 +253,7 @@ export interface SnapshotParts {
   toy: ToyState | null;
   seesaws: GameState['seesaws'];
   games: GameState['games'] | null;
+  wanderers: GameState['wanderers'];
   loot: GroundLoot[];
   walls: PlacedWall[];
   toss: Toss | null;
@@ -262,7 +265,7 @@ export interface SnapshotParts {
 }
 
 export function emptySnapshotParts(): SnapshotParts {
-  return { chests: [], strikeButton: null, strikes: [], pinata: null, toy: null, seesaws: [], games: null, loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [], goals: [] };
+  return { chests: [], strikeButton: null, strikes: [], pinata: null, toy: null, seesaws: [], games: null, wanderers: [], loot: [], walls: [], toss: null, zone: null, roster: new Map(), fallen: [], balls: [], goals: [] };
 }
 
 /**
@@ -277,6 +280,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   if (msg.toy !== undefined) parts.toy = msg.toy;
   if (msg.seesaws) parts.seesaws = msg.seesaws;
   if (msg.games) parts.games = msg.games;
+  if (msg.wanderers) parts.wanderers = msg.wanderers;
   if (msg.lootUp || msg.lootGone) {
     const byId = new Map(parts.loot.map((l) => [l.id, l]));
     for (const lootId of msg.lootGone ?? []) byId.delete(lootId);
@@ -333,6 +337,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     pinata: parts.pinata,
     toy: parts.toy,
     seesaws: parts.seesaws,
+    wanderers: parts.wanderers,
     games: parts.games ?? { digs: [], gallery: null, pins: null, hills: [], goalPrizeAt: [] },
     loot: parts.loot,
     placedWalls: parts.walls,

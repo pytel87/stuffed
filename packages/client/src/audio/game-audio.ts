@@ -135,7 +135,8 @@ export class GameAudio {
           // The button's click where it was pressed; the falling whistle over where it's coming down.
           const by = state.players.find((p) => p.id === e.playerId);
           if (by) s.play('click', { at: by.pos, volume: 1, pitchSpread: 0 });
-          s.play('strike_whistle', { at: e.pos, volume: 1, pitchSpread: 0 });
+          // Heard all over the map: an alarm, so everyone knows something's coming down.
+          s.play('strike_whistle', { volume: 0.8, pitchSpread: 0 });
           break;
         }
         case 'pinataHit':
@@ -143,6 +144,15 @@ export class GameAudio {
           break;
         case 'pinataBurst':
           s.play('pinata_burst', { at: e.pos, volume: 1, pitchSpread: 0 });
+          break;
+        case 'sucked':
+          s.play('vacuum_slurp', { at: e.pos, volume: 0.8 });
+          break;
+        case 'wandererBump':
+          s.play(e.index >= 0 && state.wanderers[e.index] && state.wanderers[e.index]!.mode === 'moving' ? 'pillow_bonk' : 'vacuum_bump', { at: e.pos, volume: 0.8 });
+          break;
+        case 'wandererStarted':
+          s.play(e.kind === 'plow' ? 'plow_horn' : 'mower_engine', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
         case 'prize':
           s.play('prize_fanfare', { at: e.pos, volume: 1, pitchSpread: 0 });

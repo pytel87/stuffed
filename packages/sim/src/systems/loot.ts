@@ -12,6 +12,7 @@ import { digAt, finishDig } from './minigames.ts';
 import { rideAt, startRide } from './rides.ts';
 import { pressToy, toyReady } from './toys.ts';
 import { makeWeapon } from './weapons.ts';
+import { startVehicle, switchAt } from './wanderers.ts';
 
 const OPEN_TICKS = secondsToTicks(config.chest.openTime);
 
@@ -33,6 +34,8 @@ export type Interaction =
   | { kind: 'ride'; index: number }
   /** Buried treasure to dig up. */
   | { kind: 'dig'; index: number }
+  /** The lawnmower's or snowplow's switch. */
+  | { kind: 'switch'; index: number }
   | null;
 
 /** Loot (or a chest base) at height `z` is within vertical reach of this plush. */
@@ -122,6 +125,8 @@ export function findInteraction(state: GameState, player: Player, world?: World)
     if (ride !== -1) return { kind: 'ride', index: ride };
     const dig = digAt(world, state, player);
     if (dig !== -1) return { kind: 'dig', index: dig };
+    const sw = switchAt(world, state, player);
+    if (sw !== -1) return { kind: 'switch', index: sw };
   }
 
   let chest: Chest | null = null;
@@ -200,6 +205,8 @@ export function updateInteraction(world: World, state: GameState, player: Player
     callStrike(world, state, player);
   } else if (target?.kind === 'toy') {
     pressToy(state, player);
+  } else if (target?.kind === 'switch') {
+    startVehicle(world, state, target.index, player);
   } else if (target?.kind === 'dig') {
     player.action = { kind: 'dig', index: target.index, startTick: state.tick, endTick: state.tick + secondsToTicks(config.games.digTime) };
   } else if (target?.kind === 'ride') {

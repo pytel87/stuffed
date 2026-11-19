@@ -1531,6 +1531,25 @@ body.touch-mode .prompt .icon.tap {
   pointer-events: none;
 }
 
+.toast {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-t) + var(--edge) + 6.4rem);
+  transform: translateX(-50%);
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  background: #ff4a1c;
+  border: 3px solid var(--ink);
+  font: 900 1.15rem/1.2 var(--font);
+  color: #fffaf3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.toast.pop {
+  animation: banner-pop 320ms ease-out, fade-late 2.4s linear forwards;
+}
+
 .zone-name.pop {
   animation: banner-pop 320ms ease-out, fade-late 2.4s linear forwards;
 }

@@ -135,15 +135,62 @@ function along(r: RideDef, pos: Vec2): { t: number; side: number } {
   };
 }
 
+/** A slide's or sled run's footprint (they run straight along x or y). */
+export function rampBox(r: RideDef): Box {
+  const w = rampWidth(r) / 2;
+  return {
+    x: Math.min(r.from.x, r.to.x) - (Math.abs(r.to.y - r.from.y) > 0.01 ? w : 0),
+    y: Math.min(r.from.y, r.to.y) - (Math.abs(r.to.x - r.from.x) > 0.01 ? w : 0),
+    w: Math.abs(r.to.x - r.from.x) + (Math.abs(r.to.y - r.from.y) > 0.01 ? 2 * w : 0),
+    h: Math.abs(r.to.y - r.from.y) + (Math.abs(r.to.x - r.from.x) > 0.01 ? 2 * w : 0),
+  };
+}
+
+/**
+ * Where along a shot's step (0..1) it first runs into a slide or a sled run, or null. Only the
+ * board itself stops it (from its underside up to its rails' tops), not the open space under its
+ * raised end. `z` and `dz`: the shot's height and its change over the step; `r`: its size.
+ */
+export function rampHit(world: World, from: Vec2, dx: number, dy: number, z: number, dz: number, r: number): number | null {
+  let best: number | null = null;
+  for (const ride of world.map.rides ?? []) {
+    if (ride.kind !== 'slide' && ride.kind !== 'sled') continue;
+    // Walk the step finely: the slope's height changes along it.
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      const p = { x: from.x + dx * t, y: from.y + dy * t };
+      const b = rampBox(ride);
+      if (p.x < b.x - r || p.x > b.x + b.w + r || p.y < b.y - r || p.y > b.y + b.h + r) continue;
+      const k = Math.max(0, Math.min(1, along(ride, p).t));
+      const top = ride.from.z + (ride.to.z - ride.from.z) * k;
+      const shot = z + dz * t;
+      if (shot - r < top + (ride.kind === 'slide' ? RAIL_TOP : 0) && shot + r > top - BOARD) {
+        if (best === null || t < best) best = t;
+        break;
+      }
+    }
+  }
+  return best;
+}
+
+/** A slide's board is this thick under its surface; its side rails reach this far above it. */
+const BOARD = 0.12;
+const RAIL_TOP = 0.27;
+
+/** One slide's or sled run's surface height at `pos`, or null off it. */
+export function slopeAt(r: RideDef, pos: Vec2): number | null {
+  if (r.kind !== 'slide' && r.kind !== 'sled') return null;
+  const { t, side } = along(r, pos);
+  if (t < 0 || t > 1 || side > rampWidth(r) / 2) return null;
+  return r.from.z + (r.to.z - r.from.z) * t;
+}
+
 /** A slide's or a sled run's smooth sloped surface: its height at `pos`, or null off it. */
 export function rampSurface(world: World, pos: Vec2): number | null {
   let best: number | null = null;
   for (const r of world.map.rides ?? []) {
-    if (r.kind !== 'slide' && r.kind !== 'sled') continue;
-    const { t, side } = along(r, pos);
-    if (t < 0 || t > 1 || side > rampWidth(r) / 2) continue;
-    const h = r.from.z + (r.to.z - r.from.z) * t;
-    if (best === null || h > best) best = h;
+    const h = slopeAt(r, pos);
+    if (h !== null && (best === null || h > best)) best = h;
   }
   return best;
 }
@@ -156,18 +203,14 @@ export function rampSurface(world: World, pos: Vec2): number | null {
 export function rampInTheWay(world: World, pos: Vec2, radius: number, feet: number): Box | null {
   for (const r of world.map.rides ?? []) {
     if (r.kind !== 'slide' && r.kind !== 'sled') continue;
-    const w = rampWidth(r) / 2;
-    const box: Box = {
-      x: Math.min(r.from.x, r.to.x) - (Math.abs(r.to.y - r.from.y) > 0.01 ? w : 0),
-      y: Math.min(r.from.y, r.to.y) - (Math.abs(r.to.x - r.from.x) > 0.01 ? w : 0),
-      w: Math.abs(r.to.x - r.from.x) + (Math.abs(r.to.y - r.from.y) > 0.01 ? 2 * w : 0),
-      h: Math.abs(r.to.y - r.from.y) + (Math.abs(r.to.x - r.from.x) > 0.01 ? 2 * w : 0),
-    };
+    const box = rampBox(r);
     if (pos.x + radius < box.x || pos.x - radius > box.x + box.w || pos.y + radius < box.y || pos.y - radius > box.y + box.h) continue;
-    // How high it is beside the plush (level with its middle along the slope).
+    // How high it is beside the plush (level with its middle along the slope). A slide's board up
+    // above the plush's head can be walked under (the sled run is a solid mound of snow).
     const { t } = along(r, pos);
     const top = r.from.z + (r.to.z - r.from.z) * Math.max(0, Math.min(1, t));
-    if (top > feet) return box;
+    const head = feet - config.player.stepHeight + config.player.height;
+    if (top > feet && (r.kind === 'sled' || top - BOARD < head)) return box;
   }
   return null;
 }

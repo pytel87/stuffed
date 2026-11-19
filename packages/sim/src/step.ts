@@ -14,6 +14,7 @@ import { updateWeapons } from './systems/weapons.ts';
 import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input, Player } from './types.ts';
 import { recordPoses, type World } from './world.ts';
+import { updateWanderers } from './systems/wanderers.ts';
 
 /**
  * Advances the game by one tick. Mutates `state` in place and returns it.
@@ -80,6 +81,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateStrikes(world, state);
   updateToys(world, state);
   updateMiniGames(world, state);
+  updateWanderers(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {

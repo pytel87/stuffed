@@ -1,4 +1,4 @@
-import type { EntityId, GameState, Player, Vec2 } from '../types.ts';
+import type { EntityId, GameState, KnockoutCause, Player, Vec2 } from '../types.ts';
 
 /**
  * Buttons (armor) absorb damage first; the rest comes out of stuffing. `ignoreArmor` skips
@@ -9,7 +9,7 @@ export function applyDamage(
   target: Player,
   amount: number,
   sourceId: EntityId | null,
-  { ignoreArmor = false, from }: { ignoreArmor?: boolean; from?: Vec2 } = {},
+  { ignoreArmor = false, from, cause }: { ignoreArmor?: boolean; from?: Vec2; cause?: KnockoutCause } = {},
 ): void {
   if (!target.alive || amount <= 0) return;
   const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
@@ -20,10 +20,10 @@ export function applyDamage(
   state.events.push({ type: 'hit', targetId: target.id, sourceId, damage, armorDamage, ...(from ? { from } : {}) });
   const source = sourceId === null ? undefined : state.players.find((p) => p.id === sourceId);
   if (source && source.id !== target.id) source.damageDealt += removed; // no credit for overkill
-  if (target.stuffing <= 0) eliminate(state, target, sourceId);
+  if (target.stuffing <= 0) eliminate(state, target, sourceId, cause);
 }
 
-export function eliminate(state: GameState, target: Player, byId: EntityId | null): void {
+export function eliminate(state: GameState, target: Player, byId: EntityId | null, cause?: KnockoutCause): void {
   if (!target.alive) return;
   target.alive = false;
   target.stuffing = 0;
@@ -36,7 +36,7 @@ export function eliminate(state: GameState, target: Player, byId: EntityId | nul
   if (killer && killer.id !== target.id) killer.knockouts++;
   // Placement = 1 + players still standing, so the first one out of 16 places 16th.
   target.placement = countAlive(state) + 1;
-  state.events.push({ type: 'eliminated', playerId: target.id, byId, placement: target.placement });
+  state.events.push({ type: 'eliminated', playerId: target.id, byId, placement: target.placement, ...(cause ? { cause } : {}) });
 }
 
 export function countAlive(state: GameState): number {

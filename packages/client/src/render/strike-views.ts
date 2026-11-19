@@ -48,7 +48,7 @@ export function buildDrop(kind: StrikeKind, n = 0): THREE.Object3D {
 
 /** Black and yellow hazard stripes with a black border, for the button's top plate. */
 let hazard: THREE.CanvasTexture | null = null;
-function hazardTexture(): THREE.CanvasTexture {
+export function hazardTexture(): THREE.CanvasTexture {
   if (hazard) return hazard;
   const c = document.createElement('canvas');
   c.width = c.height = 256;
@@ -75,9 +75,9 @@ function hazardTexture(): THREE.CanvasTexture {
 
 /**
  * The big toy button: a black box with a yellow hazard-striped top, a grey collar and a chunky
- * orange-red button, with one of the drops it calls floating over it.
+ * orange-red button; lights round its collar come on as it recharges.
  */
-export function buildStrikeButton(kind: StrikeKind): { root: THREE.Group; cap: THREE.Mesh; dots: THREE.Mesh[]; glow: THREE.Mesh } {
+export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots: THREE.Mesh[]; glow: THREE.Mesh } {
   const root = new THREE.Group();
   const base = toonMesh(new THREE.BoxGeometry(1.05, 0.42, 1.05), '#2b2730', { outline: 0.04 });
   base.position.y = 0.21;
@@ -103,11 +103,6 @@ export function buildStrikeButton(kind: StrikeKind): { root: THREE.Group; cap: T
   cap.position.y = 0.58;
   root.add(cap);
   // What it calls, floating over it.
-  const sign = buildDrop(kind, 0);
-  sign.scale.setScalar(0.55);
-  sign.position.y = 1.35;
-  sign.name = 'sign';
-  root.add(sign);
   // Recharge lights round the collar.
   const dotMat = toonMaterial('#fff6d0', { map: null });
   const dots: THREE.Mesh[] = [];
@@ -158,7 +153,7 @@ export class StrikeViews {
     } else {
       if (!this.button || this.buttonKind !== b.kind) {
         this.button?.root.removeFromParent();
-        this.button = buildStrikeButton(b.kind);
+        this.button = buildStrikeButton();
         this.buttonKind = b.kind;
         this.scene.add(this.button.root);
       }
@@ -166,19 +161,15 @@ export class StrikeViews {
       v.root.position.set(b.pos.x, b.z, b.pos.y);
       v.root.visible = fade(b.pos.x, b.pos.y, b.z) > 0.5;
       const ready = tick >= b.readyTick;
-      // Recharging: the lights come on one by one; ready: all lit, the ring glowing.
+      // Recharging: the lights come on one by one; ready: all lit.
       const span = b.readyTick > config.strike.firstReady * config.tickRate ? config.strike.cooldown * config.tickRate : config.strike.firstReady * config.tickRate;
       const progress = ready ? 1 : 1 - (b.readyTick - tick) / span;
       v.dots.forEach((d, i) => (d.visible = progress >= (i + 1) / DOTS));
-      v.glow.visible = ready;
-      (v.glow.material as THREE.MeshBasicMaterial).opacity = 0.45 + Math.sin(time * 4) * 0.25;
+      // (No glowing ring: the popped-up red button and its lit dots say it's ready.)
+      v.glow.visible = false;
       // Pushed in while it recharges (sunk into the box, and greyed); up and bright when ready.
       v.cap.position.y = ready ? 0.58 : 0.45;
       (v.cap.material as THREE.MeshToonMaterial).color.set(ready ? '#ff4a1c' : '#b8a9ad');
-      const sign = v.root.getObjectByName('sign')!;
-      sign.visible = ready;
-      sign.position.y = 1.4 + Math.sin(time * 2.5) * 0.08;
-      sign.rotation.y = time * 1.2;
     }
 
     const seen = new Set<EntityId>();

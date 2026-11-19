@@ -58,12 +58,42 @@ describe('slides and sled runs', () => {
     expect(biggestStep).toBeLessThan(0.2);
   });
 
+  it('you can walk under the high end of the slide (not the low end)', () => {
+    const g = game(BACKYARD);
+    const r = BACKYARD.rides!.find((x) => x.kind === 'slide')!;
+    const high = { x: r.from.x, y: r.from.y + (r.to.y - r.from.y) * 0.15 };
+    g.you.pos = { x: high.x - 2, y: high.y };
+    g.go(30, { moveX: 1 });
+    expect(g.you.pos.x).toBeGreaterThan(high.x + 1);
+    expect(g.you.z).toBeLessThan(0.05);
+  });
+
   it("is solid: you can't walk through the slide from its side", () => {
     const g = game(BACKYARD);
     const r = BACKYARD.rides!.find((x) => x.kind === 'slide')!;
     g.you.pos = { x: r.from.x - 2, y: (r.from.y + r.to.y) / 2 };
     g.go(40, { moveX: 1 });
     expect(g.you.pos.x).toBeLessThan(r.from.x - 0.55);
+  });
+
+  it('a shot into the side of the slide stops at its board; one under its raised end passes', () => {
+    const r = BACKYARD.rides!.find((x) => x.kind === 'slide')!;
+    // Low down, where the board is at shot height.
+    const g = game(BACKYARD);
+    const low = { x: r.from.x, y: r.from.y + (r.to.y - r.from.y) * 0.8 };
+    g.you.pos = { x: low.x - 4, y: low.y };
+    g.other.pos = { x: low.x + 3, y: low.y };
+    g.go(1, { buttons: Btn.Fire, aimX: 7, aimY: 0 });
+    g.go(30);
+    expect(g.other.stuffing).toBe(100);
+    // Up high, the board is over the shot: it flies on underneath.
+    const h = game(BACKYARD);
+    const high = { x: r.from.x, y: r.from.y + (r.to.y - r.from.y) * 0.25 };
+    h.you.pos = { x: high.x - 4, y: high.y };
+    h.other.pos = { x: high.x + 3, y: high.y };
+    h.go(1, { buttons: Btn.Fire, aimX: 7, aimY: 0 });
+    h.go(30);
+    expect(h.other.stuffing).toBeLessThan(100);
   });
 
   it('the sled run ends with a hop off the little jump', () => {

@@ -9,6 +9,7 @@ import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
 import { galleryDuck, hitDuck } from './minigames.ts';
 import { hitPinata, levelWithPinata } from './pinata.ts';
+import { rampHit } from './rides.ts';
 
 /**
  * Moves projectiles with a swept test so fast ones can't skip through a plush or a wall
@@ -111,6 +112,14 @@ export function updateProjectiles(world: World, state: GameState): void {
           ballHit = null;
         }
       }
+    }
+    // A slide or a sled run stops it (below its slope).
+    const ramp = rampHit(world, proj.pos, dx, dy, proj.z, dz, r);
+    if (ramp !== null && ramp < wallT) {
+      wallT = ramp;
+      const at = { x: proj.pos.x + dx * ramp, y: proj.pos.y + dy * ramp };
+      wallHit = { box: { x: at.x - 0.01, y: at.y - 0.01, w: 0.02, h: 0.02 } };
+      ballHit = null;
     }
     // The piñata: a shot stops against it (and wears it down).
     let pinataHit = false;

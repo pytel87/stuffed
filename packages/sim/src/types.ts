@@ -270,7 +270,8 @@ export type GameEvent =
   | { type: 'partsDropped'; playerId: EntityId; kept: Part[]; dropped: Part[] }
   /** Put on a part (from the ground or the bag), or put one in the bag. */
   | { type: 'wear'; playerId: EntityId; part: Part; stashed: boolean }
-  | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number }
+  /** `cause`: what did it, when it wasn't a weapon (the Rinse, an air strike, a map toy). */
+  | { type: 'eliminated'; playerId: EntityId; byId: EntityId | null; placement: number; cause?: KnockoutCause }
   /** Team mode: a knocked-out plush re-stitched by a teammate. */
   | { type: 'revived'; playerId: EntityId; byId: EntityId }
   /** The Rinse started rising, or closed completely. */
@@ -314,6 +315,13 @@ export type GameEvent =
   | { type: 'duckHit'; pos: Vec2; hits: number }
   | { type: 'galleryWon'; playerId: EntityId }
   | { type: 'pinDown'; index: number; pos: Vec2 }
+  /** A wanderer bumped (or the mower bonked) a plush; the mower or plow set off, or stopped. */
+  | { type: 'wandererBump'; index: number; playerId: EntityId; pos: Vec2 }
+  | { type: 'wandererStarted'; index: number; kind: WandererDef['kind']; pos: Vec2 }
+  | { type: 'wandererStopped'; index: number; pos: Vec2 }
+  /** The robot vacuum sucked up some loot, or spat its bin out. */
+  | { type: 'sucked'; index: number; pos: Vec2 }
+  | { type: 'spat'; index: number; pos: Vec2 }
   /** Someone new started holding a hill. */
   | { type: 'hillTaken'; index: number; playerId: EntityId }
   /** Bounced off a trampoline, or launched off a seesaw. */
@@ -322,6 +330,38 @@ export type GameEvent =
   | { type: 'toyStarted'; kind: ToyKind; playerId: EntityId; pos: Vec2 }
   /** The jack-in-the-box popped, or the pond's ice broke. */
   | { type: 'toyPop'; kind: ToyKind; pos: Vec2 };
+
+/**
+ * Something that moves about on its own: a robot vacuum roaming `area`, or a lawnmower or snowplow driving from (x, y) to `to` (and back) when its `switch` is pressed.
+ */
+export interface WandererDef {
+  kind: 'vacuum' | 'mower' | 'plow';
+  x: number;
+  y: number;
+  area?: Box;
+  to?: Vec2;
+  switch?: Vec2;
+}
+
+export interface WandererState {
+  pos: Vec2;
+  /** Which way it faces (radians). */
+  dir: number;
+  /** The mower and plow: idle or moving (the vacuum just roams). */
+  mode: 'idle' | 'moving';
+  /** The vacuum: when it turns next. */
+  until: Tick;
+  /** When the mower's or plow's switch works again. */
+  readyTick: Tick;
+  /** The mower and plow: next run goes back to the start. */
+  back: boolean;
+  /** The vacuum's bin, and when it spits it out. */
+  carried: LootContent[];
+  dropTick: Tick;
+  /** The mower: who it already bonked this run, and who sent it. */
+  hit: EntityId[];
+  byId?: EntityId;
+}
 
 export interface MiniGames {
   /** Each buried treasure spot: dug up yet. */
@@ -388,6 +428,9 @@ export interface PinataState {
   hitTick: Tick;
 }
 
+/** What knocked a plush out when it wasn't someone's weapon. */
+export type KnockoutCause = 'rinse' | 'strike' | 'jack' | 'icedrill' | 'mower';
+
 /** What an air strike drops: water balloons (soak), toy blocks (hurt) or snowballs (knock back). */
 export type StrikeKind = 'balloons' | 'blocks' | 'snowballs';
 
@@ -440,6 +483,8 @@ export interface GameState {
   pinata: PinataState | null;
   /** The map's big toy (null on maps without one). */
   toy: ToyState | null;
+  /** The map's wanderers (see systems/wanderers.ts), in map.wanderers order. */
+  wanderers: WandererState[];
   /** The mini-games' state (see systems/minigames.ts). */
   games: MiniGames;
   /** Each of the map's seesaws: which end went down last, and when. */
@@ -572,6 +617,8 @@ export interface MapData {
   pinata?: { x: number; y: number; z: number; kind: PinataKind; branch?: { x: number; y: number; z: number } };
   /** Slides, sled runs, zip lines and hamster tubes. */
   rides?: RideDef[];
+  /** Robot vacuums, cats, lawnmowers and snowplows. */
+  wanderers?: WandererDef[];
   /** Buried treasure spots (dig with E). */
   digs?: Vec2[];
   /** A shooting gallery: its row of ducks is centered here (shooters stand south of it). */

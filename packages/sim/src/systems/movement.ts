@@ -9,6 +9,7 @@ import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
 import { iceOpen } from './toys.ts';
 import { landed, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
 import { pinsInTheWay } from './minigames.ts';
+import { wandererCircles } from './wanderers.ts';
 
 // Fraction of the gap to target velocity closed per tick (frame-rate independent smoothing).
 const ACCEL_BLEND = 1 - Math.exp(-config.player.acceleration * DT);
@@ -182,6 +183,18 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     }
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;
+    }
+    // The wanderers (a vacuum, a mower or plow) are in the way.
+    if (player.z < 0.8) {
+      for (const c of wandererCircles(world, state)) {
+        const dx = player.pos.x - c.x;
+        const dy = player.pos.y - c.y;
+        const min = r + c.r;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2);
+        moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
+      }
     }
     // Standing bowling pins (it takes the ball to knock them down).
     if (player.z < 0.8) {

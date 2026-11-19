@@ -5,6 +5,7 @@ import { makeWeapon } from './systems/weapons.ts';
 import { initialZone } from './systems/zone.ts';
 import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, Toss, Vec2, WeaponInstance, WeaponSpec } from './types.ts';
 import { initialGames } from './systems/minigames.ts';
+import { initialWanderers } from './systems/wanderers.ts';
 
 export interface CreateGameOptions {
   seed: number;
@@ -113,6 +114,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
     strikes: [],
     seesaws: (map.seesaws ?? []).map(() => ({ down: 'a' as const, tick: -1 })),
     games: initialGames(map),
+    wanderers: initialWanderers(map),
     toy: map.toy
       ? {
           kind: map.toy.kind,

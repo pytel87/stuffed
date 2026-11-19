@@ -139,8 +139,9 @@ const bowling: Wall[] = [ball(59.2, 89.2, 1.6, 1.6)];
 // A slide off the bed, and a hamster tube across the floor north of the rug (in at either end).
 const rides: RideDef[] = [
     { kind: 'slide', from: { x: 32.1, y: 21, z: 2.2 }, to: { x: 37.8, y: 21, z: 0 }, seconds: 0.9, boost: 10 },
-    { kind: 'tube', from: { x: 40, y: 75, z: 0 }, to: { x: 75, y: 75, z: 0 }, seconds: 1.4, boost: 4 },
-    { kind: 'tube', from: { x: 75, y: 75, z: 0 }, to: { x: 40, y: 75, z: 0 }, seconds: 1.4, boost: 4 },
+    // (Its east mouth well clear of the chest at 78, 76.)
+    { kind: 'tube', from: { x: 40, y: 75, z: 0 }, to: { x: 72, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
+    { kind: 'tube', from: { x: 72, y: 75, z: 0 }, to: { x: 40, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
   ];
 
 const walls: Wall[] = [...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...tubeWalls(rides[1]!), ...bowling, ...[...rugToys, ...scattered].filter(clearOfTrack)];
@@ -237,6 +238,10 @@ export const BEDROOM: MapData = {
   rides,
   // Bowling south-east of the rug, and a hill on the castle keep.
   pins: PINS,
+  // A robot vacuum roaming the floor north of the castle.
+  wanderers: [
+    { kind: 'vacuum', x: 56, y: 35, area: { x: 38, y: 27, w: 34, h: 16 } },
+  ],
   hills: [{ x: 56, y: 56, z: 2.4, radius: 2.2 }],
   // A jack-in-the-box by the rug.
   toy: { kind: 'jack', x: 66, y: 82, z: 0 },

@@ -294,6 +294,8 @@ export const BACKYARD: MapData = {
   strikeButton: { x: 24, y: 23.5, z: 2.7, kind: 'balloons' },
   rides,
   gallery: GALLERY,
+  // A toy lawnmower on the south lawn; its switch is beside where it's parked.
+  wanderers: [{ kind: 'mower', x: 56, y: 80, to: { x: 56, y: 108 }, switch: { x: 53.8, y: 79.5 } }],
   // Buried treasure in the sandbox.
   digs: [{ x: 38, y: 97 }, { x: 22, y: 108 }, { x: 18, y: 92 }],
   // A trampoline by the house's north wall (bounce up onto the roof), and a seesaw on the lawn.

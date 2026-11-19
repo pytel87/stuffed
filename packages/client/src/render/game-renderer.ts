@@ -15,6 +15,7 @@ import { PinataView } from './pinata-views.ts';
 import { ToyView } from './toy-views.ts';
 import { RideViews } from './ride-views.ts';
 import { MiniGameViews } from './minigame-views.ts';
+import { WandererViews } from './wanderer-views.ts';
 import { buildObstacles, updateBushes, updateRoofs, type BushView, type RoofView } from './obstacles.ts';
 import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
@@ -122,6 +123,7 @@ export class GameRenderer {
   private readonly pinata = new PinataView(this.scene);
   private readonly rides = new RideViews(this.scene);
   private readonly games = new MiniGameViews(this.scene);
+  private readonly wanderers = new WandererViews(this.scene);
   private readonly toy = new ToyView(this.scene, (x, y, z, dx, dz) => this.effects.spray(x, y, z, dx, dz));
   private readonly placedWalls = new PlacedWallViews(this.scene);
   private readonly toss = new TossView(this.scene);
@@ -349,6 +351,9 @@ export class GameRenderer {
           if (p) this.effects.pinata(p.pos.x, p.z + config.pinata.lift[p.kind], p.pos.y, e.type === 'pinataBurst');
           break;
         }
+        case 'spat':
+          this.effects.pickup(e.pos.x, e.pos.y);
+          break;
         case 'prize':
           this.effects.pinata(e.pos.x, 0.8, e.pos.y, true);
           break;
@@ -455,7 +460,7 @@ export class GameRenderer {
     seeThroughBush.receiveShadow = false;
     samples.add(seeThroughBush);
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
-    samples.add(buildStrikeButton('balloons').root, ...(['balloons', 'blocks', 'snowballs'] as const).map((k) => buildDrop(k)));
+    samples.add(buildStrikeButton().root, ...(['balloons', 'blocks', 'snowballs'] as const).map((k) => buildDrop(k)));
     // Spread them out in a grid at the map center, where the shadow camera can see them too.
     samples.children.forEach((o, i) => o.position.set(40 + (i % 8) * 1.5 - 6, 0.5, 40 + Math.floor(i / 8) * 1.5 - 6));
     this.scene.add(samples);
@@ -502,6 +507,7 @@ export class GameRenderer {
     this.toy.clear();
     this.rides.clear();
     this.games.clear();
+    this.wanderers.clear();
     this.loot.clear();
     this.placedWalls.clear();
     this.toss.clear();
@@ -631,8 +637,11 @@ export class GameRenderer {
     this.strikes.update(this.world, curr, curr.tick - 1 + alpha, opts.dt, opts.time, this.roofFade);
     this.pinata.update(curr, this.world.map.pinata?.branch, opts.dt, opts.time);
     this.toy.update(curr, this.world.map, curr.tick - 1 + alpha, opts.time);
-    this.rides.update(this.world.map, curr);
+    const followed = curr.players.find((p) => p.id === opts.followId);
+    const shownAt = followed && this.plushes.get(followed.id)?.root.position;
+    this.rides.update(this.world.map, curr, shownAt ? { pos: { x: shownAt.x, y: shownAt.z }, z: shownAt.y } : undefined);
     this.games.update(this.world.map, curr, opts.time);
+    this.wanderers.update(this.world.map, prev, curr, alpha, curr.tick - 1 + alpha, opts.time);
     // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
     for (const w of this.placedWalls.update(curr, opts.dt, opts.time)) this.effects.cardboard(w.x + w.w / 2, w.y + w.h / 2, true);
     this.loot.update(curr, opts.dt, opts.time, this.roofFade);

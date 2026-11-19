@@ -229,6 +229,22 @@
     "prize_fanfare": {
       "prompt": "a short cheerful toy trumpet fanfare, a winning jingle, with a little confetti pop",
       "seconds": 1.5
+    },
+    "vacuum_slurp": {
+      "prompt": "a robot vacuum cleaner sucking something up: a short whoosh and rattle into the bin",
+      "seconds": 0.8
+    },
+    "vacuum_bump": {
+      "prompt": "a robot vacuum bumping into something: a soft plastic thud and a little electronic beep",
+      "seconds": 0.6
+    },
+    "mower_engine": {
+      "prompt": "a small toy lawnmower starting up and driving: a buzzy little two-stroke engine purring",
+      "seconds": 5
+    },
+    "plow_horn": {
+      "prompt": "a toy snowplow honking twice and its engine rumbling as it starts to push snow",
+      "seconds": 3
     }
   }
 }

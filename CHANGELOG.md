@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Robot vacuum, lawnmower, snowplow (2026-11-19)
+
+- Things that move about: a robot vacuum in the Bedroom (bumps you aside, sucks up loot and spits it
+  out later), a lawnmower in the Backyard (bonks whoever is in its way) and a snowplow in the Snowy
+  Park (shoves you along), the last two sent off with a push button.
+- Pressing an air strike, the mower or the plow shows everyone a short red message; the strike's
+  falling whistle is heard all over the map.
+- All push buttons look alike: the dots round them fill as they recharge (no floating icons or glow).
+- Slides: only the board stops shots and plushies; walk under the high end, and it fades while
+  you're there. The sled run lost its red sled; the snowy run and the presents got textures.
+- Knocked out by anything but a plush: a broken heart on the card. Shorter hamster tube (clear of
+  the chest). Protocol 14.
+
 ## Bigger rooms (2026-11-19)
 
 - Online rooms take up to 16 plushies (was 10), like solo; the lobby starts full of bots.

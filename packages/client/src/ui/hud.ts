@@ -194,7 +194,9 @@ export class Hud {
                 ? rideAnchor(world, interaction.index)
                 : interaction?.kind === 'dig'
                   ? digAnchor(world, interaction.index)
-                  : interaction
+                  : interaction?.kind === 'switch'
+                    ? switchAnchor(world, interaction.index)
+                    : interaction
               ? { ...interaction.loot.pos, z: interaction.loot.z }
               : null;
     let art = '';
@@ -211,6 +213,8 @@ export class Hud {
     } else if (interaction?.kind === 'chest') {
       // The exact chest you're about to open.
       art = `chest:${interaction.chest.loot}`;
+    } else if (interaction?.kind === 'switch') {
+      art = 'switch';
     } else if (interaction?.kind === 'dig') {
       // Hold to dig up the treasure: a little spade.
       art = 'dig';
@@ -313,4 +317,10 @@ function rideAnchor(world: World | undefined, index: number): (Vec2 & { z: numbe
 function digAnchor(world: World | undefined, index: number): (Vec2 & { z: number }) | null {
   const d = world?.map.digs?.[index];
   return d ? { x: d.x, y: d.y, z: 0.2 } : null;
+}
+
+/** Over the mower's or plow's switch, for the prompt. */
+function switchAnchor(world: World | undefined, index: number): (Vec2 & { z: number }) | null {
+  const s = world?.map.wanderers?.[index]?.switch;
+  return s ? { x: s.x, y: s.y, z: 1 } : null;
 }

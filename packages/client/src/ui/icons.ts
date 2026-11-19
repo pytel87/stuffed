@@ -24,6 +24,8 @@ const paths: Record<string, string> = {
   // world
   // stuffing drained of its color: you're out in the Rinse
   drained: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#b9b9c2"/>`,
+  // Knocked out by something that isn't a plush (the Rinse, an air strike, a map toy).
+  broken: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a7a"/><path d="M12.6 7.6 10.4 11l2.6 1.6-2 4.4" stroke="#fffaf3" stroke-width="1.8"/>`,
   water: `<path d="M12 3c3.5 4.5 6 7.6 6 10.7A6 6 0 0 1 6 13.7C6 10.6 8.5 7.5 12 3Z" fill="#7fd0f7"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" stroke="#fff" stroke-width="1.6"/>`,
   chest: `<rect x="3.5" y="10" width="17" height="9" rx="1.5" fill="#d9534f"/><path d="M3.5 10l1.5-4h14l1.5 4Z" fill="#f2c14e"/><path d="M12 12.5l.9 1.8 2 .2-1.5 1.3.5 2-1.9-1.1-1.9 1.1.5-2-1.5-1.3 2-.2Z" fill="#f7d046" stroke-width="1"/>`,
   // actions

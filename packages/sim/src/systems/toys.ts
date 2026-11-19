@@ -70,7 +70,7 @@ export function updateToys(world: World, state: GameState): void {
       p.knockback.x += (d > 1e-6 ? dx / d : 1) * T.jack.knockback * share;
       p.knockback.y += (d > 1e-6 ? dy / d : 0) * T.jack.knockback * share;
       p.vz = Math.max(p.vz, T.jack.hop);
-      applyDamage(state, p, T.jack.damage, t.byId, { from: { ...t.at } });
+      applyDamage(state, p, T.jack.damage, t.byId, { from: { ...t.at }, cause: 'jack' });
     }
   } else if (t.kind === 'sprinkler' && now >= t.startTick && now < t.endTick) {
     // A turning arc of water: whoever it sweeps over is pushed away and soaked.
@@ -98,7 +98,7 @@ export function updateToys(world: World, state: GameState): void {
       if (!p.alive || p.drop || p.z > 0.05) continue;
       const onPond = (world.map.ice ?? []).some((c) => Math.hypot(p.pos.x - c.center.x, p.pos.y - c.center.y) < c.radius);
       if (!onPond) continue;
-      applyDamage(state, p, T.icedrill.damage, t.byId, { from: { ...p.pos } });
+      applyDamage(state, p, T.icedrill.damage, t.byId, { from: { ...p.pos }, cause: 'icedrill' });
       p.soakedUntil = Math.max(p.soakedUntil, now + secondsToTicks(T.icedrill.soak));
     }
   }

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { GameState, PinataKind } from '@stuffed/sim';
 import { sparkleGlowTexture, sparkleTexture } from './loot-views.ts';
-import { foliage } from './props.ts';
+import { foliage, giftWrapTexture, tiled } from './props.ts';
 import { makePlastic, makeTriplanar, toonMaterial, toonMesh } from './toon.ts';
 
 const FRINGE = ['#ff6fa8', '#ffd23a', '#5dc8f5', '#7ad66b', '#ff9f43', '#b86bff'];
@@ -60,7 +60,8 @@ function donkey(): THREE.Group {
 /** A big pink present with a gold ribbon cross and a bow, its middle at its origin. */
 function present(): THREE.Group {
   const g = new THREE.Group();
-  const box = toonMesh(new THREE.BoxGeometry(1.3, 1, 1.3), '#ff7ac8', { outline: 0.04, material: makePlastic(toonMaterial('#ff7ac8', { map: null })) });
+  // Pink gift wrap (the starry paper of the market's gift stacks).
+  const box = toonMesh(new THREE.BoxGeometry(1.3, 1, 1.3), '#ff7ac8', { outline: 0.04, material: toonMaterial('#ff7ac8', { map: tiled(giftWrapTexture(), 1, 1) }) });
   g.add(box);
   const ribbon = makePlastic(toonMaterial('#ffd23a', { map: null }));
   for (const [w, d] of [[1.32, 0.22], [0.22, 1.32]] as const) {

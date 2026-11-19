@@ -113,7 +113,8 @@ Each map has a big toy button (a red dome on a yellow post): up on the Backyard'
 the Bedroom's desk, in the Snowy Park's snow fort. Press E at it and a shower comes down on the
 busiest spot away from you: water balloons in the Backyard (a little damage, soaked: slower and
 seen in bushes), toy blocks in the Bedroom (hurt), snowballs in the Snowy Park (knock you
-flying). Each drop is marked by a circle two seconds ahead (an inner ring grows to its edge),
+flying). A falling whistle sounds all over the map, and everyone sees a short red message. Each
+drop is marked by a circle two seconds ahead (an inner ring grows to its edge),
 anyone under a roof is safe, and bots step out of the circles. The button works from 40 s into
 the match, then needs a minute between presses (its lights come on one by one). See
 [strikes.ts](packages/sim/src/systems/strikes.ts) and `config.strike`.
@@ -133,7 +134,8 @@ around. See [pinata.ts](packages/sim/src/systems/pinata.ts) and `config.pinata`.
 - **Seesaw** (Backyard lawn): land on one end (jump onto it) and whoever stands on the other end
   is launched.
 - **Slides**: off the treehouse's south edge and off the bed. Step onto the top and you shoot down
-  and out across the floor. They're solid from the sides, and you can walk up one (onto the platform or the bed).
+  and out across the floor. You can walk up one (onto the platform or the bed), and under its high end (it fades while
+  you're there); only the board itself stops shots and plushies.
 - **Sled hill** (Snowy Park, west of the pond): climb the mound, step onto the run, and fly off
   the little jump at the bottom.
 - **Zip line** (Backyard): press E at either end (the treehouse platform or the house roof) and you
@@ -142,6 +144,18 @@ around. See [pinata.ts](packages/sim/src/systems/pinata.ts) and `config.pinata`.
   pop out at the other; nobody sees you inside.
 
 See [rides.ts](packages/sim/src/systems/rides.ts) and `config.rides`.
+
+## Wanderers
+
+- **Robot vacuum** (Bedroom, north of the castle): roams its patch of floor, bumping plushies
+  aside; loot it rolls over goes into its bin and comes out again 10 s later somewhere else.
+- **Lawnmower** (Backyard, south lawn) and **snowplow** (Snowy Park, by Snowball Alley): press the
+  push button beside it and it drives across (back again next time). The mower bonks everyone in
+  its way; the plow shoves them along ahead of its blade. The button's lights fill as it recharges.
+
+Calling an air strike or setting off the mower or plow shows everyone a short red message. Bots
+step out of the way. See [wanderers.ts](packages/sim/src/systems/wanderers.ts) and
+`config.wanderers`.
 
 ## Mini-games
 
