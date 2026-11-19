@@ -480,6 +480,9 @@ export const config = {
     stepRange: 0.8,
     /** Seconds after a ride before another can start. */
     again: 1,
+    /** Letting go of a zip line early (Jump): carried on at this share of its speed, with this hop. */
+    zipLetGoCarry: 1,
+    zipLetGoHop: 4,
     /** Falling faster than this when landing counts as landing (for seesaws). */
     landSpeed: 3,
     /** Take-off speed off a trampoline: apex about 4, onto a roof. */

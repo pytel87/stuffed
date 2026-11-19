@@ -7,7 +7,7 @@ import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
 import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
 import { iceOpen } from './toys.ts';
-import { landed, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
+import { landed, letGoOfZip, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
 import { pinsInTheWay } from './minigames.ts';
 import { wandererCircles } from './wanderers.ts';
 
@@ -42,8 +42,10 @@ export function movePlayer(world: World, state: GameState, player: Player, input
     umbrellaMove(world, state, player, input);
     return;
   }
-  // On a slide, a sled run, a zip line or in a tube: carried along, no walking.
-  if (updateRide(world, state, player)) return;
+  // On a zip line, Jump lets go (then on as if falling); on a slide, a sled run, a zip line or in a
+  // tube: carried along, no walking.
+  const letGo = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0 && letGoOfZip(world, state, player);
+  if (!letGo && updateRide(world, state, player)) return;
   // Riding a train wagon: carried along with it (and turned with the track) first.
   if (world.map.track && player.z > 0.05) {
     const carried = carriedBy(world.map.track, state.tick - 1, state.tick, player.pos, player.z);

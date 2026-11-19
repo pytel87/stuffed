@@ -167,7 +167,8 @@ const jungleBushes: Circle[] = [
 // ---------- the open lawn between zones ----------
 const lawn: Wall[] = [
   block(63, 40, 2, 2), block(40, 63, 2, 2), block(86, 63, 2, 2), block(63, 86, 2, 2),
-  block(44, 44, 2, 2), block(82, 44, 2, 2), block(44, 82, 2, 2), block(82, 82, 2, 2),
+  // (The north-west one a little west, out from under the zip line.)
+  block(41, 44, 2, 2), block(82, 44, 2, 2), block(44, 82, 2, 2), block(82, 82, 2, 2),
   book(56, 34, 7, 1.6), book(70, 92, 7, 1.6), book(33, 70, 1.6, 7), book(92, 37, 1.6, 7),
 ];
 const lawnBushes: Circle[] = [

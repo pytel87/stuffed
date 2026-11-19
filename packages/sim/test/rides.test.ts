@@ -137,6 +137,26 @@ describe('the zip line and the hamster tube', () => {
     expect(g.you.z).toBeCloseTo(2.7, 1);
   });
 
+  it('Jump halfway along the zip line lets go: you drop to the ground, carried on along it', () => {
+    const g = game(BACKYARD);
+    const r = BACKYARD.rides!.find((x) => x.kind === 'zip')!;
+    g.you.pos = { x: r.from.x, y: r.from.y };
+    g.you.z = r.from.z;
+    g.go(1, { buttons: Btn.Interact });
+    g.go(Math.round(r.seconds * 15));
+    const at = { ...g.you.pos };
+    g.go(1, { buttons: Btn.Jump });
+    expect(g.you.ride).toBeNull();
+    g.go(60);
+    expect(g.you.z).toBeLessThan(0.05);
+    // On along the line, well short of its end.
+    const dir = { x: r.to.x - r.from.x, y: r.to.y - r.from.y };
+    const len = Math.hypot(dir.x, dir.y);
+    const on = ((g.you.pos.x - at.x) * dir.x + (g.you.pos.y - at.y) * dir.y) / len;
+    expect(on).toBeGreaterThan(1.5);
+    expect(Math.hypot(g.you.pos.x - r.to.x, g.you.pos.y - r.to.y)).toBeGreaterThan(8);
+  });
+
   it('inside the tube nobody sees you; you come out at the other end', () => {
     const g = game(BEDROOM);
     const r = BEDROOM.rides!.find((x) => x.kind === 'tube')!;

@@ -454,7 +454,9 @@ function frame(now: number): void {
     time: now / 1000,
   });
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
-  tossHint.hidden = me?.drop !== 'riding' || isBackdrop(session);
+  // Jump to drop: off the blimp, or to let go of a zip line.
+  const onZip = !!me?.ride && session.map.rides?.[me.ride.index]?.kind === 'zip';
+  tossHint.hidden = (me?.drop !== 'riding' && !onZip) || isBackdrop(session);
   hitDirection.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos, me?.z ?? 0);
   tootIfTrainComing(state, dt);
   mateArrows.update(isBackdrop(session) ? null : state, state.players.find((p) => p.id === followId), renderer.camera, canvas.clientWidth, canvas.clientHeight);

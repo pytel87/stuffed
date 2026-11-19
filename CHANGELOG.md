@@ -17,6 +17,9 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Backyard: the lawnmower's lane is mowed short, a lighter striped strip with wheel tracks, so you
   can see where it'll drive (the snowplow already had its plowed lane).
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
+- Let go of the zip line anytime with Jump: you drop off, carried on a little along it (the drop
+  hint shows while you ride). The toy block under the Backyard's zip line moved out of its way.
+- A chunky, high-contrast aiming cursor on desktop (it was the thin system crosshair).
 - Menu icon buttons name themselves in a little bubble after a moment's hover, or on a long press
   on touch (which then doesn't press the button).
 - Damage numbers for buttons knocked off are yellow, like the buttons bar (they were pale blue).

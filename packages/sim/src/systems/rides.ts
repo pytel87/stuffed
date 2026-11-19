@@ -1,6 +1,7 @@
 // Things that move you around the map:
 // - rides: a slide or a sled run (step onto the top and you go), a zip line or a hamster tube
 //   (press E at its start): you're carried along, then let go with a push (a hop off a ski jump);
+//   off a zip line you can also let go early (Jump), carried on along it as you drop;
 //   inside a tube nobody sees you;
 // - trampolines: landing on one bounces you high (onto roofs);
 // - seesaws: landing on one end launches whoever stands on the other;
@@ -74,6 +75,27 @@ export function ridePose(world: World, ride: Ride, tick: number): { pos: Vec2; z
     pos: { x: r.from.x + (r.to.x - r.from.x) * k, y: r.from.y + (r.to.y - r.from.y) * k },
     z: r.from.z + (r.to.z - r.from.z) * rise + lift,
   };
+}
+
+/** Jump on a zip line: let go there, carried on along it with a little hop. False on other rides. */
+export function letGoOfZip(world: World, state: GameState, player: Player): boolean {
+  const ride = player.ride;
+  const r = ride ? world.map.rides![ride.index]! : null;
+  if (!ride || r?.kind !== 'zip') return false;
+  const { pos, z } = ridePose(world, ride, state.tick);
+  player.ride = null;
+  player.rideAgainTick = state.tick + secondsToTicks(R.again);
+  player.pos = pos;
+  player.z = z;
+  const dx = r.to.x - r.from.x;
+  const dy = r.to.y - r.from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const speed = (len / r.seconds) * R.zipLetGoCarry;
+  player.knockback.x += (dx / len) * speed;
+  player.knockback.y += (dy / len) * speed;
+  player.vz = R.zipLetGoHop;
+  state.events.push({ type: 'rideEnded', playerId: player.id, kind: r.kind, pos: { ...pos } });
+  return true;
 }
 
 /** Carries a riding plush along; at the end it's let go with a push. True while riding. */
