@@ -138,19 +138,19 @@ const LEAN = 0.18;
 const RINGS = 6;
 
 /**
- * A spring launcher throwing toward +x (turned by the caller): a rounded mint base, a pink slinky
- * spring, and on top a round wooden platform with a soft rim, leaning a little toward the throw,
- * with an arrow painted the way it throws. A plush is loaded in the platform's middle.
+ * A spring launcher throwing toward +x (turned by the caller), in bright toy colors: a rounded teal
+ * base, a hot-pink slinky spring, and on top a round red platform with a sunny yellow rim, leaning
+ * a little toward the throw, with a white arrow painted the way it throws. A plush is loaded in the platform's middle.
  */
 function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group } {
   const root = new THREE.Group();
   const size = CATAPULT_SIZE;
-  const base = toonMesh(new RoundedBoxGeometry(size * 0.9, BASE, size * 0.9, 3, 0.12), '#9be3c4', { outline: 0.03, material: plastic('#9be3c4') });
+  const base = toonMesh(new RoundedBoxGeometry(size * 0.9, BASE, size * 0.9, 3, 0.12), '#22c3b0', { outline: 0.03, material: plastic('#22c3b0') });
   base.position.y = LIFT + BASE / 2;
   root.add(base);
   // Little round feet at the corners.
   for (const [x, z] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
-    const foot = toonMesh(new THREE.SphereGeometry(0.16, 14, 10), '#ff9cbf', { outline: 0.08, material: plastic('#ff9cbf') });
+    const foot = toonMesh(new THREE.SphereGeometry(0.16, 14, 10), '#ff4f9a', { outline: 0.08, material: plastic('#ff4f9a') });
     foot.scale.y = 0.6;
     foot.position.set(x * size * 0.36, 0.1, z * size * 0.36);
     root.add(foot);
@@ -159,19 +159,19 @@ function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group 
   const rings: THREE.Mesh[] = [];
   const ring = new THREE.TorusGeometry(0.42, 0.075, 10, 28).rotateX(Math.PI / 2);
   for (let i = 0; i < RINGS; i++) {
-    const r = toonMesh(ring, '#ff9cbf', { outline: 0.06, material: plastic('#ff9cbf') });
+    const r = toonMesh(ring, '#ff4f9a', { outline: 0.06, material: plastic('#ff4f9a') });
     root.add(r);
     rings.push(r);
   }
-  // The platform: a wooden disc with a butter-yellow rim and a cream arrow on top.
+  // The platform: a red disc with a sunny yellow rim and a white arrow on top.
   const top = new THREE.Group();
   const lean = new THREE.Group();
   lean.rotation.z = -LEAN;
   top.add(lean);
-  const disc = toonMesh(new THREE.CylinderGeometry(0.78, 0.78, PLATFORM, 32), '#e8b77a', { outline: 0.03, material: toonMaterial('#e8b77a', { map: null }) });
+  const disc = toonMesh(new THREE.CylinderGeometry(0.78, 0.78, PLATFORM, 32), '#ff5148', { outline: 0.03, material: plastic('#ff5148') });
   disc.position.y = PLATFORM / 2;
   lean.add(disc);
-  const rim = toonMesh(new THREE.TorusGeometry(0.78, 0.075, 10, 40).rotateX(Math.PI / 2), '#ffe08a', { outline: 0.06, material: plastic('#ffe08a') });
+  const rim = toonMesh(new THREE.TorusGeometry(0.78, 0.075, 10, 40).rotateX(Math.PI / 2), '#ffd21f', { outline: 0.06, material: plastic('#ffd21f') });
   rim.position.y = PLATFORM / 2;
   lean.add(rim);
   const arrow = new THREE.Shape();
@@ -183,7 +183,7 @@ function catapult(): { root: THREE.Group; rings: THREE.Mesh[]; top: THREE.Group 
   arrow.lineTo(0.12, -0.12);
   arrow.lineTo(0.12, -0.3);
   arrow.closePath();
-  const paint = new THREE.Mesh(new THREE.ShapeGeometry(arrow).rotateX(-Math.PI / 2), toonMaterial('#fff6e0', { map: null }));
+  const paint = new THREE.Mesh(new THREE.ShapeGeometry(arrow).rotateX(-Math.PI / 2), toonMaterial('#ffffff', { map: null }));
   paint.position.y = PLATFORM + 0.005;
   lean.add(paint);
   root.add(top);

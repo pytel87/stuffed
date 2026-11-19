@@ -10,7 +10,7 @@ import { canUseItem } from '../systems/items.ts';
 import { TRAIN, trainCars } from '../systems/train.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
-import type { Box, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
+import type { Box, Building, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
 import { raycastWalls, type World } from '../world.ts';
 import { clearWalk, findPath } from './nav.ts';
 
@@ -135,6 +135,10 @@ interface Memory {
   lastTurn: number;
   /** Where the last enemy was last seen: chased for a moment after losing sight of it. */
   lastSeen: Vec2 | null;
+  /** Backed off out of sight to heal: stay hidden until calm (not back to where the enemy was). */
+  hiding: boolean;
+  /** The current target just went out of sight (fought on for a moment, without shooting). */
+  targetHidden: boolean;
   /** Heading in from the Rinse: keep going until well inside (no bouncing along its edge). */
   fleeingWater: boolean;
   /** The Toss: drop off the blimp this far along its line (0..1), and glide toward this spot. */
@@ -197,6 +201,8 @@ export class BotController {
         pathAt: -1e9,
         lastTurn: 0,
         lastSeen: null,
+        hiding: false,
+        targetHidden: false,
         fleeingWater: false,
         landing: null,
       };
@@ -241,13 +247,22 @@ export class BotController {
 
     if (retreating && enemy) {
       // Back off out of sight, then heal once calm.
-      m.lastEnemyTick = state.tick;
+      if (!m.targetHidden) m.lastEnemyTick = state.tick;
+      m.hiding = true;
       const away = unit(bot.pos.x - enemy.pos.x, bot.pos.y - enemy.pos.y);
       goal = { x: bot.pos.x + away.x * 4, y: bot.pos.y + away.y * 4 };
+      // Not into the Rinse (or off the map): along its edge instead. Backing into the water turned it
+      // round for dry land, into view again, and back into the water, over and over.
+      const room = zone.radius - 3;
+      const out = dist(goal, zone.center);
+      if (out > room) goal = { x: zone.center.x + ((goal.x - zone.center.x) * room) / out, y: zone.center.y + ((goal.y - zone.center.y) * room) / out };
       if (nextFloat(m.rng) < (BOT.combatJumpsPerSecond * 1.5) / T) wantJump = true;
     } else if (enemy) {
-      m.lastEnemyTick = state.tick;
-      m.lastSeen = { ...enemy.pos };
+      if (!m.targetHidden) {
+        m.lastEnemyTick = state.tick;
+        m.lastSeen = { ...enemy.pos };
+      }
+      m.hiding = false;
       const weapon = this.chooseWeapon(bot, dist(bot.pos, enemy.pos), input);
       this.aimAt(state, bot, enemy, weapon, m, input);
       const range = weapon ? BOT.preferredRange[weapon.kind] : 6;
@@ -263,7 +278,7 @@ export class BotController {
       } else if (weapon && state.tick >= m.fireFromTick && this.inBurst(state, m) && (mode === 'throw' || this.clearShot(world, bot, enemy))) {
         input.buttons |= Btn.Fire;
       }
-      if (weapon && weapon.ammo === 0) input.buttons &= ~Btn.Fire;
+      if ((weapon && weapon.ammo === 0) || m.targetHidden) input.buttons &= ~Btn.Fire;
 
       if (zoneUrgent) {
         goal = zone.center;
@@ -287,12 +302,17 @@ export class BotController {
       const best = bot.weapons[bot.activeSlot] ?? bot.weapons[0] ?? bot.weapons[1];
       if (best && best.ammo < config.weapons[best.kind].magazine / 2 && best.reloadEndTick === null) input.buttons |= Btn.Reload;
 
-      const roof = bot.z > 1.5 ? roofUnder(world, bot.pos) : null;
+      const roof = bot.z > 1.5 ? roofUnder(world, bot.pos, bot.z) : null;
+      if (calm) m.hiding = false;
       if (zoneUrgent) {
         goal = zone.center;
       } else if (roof) {
         // Up on a roof with nothing to fight: walk off the nearest edge (chests are down below).
         goal = offEdge(roof, bot.pos);
+      } else if (m.hiding) {
+        // Got away out of sight: wait here until calm, then heal (going back to where the enemy
+        // was walked it straight back into view, and out, and in, at the edge of a roof's shade).
+        goal = null;
       } else if (!calm && m.lastSeen && dist(bot.pos, m.lastSeen) > 1) {
         // Just lost sight of the enemy (into a bush, under a roof): go where it was, facing it,
         // instead of turning away at once (which made bots dither at roof edges and doorways).
@@ -407,7 +427,17 @@ export class BotController {
     // Stick with the current fight while the target stays visible and in range.
     const current = m.targetId === null ? undefined : state.players.find((p) => p.id === m.targetId);
     const engage = BOT.engageRange * this.level.engage;
-    if (current?.alive && dist(bot.pos, current.pos) <= engage && canSee(world, state, bot, current)) return current;
+    m.targetHidden = false;
+    if (current?.alive && dist(bot.pos, current.pos) <= engage) {
+      if (canSee(world, state, bot, current)) return current;
+      // Just slipped out of sight (one step out of a doorway, under a roof's shade): keep at it for a
+      // moment from where it is, without shooting. Going straight to where it was seen walked it back
+      // into view, and out again, every tick.
+      if (state.tick - m.lastEnemyTick < LOST_SIGHT_GRACE * T) {
+        m.targetHidden = true;
+        return current;
+      }
+    }
 
     const hurt = state.tick - m.lastHurtTick < BOT.hurtMemory * T;
     if (!hurt && state.tick < BOT.truce * T * state.zone.timeScale) return null;
@@ -736,6 +766,9 @@ export class BotController {
   }
 }
 
+/** Seconds a bot keeps fighting a target that just went out of sight before going to look for it. */
+const LOST_SIGHT_GRACE = 0.5;
+
 /** An enemy closer than this sideways is (nearly) straight above or below the bot. */
 const OVERHEAD = 0.6;
 
@@ -773,8 +806,13 @@ function underAnyRoof(world: World, p: Vec2): boolean {
   return world.map.buildings.some((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
 }
 
-function roofUnder(world: World, p: Vec2): Box | null {
-  return world.map.buildings.find((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) ?? null;
+/** The roof a bot up high is on: over it, or still standing on its edge with its middle past it
+ *  (going by the middle alone, it turned back on and off the edge forever). Not when it's only
+ *  bouncing high beside one (the trampoline by the house). */
+function roofUnder(world: World, p: Vec2, z: number): Box | null {
+  const r = config.player.radius;
+  const over = (b: Building, m: number) => p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m;
+  return world.map.buildings.find((b) => over(b, 0) || (over(b, r) && Math.abs(z - b.height) < 0.15)) ?? null;
 }
 
 /** A point just past the building edge nearest to `p`. */

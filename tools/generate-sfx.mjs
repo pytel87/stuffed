@@ -2,6 +2,7 @@
 // Usage: pnpm sfx            (only missing files)
 //        pnpm sfx --force a b (regenerate the named sounds)
 // Needs ELEVEN_LABS_API_KEY in .env.local. The key is only used here, never by the game.
+// A sound's own "style" replaces the shared one (the animal voices: the shared one says no voice).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +25,7 @@ const force = args.includes('--force');
 const only = args.filter((a) => !a.startsWith('--'));
 
 let made = 0;
-for (const [name, { prompt, seconds }] of Object.entries(sounds)) {
+for (const [name, { prompt, seconds, style: own }] of Object.entries(sounds)) {
   if (only.length && !only.includes(name)) continue;
   const file = join(outDir, `${name}.mp3`);
   if (existsSync(file) && !force) continue;
@@ -33,7 +34,7 @@ for (const [name, { prompt, seconds }] of Object.entries(sounds)) {
     method: 'POST',
     headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
     // The API accepts 0.5 to 30 seconds.
-    body: JSON.stringify({ text: `${prompt}. ${style}`, duration_seconds: Math.min(30, Math.max(0.5, seconds)), prompt_influence: 0.5 }),
+    body: JSON.stringify({ text: `${prompt}. ${own ?? style}`, duration_seconds: Math.min(30, Math.max(0.5, seconds)), prompt_influence: 0.5 }),
   });
   if (!res.ok) {
     console.error(`failed: ${res.status} ${await res.text()}`);

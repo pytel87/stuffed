@@ -130,10 +130,12 @@ export class GameRenderer {
   /** Set trails: distance walked since the last print, and how many prints so far. */
   private readonly trailWalked = new Map<EntityId, number>();
   private readonly trailSteps = new Map<EntityId, number>();
-  /** Distance walked in water since the last splash, per plush. */
-  private readonly splashWalked = new Map<EntityId, number>();
+  /** Distance walked since the last step (a splash in water), per plush. */
+  private readonly stepWalked = new Map<EntityId, number>();
   /** A plush splashed through water (for the sound). */
   onWaterStep: ((at: Vec2, id: EntityId) => void) | null = null;
+  /** A plush took a step on dry ground (for the sound). */
+  onStep: ((at: Vec2, id: EntityId) => void) | null = null;
   /** Beach balls rolling around. */
   private readonly balls = new BallViews(this.scene);
   /** Beach ball goals: nets and scoreboards. */
@@ -601,16 +603,22 @@ export class GameRenderer {
           this.trailWalked.set(p.id, walked);
         }
       }
-      // Walking through water (the pool, or the Rinse when it's drawn as water): a splash every step or so.
+      // Walking: a splash every step or so through water (the pool, or the Rinse when it's drawn as
+      // water), a footstep at an easy pace on dry ground (about three a second at full speed).
       const speedNow = Math.hypot(vel.x, vel.y);
-      if (view.root.visible && !p.drop && z - groundY < 0.05 && speedNow > 1.5 && ((p.soggy && !RINSE_BW) || wading(this.world, { pos, z }))) {
-        const walked = (this.splashWalked.get(p.id) ?? 0) + speedNow * opts.dt;
-        if (walked >= 0.9) {
-          this.effects.waterStep(pos.x, groundY, pos.y, vel.x / speedNow, vel.y / speedNow);
-          this.onWaterStep?.(pos, p.id);
-          this.splashWalked.set(p.id, 0);
+      if (view.root.visible && !p.drop && !p.ride && z - groundY < 0.05 && speedNow > 1.5) {
+        const wet = (p.soggy && !RINSE_BW) || wading(this.world, { pos, z });
+        const walked = (this.stepWalked.get(p.id) ?? 0) + speedNow * opts.dt;
+        if (walked >= (wet ? 0.9 : 2)) {
+          if (wet) {
+            this.effects.waterStep(pos.x, groundY, pos.y, vel.x / speedNow, vel.y / speedNow);
+            this.onWaterStep?.(pos, p.id);
+          } else {
+            this.onStep?.(pos, p.id);
+          }
+          this.stepWalked.set(p.id, 0);
         } else {
-          this.splashWalked.set(p.id, walked);
+          this.stepWalked.set(p.id, walked);
         }
       }
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.

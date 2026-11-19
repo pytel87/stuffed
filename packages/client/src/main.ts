@@ -157,7 +157,8 @@ document.addEventListener(
   true,
 );
 // Splashing through water: soft for your own steps, softer for others nearby.
-renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.22 : 0.1, pitchSpread: 0.3 });
+renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.15 : 0.07, pitchSpread: 0.3 });
+renderer.onStep = (at, id) => audio.step(at, id === session?.localPlayerId);
 const help = new Help();
 const options = new Options({
   toggleSound: () => sound.toggleMute(),
@@ -248,8 +249,9 @@ function beginMatch(next: GameSession): void {
   world = createWorld(next.map);
   hudEl.classList.toggle('idle', isBackdrop(next));
   // The music-box tune behind the menu and lobby; the bouncier one in a match.
-  music.play(isBackdrop(next) ? 'menu' : 'match');
+  music.play(isBackdrop(next) ? 'menu' : 'match', next.map.theme ?? 'backyard');
   audio.reset();
+  audio.setMap(next.map);
   renderer.reset();
   endScreen.hide();
   lobbyScreen?.hide();

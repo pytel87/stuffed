@@ -17,6 +17,50 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Backyard: the lawnmower's lane is mowed short, a lighter striped strip with wheel tracks, so you
   can see where it'll drive (the snowplow already had its plowed lane).
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
+- Damage numbers for buttons knocked off are yellow, like the buttons bar (they were pale blue).
+- Catapults in bright toy colors: a teal base, a hot-pink spring, a red platform with a sunny
+  yellow rim and a white arrow (they were washed-out pastels).
+- Bots no longer get caught flipping back and forth: at a roof's edge (they forgot they were on
+  the roof once their middle was past it), in a doorway with an enemy inside (they now keep at it
+  for half a second after losing sight, without shooting, before going to look), or while backing
+  off hurt (they now hide and heal instead of walking back into view, and don't back into the
+  Rinse or off the map).
+- Animal voices: every plush speaks with its head's animal (30 of them, squeaky plush versions
+  of an oink, a ribbit, a tiny dragon roar...): a yelp when hit (at most once a second), a wail
+  when knocked out, and a cheer when revived or when it wins.
+- Jumps sound like the animal (by its head), one simple sound for each kind: a springy boing
+  (frog, bunny, cat...), a soft low boing (bear, elephant, yeti...), a flap of felt wings (birds,
+  the dragon, the bee), a squishy bloop (sea creatures) or a little poof (sheep, koala,
+  hedgehog...). Three takes each, picked at random and never the same twice in a row.
+- The Rinse makes a plush yelp in its own voice, just like a hit (instead of a soggy squelch).
+- Weapon sounds: each weapon keeps one shot sound of its own (so you can tell what's firing by
+  ear), a touch different in pitch and loudness each shot; hits and impacts have two or three
+  takes (picked at random, never the same twice in a row); all evened out to one loudness. The
+  water gun splashes now instead of crackling. The Cork Popper had been silent (a broken
+  clip), and the stuffing hit, the chest opening and the bouncy-ball boing were barely audible.
+- Picking things up: each part slot sounds its own (a head snaps on, a body zips up, feet pat, a
+  tail sticks on, an accessory chimes), and each item too (a rattle of buttons, a rustle of
+  stuffing, a clink of the sewing tin, a slosh of juice, a flap of cardboard), instead of one
+  squeaky squeeze for everything.
+- Using an item makes a sound while it lasts (cut short if you're interrupted): cotton fluffed up,
+  needle-and-thread stitching, buttons clicked on one by one, a straw slurped, stuffing pushed in,
+  cardboard unfolded. Each finishes its own way: a small poof for a Cotton Puff, stitches and a
+  twinkle for a Sewing Kit, a big poof for the Big Stuffing Bag, a happy gulp for a Juice Box.
+- Each chest opens its own way: the plain wooden one creaks and clunks, the red toy chest poofs
+  and chimes, the royal one bursts open with a grander rising chime, the picnic basket crackles
+  and pops.
+- Landings sound like the animal too, one simple sound for each of the same five kinds: a light
+  pat, a soft cushioned plop, a flutter, a squishy splat, a fluffy flump (three takes each).
+- Footsteps, the same for every plush: a soft brush on grass, a light knock on wooden planks (the
+  Bedroom, and indoor floors on the other maps), a crunch in snow; splashes in water (now a little
+  softer to match). Very quiet on purpose, yours a little louder than others'.
+- A small tick when your shot lands, and a little chime when you knock someone out.
+- Evened out the sounds that were far too loud (the defeat whistle, the air-strike whistle, the
+  train toot, the snowplow horn) or too soft (buttons snapping on, digging, swapping, splashes).
+- Sound pauses while the game's tab is in the background.
+- Each map has its own match music: sunny ukulele and whistling in the Backyard, a sneaky toy
+  piano and music box in the Bedroom, sleigh bells and glockenspiel on Snowy Park. Music loops
+  without a seam now.
 
 ## Fixes (2026-11-19)
 

@@ -1602,8 +1602,9 @@ body.touch-mode .prompt .icon.tap {
   will-change: transform, opacity;
 }
 
+/* Damage to buttons: the yellow of the buttons bar. */
 .floater.armor {
-  color: #8fc3ff;
+  color: #ffd23f;
 }
 
 /* Riding the Toss blimp: press Jump (or the jump button) to drop. */

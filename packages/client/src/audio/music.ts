@@ -1,8 +1,9 @@
-// Background music: a music-box tune on the menu and a bouncier one in matches. Played from
-// public/music/<mood>.mp3 when that file exists (see tools/music.json), otherwise made right here
+// Background music: a music-box tune on the menu and a bouncier one in matches, each map with its
+// own. Played from public/music/<mood>_<map theme>.mp3 or <mood>.mp3 when there's one (see
+// tools/music.json; looped without a seam), otherwise made right here
 // with Web Audio: a little toy band (bells, a plucked bass, a soft shaker) playing a looping
 // chord progression. Quiet under the sound effects; it has its own on/off in the options.
-import type { Sound } from './sound.ts';
+import { seamless, type Sound } from './sound.ts';
 
 export type Mood = 'menu' | 'match' | 'off';
 
@@ -39,6 +40,8 @@ const TUNES: Record<Exclude<Mood, 'off'>, Tune> = {
 
 export class Music {
   private mood: Mood = 'off';
+  /** The map's theme, for its own track. */
+  private variant = '';
   private enabled = true;
   private gain: GainNode | null = null;
   private timer = 0;
@@ -74,10 +77,11 @@ export class Music {
     return this.enabled;
   }
 
-  /** Which tune to play now (the same one keeps playing). */
-  play(mood: Mood): void {
-    if (mood === this.mood) return;
+  /** Which tune to play now, and for which map (the same one keeps playing). */
+  play(mood: Mood, variant = ''): void {
+    if (mood === this.mood && variant === this.variant) return;
     this.mood = mood;
+    this.variant = variant;
     this.restart();
   }
 
@@ -104,8 +108,9 @@ export class Music {
     this.gain.gain.setTargetAtTime(VOLUME, out.ctx.currentTime, 0.6);
     this.gain.connect(out.master);
     const mood = this.mood;
-    void this.loadFile(mood).then((buffer) => {
-      if (this.mood !== mood || !this.gain) return;
+    const variant = this.variant;
+    void this.loadTrack(mood, variant).then((buffer) => {
+      if (this.mood !== mood || this.variant !== variant || !this.gain) return;
       if (buffer) {
         const src = out.ctx.createBufferSource();
         src.buffer = buffer;
@@ -121,6 +126,11 @@ export class Music {
     });
   }
 
+  /** The map's own track, else the mood's (null: play the built-in tune). */
+  private async loadTrack(mood: Exclude<Mood, 'off'>, variant: string): Promise<AudioBuffer | null> {
+    return (variant ? await this.loadFile(`${mood}_${variant}`) : null) ?? this.loadFile(mood);
+  }
+
   /** The generated track for this mood, if there is one. */
   private async loadFile(mood: string): Promise<AudioBuffer | null> {
     if (this.files.has(mood)) return this.files.get(mood)!;
@@ -128,7 +138,8 @@ export class Music {
     try {
       const res = await fetch(`${this.baseUrl}music/${mood}.mp3`);
       const type = res.headers.get('content-type') ?? '';
-      if (res.ok && type.includes('audio')) buffer = await this.sound.output!.ctx.decodeAudioData(await res.arrayBuffer());
+      const ctx = this.sound.output!.ctx;
+      if (res.ok && type.includes('audio')) buffer = seamless(ctx, await ctx.decodeAudioData(await res.arrayBuffer()));
     } catch {
       // none: play the built-in tune
     }

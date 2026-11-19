@@ -1,8 +1,8 @@
 // Decides which sounds a frame of the game makes: from sim events (shots, hits, chests, ...)
 // and from changes between frames the sim has no event for (jumps, landings, reloads, swaps).
 import { config } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, WeaponKind } from '@stuffed/sim';
-import type { Sound, SoundName } from './sound.ts';
+import type { Animal, EntityId, GameEvent, GameState, ItemKind, LootLevel, MapData, Player, Vec2, WeaponKind } from '@stuffed/sim';
+import type { Sound, SoundName, VoiceKind } from './sound.ts';
 
 const SHOT: Record<WeaponKind, { name: SoundName; volume: number }> = {
   cork_popper: { name: 'cork_pop', volume: 0.7 },
@@ -15,6 +15,49 @@ const SHOT: Record<WeaponKind, { name: SoundName; volume: number }> = {
   bubble_wand: { name: 'bubble_blow', volume: 0.6 },
 };
 
+/** Each chest opens its own way: the plain wooden one creaks, the red toy chest poofs and chimes,
+ *  the royal one bursts open with a rising chime, the picnic basket crackles and pops. */
+const CHEST_OPEN: Record<LootLevel, SoundName> = { low: 'chest_open_low', medium: 'chest_open', high: 'chest_open_high', food: 'chest_open_food' };
+
+/** Using an item, while it lasts: cotton fluffed, stitching, buttons clicked on one by one, a straw
+ *  slurped, stuffing stuffed in, cardboard unfolded. */
+const USING: Record<ItemKind, SoundName> = {
+  cotton_puff: 'use_puff', sewing_kit: 'use_sewing', big_stuffing_bag: 'use_bag',
+  button_pack: 'use_buttons', button_pile: 'use_buttons', juice_box: 'use_juice', cardboard_wall: 'use_cardboard',
+};
+/** And when it's done: a small poof for a puff, stitches and a twinkle for the sewing kit, a big poof for the
+ *  bag, buttons snapping into place, a happy gulp. (The cardboard wall thumps down on its own event.) */
+const USED: Record<ItemKind, SoundName | null> = {
+  cotton_puff: 'heal_small', sewing_kit: 'heal', big_stuffing_bag: 'heal_big',
+  button_pack: 'armor_up', button_pile: 'armor_up', juice_box: 'juice_done', cardboard_wall: null,
+};
+
+/** Picking up an item: a rattle of buttons, a rustle of stuffing, a clink of the sewing tin, a slosh of juice, a flap of cardboard. */
+const GRAB: Record<ItemKind, SoundName> = {
+  button_pack: 'grab_buttons', button_pile: 'grab_buttons',
+  cotton_puff: 'grab_stuffing', big_stuffing_bag: 'grab_stuffing',
+  sewing_kit: 'grab_sewing', juice_box: 'grab_juice', cardboard_wall: 'grab_cardboard',
+};
+
+/** What a footstep lands on: wooden planks in the Bedroom and on the floors indoors elsewhere,
+ *  snow on the Snowy Park, grass on the Backyard. */
+function surfaceAt(map: MapData, at: Vec2): 'grass' | 'wood' | 'snow' {
+  if (map.theme === 'bedroom') return 'wood';
+  const indoors = map.grounds?.some((g) => g.kind === 'floor' && g.box && at.x >= g.box.x && at.x <= g.box.x + g.box.w && at.y >= g.box.y && at.y <= g.box.y + g.box.h);
+  if (indoors) return 'wood';
+  return map.theme === 'snow' ? 'snow' : 'grass';
+}
+
+/** How each animal jumps (and lands): springy, heavy, winged, squishy or fluffy. */
+type Hop = 'springy' | 'heavy' | 'winged' | 'squishy' | 'fluffy';
+const HOP: Record<Animal, Hop> = {
+  frog: 'springy', bunny: 'springy', cat: 'springy', fox: 'springy', unicorn: 'springy', mouse: 'springy',
+  bear: 'heavy', panda: 'heavy', pig: 'heavy', lion: 'heavy', elephant: 'heavy', yeti: 'heavy', dino: 'heavy', giraffe: 'heavy',
+  chicken: 'winged', owl: 'winged', penguin: 'winged', flamingo: 'winged', phoenix: 'winged', dragon: 'winged', bee: 'winged',
+  shark: 'squishy', axolotl: 'squishy', octopus: 'squishy', turtle: 'squishy',
+  hedgehog: 'fluffy', koala: 'fluffy', raccoon: 'fluffy', sloth: 'fluffy', sheep: 'fluffy',
+};
+
 interface Seen {
   vz: number;
   reloading: boolean;
@@ -23,7 +66,8 @@ interface Seen {
   digging: boolean;
   charging: boolean;
   bubbled: boolean;
-  bagging: boolean;
+  /** The item being used, if any. */
+  using: ItemKind | null;
   drop: 'riding' | 'gliding' | null;
   umbrella: boolean;
 }
@@ -32,34 +76,67 @@ export class GameAudio {
   private readonly seen = new Map<EntityId, Seen>();
   /** Chest rattles still playing, to cut short when the opening stops early. */
   private readonly rattles = new Map<EntityId, () => void>();
+  /** Item-use sounds still playing, likewise. */
+  private readonly uses = new Map<EntityId, () => void>();
+  /** When each plush last yelped (so a hail of darts is a yelp or two, not one per dart). */
+  private readonly yelped = new Map<EntityId, number>();
+  /** The winners have cheered (the victory lap is on). */
+  private cheered = false;
 
   constructor(private readonly sound: Sound) {}
 
   /** Forget per-player history (new match). */
   reset(): void {
     this.seen.clear();
-    for (const stop of this.rattles.values()) stop();
+    this.yelped.clear();
+    this.cheered = false;
+    for (const stop of [...this.rattles.values(), ...this.uses.values()]) stop();
     this.rattles.clear();
+    this.uses.clear();
+  }
+
+  private map: MapData | null = null;
+
+  /** A new map: what footsteps land on. */
+  setMap(map: MapData): void {
+    this.map = map;
+  }
+
+  /** A footstep on dry ground (grass, wooden planks or snow), the same for every plush: soft (yours a little louder), felt more than heard. */
+  step(at: Vec2, mine: boolean): void {
+    if (this.map) this.sound.play(`step_${surfaceAt(this.map, at)}`, { at, volume: mine ? 0.25 : 0.12, pitchSpread: 0.2 });
   }
 
   update(events: GameEvent[], state: GameState, localId: EntityId): void {
     const byId = new Map(state.players.map((p) => [p.id, p]));
     const s = this.sound;
+    // Each plush speaks with its head's animal.
+    for (const p of state.players) s.needVoice(p.parts.head.animal);
+    const voice = (p: Player, kind: VoiceKind, volume: number) =>
+      s.play(`voice_${p.parts.head.animal}_${kind}`, { at: p.pos, volume: volume * (p.id === localId ? 1 : 0.75), pitchSpread: 0.14 });
+    const land = (p: Player, volume: number) => s.play(`land_${HOP[p.parts.head.animal]}`, { at: p.pos, volume, pitchSpread: 0.16 });
 
     for (const e of events) {
       switch (e.type) {
         case 'shot': {
           const p = byId.get(e.playerId);
           const shot = SHOT[e.weapon];
-          if (p) s.play(shot.name, { at: p.pos, volume: shot.volume * (p.id === localId ? 1 : 0.8) });
+          // One sound per weapon; each shot a touch different in pitch and loudness.
+          if (p) s.play(shot.name, { at: p.pos, volume: shot.volume * (p.id === localId ? 1 : 0.8) * (0.9 + Math.random() * 0.2) });
           break;
         }
         case 'hit': {
           const p = byId.get(e.targetId);
           if (!p) break;
-          if (e.sourceId === null) s.play('soggy', { at: p.pos, volume: p.id === localId ? 0.6 : 0.3 });
-          else if (e.armorDamage > 0) s.play('hit_armor', { at: p.pos, volume: 0.7 });
-          else s.play('hit_stuffing', { at: p.pos, volume: 0.8 });
+          // Your shot landed: a small tick (not for the hit that knocks it out: that one chimes).
+          if (e.sourceId === localId && e.targetId !== localId && p.alive) s.play('hit_confirm', { volume: 0.5, pitchSpread: 0.08 });
+          // The Rinse only makes the plush yelp (below); a hit thumps (or clacks off its buttons) too.
+          if (e.sourceId !== null) s.play(e.armorDamage > 0 ? 'hit_armor' : 'hit_stuffing', { at: p.pos, volume: e.armorDamage > 0 ? 0.7 : 0.8 });
+          // A yelp, the Rinse's too (not on the hit that knocks it out: that one wails).
+          if (p.alive && state.tick - (this.yelped.get(p.id) ?? -Infinity) >= config.tickRate) {
+            this.yelped.set(p.id, state.tick);
+            voice(p, 'hurt', 0.7);
+          }
           break;
         }
         case 'impact':
@@ -89,35 +166,41 @@ export class GameAudio {
         }
         case 'eliminated': {
           const p = byId.get(e.playerId);
-          if (p) s.play('knockout', { at: p.pos, volume: 1 });
+          if (p) {
+            s.play('knockout', { at: p.pos, volume: 1 });
+            voice(p, 'ko', 0.9);
+          }
+          if (e.byId === localId && e.playerId !== localId) s.play('ko_confirm', { volume: 0.7, pitchSpread: 0 });
           break;
         }
         case 'revived': {
           const p = byId.get(e.playerId);
-          if (p) s.play('heal', { at: p.pos, volume: 1, pitchSpread: 0 });
+          if (p) {
+            s.play('heal', { at: p.pos, volume: 1, pitchSpread: 0 });
+            voice(p, 'cheer', 0.8);
+          }
           break;
         }
         case 'chestOpened': {
           const c = state.chests.find((ch) => ch.id === e.chestId);
-          if (c) s.play('chest_open', { at: c.pos, volume: 0.8 });
+          if (c) s.play(CHEST_OPEN[c.loot], { at: c.pos, volume: 0.8 });
           break;
         }
         case 'pickup': {
           const p = byId.get(e.playerId);
-          const weapon = e.what in config.weapons;
           // Parts make their sound on the 'wear' event (which also covers swapping from the stash).
-          if (p && e.what !== 'part') s.play(weapon ? 'pickup_weapon' : 'pickup_item', { at: p.pos, volume: 0.7 });
+          if (p && e.what !== 'part') s.play(e.what in config.weapons ? 'pickup_weapon' : GRAB[e.what as ItemKind], { at: p.pos, volume: 0.7 });
           break;
         }
         case 'wear': {
           const p = byId.get(e.playerId);
-          if (p) s.play('pickup_item', { at: p.pos, volume: e.stashed ? 0.5 : 0.8 });
+          // Each slot its own: a head snaps on, a body zips up, feet pat, a tail sticks, an accessory chimes.
+          if (p) s.play(`part_${e.part.slot}`, { at: p.pos, volume: e.stashed ? 0.5 : 0.8 });
           break;
         }
         case 'itemUsed': {
           const p = byId.get(e.playerId);
-          const sound: SoundName | null =
-            e.item === 'button_pack' || e.item === 'button_pile' ? 'armor_up' : e.item === 'juice_box' ? 'juice_slurp' : e.item === 'cardboard_wall' ? null : 'heal';
+          const sound = USED[e.item];
           if (p && sound) s.play(sound, { at: p.pos, volume: 0.8 });
           break;
         }
@@ -188,6 +271,14 @@ export class GameAudio {
       }
     }
 
+    // The winner is decided: the plushies left standing cheer as their victory lap starts.
+    if (!this.cheered && state.victoryUntil !== null) {
+      this.cheered = true;
+      for (const p of state.players) {
+        if (p.alive && (p.id === state.winnerId || (state.winnerTeam !== null && p.team === state.winnerTeam))) voice(p, 'cheer', 1);
+      }
+    }
+
     // Things the sim has no event for: compare with what each plush did last frame.
     for (const p of state.players) {
       const weapon = p.weapons[p.activeSlot];
@@ -199,16 +290,22 @@ export class GameAudio {
         digging: p.action?.kind === 'dig',
         charging: p.chargeStartTick !== null,
         bubbled: state.tick < p.bubbledUntil,
-        bagging: p.action?.kind === 'useItem' && p.action.item === 'big_stuffing_bag',
+        using: p.action?.kind === 'useItem' ? p.action.item : null,
         drop: p.drop,
         umbrella: p.umbrella,
       };
       const before = this.seen.get(p.id);
       this.seen.set(p.id, now);
+      // Using an item: its sound lasts while the use does (cut short if it's interrupted).
+      if (before?.using !== now.using || !p.alive) {
+        this.uses.get(p.id)?.();
+        this.uses.delete(p.id);
+        if (now.using && p.alive) this.uses.set(p.id, s.play(USING[now.using], { at: p.pos, volume: p.id === localId ? 0.7 : 0.4 }));
+      }
       if (!before || !p.alive) continue;
       const mine = p.id === localId;
-      if (before.vz <= 0 && now.vz > 0) s.play('jump', { at: p.pos, volume: mine ? 0.6 : 0.4 });
-      if (before.vz < 0 && now.vz === 0) s.play('land', { at: p.pos, volume: mine ? 0.6 : 0.35 });
+      if (before.vz <= 0 && now.vz > 0) s.play(`jump_${HOP[p.parts.head.animal]}`, { at: p.pos, volume: mine ? 0.6 : 0.4, pitchSpread: 0.16 });
+      if (before.vz < 0 && now.vz === 0) land(p, mine ? 0.6 : 0.35);
       if (!before.reloading && now.reloading) s.play('reload', { at: p.pos, volume: mine ? 0.7 : 0.4 });
       if (before.slot !== now.slot && mine) s.play('swap', { at: p.pos, volume: 0.6 });
       if (!before.opening && now.opening) this.rattles.set(p.id, s.play('chest_rattle', { at: p.pos, volume: mine ? 0.7 : 0.4 }));
@@ -219,13 +316,12 @@ export class GameAudio {
       if (!before.digging && now.digging) s.play('dig_scrape', { at: p.pos, volume: mine ? 0.8 : 0.45 });
       if (!before.charging && now.charging) s.play('band_stretch', { at: p.pos, volume: mine ? 0.6 : 0.35, pitchSpread: 0 });
       if (before.bubbled && !now.bubbled) s.play('bubble_pop', { at: p.pos, volume: 0.7 });
-      if (!before.bagging && now.bagging) s.play('bag_rustle', { at: p.pos, volume: mine ? 0.7 : 0.4 });
       // The Toss: a whoosh when you drop off the blimp, a thump when you land.
       if (mine && before.drop === 'riding' && now.drop === 'gliding') s.play('pillow_swing', { at: p.pos, volume: 0.8, pitchSpread: 0 });
-      if (before.drop === 'gliding' && now.drop === null) s.play('land', { at: p.pos, volume: mine ? 0.8 : 0.4 });
+      if (before.drop === 'gliding' && now.drop === null) land(p, mine ? 0.8 : 0.4);
       // A catapult: the umbrella opening at the top of the throw, a thump when you land.
       if (!before.umbrella && now.umbrella) s.play('pillow_swing', { at: p.pos, volume: mine ? 0.8 : 0.4, pitchSpread: 0 });
-      if (before.umbrella && !now.umbrella && p.z < 0.05) s.play('land', { at: p.pos, volume: mine ? 0.8 : 0.4 });
+      if (before.umbrella && !now.umbrella && p.z < 0.05) land(p, mine ? 0.8 : 0.4);
     }
   }
 }

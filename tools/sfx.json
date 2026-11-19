@@ -3,7 +3,7 @@
   "style": "cartoon toy sound effect, playful, clean, no music, no voice",
   "sounds": {
     "cork_pop": {
-      "prompt": "a toy cork gun firing: a crisp hollow cork pop",
+      "prompt": "a toy cork gun firing close up: a loud crisp punchy cork pop",
       "seconds": 0.5
     },
     "dart_shot": {
@@ -11,19 +11,47 @@
       "seconds": 0.5
     },
     "soaker_shot": {
-      "prompt": "a toy water gun firing a big burst: pressurized squirt and splatter",
+      "prompt": "a toy water gun shooting a jet of water, close up: a clear wet whoosh and a splashy spray, no hiss",
       "seconds": 0.7
     },
     "hit_stuffing": {
-      "prompt": "a punch landing on a big soft plush teddy bear: deep muffled pillowy thump with a soft fabric puff",
+      "prompt": "a toy dart smacking into a plush teddy bear, close up: a clear punchy padded thump",
+      "seconds": 0.5
+    },
+    "hit_stuffing_2": {
+      "prompt": "a stuffed toy getting hit, close up: a clear punchy pillow thwack with a cotton puff",
+      "seconds": 0.5
+    },
+    "hit_stuffing_3": {
+      "prompt": "a plush toy being punched, close up: a loud deep cushioned whump",
       "seconds": 0.5
     },
     "hit_armor": {
       "prompt": "plastic sewing buttons clattering and rattling from a hit",
       "seconds": 0.5
     },
+    "hit_armor_2": {
+      "prompt": "a hit glancing off plastic sewing buttons: a bright plastic clack and rattle",
+      "seconds": 0.5
+    },
+    "hit_armor_3": {
+      "prompt": "plastic buttons clicking and rattling from a knock",
+      "seconds": 0.5
+    },
+    "hit_confirm": {
+      "prompt": "a tiny bright plastic tick, like a toy target being hit, close up, clear",
+      "seconds": 0.5
+    },
+    "ko_confirm": {
+      "prompt": "a short bright cheerful two-note toy xylophone ding, close up, clear",
+      "seconds": 0.6
+    },
     "impact": {
       "prompt": "a soft foam ball hitting a fluffy cushion: muffled pillowy thud",
+      "seconds": 0.5
+    },
+    "impact_2": {
+      "prompt": "a toy projectile smacking into a cardboard box, close up: a clear punchy thud",
       "seconds": 0.5
     },
     "splash": {
@@ -39,23 +67,107 @@
       "seconds": 1.0
     },
     "chest_open": {
-      "prompt": "a padded toy box lid popping open with a soft fluffy poof and a gentle sparkly chime",
+      "prompt": "a padded toy box lid popping open, close up: a clear bright fluffy poof and a sparkly chime",
+      "seconds": 1.0
+    },
+    "chest_open_low": {
+      "prompt": "a small plain wooden toy chest lid creaking open, close up: a clear woody creak and a soft clunk",
+      "seconds": 1.0
+    },
+    "chest_open_high": {
+      "prompt": "a royal golden toy treasure chest bursting open, close up: a clear magical sparkly whoosh and a bright rising harp-like chime, triumphant",
+      "seconds": 1.0
+    },
+    "chest_open_food": {
+      "prompt": "a wicker picnic basket lid flipping open, close up: a clear creaky wicker crackle and a happy little pop",
       "seconds": 1.0
     },
     "pickup_weapon": {
       "prompt": "grabbing a soft foam toy blaster: squishy grab and a soft fabric swish",
       "seconds": 0.5
     },
-    "pickup_item": {
-      "prompt": "squeezing a small plush toy: soft squishy squeeze with a tiny cute squeak",
-      "seconds": 0.5
+    "part_head": {
+      "prompt": "a plush toy head snapping onto a toy, close up: a clear soft button snap and a happy little fabric pat",
+      "seconds": 0.6
+    },
+    "part_body": {
+      "prompt": "zipping up a plush toy's body, close up: a quick clear zip and a cozy fabric pat",
+      "seconds": 0.6
+    },
+    "part_legs": {
+      "prompt": "plush toy feet being put on, close up: two quick clear soft pat-pat steps",
+      "seconds": 0.6
+    },
+    "part_tail": {
+      "prompt": "a plush toy tail attached with velcro, close up: a short clear velcro press and a little springy wiggle",
+      "seconds": 0.6
+    },
+    "part_accessory": {
+      "prompt": "a tiny toy hat or bow put on, close up: a clear light ribbon swish and a small bright chime",
+      "seconds": 0.6
+    },
+    "grab_buttons": {
+      "prompt": "grabbing a handful of plastic sewing buttons, close up: a clear bright plastic rattle",
+      "seconds": 0.6
+    },
+    "grab_stuffing": {
+      "prompt": "grabbing a fluffy bundle of cotton stuffing, close up: a clear soft crinkly rustle",
+      "seconds": 0.6
+    },
+    "grab_sewing": {
+      "prompt": "picking up a small tin sewing kit, close up: a clear little metal clink of needle and scissors",
+      "seconds": 0.6
+    },
+    "grab_juice": {
+      "prompt": "picking up a toy juice box, close up: a clear liquid slosh in a carton",
+      "seconds": 0.6
+    },
+    "grab_cardboard": {
+      "prompt": "grabbing a folded piece of cardboard, close up: a clear papery flap and crinkle",
+      "seconds": 0.6
     },
     "heal": {
       "prompt": "quick stitching with needle and thread, then a soft twinkle",
       "seconds": 1.0
     },
+    "use_puff": {
+      "prompt": "fluffing up a cotton puff in the hands, close up: a few clear soft cotton squeezes and pats",
+      "seconds": 1.0
+    },
+    "use_sewing": {
+      "prompt": "stitching a plush toy with needle and thread, close up: steady clear rhythmic thread pulls and tiny needle clicks",
+      "seconds": 4.0
+    },
+    "use_buttons": {
+      "prompt": "sewing plastic buttons onto fabric one by one, close up: a steady series of clear small plastic clicks and thread pulls",
+      "seconds": 4.0
+    },
+    "use_juice": {
+      "prompt": "sipping a juice box through a straw, close up: a clear long steady slurp with little bubbles",
+      "seconds": 2.0
+    },
+    "use_bag": {
+      "prompt": "stuffing a plush toy full of cotton from a big bag, close up: steady clear soft rustles, squishes and pats",
+      "seconds": 8.0
+    },
+    "use_cardboard": {
+      "prompt": "unfolding a big cardboard panel, close up: clear papery creaks and folds",
+      "seconds": 1.0
+    },
+    "heal_small": {
+      "prompt": "a little puff of cotton fluffing up a plush toy, close up: a clear soft poof and a tiny twinkle",
+      "seconds": 0.8
+    },
+    "heal_big": {
+      "prompt": "a plush toy stuffed full and good as new, close up: a clear big satisfying fluffy poof and a bright rising sparkle",
+      "seconds": 1.4
+    },
+    "juice_done": {
+      "prompt": "finishing a juice box, close up: a clear happy gulp and a bubbly fizzy sparkle",
+      "seconds": 1.0
+    },
     "armor_up": {
-      "prompt": "several plastic buttons snapping into place, satisfying clicks",
+      "prompt": "several plastic sewing buttons snapping into place, close up: clear satisfying clicks",
       "seconds": 0.8
     },
     "reload": {
@@ -66,21 +178,159 @@
       "prompt": "pulling a soft toy out of a fabric pouch: quick cloth rustle and a soft pat",
       "seconds": 0.5
     },
-    "jump": {
-      "prompt": "a squishy plush toy hopping up: soft springy squeak-boing",
+    "jump_springy": {
+      "prompt": "a single short springy cartoon boing, close up, clear, simple",
       "seconds": 0.5
     },
-    "land": {
-      "prompt": "a plush toy plopping onto a soft cushion: gentle fluffy flump",
+    "jump_springy_2": {
+      "prompt": "a single short springy cartoon boing, close up, clear, simple",
       "seconds": 0.5
+    },
+    "jump_springy_3": {
+      "prompt": "a single short springy cartoon boing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_heavy": {
+      "prompt": "a single soft low cartoon boing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "jump_heavy_2": {
+      "prompt": "a single soft low cartoon boing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "jump_heavy_3": {
+      "prompt": "a single soft low cartoon boing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "jump_winged": {
+      "prompt": "a single quick soft flap of small fabric wings, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_winged_2": {
+      "prompt": "a single quick soft flap of small fabric wings, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_winged_3": {
+      "prompt": "a single quick soft flap of small fabric wings, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_squishy": {
+      "prompt": "a single short squishy cartoon bloop, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_squishy_2": {
+      "prompt": "a single short squishy cartoon bloop, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_squishy_3": {
+      "prompt": "a single short squishy cartoon bloop, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_fluffy": {
+      "prompt": "a single soft little cartoon poof, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_fluffy_2": {
+      "prompt": "a single soft little cartoon poof, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "jump_fluffy_3": {
+      "prompt": "a single soft little cartoon poof, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_springy": {
+      "prompt": "a single light soft pat of a small toy landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_springy_2": {
+      "prompt": "a single light soft pat of a small toy landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_springy_3": {
+      "prompt": "a single light soft pat of a small toy landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_heavy": {
+      "prompt": "a single soft cushioned plop of a big plush toy landing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "land_heavy_2": {
+      "prompt": "a single soft cushioned plop of a big plush toy landing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "land_heavy_3": {
+      "prompt": "a single soft cushioned plop of a big plush toy landing, close up, clear, simple, no drum",
+      "seconds": 0.5
+    },
+    "land_winged": {
+      "prompt": "a single light soft flutter-pat of a small plush bird landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_winged_2": {
+      "prompt": "a single light soft flutter-pat of a small plush bird landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_winged_3": {
+      "prompt": "a single light soft flutter-pat of a small plush bird landing, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_squishy": {
+      "prompt": "a single short squishy splat, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_squishy_2": {
+      "prompt": "a single short squishy splat, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_squishy_3": {
+      "prompt": "a single short squishy splat, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_fluffy": {
+      "prompt": "a single soft fluffy flump, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_fluffy_2": {
+      "prompt": "a single soft fluffy flump, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "land_fluffy_3": {
+      "prompt": "a single soft fluffy flump, close up, clear, simple",
+      "seconds": 0.5
+    },
+    "step_grass": {
+      "prompt": "a single footstep on a grass lawn, a clear soft thud and a brush of grass, close up, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_grass_2": {
+      "prompt": "one light footstep on short grass, a short soft swish, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_wood": {
+      "prompt": "a single footstep on wooden floorboards, a light hollow knock, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_wood_2": {
+      "prompt": "one light footstep on wooden planks, a short soft tap with a faint creak, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_snow": {
+      "prompt": "a single footstep crunching in fresh snow, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_snow_2": {
+      "prompt": "one light footstep pressing into packed snow, a short soft crunch, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
     },
     "rinse_rising": {
       "prompt": "soapy water starting to flood in: rushing water with lots of bubbles, a warning swell",
       "seconds": 2.5
-    },
-    "soggy": {
-      "prompt": "a soaked plush toy squelching with bubbles",
-      "seconds": 0.8
     },
     "win": {
       "prompt": "short cheerful toy victory fanfare with kazoo and xylophone",
@@ -138,21 +388,13 @@
       "prompt": "a big soap bubble popping: wet cartoon pop",
       "seconds": 0.5
     },
-    "juice_slurp": {
-      "prompt": "sipping a juice box through a straw: quick slurp then a happy gulp",
-      "seconds": 0.9
-    },
     "ball_boing": {
-      "prompt": "a bouncy rubber ball launching someone forward: springy cartoon boing",
+      "prompt": "a cartoon spring sound effect: a loud twangy boing-oing-oing, like a toy launched off a trampoline",
       "seconds": 0.6
     },
     "cardboard_place": {
       "prompt": "a cardboard panel unfolding and slapping down onto grass: papery thump",
       "seconds": 0.6
-    },
-    "bag_rustle": {
-      "prompt": "a big soft bag of cotton stuffing being rustled and squeezed",
-      "seconds": 1.0
     },
     "train_toot": {
       "prompt": "a small wooden toy train whistle: a cheerful short toot toot",
@@ -215,7 +457,7 @@
       "seconds": 0.7
     },
     "dig_scrape": {
-      "prompt": "a small plastic spade digging quickly into sand: a few scrapes and a soft thud",
+      "prompt": "a small plastic spade digging quickly into sand, close up: a few clear scrapes and a soft thud",
       "seconds": 1.6
     },
     "duck_ding": {
@@ -245,6 +487,456 @@
     "plow_horn": {
       "prompt": "a toy snowplow honking twice and its engine rumbling as it starts to push snow",
       "seconds": 3
+    },
+    "voice_bear_hurt": {
+      "prompt": "a small plush toy bear getting bonked: one short startled little teddy bear growl, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bear_ko": {
+      "prompt": "a small plush toy bear getting knocked out: a long dramatic dizzy little teddy bear growl that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bear_cheer": {
+      "prompt": "a small plush toy bear cheering after winning: two happy excited bouncy little teddy bear growls",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_frog_hurt": {
+      "prompt": "a small plush toy frog getting bonked: one short startled ribbit croak, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_frog_ko": {
+      "prompt": "a small plush toy frog getting knocked out: a long dramatic dizzy ribbit croak that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_frog_cheer": {
+      "prompt": "a small plush toy frog cheering after winning: two happy excited bouncy ribbit croaks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_shark_hurt": {
+      "prompt": "a small plush toy shark getting bonked: one short startled gurgly underwater chomp-chomp of little jaws, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_shark_ko": {
+      "prompt": "a small plush toy shark getting knocked out: a long dramatic dizzy gurgly underwater chomp-chomp of little jaws that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_shark_cheer": {
+      "prompt": "a small plush toy shark cheering after winning: two happy excited bouncy gurgly underwater chomp-chomp of little jawss",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_chicken_hurt": {
+      "prompt": "a small plush toy chicken getting bonked: one short startled bawk-bawk cluck, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_chicken_ko": {
+      "prompt": "a small plush toy chicken getting knocked out: a long dramatic dizzy bawk-bawk cluck that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_chicken_cheer": {
+      "prompt": "a small plush toy chicken cheering after winning: two happy excited bouncy bawk-bawk clucks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dino_hurt": {
+      "prompt": "a small plush toy dino getting bonked: one short startled tiny dinosaur rawr, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dino_ko": {
+      "prompt": "a small plush toy dino getting knocked out: a long dramatic dizzy tiny dinosaur rawr that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dino_cheer": {
+      "prompt": "a small plush toy dino cheering after winning: two happy excited bouncy tiny dinosaur rawrs",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_owl_hurt": {
+      "prompt": "a small plush toy owl getting bonked: one short startled hoo-hoot, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_owl_ko": {
+      "prompt": "a small plush toy owl getting knocked out: a long dramatic dizzy hoo-hoot that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_owl_cheer": {
+      "prompt": "a small plush toy owl cheering after winning: two happy excited bouncy hoo-hoots",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_axolotl_hurt": {
+      "prompt": "a small plush toy axolotl getting bonked: one short startled tiny bubbly blub-blub squeak, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_axolotl_ko": {
+      "prompt": "a small plush toy axolotl getting knocked out: a long dramatic dizzy tiny bubbly blub-blub squeak that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_axolotl_cheer": {
+      "prompt": "a small plush toy axolotl cheering after winning: two happy excited bouncy tiny bubbly blub-blub squeaks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_penguin_hurt": {
+      "prompt": "a small plush toy penguin getting bonked: one short startled squawky penguin honk, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_penguin_ko": {
+      "prompt": "a small plush toy penguin getting knocked out: a long dramatic dizzy squawky penguin honk that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_penguin_cheer": {
+      "prompt": "a small plush toy penguin cheering after winning: two happy excited bouncy squawky penguin honks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bunny_hurt": {
+      "prompt": "a small plush toy bunny getting bonked: one short startled tiny bunny squeak with a sniffle, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bunny_ko": {
+      "prompt": "a small plush toy bunny getting knocked out: a long dramatic dizzy tiny bunny squeak with a sniffle that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bunny_cheer": {
+      "prompt": "a small plush toy bunny cheering after winning: two happy excited bouncy tiny bunny squeak with a sniffles",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_unicorn_hurt": {
+      "prompt": "a small plush toy unicorn getting bonked: one short startled little horse whinny with a sparkly chime, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_unicorn_ko": {
+      "prompt": "a small plush toy unicorn getting knocked out: a long dramatic dizzy little horse whinny with a sparkly chime that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_unicorn_cheer": {
+      "prompt": "a small plush toy unicorn cheering after winning: two happy excited bouncy little horse whinny with a sparkly chimes",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_cat_hurt": {
+      "prompt": "a small plush toy cat getting bonked: one short startled kitten meow, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_cat_ko": {
+      "prompt": "a small plush toy cat getting knocked out: a long dramatic dizzy kitten meow that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_cat_cheer": {
+      "prompt": "a small plush toy cat cheering after winning: two happy excited bouncy kitten meows",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_fox_hurt": {
+      "prompt": "a small plush toy fox getting bonked: one short startled high little fox yip, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_fox_ko": {
+      "prompt": "a small plush toy fox getting knocked out: a long dramatic dizzy high little fox yip that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_fox_cheer": {
+      "prompt": "a small plush toy fox cheering after winning: two happy excited bouncy high little fox yips",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_panda_hurt": {
+      "prompt": "a small plush toy panda getting bonked: one short startled soft panda bleat, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_panda_ko": {
+      "prompt": "a small plush toy panda getting knocked out: a long dramatic dizzy soft panda bleat that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_panda_cheer": {
+      "prompt": "a small plush toy panda cheering after winning: two happy excited bouncy soft panda bleats",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_pig_hurt": {
+      "prompt": "a small plush toy pig getting bonked: one short startled piggy oink, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_pig_ko": {
+      "prompt": "a small plush toy pig getting knocked out: a long dramatic dizzy piggy oink that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_pig_cheer": {
+      "prompt": "a small plush toy pig cheering after winning: two happy excited bouncy piggy oinks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_lion_hurt": {
+      "prompt": "a small plush toy lion getting bonked: one short startled tiny lion cub roar, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_lion_ko": {
+      "prompt": "a small plush toy lion getting knocked out: a long dramatic dizzy tiny lion cub roar that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_lion_cheer": {
+      "prompt": "a small plush toy lion cheering after winning: two happy excited bouncy tiny lion cub roars",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_elephant_hurt": {
+      "prompt": "a small plush toy elephant getting bonked: one short startled little elephant trunk trumpet, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_elephant_ko": {
+      "prompt": "a small plush toy elephant getting knocked out: a long dramatic dizzy little elephant trunk trumpet that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_elephant_cheer": {
+      "prompt": "a small plush toy elephant cheering after winning: two happy excited bouncy little elephant trunk trumpets",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_turtle_hurt": {
+      "prompt": "a small plush toy turtle getting bonked: one short startled slow little turtle grunt with a hollow shell clonk, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_turtle_ko": {
+      "prompt": "a small plush toy turtle getting knocked out: a long dramatic dizzy slow little turtle grunt with a hollow shell clonk that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_turtle_cheer": {
+      "prompt": "a small plush toy turtle cheering after winning: two happy excited bouncy slow little turtle grunt with a hollow shell clonks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_hedgehog_hurt": {
+      "prompt": "a small plush toy hedgehog getting bonked: one short startled snuffly hedgehog huff and squeak, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_hedgehog_ko": {
+      "prompt": "a small plush toy hedgehog getting knocked out: a long dramatic dizzy snuffly hedgehog huff and squeak that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_hedgehog_cheer": {
+      "prompt": "a small plush toy hedgehog cheering after winning: two happy excited bouncy snuffly hedgehog huff and squeaks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_koala_hurt": {
+      "prompt": "a small plush toy koala getting bonked: one short startled sleepy koala grunt, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_koala_ko": {
+      "prompt": "a small plush toy koala getting knocked out: a long dramatic dizzy sleepy koala grunt that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_koala_cheer": {
+      "prompt": "a small plush toy koala cheering after winning: two happy excited bouncy sleepy koala grunts",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_octopus_hurt": {
+      "prompt": "a small plush toy octopus getting bonked: one short startled gurgly octopus bloop, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_octopus_ko": {
+      "prompt": "a small plush toy octopus getting knocked out: a long dramatic dizzy gurgly octopus bloop that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_octopus_cheer": {
+      "prompt": "a small plush toy octopus cheering after winning: two happy excited bouncy gurgly octopus bloops",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mouse_hurt": {
+      "prompt": "a small plush toy mouse getting bonked: one short startled tiny mouse squeak, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mouse_ko": {
+      "prompt": "a small plush toy mouse getting knocked out: a long dramatic dizzy tiny mouse squeak that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mouse_cheer": {
+      "prompt": "a small plush toy mouse cheering after winning: two happy excited bouncy tiny mouse squeaks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sheep_hurt": {
+      "prompt": "a small plush toy sheep getting bonked: one short startled lamb baa, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sheep_ko": {
+      "prompt": "a small plush toy sheep getting knocked out: a long dramatic dizzy lamb baa that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sheep_cheer": {
+      "prompt": "a small plush toy sheep cheering after winning: two happy excited bouncy lamb baas",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_raccoon_hurt": {
+      "prompt": "a small plush toy raccoon getting bonked: one short startled chittery raccoon chatter, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_raccoon_ko": {
+      "prompt": "a small plush toy raccoon getting knocked out: a long dramatic dizzy chittery raccoon chatter that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_raccoon_cheer": {
+      "prompt": "a small plush toy raccoon cheering after winning: two happy excited bouncy chittery raccoon chatters",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bee_hurt": {
+      "prompt": "a small plush toy bee getting bonked: one short startled bumblebee buzz, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bee_ko": {
+      "prompt": "a small plush toy bee getting knocked out: a long dramatic dizzy bumblebee buzz that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_bee_cheer": {
+      "prompt": "a small plush toy bee cheering after winning: two happy excited bouncy bumblebee buzzs",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_flamingo_hurt": {
+      "prompt": "a small plush toy flamingo getting bonked: one short startled honky flamingo squawk, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_flamingo_ko": {
+      "prompt": "a small plush toy flamingo getting knocked out: a long dramatic dizzy honky flamingo squawk that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_flamingo_cheer": {
+      "prompt": "a small plush toy flamingo cheering after winning: two happy excited bouncy honky flamingo squawks",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_giraffe_hurt": {
+      "prompt": "a small plush toy giraffe getting bonked: one short startled soft giraffe hum, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_giraffe_ko": {
+      "prompt": "a small plush toy giraffe getting knocked out: a long dramatic dizzy soft giraffe hum that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_giraffe_cheer": {
+      "prompt": "a small plush toy giraffe cheering after winning: two happy excited bouncy soft giraffe hums",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sloth_hurt": {
+      "prompt": "a small plush toy sloth getting bonked: one short startled slow sleepy sloth yawn, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sloth_ko": {
+      "prompt": "a small plush toy sloth getting knocked out: a long dramatic dizzy slow sleepy sloth yawn that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_sloth_cheer": {
+      "prompt": "a small plush toy sloth cheering after winning: two happy excited bouncy slow sleepy sloth yawns",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dragon_hurt": {
+      "prompt": "a small plush toy dragon getting bonked: one short startled tiny dragon roar with a little puff of flame, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dragon_ko": {
+      "prompt": "a small plush toy dragon getting knocked out: a long dramatic dizzy tiny dragon roar with a little puff of flame that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_dragon_cheer": {
+      "prompt": "a small plush toy dragon cheering after winning: two happy excited bouncy tiny dragon roar with a little puff of flames",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_phoenix_hurt": {
+      "prompt": "a small plush toy phoenix getting bonked: one short startled bright bird trill with a little fire whoosh, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_phoenix_ko": {
+      "prompt": "a small plush toy phoenix getting knocked out: a long dramatic dizzy bright bird trill with a little fire whoosh that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_phoenix_cheer": {
+      "prompt": "a small plush toy phoenix cheering after winning: two happy excited bouncy bright bird trill with a little fire whooshs",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_yeti_hurt": {
+      "prompt": "a small plush toy yeti getting bonked: one short startled big soft friendly yeti hooo, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_yeti_ko": {
+      "prompt": "a small plush toy yeti getting knocked out: a long dramatic dizzy big soft friendly yeti hooo that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_yeti_cheer": {
+      "prompt": "a small plush toy yeti cheering after winning: two happy excited bouncy big soft friendly yeti hooos",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
     }
   }
 }
