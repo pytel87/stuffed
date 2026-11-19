@@ -5,11 +5,13 @@
 import * as THREE from 'three';
 import { config, DT } from '@stuffed/sim';
 import type { Circle, GameState, MapData, ToyKind, ToyState } from '@stuffed/sim';
-import { groundRing } from './loot-views.ts';
+import { glowMap } from './loot-views.ts';
 import { tiled, waterTexture } from './props.ts';
 import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
 const WARN = '#ff3b5c';
+/** The ready glow's color. */
+const GLOW = new THREE.Color('#ffd23a');
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 
 // ---------- jack-in-the-box ----------
@@ -90,19 +92,40 @@ export function buildJack(): { root: THREE.Group; box: THREE.Group; lid: THREE.G
 
 // ---------- sprinkler ----------
 
-/** A brass tap with a red wheel handle (it sticks out of the wall toward +x). */
+/** Where the tap's spout ends (its hose coupling), in the tap's own units. */
+const TAP_SPOUT = { x: 0.34, y: 0.56 };
+
+/**
+ * A brass garden tap sticking out of the wall toward +x: a round plate on the wall, a pipe out to
+ * a round valve body, a stem up to a red four-spoked wheel, and a spout curving down into a green
+ * hose coupling (the hose leaves from there).
+ */
 export function buildTap(): { root: THREE.Group; wheel: THREE.Mesh } {
   const root = new THREE.Group();
   const brass = plastic('#d9a441');
-  const pipe = toonMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.45, 10), '#d9a441', { outline: 0.08, material: brass });
-  pipe.rotation.z = Math.PI / 2;
-  pipe.position.set(0.1, 0.9, 0);
-  root.add(pipe);
-  const spout = toonMesh(new THREE.CylinderGeometry(0.06, 0.07, 0.3, 10), '#d9a441', { outline: 0.08, material: brass });
-  spout.position.set(0.3, 0.75, 0);
-  root.add(spout);
-  const wheel = toonMesh(new THREE.TorusGeometry(0.16, 0.035, 8, 18), '#e2433f', { outline: 0.1, material: plastic('#e2433f') });
-  wheel.position.set(0.12, 1.1, 0);
+  const part = (geo: THREE.BufferGeometry, x: number, y: number, outline = 0.08, material: THREE.Material = brass) => {
+    const m = toonMesh(geo, '#d9a441', { outline, material: material as THREE.MeshToonMaterial });
+    m.position.set(x, y, 0);
+    root.add(m);
+    return m;
+  };
+  part(new THREE.CylinderGeometry(0.14, 0.14, 0.05, 20).rotateZ(Math.PI / 2), 0.02, 0.9, 0.12);
+  part(new THREE.CylinderGeometry(0.065, 0.065, 0.3, 12).rotateZ(Math.PI / 2), 0.17, 0.9);
+  part(new THREE.SphereGeometry(0.11, 16, 12), TAP_SPOUT.x, 0.9);
+  part(new THREE.CylinderGeometry(0.035, 0.035, 0.16, 8), TAP_SPOUT.x, 1.04, 0.15);
+  // The spout: a short bend down from the body.
+  part(new THREE.CylinderGeometry(0.06, 0.065, 0.26, 12), TAP_SPOUT.x, 0.75);
+  part(new THREE.CylinderGeometry(0.085, 0.085, 0.1, 14), TAP_SPOUT.x, TAP_SPOUT.y + 0.05, 0.1, plastic('#3fa34d'));
+  // The wheel, lying flat on its stem; it spins about its own axis (rotation.z) when turned.
+  const wheel = toonMesh(new THREE.TorusGeometry(0.15, 0.032, 8, 24), '#e2433f', { outline: 0.12, material: plastic('#e2433f') });
+  for (let i = 0; i < 2; i++) {
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.035, 0.035), plastic('#e2433f'));
+    spoke.rotation.z = (i * Math.PI) / 2;
+    wheel.add(spoke);
+  }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.06, 10).rotateX(Math.PI / 2), plastic('#e2433f'));
+  wheel.add(hub);
+  wheel.position.set(TAP_SPOUT.x, 1.13, 0);
   wheel.rotation.x = Math.PI / 2;
   root.add(wheel);
   return { root, wheel };
@@ -116,7 +139,9 @@ function hose(from: THREE.Vector3, to: THREE.Vector3): THREE.Mesh {
   const lie = 0.08;
   const points = [
     from.clone(),
-    new THREE.Vector3(from.x + 0.2, lie, from.z),
+    // Straight down out of the coupling first, then away across the ground.
+    from.clone().setY(from.y - 0.25),
+    new THREE.Vector3(from.x + 0.15, lie, from.z),
     from.clone().lerp(mid, 0.5).add(side).setY(lie),
     mid.clone().sub(side.clone().multiplyScalar(0.5)).setY(lie),
     to.clone().setY(lie),
@@ -216,8 +241,9 @@ export class ToyView {
   private fill: THREE.Mesh | null = null;
   private fillStep = -1;
   private fillRadius = 1;
-  private readyGlow: THREE.Group | null = null;
-  private readyParts: { glow: THREE.Mesh; halo: THREE.Mesh } | null = null;
+  /** Ready: what you press glows (its materials, and a soft light on the floor under it). */
+  private readyGlow: THREE.Mesh | null = null;
+  private glowing: THREE.MeshToonMaterial[] = [];
   private track: THREE.Mesh | null = null;
 
   constructor(
@@ -232,7 +258,7 @@ export class ToyView {
     this.fill = null;
     this.fillStep = -1;
     this.readyGlow = null;
-    this.readyParts = null;
+    this.glowing = [];
     this.track = null;
     this.kind = null;
   }
@@ -267,18 +293,20 @@ export class ToyView {
     }
     if (this.fill) this.fill.visible = !ready && step > 0;
     if (this.track) this.track.visible = !ready;
-    if (this.readyGlow && this.readyParts) {
+    // Ready: no ring; what you press glows gold, breathing.
+    const pulse = ready ? 0.32 + Math.sin(time * 3) * 0.14 : 0;
+    for (const m of this.glowing) m.emissive.copy(GLOW).multiplyScalar(pulse);
+    if (this.readyGlow) {
       this.readyGlow.visible = ready;
-      (this.readyParts.glow.material as THREE.MeshBasicMaterial).opacity = 0.8 + Math.sin(time * 3) * 0.2;
-      (this.readyParts.halo.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(time * 3) * 0.1;
+      (this.readyGlow.material as THREE.MeshBasicMaterial).opacity = 0.65 + Math.sin(time * 3) * 0.2;
     }
   }
 
   /**
-   * The ring round the toy, like the ones under loot: while it recharges, a plain gold arc fills a
-   * dark track (no glow); once ready, the whole ring lights up with a soft glow, like loot's.
+   * The ring round the toy while it recharges: a plain gold arc filling a flat dark track. Once
+   * it's ready the ring goes, and `pressed` (what you press: the box, the tap, the drill) glows.
    */
-  private buildCooldown(root: THREE.Group, x: number, z: number, y: number, radius: number): void {
+  private buildCooldown(root: THREE.Group, x: number, z: number, y: number, radius: number, pressed: THREE.Object3D): void {
     const g = new THREE.Group();
     g.position.set(x, z + 0.025, y);
     const flat = (inner: number, outer: number, mat: THREE.Material, y0: number) => {
@@ -299,23 +327,36 @@ export class ToyView {
     this.fill = fill;
     this.fillRadius = radius;
     this.track = track;
-    // Ready: the very circle loot has, sized to the toy, breathing like it.
-    const ready = new THREE.Group();
-    const r = groundRing('#ffd23a');
-    r.glow.scale.setScalar(radius / 0.72);
-    ready.add(r.glow);
-    g.add(ready);
-    this.readyGlow = ready;
-    this.readyParts = r;
     root.add(g);
+    // Its materials light up (outlines stay dark), over a soft gold light on the floor.
+    pressed.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.name !== 'outline') {
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+          if (m instanceof THREE.MeshToonMaterial && !this.glowing.includes(m)) this.glowing.push(m);
+        }
+      }
+    });
+    pressed.updateWorldMatrix(true, false);
+    const at = new THREE.Vector3().setFromMatrixPosition(pressed.matrixWorld);
+    const light = new THREE.Mesh(
+      // (Wider than the box, which would hide most of it.)
+      new THREE.CircleGeometry(radius > 1.2 ? 2.4 : 1.4, 32).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: GLOW, map: glowMap(), transparent: true, depthWrite: false, toneMapped: false }),
+    );
+    light.position.set(at.x, z + 0.03, at.z);
+    light.visible = false;
+    root.add(light);
+    this.readyGlow = light;
   }
 
   private build(t: ToyState, map: MapData): void {
     this.clear();
     this.kind = t.kind;
     const root = new THREE.Group();
+    let pressed: THREE.Object3D;
     if (t.kind === 'jack') {
       this.jack = buildJack();
+      pressed = this.jack.root;
       this.jack.root.position.set(t.at.x, t.z, t.at.y);
       root.add(this.jack.root);
       this.ring = warningRing(config.toys.jack.radius);
@@ -326,24 +367,28 @@ export class ToyView {
       tap.root.position.set(t.pos.x - 0.6, t.z, t.pos.y);
       tap.root.scale.setScalar(1.5);
       root.add(tap.root);
+      pressed = tap.root;
       this.wheel = tap.wheel;
       const s = buildSprinkler();
       s.root.position.set(t.at.x, t.z, t.at.y);
       s.root.scale.setScalar(1.6);
       root.add(s.root);
       this.head = s.head;
-      root.add(hose(new THREE.Vector3(t.pos.x - 0.15, t.z + 0.6, t.pos.y), new THREE.Vector3(t.at.x, t.z, t.at.y)));
+      // From the spout's coupling (the tap is scaled 1.5 from 0.6 out of the wall).
+      const coupling = new THREE.Vector3(t.pos.x - 0.6 + TAP_SPOUT.x * 1.5, t.z + TAP_SPOUT.y * 1.5, t.pos.y);
+      root.add(hose(coupling, new THREE.Vector3(t.at.x, t.z, t.at.y)));
     } else {
       const drill = buildDrill();
       drill.position.set(t.pos.x, t.z, t.pos.y);
       root.add(drill);
+      pressed = drill;
       const pond = map.ice?.[0];
       if (pond) this.buildPond(root, pond, t);
     }
     // Round what it acts with: the box, the sprinkler out on the lawn (the tap sits against the
     // house wall), the drill.
     const at = t.kind === 'icedrill' ? t.pos : t.at;
-    this.buildCooldown(root, at.x, t.z, at.y, t.kind === 'jack' ? 1.6 : 1);
+    this.buildCooldown(root, at.x, t.z, at.y, t.kind === 'jack' ? 1.6 : 1, pressed);
     this.scene.add(root);
     this.root = root;
   }

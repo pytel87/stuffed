@@ -109,6 +109,7 @@ const UMBRELLA_Y = 1.9;
 let umbrellaGeo: {
   panels: THREE.BufferGeometry[];
   hull: THREE.BufferGeometry;
+  rimLine: THREE.BufferGeometry;
   pompom: THREE.BufferGeometry;
   stick: THREE.BufferGeometry;
   hook: THREE.BufferGeometry;
@@ -129,7 +130,9 @@ function umbrellaGeometry(): NonNullable<typeof umbrellaGeo> {
   );
   umbrellaGeo = {
     panels,
-    hull: new THREE.SphereGeometry(r + 0.05, 32, 6, 0, Math.PI * 2, 0, open + 0.02).scale(1, flat, 1),
+    hull: new THREE.SphereGeometry(r + 0.08, 32, 6, 0, Math.PI * 2, 0, open + 0.02).scale(1, flat, 1),
+    // A dark line round the canopy's edge (a hull can't outline an open edge).
+    rimLine: new THREE.TorusGeometry(r * Math.sin(open), 0.04, 6, 48).rotateX(Math.PI / 2),
     pompom: new THREE.SphereGeometry(0.07, 8, 6),
     stick: new THREE.CylinderGeometry(0.03, 0.03, 1.3, 6),
     hook: new THREE.TorusGeometry(0.11, 0.03, 6, 12, Math.PI).rotateZ(Math.PI),
@@ -292,6 +295,9 @@ export class PlushView {
     const hull = new THREE.Mesh(U.hull, outlineMaterial(outlineColor));
     hull.position.y = UMBRELLA_Y;
     this.umbrella.add(hull);
+    const rimLine = new THREE.Mesh(U.rimLine, new THREE.MeshBasicMaterial({ color: outlineColor }));
+    rimLine.position.y = UMBRELLA_Y + U.rimY;
+    this.umbrella.add(rimLine);
     const pom = toonMaterial('#fff6ec', { map: null });
     for (let i = 0; i < UMBRELLA_PANELS.length; i++) {
       const a = (i / UMBRELLA_PANELS.length) * Math.PI * 2;

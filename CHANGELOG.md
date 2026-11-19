@@ -2,6 +2,27 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Neon loot rings (2026-11-19)
+
+- The circle under loot (and round a ready toy) is a raised glossy plastic hoop with an outline,
+  in full neon rarity colors: the glow now sits under it instead of washing it out to pastel.
+  Epic is violet rather than pink.
+- The light beam over Limited Edition loot and up is a soft shaft fading upward, not a
+  see-through tube.
+- Umbrellas have a clear dark outline round their rim (it was a hairline over the top only).
+- Outlines on the toy drums and sand buckets (body, rim and handle) and on the roofs' chimneys.
+- Outlines on the picnic table's plates and cake (now with a strawberry), and snug ones on the
+  shooting gallery's boards (no dark blocks past their ends).
+- The garden tap is one brass fixture: a plate on the wall, a valve with a red spoked wheel on
+  its stem, and a spout down into a green coupling the hose comes out of.
+- The piñata's rope is tied to its branch (it hung a little below it, with a gap).
+- Snowy Park: the frozen pond has one smooth bank of snow, outlined on both sides (its separate
+  lumps hid each other's outlines); snow walls are plain outlined blocks (no bumps on top); the cabin chimney's
+  snow cap is outlined.
+- The pool's water reaches in under its rim (a strip of lawn and outline showed between them).
+- A toy that's ready to use glows (gold, breathing, with light on the floor under it) instead
+  of showing a full ring; while it recharges it keeps its flat ring.
+
 ## Catapults, more floors (2026-11-19)
 
 - Catapults, one on each side of every map (throwing toward its middle): press E by one and

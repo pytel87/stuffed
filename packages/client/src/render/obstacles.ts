@@ -2,11 +2,11 @@
 // kind (see props.ts), each roof's from its building's kind.
 import * as THREE from 'three';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
-import { buildWall, cardboardTexture, softBox, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
+import { buildWall, cardboardTexture, outlinedBox, softBox, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
 import { detailMaps, repeated } from './image-textures.ts';
 import { mergeStatic } from './merge-static.ts';
 import { feltTexture } from './toon.ts';
-import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
+import { makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const OUTLINE = 0.03;
 const BUSH = '#3f8f4a';
@@ -221,9 +221,9 @@ function roof(b: Building): RoofView {
     case 'cabin': {
       // A log cabin's roof under a thick layer of snow, with icicles along the front and a chimney.
       lid(toonMaterial('#ffffff', { map: tiled(snowTexture(), w / 4, d / 4) }));
-      const chimney = on(new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, 1) })), w / 2 - 2.2, top + 0.7, -d / 2 + 2);
+      const chimney = on(outlinedBox(1.4, 1.4, 1.4, toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, 1) })), w / 2 - 2.2, top + 0.7, -d / 2 + 2);
       chimney.castShadow = true;
-      on(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.25, 1.6), toonMaterial('#ffffff', { map: snowTexture() })), w / 2 - 2.2, top + 1.5, -d / 2 + 2);
+      on(outlinedBox(1.6, 0.25, 1.6, toonMaterial('#ffffff', { map: snowTexture() })), w / 2 - 2.2, top + 1.53, -d / 2 + 2);
       const icicle = toonMaterial('#d8f1ff', { map: null });
       for (let i = 0; i < Math.floor(w / 0.8); i++) {
         const len = 0.25 + ((i * 7) % 4) * 0.08;
@@ -235,7 +235,7 @@ function roof(b: Building): RoofView {
     case 'house': {
       lid(toonMaterial('#ffffff', { map: tiled(tileTexture(), w / 3, d / 3) }));
       // a little chimney in one corner (just for looks)
-      const chimney = on(new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 1.4), toonMaterial('#e9c9a8')), w / 2 - 2.2, top + 0.6, -d / 2 + 2);
+      const chimney = on(outlinedBox(1.4, 1.2, 1.4, toonMaterial('#e9c9a8')), w / 2 - 2.2, top + 0.6, -d / 2 + 2);
       chimney.castShadow = true;
       break;
     }
@@ -283,12 +283,20 @@ function roof(b: Building): RoofView {
       for (const [sx, sz, x, z] of [[w + 0.04, 0.12, 0, d / 2], [w + 0.04, 0.12, 0, -d / 2], [0.12, d + 0.04, w / 2, 0], [0.12, d + 0.04, -w / 2, 0]] as const) {
         on(new THREE.Mesh(new THREE.BoxGeometry(sx, ROOF_THICKNESS + 0.04, sz), flat('#e25b5b')), x, 0, z);
       }
-      // plates and a cake on the cloth
-      for (const [x, z] of [[-w / 3, -d / 4], [w / 3, d / 4], [0, -d / 4]] as const) {
-        on(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.5, 0.06, 20), flat('#ffffff')), x, top + 0.03, z);
-      }
-      on(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.5, 20), flat('#f6a5c0')), w / 4, top + 0.25, -d / 6).castShadow = true;
-      on(new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.1, 20), flat('#fff7ef')), w / 4, top + 0.52, -d / 6);
+      // Plates and a cake on the cloth, outlined like everything else (a snug closed copy a little
+      // bigger all round, kept behind what it touches).
+      const round = (rTop: number, rBottom: number, h: number, color: string) => {
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, h, 32), flat(color));
+        mesh.add(new THREE.Mesh(new THREE.CylinderGeometry(rTop + OUTLINE, rBottom + OUTLINE, h + OUTLINE * 2, 32), pushedOutlineMaterial(OUTLINE_COLOR)));
+        return mesh;
+      };
+      // (Resting on their outlines, so the cloth doesn't cut them off along the bottom.)
+      const lift = OUTLINE + 0.015;
+      for (const [x, z] of [[-w / 3, -d / 4], [w / 3, d / 4], [0, -d / 4]] as const) on(round(0.55, 0.5, 0.06, '#ffffff'), x, top + 0.03 + lift, z);
+      on(round(0.7, 0.7, 0.5, '#f6a5c0'), w / 4, top + 0.25 + lift, -d / 6).castShadow = true;
+      on(round(0.72, 0.72, 0.1, '#fff7ef'), w / 4, top + 0.55 + lift, -d / 6);
+      // A strawberry on top.
+      on(toonMesh(new THREE.SphereGeometry(0.14, 14, 10), '#e2433f', { outline: 0.12 }), w / 4, top + 0.7 + lift, -d / 6);
       break;
     }
   }

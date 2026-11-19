@@ -6,14 +6,14 @@ import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, Pa
 import { mergeStatic } from './merge-static.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { crateTexture, picnicTexture, tiled, wickerTexture } from './props.ts';
-import { fadeObject, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 const POP_SECONDS = 0.25;
 const LID_OPEN_ANGLE = -1.9;
 
 /** Brighter takes on the rarity colors for the rings on the ground, so they pop on the lawn. */
-const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#d070ff', '#ffd23a'] as const;
+const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#a45cff', '#ffd23a'] as const;
 
 let glowTexture: THREE.CanvasTexture | null = null;
 export function glowMap(): THREE.CanvasTexture {
@@ -553,34 +553,84 @@ export function sparkleGlowTexture(): THREE.CanvasTexture {
 }
 
 /**
- * The circle under loot: a soft disc of light, a halo hugging the ring, and a solid ring with a dark
- * edge (readable even green-on-grass). Its ring is about 0.72 across; scale it for bigger things.
- * Pulse `glow` (opacity 0.6..1) and `halo` (0.3..0.5) to make it breathe.
+ * The circle under loot: a soft disc of light and a halo on the floor, and on them a raised glossy
+ * plastic hoop in the rarity's color with a dark outline (readable even green-on-grass; a little
+ * self-lit, so it stays neon in shade). Its hoop is `radius` across (0.72 under loot; the tube stays
+ * as thick for bigger ones). Pulse `glow` (opacity 0.6..1) and `halo` (0.3..0.5) to make it breathe.
  */
-export function groundRing(color: THREE.ColorRepresentation): { glow: THREE.Mesh; halo: THREE.Mesh } {
+export function groundRing(color: THREE.ColorRepresentation, radius = 0.72): { glow: THREE.Mesh; halo: THREE.Mesh } {
+  const k = radius / 0.72;
   const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2),
+    new THREE.CircleGeometry(k, 32).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color, map: glowMap(), transparent: true, depthWrite: false, opacity: 1, toneMapped: false }),
   );
+  // (Under the hoop: drawn over it, the added light washed its color out to pastel.)
   const halo = new THREE.Mesh(
-    new THREE.CircleGeometry(1.05, 48).rotateX(-Math.PI / 2),
+    new THREE.CircleGeometry(1.05 * k, 48).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color, map: haloMap(), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }),
   );
-  halo.position.y = 0.006;
+  halo.position.y = 0.004;
   glow.add(halo);
-  const edge = new THREE.Mesh(
-    new THREE.RingGeometry(0.66, 0.8, 40).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, transparent: true, opacity: 0.55, depthWrite: false }),
-  );
-  edge.position.y = 0.002;
-  glow.add(edge);
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.67, 0.77, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true, toneMapped: false }),
-  );
-  ring.position.y = 0.004;
+  const ring = hoop(radius, HOOP_TUBE, neonPlastic(color));
   glow.add(ring);
   return { glow, halo };
+}
+
+const HOOP_TUBE = 0.055;
+const HOOP_OUTLINE = 0.022;
+
+/** Glossy toy plastic a little self-lit, so it stays bright in shade. */
+function neonPlastic(color: THREE.ColorRepresentation): THREE.MeshToonMaterial {
+  const material = makePlastic(toonMaterial(color, { map: null }));
+  material.emissive.set(color).multiplyScalar(0.45);
+  material.toneMapped = false;
+  return material;
+}
+
+/** A plastic tube lying on the floor round a circle `radius` across (or `arc` of it), raised to sit on it. */
+function hoopGeometry(radius: number, tube: number, arc = Math.PI * 2): THREE.BufferGeometry {
+  // Starting at the top of the screen (north) and going clockwise, like a clock's hand.
+  return new THREE.TorusGeometry(radius, tube, 10, Math.max(8, Math.round((48 * arc) / (Math.PI * 2) * Math.max(1, radius))), arc)
+    .rotateX(Math.PI / 2)
+    .rotateY(Math.PI / 2);
+}
+
+/** A hoop on the floor with an outline (a fatter tube round the same circle). */
+function hoop(radius: number, tube: number, material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(hoopGeometry(radius, tube), material);
+  mesh.position.y = tube;
+  mesh.add(new THREE.Mesh(hoopGeometry(radius, tube + HOOP_OUTLINE), outlineMaterial(OUTLINE_COLOR)));
+  return mesh;
+}
+
+let beamTexture: THREE.CanvasTexture | null = null;
+/** A light shaft's glow: soft across, strongest low down, fading out to nothing at the top and at its foot. */
+function beamMap(): THREE.CanvasTexture {
+  if (beamTexture) return beamTexture;
+  const W = 64;
+  const H = 256;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(W, H);
+  for (let y = 0; y < H; y++) {
+    const up = y / (H - 1); // 0 at the top of the image (the shaft's top)
+    // Fading out at the bottom too, into the glow on the floor (a hard edge showed where it met it).
+    const along = Math.pow(up, 1.1) * Math.min(1, Math.pow((1 - up) * 5, 1.5));
+    for (let x = 0; x < W; x++) {
+      const across = (x + 0.5) / W - 0.5;
+      // A bright middle with a wide soft falloff, gone by the edges.
+      const a = along * (0.7 * Math.exp(-(across * across) / 0.025) + 0.5 * Math.exp(-(across * across) / 0.07)) * Math.min(1, (0.5 - Math.abs(across)) * 8);
+      const i = (y * W + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+      img.data[i + 3] = Math.round(Math.min(1, a) * 255);
+    }
+  }
+  g.putImageData(img, 0, 0);
+  beamTexture = new THREE.CanvasTexture(c);
+  beamTexture.colorSpace = THREE.SRGBColorSpace;
+  return beamTexture;
 }
 
 function buildLoot(loot: GroundLoot): LootView {
@@ -594,10 +644,18 @@ function buildLoot(loot: GroundLoot): LootView {
 
   let beam: THREE.Mesh | null = null;
   if (loot.rarity >= 3) {
+    // A soft shaft of light: a card facing the camera (it never turns), brightest at the bottom
+    // and fading out upward, with feathered sides (a see-through tube read as a solid one).
     beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.32, 3, 16, 1, true).translate(0, 1.5, 0),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
+      new THREE.PlaneGeometry(2, 3.2).translate(0, 1.6, 0),
+      new THREE.MeshBasicMaterial({ color, map: beamMap(), transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
     );
+    // A brighter core, added on top (it glows even over a light floor).
+    const core = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.8, 3.2).translate(0, 1.6, 0.01),
+      new THREE.MeshBasicMaterial({ color, map: beamMap(), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending }),
+    );
+    beam.add(core);
     root.add(beam);
   }
 

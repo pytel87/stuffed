@@ -681,13 +681,17 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
     }
     case 'bucket': {
       const r = Math.min(b.w, b.h) / 2;
-      add(toonMesh(new THREE.CylinderGeometry(r, r * 0.78, H, 20, 1, true), '#3f8fe0', { outline: 0.05, material: toonMaterial('#3f8fe0', { side: THREE.DoubleSide }) }), H / 2);
+      const body = add(toonMesh(new THREE.CylinderGeometry(r, r * 0.78, H, 32, 1, true), '#3f8fe0', { outline: false, material: toonMaterial('#3f8fe0', { side: THREE.DoubleSide }) }), H / 2);
+      // Its outline: a closed copy a little bigger all round (a scaled copy of the open tube hid behind it).
+      body.add(new THREE.Mesh(new THREE.CylinderGeometry(r + OUTLINE * 1.5, r * 0.78 + OUTLINE * 1.5, H + OUTLINE, 32), outlineMaterial(OUTLINE_COLOR)));
       const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 28), flat('#ffd23a'));
+      rim.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.07 + OUTLINE, 8, 28), outlineMaterial(OUTLINE_COLOR)));
       rim.rotation.x = Math.PI / 2;
       add(rim, H);
       const sandTop = new THREE.Mesh(new THREE.CircleGeometry(r * 0.95, 20).rotateX(-Math.PI / 2), flat('#e8cf8f'));
       add(sandTop, H * 0.8);
       const handle = new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04, 6, 24, Math.PI), flat('#ffd23a'));
+      handle.add(new THREE.Mesh(new THREE.TorusGeometry(r * 0.95, 0.04 + OUTLINE, 6, 24, Math.PI), outlineMaterial(OUTLINE_COLOR)));
       add(handle, H);
       // a little red spade stuck in the sand, leaning out
       const spade = new THREE.Group();
@@ -799,19 +803,9 @@ export function buildWall(b: Wall, index: number): THREE.Object3D {
       break;
     }
     case 'snowwall': {
-      // Packed snow: a block with a rounded top and a few lumps.
-      // Packed snow, a touch blue so it stands out from the snow on the ground.
+      // Packed snow, a touch blue so it stands out from the snow on the ground: one outlined block.
       const snow = toonMaterial('#d6e9fb', { map: tiled(snowTexture(), Math.max(b.w, b.h) / 3, H / 3) });
-      const long = b.w >= b.h;
-      add(outlinedBox(b.w, H - 0.15, b.h, snow), (H - 0.15) / 2);
-      add(toonMesh(new THREE.BoxGeometry(b.w, 0.3, b.h), '#ffffff', { outline: 0.04, material: snow }), H - 0.15);
-      for (let i = 0; i < 3; i++) {
-        const lump = toonMesh(new THREE.SphereGeometry(0.22 + (i % 2) * 0.08, 10, 8), '#ffffff', { outline: 0.06, material: snow });
-        const t = (i + 0.5) / 3 - 0.5;
-        lump.position.set(long ? t * b.w * 0.9 : 0, H - 0.05, long ? 0 : t * b.h * 0.9);
-        lump.scale.y = 0.6;
-        g.add(lump);
-      }
+      add(outlinedBox(b.w, H, b.h, snow), H / 2);
       break;
     }
     case 'iceblock': {

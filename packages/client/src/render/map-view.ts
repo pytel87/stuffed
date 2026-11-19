@@ -7,7 +7,7 @@ import {
   patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
 } from './props.ts';
 import { mergeStatic } from './merge-static.ts';
-import { makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
+import { makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
 const LAWN_BEYOND = 64;
@@ -260,17 +260,20 @@ function iceView(pond: Circle): THREE.Object3D {
   ice.position.y = 0.02;
   ice.receiveShadow = true;
   g.add(ice);
-  const bank = toonMaterial('#ffffff', { map: snowTexture() });
-  const n = Math.round(pond.radius * 4);
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const r = 0.45 + ((i * 7) % 5) * 0.08;
-    const lump = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), bank);
-    lump.scale.y = 0.55;
-    lump.position.set(Math.cos(a) * (pond.radius + 0.3), 0, Math.sin(a) * (pond.radius + 0.3));
-    lump.receiveShadow = true;
-    g.add(lump);
-  }
+  // A smooth bank of snow round its edge (one ring, outlined; separate lumps hid each other's outlines).
+  // (Its snow repeated along it: stretched once round the ring, it smeared into streaks.)
+  const around = (2 * Math.PI * (pond.radius + 0.3)) / 3;
+  const bank = new THREE.Mesh(new THREE.TorusGeometry(pond.radius + 0.3, 0.5, 10, 96).rotateX(Math.PI / 2), toonMaterial('#ffffff', { map: tiled(snowTexture(), around, 1) }));
+  bank.scale.y = 0.55;
+  // Up a little, so its outline isn't lost in the snow along its foot.
+  bank.position.y = 0.12;
+  bank.receiveShadow = true;
+  bank.add(new THREE.Mesh(new THREE.TorusGeometry(pond.radius + 0.3, 0.6, 10, 96).rotateX(Math.PI / 2), outlineMaterial(OUTLINE_COLOR)));
+  g.add(bank);
+  // Its foot on the ice gets a line too (an outline round it would be under the ice there).
+  const foot = new THREE.Mesh(new THREE.RingGeometry(pond.radius + 0.3 - 0.58, pond.radius + 0.3 - 0.44, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR }));
+  foot.position.y = 0.025;
+  g.add(foot);
   mergeStatic(g);
   return g;
 }
@@ -279,8 +282,10 @@ function iceView(pond: Circle): THREE.Object3D {
 function poolView(pool: Circle): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(pool.center.x, 0, pool.center.y);
-  const ripples = tiled(waterTexture(), pool.radius / 4, pool.radius / 4);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(pool.radius, 48).rotateX(-Math.PI / 2), toonMaterial('#bfe9ff', { map: ripples }));
+  // The water reaches in under the rim (stopping at the pool's edge left a strip of lawn inside it).
+  const reach = pool.radius + 0.35;
+  const ripples = tiled(waterTexture(), reach / 4, reach / 4);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(reach, 64).rotateX(-Math.PI / 2), toonMaterial('#bfe9ff', { map: ripples }));
   drift(water, ripples);
   water.position.y = 0.03;
   water.receiveShadow = true;
@@ -291,8 +296,9 @@ function poolView(pool: Circle): THREE.Object3D {
   for (const [y, r] of [[0.2, 0.26], [0.46, 0.24]] as const) {
     const tube = new THREE.Mesh(new THREE.TorusGeometry(pool.radius + 0.35, r, 16, 64), makePlastic(toonMaterial('#ffffff', { map: stripes }), true));
     tube.castShadow = tube.receiveShadow = true;
-    // Its outline: a slightly fatter tube round the same circle (scaling the ring would push it out).
-    tube.add(new THREE.Mesh(new THREE.TorusGeometry(pool.radius + 0.35, r + 0.05, 12, 64), outlineMaterial(OUTLINE_COLOR)));
+    // Its outline: a slightly fatter tube round the same circle (scaling the ring would push it out),
+    // kept behind the other tube, so it shows round the rim's edge but not as hairlines across it.
+    tube.add(new THREE.Mesh(new THREE.TorusGeometry(pool.radius + 0.35, r + 0.05, 12, 64), pushedOutlineMaterial(OUTLINE_COLOR, 0.025)));
     tube.rotation.x = Math.PI / 2;
     tube.position.y = y;
     g.add(tube);

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { config, galleryTargets } from '@stuffed/sim';
 import type { GameState, MapData } from '@stuffed/sim';
 import { glowMap, sparkleTexture } from './loot-views.ts';
+import { outlinedBox } from './props.ts';
 import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
@@ -75,25 +76,26 @@ function booth(x: number, y: number): { root: THREE.Group; ducks: THREE.Group[];
   const root = new THREE.Group();
   root.position.set(x, 0, y);
   const half = ((config.games.gallery.targets - 1) / 2) * config.games.gallery.spacing + 1;
+  // (Snug outlines: scaled-up copies of these long boards stuck out past their ends as dark blocks.)
   const stripe = (w: number) => {
     const t = stripes().clone();
     t.repeat.set(w / 2, 1);
     t.needsUpdate = true;
     return toonMaterial('#ffffff', { map: t });
   };
-  const counter = toonMesh(new THREE.BoxGeometry(half * 2, 0.4, 0.6), '#ffffff', { outline: 0.03, material: stripe(half * 2) });
+  const counter = outlinedBox(half * 2, 0.4, 0.6, stripe(half * 2));
   counter.position.set(0, 0.2, 1.3);
   root.add(counter);
-  const back = toonMesh(new THREE.BoxGeometry(half * 2, 2.4, 0.5), '#3d7ff2', { outline: 0.03, material: toonMaterial('#3d7ff2', { map: null }) });
+  const back = outlinedBox(half * 2, 2.4, 0.5, toonMaterial('#3d7ff2', { map: null }));
   back.position.set(0, 1.2, -0.85);
   root.add(back);
   for (const s of [-1, 1]) {
-    const post = toonMesh(new THREE.BoxGeometry(0.3, 2.9, 0.3), '#f7c331', { outline: 0.05, material: toonMaterial('#f7c331', { map: null }) });
+    const post = outlinedBox(0.3, 2.9, 0.3, toonMaterial('#f7c331', { map: null }));
     post.position.set(s * (half + 0.15), 1.45, -0.85);
     root.add(post);
   }
   // A striped awning along the top of the back board, tipped toward the shooters.
-  const awning = toonMesh(new THREE.BoxGeometry(half * 2 + 0.8, 0.12, 0.9), '#ffffff', { outline: 0.03, material: stripe(half * 2 + 0.8) });
+  const awning = outlinedBox(half * 2 + 0.8, 0.12, 0.9, stripe(half * 2 + 0.8));
   awning.position.set(0, 2.55, -0.5);
   awning.rotation.x = 0.35;
   root.add(awning);

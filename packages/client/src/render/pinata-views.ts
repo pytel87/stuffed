@@ -93,7 +93,7 @@ function limb(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number, bark: 
  * at `to` (both relative to the piñata's spot): thick at the trunk, tapering, bending a little,
  * with a leafy twig on the way and leaves at its tip; and the rope hanging from it.
  */
-function branch(from: THREE.Vector3, to: THREE.Vector3): { branch: THREE.Group; rope: THREE.Mesh } {
+function branch(from: THREE.Vector3, to: THREE.Vector3): { branch: THREE.Group; rope: THREE.Mesh; knot: number } {
   const g = new THREE.Group();
   const bark = toonMaterial('#7a5236', { map: null });
   const out = new THREE.Vector3(to.x - from.x, 0, to.z - from.z).normalize();
@@ -115,7 +115,10 @@ function branch(from: THREE.Vector3, to: THREE.Vector3): { branch: THREE.Group; 
   clump(tip.clone().addScaledVector(out, 0.4).add(new THREE.Vector3(0, 0.05, 0.35)), 0.45);
   clump(twigEnd, 0.5);
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 6).translate(0, -0.5, 0), toonMaterial('#efe2c2', { map: null }));
-  return { branch: g, rope };
+  // Where the branch passes over the rope (along mid → tip): the rope is tied there, so no gap.
+  const k = THREE.MathUtils.clamp(Math.hypot(to.x - mid.x, to.z - mid.z) / (Math.hypot(tip.x - mid.x, tip.z - mid.z) || 1), 0, 1);
+  const knot = mid.y + (tip.y - mid.y) * k;
+  return { branch: g, rope, knot };
 }
 
 export class PinataView {
@@ -179,8 +182,9 @@ export class PinataView {
     if (kind === 'donkey') {
       // Hanging by a rope from a branch of a tree (it swings from the branch).
       // The rope hangs from the branch a bit below where it leaves the trunk (it droops).
-      this.hangY = (from?.z ?? 4.5) - z - 0.9;
-      const b = branch(new THREE.Vector3((from?.x ?? x - 3) - x, (from?.z ?? 4.5) - z, (from?.y ?? y) - y), new THREE.Vector3(0, this.hangY, 0));
+      const b = branch(new THREE.Vector3((from?.x ?? x - 3) - x, (from?.z ?? 4.5) - z, (from?.y ?? y) - y), new THREE.Vector3(0, (from?.z ?? 4.5) - z - 0.9, 0));
+      // Tied to the branch itself (it passes a little higher than where it was aimed).
+      this.hangY = b.knot;
       root.add(b.branch);
       this.rope = b.rope;
       pivot.position.y = this.hangY;
