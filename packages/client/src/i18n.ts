@@ -52,7 +52,7 @@ const CS: Record<string, string> = {
   'Your team wins! Grab the loot!': 'Tvůj tým vyhrál! Seberte kořist!',
   '{name} wins!': '{name} vyhrává!',
   'Team wins!': 'Tým vyhrál!',
-  'Unstitched!': 'Vypárali tě!',
+  'Unstitched!': 'Rozpárali tě!',
   Over: 'Konec',
   Again: 'Znovu',
   Watch: 'Sledovat',
