@@ -19,6 +19,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 - On touch, no second jump button in the middle while on the blimp or a zip line: the jump
   button drops you.
+- The controls help shows the real models (the Cork Popper, a chest, a part, the items) instead
+  of drawn stand-ins.
+- Weapon, item and bag slots sink into their shadow when pressed, like the menu buttons (keys 1-5
+  and the wheel press them on screen too); held, they still shrink toward a drop.
+- The gallery's cards fade out at its top and bottom edges while scrolling (they were cut off flat).
 - Luck toward a set's last piece: when you have four parts of an animal, a part you find (from a
   chest you open or a piñata you burst) can be that set's missing one, until you pick it up: 1 time
   in 15 for a common animal, 25 for a rare one, 40 for an epic one and 60 for a legendary one.

@@ -507,13 +507,17 @@ button {
   width: min(46rem, 100%);
 }
 
+/* Cards scrolling past its top and bottom fade out instead of being cut off flat (the padding keeps
+   them clear of the fades at either end of the list). */
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9.6rem, 1fr));
   gap: 0.6rem;
   max-height: min(70vh, 34rem);
   overflow-y: auto;
-  padding: 0.2rem;
+  padding: 1rem 0.2rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
 }
 
 .gallery-card.owned {
@@ -926,7 +930,17 @@ button {
 .help-grid > span:nth-child(even) {
   justify-self: start;
   display: flex;
+  align-items: center;
   gap: 0.3rem;
+}
+
+/* The real models' pictures (weapon, chest, part, items): bigger than the line icons, as they
+   fill less of their square. (A row keeps its height: they overlap the gap a little.) */
+.help-grid .icon.model,
+.help-touch .icon.model {
+  width: 2.2em;
+  height: 2.2em;
+  margin: -0.35em 0;
 }
 
 .help-grid kbd {
@@ -1208,12 +1222,42 @@ body.wardrobe-open .sheet {
   -webkit-text-stroke: 0;
 }
 
-/* Held down: shrinks toward a long-press drop. */
+/* Pressed: sinks into its shadow at once, like the menu buttons (a key or the wheel does the same,
+   briefly: .tapped); held down, it also shrinks toward a long-press drop. (Separate translate and
+   scale properties, so the sink is instant and the shrink slow.) */
+.weapon,
+.item,
+.stash-slot {
+  transition: translate 70ms ease-out, scale 120ms ease-out, box-shadow 70ms ease-out;
+}
+
+.weapon.pressing,
+.item.pressing,
+.stash-slot.pressing,
+.weapon.tapped,
+.item.tapped {
+  translate: 0 3px;
+}
+
 .weapon.pressing,
 .item.pressing,
 .stash-slot.pressing {
-  transform: scale(0.88);
-  transition: transform 450ms linear;
+  scale: 0.88;
+  transition: translate 70ms ease-out, scale 450ms linear, box-shadow 70ms ease-out;
+}
+
+.weapon.active.pressing,
+.weapon.active.tapped {
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.item:not(.empty).pressing,
+.item:not(.empty).tapped {
+  box-shadow: inset 0 0 0 3px var(--rarity, transparent), 0 0 0 var(--ink);
+}
+
+.stash-slot.pressing {
+  box-shadow: inset 0 0 0 3px var(--rarity, transparent), 0 0 0 var(--ink);
 }
 
 /* Ammo: a thin strip along the bottom of the card in the rarity color; it drains as you

@@ -106,6 +106,17 @@ export class Hud {
       pressable(el, () => input.useItem(i as 0 | 1 | 2), () => input.drop(2 + i));
       return { root: el, art: q('.art', el), count: q('.count', el) };
     });
+    // Keys 1-5 (and the wheel) press their slot on screen too, so you see which one you used.
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat || (e.target as HTMLElement | null)?.closest?.('input, textarea')) return;
+      const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(e.code);
+      if (n >= 0) tapped(n < 2 ? this.weapons[n]!.root : this.items[n - 2]!.root);
+    });
+    window.addEventListener('wheel', (e) => {
+      if (e.deltaY === 0 || (e.target as HTMLElement | null)?.closest?.('.overlay')) return;
+      const other = this.weapons.find((w) => !w.root.classList.contains('active'));
+      if (other) tapped(other.root);
+    }, { passive: true });
   }
 
   /** `alpha` is how far render time is past `state.tick` (0..1), for smooth progress. */
@@ -267,6 +278,13 @@ export class Hud {
     this.cache.set(key, value);
     apply(value);
   }
+}
+
+/** A slot used by key: it sinks for a moment, like a tap. */
+function tapped(el: HTMLElement): void {
+  if (el.classList.contains('empty')) return;
+  el.classList.add('tapped');
+  setTimeout(() => el.classList.remove('tapped'), 120);
 }
 
 /** Holding a slot this long drops what's in it. */
