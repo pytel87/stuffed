@@ -69,6 +69,8 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       umbrella: false,
       parts: rollParts(rng, entry.parts),
       stash: [],
+      holoAnimals: (entry.holoAnimals ?? []).filter((a) => ANIMALS.includes(a)),
+      missingParts: (entry.missingParts ?? []).filter((m) => ANIMALS.includes(m.animal) && PART_SLOTS.includes(m.slot)),
       lastInputSeq: -1,
       heldButtons: 0,
     };
@@ -153,7 +155,8 @@ function rollParts(rng: RngState, fixed: RosterEntry['parts'] = {}): PartLoadout
     // A real animal only (the look may come from outside, e.g. a saved profile).
     const animal = owned && ANIMALS.includes(owned.animal) ? owned.animal : pickAnimal(rng);
     const rarity = owned && animal === owned.animal && owned.rarity >= 0 && owned.rarity <= 4 ? owned.rarity : 0;
-    parts[slot] = { animal, rarity, found: false };
+    const holo = !!owned && typeof owned === 'object' && animal === owned.animal && owned.holo === true;
+    parts[slot] = { animal, rarity, found: false, ...(holo ? { holo: true } : {}) };
   }
   return parts;
 }

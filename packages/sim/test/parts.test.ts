@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ANIMAL_RARITY, ANIMALS, applyDamage, BotController, Btn, carriedParts, config, createGame, createWorld, fullSet, PART_SLOTS, secondsToTicks, spawnLoot, step, pickAnimal, rng, wornSet } from '../src/index.ts';
+import { ANIMAL_RARITY, ANIMALS, applyDamage, BotController, Btn, carriedParts, completeSets, config, DEFAULT_PARTS, missingPieces, createGame, createWorld, fullSet, PART_SLOTS, rollPart, secondsToTicks, spawnLoot, step, pickAnimal, rng, wornSet } from '../src/index.ts';
 import type { GameState, MapData, Part, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -208,5 +208,104 @@ describe('skin parts', () => {
       step(world, state, inputs);
     }
     expect(bot.parts.accessory).toEqual({ animal: 'shark', rarity: 0, found: true });
+  });
+});
+
+/** Who found a part, for rollPart: nothing unlocked, carrying nothing, unless told. */
+function finder(over: Partial<Pick<Player, 'holoAnimals' | 'missingParts' | 'parts' | 'stash'>> = {}) {
+  return { holoAnimals: [], missingParts: [], parts: structuredClone(DEFAULT_PARTS), stash: [], ...over };
+}
+
+describe('holographic parts', () => {
+  it("an animal's set counts once all five of its regular parts are owned (holo ones don't count)", () => {
+    const owned = PART_SLOTS.map((slot) => ({ slot, animal: 'frog' as const }));
+    expect(completeSets(owned)).toEqual(['frog']);
+    expect(completeSets(owned.slice(1))).toEqual([]);
+    expect(completeSets(owned.map((p) => ({ ...p, holo: true })))).toEqual([]);
+  });
+
+  it("a part comes out holo only for a finder who owns that animal's whole set", () => {
+    const r = rng.seedRng(7);
+    const everyone = finder({ holoAnimals: [...ANIMALS] });
+    const nobody = finder();
+    for (let i = 0; i < 50; i++) {
+      expect(rollPart(r, everyone, 1).holo).toBe(true);
+      expect(rollPart(r, nobody, 1).holo).toBeUndefined();
+      expect(rollPart(r, everyone, 0).holo).toBeUndefined();
+      expect(rollPart(r, null, 1).holo).toBeUndefined();
+    }
+  });
+
+  it('holo parts come out about as often as configured', () => {
+    const r = rng.seedRng(3);
+    const lucky = finder({ holoAnimals: [...ANIMALS] });
+    let holo = 0;
+    for (let i = 0; i < 20000; i++) if (rollPart(r, lucky, config.parts.holoChance).holo) holo++;
+    expect(holo / 20000).toBeCloseTo(config.parts.holoChance, 2);
+  });
+
+  it('a holo part stays holo worn and carried home', () => {
+    const { world, state, p } = solo();
+    spawnLoot(world, state, { x: 21, y: 40 }, { type: 'part', part: { ...shark('head'), holo: true } });
+    press(world, state);
+    expect(p.parts.head).toEqual({ animal: 'shark', rarity: 2, found: true, holo: true });
+    expect(carriedParts(p)).toEqual([{ slot: 'head', animal: 'shark', rarity: 2, holo: true }]);
+  });
+
+  it('a look can start with holo parts; the unlocked animals come from the roster', () => {
+    const state = createGame({
+      seed: 1,
+      map: OPEN_MAP,
+      roster: [{ name: 'you', isBot: false, parts: { head: { animal: 'frog', rarity: 0, holo: true }, body: 'frog' }, holoAnimals: ['frog', 'not-an-animal' as never] }],
+    });
+    const you = state.players[0]!;
+    expect(you.parts.head).toEqual({ animal: 'frog', rarity: 0, found: false, holo: true });
+    expect(you.parts.body.holo).toBeUndefined();
+    expect(you.holoAnimals).toEqual(['frog']);
+  });
+});
+
+describe("luck toward a set's last piece", () => {
+  it('finds the one part missing from each set four-fifths owned', () => {
+    const frog = PART_SLOTS.filter((s) => s !== 'tail').map((slot) => ({ slot, animal: 'frog' as const }));
+    const fox = PART_SLOTS.filter((s) => s !== 'head' && s !== 'body').map((slot) => ({ slot, animal: 'fox' as const }));
+    expect(missingPieces([...frog, ...fox])).toEqual([{ slot: 'tail', animal: 'frog' }]);
+    // A holo part doesn't fill the gap.
+    expect(missingPieces([...frog, { slot: 'tail', animal: 'frog', holo: true }])).toEqual([{ slot: 'tail', animal: 'frog' }]);
+  });
+
+  it("chests lean toward it, less for rarer animals (as configured, on top of the plain odds)", () => {
+    const r = rng.seedRng(11);
+    const n = 40000;
+    const rate = (animal: 'frog' | 'dragon') => {
+      const lucky = finder({ missingParts: [{ slot: 'tail', animal }] });
+      let hits = 0;
+      for (let i = 0; i < n; i++) {
+        const p = rollPart(r, lucky, 0);
+        if (p.slot === 'tail' && p.animal === animal) hits++;
+      }
+      return hits / n;
+    };
+    const frog = rate('frog');
+    const dragon = rate('dragon');
+    const chance = config.parts.missingPieceChance;
+    expect(frog).toBeGreaterThan(chance[ANIMAL_RARITY.frog]! * 0.9);
+    expect(frog).toBeLessThan(chance[ANIMAL_RARITY.frog]! + 0.02);
+    expect(dragon).toBeGreaterThan(chance[ANIMAL_RARITY.dragon]! * 0.85);
+    expect(dragon).toBeLessThan(chance[ANIMAL_RARITY.dragon]! + 0.01);
+    expect(frog).toBeGreaterThan(dragon * 2);
+  });
+
+  it('not once that piece is carried this match', () => {
+    const r = rng.seedRng(12);
+    const parts = structuredClone(DEFAULT_PARTS);
+    parts.tail = { animal: 'frog', rarity: 0, found: true };
+    const carrying = finder({ missingParts: [{ slot: 'tail', animal: 'frog' }], parts });
+    let hits = 0;
+    for (let i = 0; i < 5000; i++) {
+      const p = rollPart(r, carrying, 0);
+      if (p.slot === 'tail' && p.animal === 'frog') hits++;
+    }
+    expect(hits / 5000).toBeLessThan(0.02);
   });
 });

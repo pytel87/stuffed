@@ -155,9 +155,10 @@ export class Hud {
     // The bag: each slot shows its part, ringed in the animal's rarity color.
     this.bag.forEach((b, i) => {
       const part = me.stash[i];
-      this.set(`st${i}`, part ? `${part.slot}:${part.animal}` : '', (v) => {
+      this.set(`st${i}`, part ? `${part.slot}:${part.animal}:${part.holo ? 1 : 0}` : '', (v) => {
         b.root.hidden = v === '';
-        if (part) b.art.innerHTML = partIcon(part.slot, part.animal);
+        if (part) b.art.innerHTML = partIcon(part.slot, part.animal, 'icon', !!part.holo);
+        b.root.classList.toggle('holo', !!part?.holo);
         b.root.style.setProperty('--rarity', part ? config.rarity[ANIMAL_RARITY[part.animal]].color : 'transparent');
       });
     });
@@ -207,7 +208,7 @@ export class Hud {
       color = config.rarity[w.rarity].color;
     } else if (interaction?.kind === 'part') {
       const p = interaction.part;
-      art = `part:${p.slot}:${p.animal}`;
+      art = `part:${p.slot}:${p.animal}:${p.holo ? 1 : 0}`;
       // The animal's rarity, like a weapon's.
       color = config.rarity[ANIMAL_RARITY[p.animal]].color;
     } else if (interaction?.kind === 'chest') {
@@ -232,8 +233,8 @@ export class Hud {
       art = 'revive';
     }
     this.set('pr', art, (v) => {
-      const [kind, slot, animal] = v.split(':');
-      this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal) : icon(v);
+      const [kind, slot, animal, holo] = v.split(':');
+      this.promptArt.innerHTML = !v ? '' : kind === 'part' ? partIcon(slot as PartSlot, animal as Animal, 'icon', holo === '1') : icon(v);
       this.prompt.hidden = v === '';
       this.prompt.classList.toggle('hold', kind === 'chest' || kind === 'revive');
       // Parts: wear it (E, the hand) or stash it (Q, the bag), either side of the part.

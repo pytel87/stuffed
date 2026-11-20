@@ -332,6 +332,13 @@ export const config = {
     bagSize: 3,
     /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
     animalWeights: [0, 6, 4, 3, 1],
+    /** Odds of a part coming out holographic (for an animal whose whole set the finder owns):
+     *  from most chests, and from royal chests and piñatas. */
+    holoChance: 1 / 25,
+    holoChanceRich: 1 / 12,
+    /** Odds of a part found being the last piece of a set the finder has four of (one they don't
+     *  carry yet this match), by that animal's rarity (1-4): a helping hand, rarer sets still a chase. */
+    missingPieceChance: [0, 1 / 15, 1 / 25, 1 / 40, 1 / 60],
   },
 
   chest: {

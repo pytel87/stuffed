@@ -1,7 +1,7 @@
 // Chests, ground loot and pickups.
 import { config, secondsToTicks } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
-import { ANIMAL_RARITY, ANIMALS, PART_SLOTS, pickAnimal } from '../parts.ts';
+import { ANIMAL_RARITY, ANIMALS, looseOf, PART_SLOTS, pickAnimal, rollPart } from '../parts.ts';
 import { nextFloat, pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import { Btn } from '../types.ts';
 import type { Chest, GameState, GroundLoot, Input, ItemStack, LootContent, Part, Player, Rarity, Vec2 } from '../types.ts';
@@ -255,11 +255,8 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   // The starting weapon from a chest is always better than the one you have.
   const rarity = kind === 'cork_popper' ? (Math.max(1, rolled) as Rarity) : rolled;
   const item = pickWeighted(state.rng, chest.loot === 'food' ? config.chest.foodItemWeights : config.chest.itemWeights);
-  const part: Part = {
-    slot: pick(state.rng, PART_SLOTS),
-    animal: pickAnimal(state.rng),
-    rarity: 0, // parts have no rarity
-  };
+  // (Parts have no rarity of their own; one can come out holographic for the opener.)
+  const part = rollPart(state.rng, opener, chest.loot === 'high' ? config.parts.holoChanceRich : config.parts.holoChance);
 
   // Drops land to either side of the opener (60 degrees off their direction), not under them.
   const toward = opener ? unit(opener.pos.x - chest.pos.x, opener.pos.y - chest.pos.y) : { x: 0, y: 1 };
@@ -323,9 +320,9 @@ function pickUpWeapon(world: World, state: GameState, player: Player, loot: Grou
 function wearPart(world: World, state: GameState, player: Player, loot: GroundLoot, part: Part): void {
   removeLoot(state, loot.id);
   const old = player.parts[part.slot];
-  player.parts[part.slot] = { animal: part.animal, rarity: part.rarity, found: true };
+  player.parts[part.slot] = { animal: part.animal, rarity: part.rarity, found: true, ...(part.holo ? { holo: true } : {}) };
   if (old.found) {
-    const off: Part = { slot: part.slot, animal: old.animal, rarity: old.rarity };
+    const off = looseOf(part.slot, old);
     if (player.stash.length < config.parts.bagSize) player.stash.push(off);
     else spawnLoot(world, state, loot.pos, { type: 'part', part: off }, loot.z);
   }
@@ -409,7 +406,7 @@ export function dropEverything(world: World, state: GameState, player: Player): 
   for (const slot of PART_SLOTS) {
     const part = player.parts[slot];
     if (!part.found) continue;
-    worn.push({ slot, animal: part.animal, rarity: part.rarity });
+    worn.push(looseOf(slot, part));
     part.found = false;
   }
   const kept = player.isBot ? [] : worn;

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, carriedBy, coveredBy, rampSurface, chargeAmount, config, createWorld, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
+import { ANIMALS, canSee, carriedBy, coveredBy, rampSurface, chargeAmount, config, createWorld, fullSet, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
 import type { Animal, EntityId, GameEvent, GameState, MapData, PartLoadout, PartSlot, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
@@ -21,6 +21,7 @@ import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
+import { HOLO_TIME } from './holo.ts';
 import { Daylight, evening } from './daylight.ts';
 import { RINSE_BW, RinseFog, RinseView } from './rinse-view.ts';
 import { buildPart } from './placeholder-parts.ts';
@@ -31,6 +32,18 @@ import { buildWeapon } from './weapon-models.ts';
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
 /** How far round the camera's focus the snow falls (a box this wide and this tall). */
+/** Seconds between the finale bursts of a plush dancing in a full set. */
+const FINALE_EVERY = 2.4;
+
+/** ?holo: holographic parts to try out (yours, or ?holo=all for everyone's; ?holo=head,body for some). */
+const HOLO = (() => {
+  const v = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('holo');
+  if (v === null) return null;
+  const everyone = v === 'all';
+  const picked = v.split(',').filter((s): s is PartSlot => (PART_SLOTS as readonly string[]).includes(s));
+  return { everyone, slots: picked.length ? picked : [...PART_SLOTS] };
+})();
+
 const SNOW_SPAN = 56;
 const SNOW_HEIGHT = 22;
 
@@ -137,6 +150,8 @@ export class GameRenderer {
   /** Set trails: distance walked since the last print, and how many prints so far. */
   private readonly trailWalked = new Map<EntityId, number>();
   private readonly trailSteps = new Map<EntityId, number>();
+  /** When each plush dancing in a full set does its next finale burst. */
+  private readonly finales = new Map<EntityId, number>();
   /** Distance walked since the last step (a splash in water), per plush. */
   private readonly stepWalked = new Map<EntityId, number>();
   /** A plush splashed through water (for the sound). */
@@ -270,7 +285,7 @@ export class GameRenderer {
   }
 
   /** Which parts are new to the player (a sparkle over them on the ground). */
-  set isNewPart(fn: (slot: PartSlot, animal: Animal) => boolean) {
+  set isNewPart(fn: (slot: PartSlot, animal: Animal, holo?: boolean) => boolean) {
     this.loot.isNewPart = fn;
   }
 
@@ -522,6 +537,7 @@ export class GameRenderer {
     for (const view of this.plushes.values()) view.dispose();
     this.plushes.clear();
     this.dripTimers.clear();
+    this.finales.clear();
     this.projectiles.clear();
     this.chests.clear();
     this.strikes.clear();
@@ -566,6 +582,8 @@ export class GameRenderer {
         this.scene.add(view.root);
       }
       view.setParts(p.parts);
+      // Holographic parts; ?holo tries them on your plush (?holo=head,body: just those; ?holo=all: everyone's).
+      view.setHolo(HOLO && (HOLO.everyone || p.id === opts.localPlayerId) ? HOLO.slots : PART_SLOTS.filter((slot) => p.parts[slot].holo));
       const weapon = p.weapons[p.activeSlot];
       view.setWeapon(weapon?.kind ?? null, weapon?.rarity ?? 0);
       view.setCharge(weapon ? chargeAmount(p, weapon.kind, curr.tick + alpha) : 0);
@@ -636,7 +654,18 @@ export class GameRenderer {
       view.setGliding(p.drop === 'gliding' || p.umbrella);
       // The victory lap: the winner (or winning team) dances while standing still.
       const won = curr.victoryUntil !== null && p.alive && (curr.winnerId === p.id || (curr.winnerTeam !== null && p.team === curr.winnerTeam));
-      view.dance(won && speedNow < 0.6 && z - groundY < 0.05, opts.dt, opts.time);
+      const dancing = won && speedNow < 0.6 && z - groundY < 0.05;
+      view.dance(dancing, opts.dt, opts.time, p.parts.head.animal);
+      // In a full set, a finale every couple of seconds: its animal's burst (a whole holo set adds a
+      // shower of rainbow glitter).
+      if (dancing && view.root.visible) {
+        const set = fullSet(p.parts);
+        if (set && opts.time >= (this.finales.get(p.id) ?? 0)) {
+          this.finales.set(p.id, opts.time + FINALE_EVERY);
+          this.effects.setKnockout(set, pos.x, pos.y);
+          if (PART_SLOTS.every((slot) => p.parts[slot].holo)) this.effects.setKnockout('unicorn', pos.x, pos.y);
+        }
+      }
       view.setTeammate(!!viewer && viewer.team !== 0 && p.team === viewer.team && p.id !== viewer.id);
       if ((p.soggy || curr.tick < p.soakedUntil) && view.root.visible) {
         const t = (this.dripTimers.get(p.id) ?? 0) - opts.dt;
@@ -707,6 +736,7 @@ export class GameRenderer {
     this.setShadowReach(1 + Math.max(0, Math.ceil((this.rig.zoomedOut - 1.02) / 0.4)) * 0.4);
     // Keep the shadow camera centered on what the player sees.
     // ...moving it in whole shadow-map texels, so shadow edges stay still instead of crawling.
+    HOLO_TIME.value = opts.time;
     // The light of the hour: day while the Rinse waits, sunset by the final circle.
     this.daylight.apply(this.world.map, evening(curr));
     snapToTexels(this.rig.target, this.sun, this.daylight.sunOffset, this.shadowTarget);

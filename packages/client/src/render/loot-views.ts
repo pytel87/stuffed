@@ -1,6 +1,7 @@
 // Toy chests and ground loot. Loot floats and spins above a glow in its rarity color so it
 // reads from the top-down camera; Limited Edition and up also get a light beam.
 import * as THREE from 'three';
+import { makeHolo } from './holo.ts';
 import { config } from '@stuffed/sim';
 import type { Animal, Chest, EntityId, GameState, GroundLoot, ItemKind, Part, PartSlot, WeaponKind } from '@stuffed/sim';
 import { mergeStatic } from './merge-static.ts';
@@ -494,6 +495,9 @@ export function buildItem(kind: ItemKind): THREE.Group {
   return g;
 }
 
+/** Scratch for a holo part's ring color. */
+const RAINBOW = new THREE.Color();
+
 /** Largest size of a part shown on the ground. */
 const PART_SIZE = 0.8;
 
@@ -518,8 +522,47 @@ interface LootView {
   glow: THREE.Mesh;
   halo: THREE.Mesh;
   beam: THREE.Mesh | null;
+  /** A holographic part: its beam and star drift through the rainbow. */
+  holo: { materials: THREE.Material[] } | null;
   age: number;
   phase: number;
+}
+
+let holoStarTex: THREE.CanvasTexture | null = null;
+/** The same four-point star, white, for tinting through the rainbow (over holo parts new to you). */
+function holoStarTexture(): THREE.CanvasTexture {
+  if (holoStarTex) return holoStarTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  glow.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 64, 64);
+  // White, lighter in the middle: tinted through the rainbow as it shows (see LootViews.update).
+  const fill = g.createRadialGradient(32, 32, 0, 32, 32, 26);
+  fill.addColorStop(0, '#ffffff');
+  fill.addColorStop(1, '#e8e8f0');
+  g.fillStyle = fill;
+  g.strokeStyle = '#2a1f2d';
+  g.lineWidth = 2.5;
+  g.beginPath();
+  g.moveTo(32, 6);
+  g.quadraticCurveTo(35, 29, 58, 32);
+  g.quadraticCurveTo(35, 35, 32, 58);
+  g.quadraticCurveTo(29, 35, 6, 32);
+  g.quadraticCurveTo(29, 29, 32, 6);
+  g.fill();
+  g.stroke();
+  const shine = g.createRadialGradient(32, 32, 0, 32, 32, 12);
+  shine.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  shine.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  g.fillStyle = shine;
+  g.fill();
+  holoStarTex = new THREE.CanvasTexture(c);
+  holoStarTex.colorSpace = THREE.SRGBColorSpace;
+  return holoStarTex;
 }
 
 let sparkleTex: THREE.CanvasTexture | null = null;
@@ -669,8 +712,10 @@ function buildLoot(loot: GroundLoot): LootView {
   glow.position.y = 0.06;
   root.add(glow);
 
+  // A holo part: a beam too (drifting through the rainbow), and a rainbow star while it's new to you.
+  const holoPart = loot.content.type === 'part' && !!loot.content.part.holo;
   let beam: THREE.Mesh | null = null;
-  if (loot.rarity >= 3) {
+  if (loot.rarity >= 3 || holoPart) {
     // A soft shaft of light: a card facing the camera (it never turns), brightest at the bottom
     // and fading out upward, with feathered sides (a see-through tube read as a solid one).
     beam = new THREE.Mesh(
@@ -693,6 +738,7 @@ function buildLoot(loot: GroundLoot): LootView {
   // Weapon models are built around their grip; center them over the glow.
   if (loot.content.type === 'weapon') model.children[0]!.position.z = -0.3;
   mergeStatic(model);
+  if (holoPart) makeHolo(model);
   root.add(model);
   let sparkle: LootView['sparkle'] = null;
   if (c.type === 'part') {
@@ -703,7 +749,7 @@ function buildLoot(loot: GroundLoot): LootView {
     );
     glowSprite.renderOrder = 4;
     sRoot.add(glowSprite);
-    const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false }));
+    const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: holoPart ? holoStarTexture() : sparkleTexture(), depthWrite: false, toneMapped: false }));
     star.renderOrder = 5;
     sRoot.add(star);
     // Two tiny twinkles circling it.
@@ -716,13 +762,19 @@ function buildLoot(loot: GroundLoot): LootView {
     root.add(sRoot);
     sparkle = { root: sRoot, star, glow: glowSprite, twinkles };
   }
-  return { root, model, sparkle, glow, halo, beam, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
+  // What drifts through the rainbow on a holo part: its beam and the glow behind its star.
+  const holo: LootView['holo'] = holoPart ? { materials: [] } : null;
+  if (holo) {
+    beam?.traverse((o) => { if (o instanceof THREE.Mesh) holo.materials.push(o.material as THREE.Material); });
+    if (sparkle) holo.materials.push(sparkle.star.material, sparkle.glow.material, ...sparkle.twinkles.map((t) => t.material));
+  }
+  return { root, model, sparkle, glow, halo, beam, holo, age: 0, phase: (loot.id * 0.77) % (Math.PI * 2) };
 }
 
 export class LootViews {
   private readonly views = new Map<EntityId, LootView>();
   /** Whether a part would be new to you (sparkles over it on the ground). */
-  isNewPart: (slot: PartSlot, animal: Animal) => boolean = () => false;
+  isNewPart: (slot: PartSlot, animal: Animal, holo?: boolean) => boolean = () => false;
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -764,7 +816,8 @@ export class LootViews {
       if (view.sparkle && loot.content.type === 'part') {
         const part = loot.content.part;
         const sp = view.sparkle;
-        sp.root.visible = f >= 1 && this.isNewPart(part.slot, part.animal);
+        // Over a part new to you (a holo one counts apart from the plain one: its star's a rainbow).
+        sp.root.visible = f >= 1 && this.isNewPart(part.slot, part.animal, !!part.holo);
         if (sp.root.visible) {
           sp.root.position.y = 1.35 + Math.sin(time * 3 + view.phase) * 0.12;
           (sp.star.material as THREE.SpriteMaterial).rotation = Math.sin(time * 2 + view.phase) * 0.4;
@@ -790,6 +843,10 @@ export class LootViews {
       view.model.rotation.y = time * 1.3 + view.phase;
       const pulse = 0.8 + Math.sin(time * 3 + view.phase) * 0.2;
       (view.glow.material as THREE.MeshBasicMaterial).opacity = pulse * pop;
+      if (view.holo) {
+        RAINBOW.setHSL((time * 0.2 + view.phase) % 1, 0.9, 0.68);
+        for (const m of view.holo.materials) (m as THREE.MeshBasicMaterial).color.copy(RAINBOW);
+      }
       (view.halo.material as THREE.MeshBasicMaterial).opacity = (0.4 + Math.sin(time * 3 + view.phase) * 0.1) * pop;
       view.glow.scale.setScalar(pop);
       if (view.beam) view.beam.scale.set(1, pop, 1);

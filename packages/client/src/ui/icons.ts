@@ -151,13 +151,17 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
 };
 
 /** A skin part as a slot shape in its animal's colors. */
-export function partIcon(slot: PartSlot, animal: Animal, className = 'icon'): string {
+export function partIcon(slot: PartSlot, animal: Animal, className = 'icon', holo = false): string {
   const picture = modelPictures.get(`part:${slot}:${animal}`);
-  if (picture) return `<img class="${className} model" src="${picture}" alt="" draggable="false">`;
+  // Holographic: the same picture (as the part looks in play) with a little rainbow star in its
+  // corner; the button or slot it's in gets a rainbow background (the .holo class).
+  const badge = holo ? '<span class="holo-badge" aria-hidden="true"></span>' : '';
+  if (picture) return holo ? `<span class="holo-pic"><img class="${className} model" src="${picture}" alt="" draggable="false">${badge}</span>` : `<img class="${className} model" src="${picture}" alt="" draggable="false">`;
   const c = ANIMAL_COLORS[animal];
   const shape = slot === 'head' ? HEAD_EXTRAS[animal] + PART_SHAPES.head + (HEAD_FRONT[animal] ?? '') : PART_SHAPES[slot];
   const body = shape.replaceAll('fill="M"', `fill="${c.main}"`).replaceAll('fill="B"', `fill="${c.belly}"`);
-  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+  const svg = `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+  return holo ? `<span class="holo-pic">${svg}${badge}</span>` : svg;
 }
 
 /** Pictures of the real models (weapons, items, the chest), rendered at startup. */

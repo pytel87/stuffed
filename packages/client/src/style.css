@@ -2186,3 +2186,120 @@ body.touch-mode .gear {
   font: 800 0.95rem/1.2 var(--font);
   pointer-events: none;
 }
+
+/* Holo parts: the picture as it is, a little rainbow star in its corner (icons.ts), and a soft
+   rainbow drifting behind it on its button or slot (.holo). */
+.holo-pic {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.holo-badge {
+  position: absolute;
+  top: -8%;
+  right: -10%;
+  width: 46%;
+  height: 46%;
+  background: conic-gradient(from 20deg, #ff7eb6, #ffd36e, #8affb0, #6ee7ff, #b48cff, #ff7eb6);
+  clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+  filter: drop-shadow(0 0 1px rgba(42, 31, 45, 0.9));
+  animation: holo-badge 2.4s ease-in-out infinite;
+}
+
+@keyframes holo-badge {
+  50% {
+    transform: scale(1.18) rotate(12deg);
+  }
+}
+
+.wardrobe-picker .pick.holo,
+.wardrobe-slot.holo,
+.gallery-part.owned.holo,
+.kept-part.holo,
+.stash-slot.holo {
+  background: linear-gradient(135deg, #ffd1e6, #fff1c4, #d4ffe0, #cdf3ff, #e4d6ff, #ffd1e6, #fff1c4) 0 0 / 300% 300%;
+  animation: holo-bg 5s linear infinite;
+}
+
+@keyframes holo-bg {
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+/* The gallery: how many of an animal's holo parts you have (once its set is complete). */
+.gallery-holo {
+  position: absolute;
+  top: 1.75rem;
+  right: 0.45rem;
+  font: 900 0.85rem/1 var(--font);
+  color: var(--ink);
+  background: linear-gradient(135deg, #ffd1e6, #fff1c4, #d4ffe0, #cdf3ff, #e4d6ff);
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+}
+
+/* Every holo part of an animal: the card itself turns holographic. */
+.gallery-card.complete.holo-complete {
+  background:
+    linear-gradient(135deg, #ffd1e6, #fff1c4, #d4ffe0, #cdf3ff, #e4d6ff, #ffd1e6, #fff1c4) 0 0 / 300% 300% padding-box,
+    conic-gradient(from var(--spin, 0deg), #ff6b8a, #ffd23a, #5bd16a, #29c8ff, #b58bff, #ff6b8a) border-box;
+  animation: rainbow-spin 3s linear infinite, holo-bg 5s linear infinite;
+}
+
+/* The gallery's summary: parts, sets, holo parts and holo sets, each with a progress bar. */
+.gallery-summary {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.summary-stat {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.45rem 0.6rem 0.55rem;
+  border-radius: 0.9rem;
+  border: 3px solid var(--ink);
+  background: #fffaf3;
+  color: var(--ink);
+}
+
+.summary-stat span {
+  font: 800 0.75rem/1 var(--font);
+  opacity: 0.75;
+}
+
+.summary-stat b {
+  font: 900 1.35rem/1 var(--font);
+}
+
+.summary-stat small {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+/* The bar: green for the plain collection, a drifting rainbow for the holo one. */
+.summary-stat i {
+  display: block;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5bd16a var(--done), rgba(42, 31, 45, 0.12) var(--done));
+}
+
+.summary-stat.holo {
+  background: linear-gradient(135deg, #ffe6f1, #fff6dc, #e6fff0, #e3f8ff, #f0e8ff);
+}
+
+.summary-stat.holo i {
+  background:
+    linear-gradient(90deg, transparent var(--done), #e6e0e8 var(--done)),
+    linear-gradient(90deg, #ff7eb6, #ffd36e, #8affb0, #6ee7ff, #b48cff);
+}
+
+@media (max-width: 560px) {
+  .gallery-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

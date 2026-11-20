@@ -11,6 +11,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, recovery TEXT NOT NULL UNIQUE, look TEXT NOT NULL, created_at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tokens (token_hash TEXT PRIMARY KEY, profile_id TEXT NOT NULL, created_at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS owned_parts (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
+  // Holographic parts, kept apart (the owned_parts key has no room for them, and this needs no migration).
+  'CREATE TABLE IF NOT EXISTS owned_holo (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
 ];
 
 let schemaReady: Promise<void> | null = null;
@@ -72,8 +74,8 @@ export function parseParts(value: unknown, max: number): Part[] | null {
   if (!Array.isArray(value) || value.length > max) return null;
   const parts: Part[] = [];
   for (const p of value as Record<string, unknown>[]) {
-    if (!p || !isPartOf(p.slot, p.animal, p.rarity)) return null;
-    parts.push({ slot: p.slot as PartSlot, animal: p.animal as Animal, rarity: p.rarity as Rarity });
+    if (!p || !isPartOf(p.slot, p.animal, p.rarity) || (p.holo !== undefined && typeof p.holo !== 'boolean')) return null;
+    parts.push({ slot: p.slot as PartSlot, animal: p.animal as Animal, rarity: p.rarity as Rarity, ...(p.holo === true ? { holo: true } : {}) });
   }
   return parts;
 }
@@ -84,8 +86,8 @@ export function parseLook(value: unknown): Look | null {
   const look = {} as Look;
   for (const slot of PART_SLOTS) {
     const p = (value as Record<string, Record<string, unknown> | undefined>)[slot];
-    if (!p || !isPartOf(slot, p.animal, p.rarity)) return null;
-    look[slot] = { animal: p.animal as Animal, rarity: p.rarity as Rarity };
+    if (!p || !isPartOf(slot, p.animal, p.rarity) || (p.holo !== undefined && typeof p.holo !== 'boolean')) return null;
+    look[slot] = { animal: p.animal as Animal, rarity: p.rarity as Rarity, ...(p.holo === true ? { holo: true } : {}) };
   }
   return look;
 }
@@ -128,11 +130,12 @@ export async function loadProfile(db: D1Database, id: string): Promise<Profile |
   await ensureSchema(db);
   const row = await db.prepare('SELECT id, recovery, look FROM profiles WHERE id = ?').bind(id).first<{ id: string; recovery: string; look: string }>();
   if (!row) return null;
-  const { results } = await db
-    .prepare('SELECT slot, animal, rarity, count FROM owned_parts WHERE profile_id = ? ORDER BY slot, animal, rarity')
-    .bind(id)
-    .all<OwnedEntry>();
-  return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts: results };
+  const [plain, holo] = await db.batch<OwnedEntry>([
+    db.prepare('SELECT slot, animal, rarity, count FROM owned_parts WHERE profile_id = ? ORDER BY slot, animal, rarity').bind(id),
+    db.prepare('SELECT slot, animal, rarity, count FROM owned_holo WHERE profile_id = ? ORDER BY slot, animal, rarity').bind(id),
+  ]);
+  const parts = [...plain!.results, ...holo!.results.map((p) => ({ ...p, holo: true }))];
+  return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts };
 }
 
 /** Adds this device to the profile with that recovery code; returns a token for it. */
@@ -151,7 +154,8 @@ export async function recoverProfile(db: D1Database, code: string): Promise<{ to
 export async function setLook(db: D1Database, id: string, look: Look): Promise<Profile | null> {
   const profile = await loadProfile(db, id);
   if (!profile) return null;
-  const owns = (slot: PartSlot) => profile.parts.some((p) => p.slot === slot && p.animal === look[slot].animal && p.rarity === look[slot].rarity);
+  const owns = (slot: PartSlot) =>
+    profile.parts.some((p) => p.slot === slot && p.animal === look[slot].animal && p.rarity === look[slot].rarity && !!p.holo === !!look[slot].holo);
   if (!PART_SLOTS.every(owns)) return null;
   await db.prepare('UPDATE profiles SET look = ? WHERE id = ?').bind(JSON.stringify(look), id).run();
   return { ...profile, look };
@@ -168,7 +172,7 @@ function addPartStatements(db: D1Database, id: string, parts: readonly Part[], n
   return parts.map((p) =>
     db
       .prepare(
-        'INSERT INTO owned_parts (profile_id, slot, animal, rarity, count, first_at) VALUES (?, ?, ?, ?, 1, ?) ' +
+        `INSERT INTO ${p.holo ? 'owned_holo' : 'owned_parts'} (profile_id, slot, animal, rarity, count, first_at) VALUES (?, ?, ?, ?, 1, ?) ` +
           'ON CONFLICT (profile_id, slot, animal, rarity) DO UPDATE SET count = count + 1',
       )
       .bind(id, p.slot, p.animal, p.rarity, now),

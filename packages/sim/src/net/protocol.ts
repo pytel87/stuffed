@@ -4,7 +4,7 @@ import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PinataState, PlacedWall, Player, Projectile, Strike, StrikeButtonState, Toss, ToyState, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 17;
+export const PROTOCOL_VERSION = 18;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -321,6 +321,8 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     weapons: [weaponFrom(p.weapons[0]), weaponFrom(p.weapons[1])],
     items: [null, null, null],
     stash: [],
+    holoAnimals: [],
+    missingParts: [],
     lastInputSeq: 0,
     rideAgainTick: 0,
     heldButtons: 0,

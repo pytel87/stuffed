@@ -1,6 +1,9 @@
 // One plush on screen: a single rig with 5 part slots. Animation (walk, squash and stretch,
 // lean) is render-only and derived from interpolated sim velocity; the sim never sees it.
 import * as THREE from 'three';
+import { holoMaterial, isDark } from './holo.ts';
+import { ANIMAL_KIND } from '../animal-kinds.ts';
+import { setUmbrellaPanels } from './set-umbrellas.ts';
 import { coarsen, LOW_DETAIL } from './low-detail.ts';
 import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
@@ -176,6 +179,10 @@ function glitterFlakeTexture(): THREE.CanvasTexture {
   return glitterTex;
 }
 
+/** Scratch for aiming the laser level. */
+const UNLEAN = new THREE.Quaternion();
+const LEVEL = new THREE.Quaternion();
+
 export class PlushView {
   readonly root = new THREE.Group();
   private readonly lean = new THREE.Group();
@@ -197,6 +204,9 @@ export class PlushView {
   private recoil = 0;
   private flashTime = 0;
   private toonMaterials: THREE.MeshToonMaterial[] = [];
+  /** Holographic parts (see setHolo). */
+  private holo: ReadonlySet<PartSlot> = new Set();
+  private holoKey = '';
   private readonly arms: PlushArms;
   /** Soft blob on the surface below; shrinks and fades with height so jumps read from above. */
   private readonly blob: THREE.Mesh;
@@ -214,10 +224,13 @@ export class PlushView {
   private bubbleAmount = 0;
   /** A paper umbrella held up while gliding down from the Toss. */
   private readonly umbrella: THREE.Group;
+  /** Its canopy panels: a rainbow, or a full set's colors and pattern (see setUmbrellaPanels). */
+  private readonly umbrellaPanels: THREE.MeshToonMaterial[];
   /** Glitter swirling round a glittered plush (made the first time it's needed). */
   private glitter: THREE.Group | null = null;
-  /** The Rubber Band Rifle's aim line while drawing it. */
+  /** The Rubber Band Rifle's aim line while drawing it: a thin vivid laser in a faint glow. */
   private readonly beam: THREE.Mesh;
+  private readonly beamCore: THREE.Mesh;
   /** Pillow Hammer swing in progress (1 → 0). */
   private swingTime = 0;
   private weaponKind: WeaponKind | null = null;
@@ -287,12 +300,13 @@ export class PlushView {
     this.umbrella = new THREE.Group();
     const U = umbrellaGeometry();
     const weave = umbrellaWeave();
-    UMBRELLA_PANELS.forEach((c, i) => {
+    this.umbrellaPanels = UMBRELLA_PANELS.map((c, i) => {
       const m = toonMaterial(c, { side: THREE.DoubleSide });
       m.normalMap = weave;
       const panel = new THREE.Mesh(U.panels[i]!, m);
       panel.position.y = UMBRELLA_Y;
       this.umbrella.add(panel);
+      return m;
     });
     const hull = new THREE.Mesh(U.hull, outlineMaterial(outlineColor));
     hull.position.y = UMBRELLA_Y;
@@ -322,13 +336,19 @@ export class PlushView {
 
     // A thin red line from the band rifle out along the aim, brighter as it's drawn.
     this.beam = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.06, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
-      new THREE.MeshBasicMaterial({ color: '#ff3b5c', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+      new THREE.PlaneGeometry(0.05, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
+      new THREE.MeshBasicMaterial({ color: '#ff2d55', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
     );
-    this.beam.position.set(WEAPON_SOCKET[0], WEAPON_SOCKET[1] + 0.06, WEAPON_SOCKET[2] + 0.7);
+    this.beamCore = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.018, 1).rotateX(-Math.PI / 2).translate(0, 0.002, 0.5),
+      new THREE.MeshBasicMaterial({ color: '#ff3d63', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    );
+    this.beam.add(this.beamCore);
+    // From the rifle's front notch, held with it (it bobs, squashes and recoils with the gun).
+    this.beam.position.set(0, 0.08, 0.68);
     this.beam.scale.z = 16;
     this.beam.visible = false;
-    this.facing.add(this.beam);
+    this.weaponSocket.add(this.beam);
     // Phones and tablets: fewer triangles in the arms, bubble and parasol (parts do it as built).
     coarsen(this.root);
     this.setParts(parts);
@@ -357,6 +377,7 @@ export class PlushView {
     const lift = FACE_ACCESSORIES.has(parts.accessory.animal) ? 0 : (HEAD_TOP_LIFT[parts.head.animal] ?? 0);
     this.slots.accessory.position.y = SOCKETS.accessory[1] + lift;
     const set = fullSet(parts);
+    this.dressUmbrella(set);
     this.glowRing.visible = set !== null;
     this.glowColor = set ? new THREE.Color(SET_GLOW[set]) : null;
     if (set) (this.glowRing.material as THREE.MeshBasicMaterial).color.set(SET_GLOW[set]);
@@ -364,9 +385,52 @@ export class PlushView {
       this.bodyAnimal = parts.body.animal;
       this.arms.setColor(bodyColor(parts.body.animal));
     }
+    this.applyHolo();
     this.collectMaterials();
     this.trimShadows();
     return true;
+  }
+
+  /** The parasol in a full set's colors and pattern, or the rainbow one. */
+  private dressUmbrella(set: Animal | null): void {
+    const looks = set ? setUmbrellaPanels(set, UMBRELLA_PANELS.length) : null;
+    this.umbrellaPanels.forEach((m, i) => {
+      m.color.set(looks ? looks[i]!.color : UMBRELLA_PANELS[i]!);
+      const map = looks ? looks[i]!.map : null;
+      if (m.map !== map) {
+        m.map = map;
+        m.needsUpdate = true;
+      }
+    });
+  }
+
+  /** Which parts are holographic (a try-out of shiny variants; the arms go with the body). */
+  setHolo(slots: readonly PartSlot[]): void {
+    const key = [...slots].sort().join(',');
+    if (key === this.holoKey) return;
+    this.holoKey = key;
+    this.holo = new Set(slots);
+    this.applyHolo();
+    this.collectMaterials();
+  }
+
+  private applyHolo(): void {
+    const finish = (group: THREE.Object3D, on: boolean) =>
+      group.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        const base = (o.userData.holoBase as THREE.Material | undefined) ?? (o.material as THREE.Material);
+        if (!(base instanceof THREE.MeshToonMaterial)) return;
+        if (o.userData.holoBase) (o.material as THREE.Material).dispose();
+        if (on && !isDark(base)) {
+          o.userData.holoBase = base;
+          o.material = holoMaterial(base);
+        } else {
+          o.material = base;
+          delete o.userData.holoBase;
+        }
+      });
+    for (const slot of PART_SLOTS) finish(this.slots[slot], this.holo.has(slot));
+    finish(this.arms.group, this.holo.has('body'));
   }
 
   setWeapon(kind: WeaponKind | null, rarity: Rarity): void {
@@ -374,6 +438,7 @@ export class PlushView {
     if (key === this.weaponKey) return;
     this.weaponKey = key;
     for (const child of [...this.weaponSocket.children]) {
+      if (child === this.beam) continue; // the laser stays (it's held with any gun)
       this.weaponSocket.remove(child);
       disposeGeometries(child);
     }
@@ -450,24 +515,90 @@ export class PlushView {
 
   /** Gliding down from the Toss under an umbrella. */
   /**
-   * The winner's dance (after update, which it adds to): hops in time, wiggles side to side and
-   * spins round now and then. `on` eases it in and out, so walking off to loot stops it smoothly.
+   * The victory-lap dance, the head animal's own (by its kind): springy ones bounce high and spin,
+   * heavy ones stomp from side to side, winged ones flutter and take off, squishy ones wobble like
+   * jelly, fluffy ones twirl. A few add a signature touch (the frog's big hops, the bee's buzzing
+   * circle, the penguin's belly slide, the dragon and phoenix rearing up). `on` eases it in and out,
+   * so walking off to loot stops it smoothly.
    */
-  dance(on: boolean, dt: number, time: number): void {
+  dance(on: boolean, dt: number, time: number, animal: Animal): void {
     this.danceAmount += ((on ? 1 : 0) - this.danceAmount) * (1 - Math.exp(-6 * dt));
     const k = this.danceAmount;
+    this.squash.rotation.x = 0;
     if (k < 0.01) return;
-    const beat = time * 7;
-    // The whole plush hops (feet and all; update put it back on the ground this frame).
-    this.root.position.y += Math.abs(Math.sin(beat)) * 0.28 * k;
-    const s = Math.sin(beat * 2) * 0.08 * k;
-    this.squash.scale.set(this.squash.scale.x * (1 + s), this.squash.scale.y * (1 - s), this.squash.scale.z * (1 + s));
-    this.lean.rotation.z += Math.sin(beat * 0.5) * 0.22 * k;
-    // A full turn every couple of seconds, quick, then a pause facing the camera's way.
-    const cycle = (time % 2.4) / 2.4;
-    const turn = cycle < 0.35 ? (1 - Math.cos((cycle / 0.35) * Math.PI)) * Math.PI : 0;
-    this.facing.rotation.y += turn * k;
+    // (update put the plush back in place this frame; these add on top, scaled by how far in it is.)
+    const lift = (y: number) => (this.root.position.y += y * k);
+    const squish = (s: number) => this.squash.scale.set(this.squash.scale.x * (1 + s * k), this.squash.scale.y * (1 - s * k), this.squash.scale.z * (1 + s * k));
+    const sway = (z: number) => (this.lean.rotation.z += z * k);
+    const turn = (y: number) => (this.facing.rotation.y += y * k);
+    const pitch = (x: number) => (this.squash.rotation.x = x * k);
+    /** One full turn, eased, `length` of every `period` seconds. */
+    const spin = (period: number, length: number) => {
+      const c = (time % period) / period;
+      return c < length ? (1 - Math.cos((c / length) * Math.PI)) * Math.PI : 0;
+    };
+    switch (ANIMAL_KIND[animal]) {
+      case 'springy': {
+        const beat = time * 6;
+        const hop = Math.abs(Math.sin(beat));
+        lift(hop * (animal === 'frog' ? 0.62 : 0.42));
+        squish((1 - hop) ** 6 * 0.25 - hop * 0.05);
+        sway(Math.sin(beat * 0.5) * 0.15);
+        turn(spin(2.1, 0.3));
+        break;
+      }
+      case 'heavy': {
+        // A stomp on each beat, rocking from foot to foot, turning a little side to side.
+        const beat = time * 4;
+        const step = Math.sin(beat);
+        lift(Math.abs(step) * 0.14);
+        sway(step * 0.3);
+        squish(Math.max(0, -Math.cos(beat * 2)) ** 3 * 0.14);
+        turn(Math.sin(beat * 0.5) * 0.35);
+        break;
+      }
+      case 'winged': {
+        // Fluttering little hops, then a take-off with a turn every couple of seconds.
+        const flutter = time * 11;
+        const c = (time % 2.4) / 2.4;
+        const takeOff = c < 0.35 ? Math.sin((c / 0.35) * Math.PI) : 0;
+        lift(Math.abs(Math.sin(flutter)) * 0.1 + takeOff * 0.55);
+        sway(Math.sin(flutter) * 0.1);
+        turn(spin(2.4, 0.35));
+        if (animal === 'penguin') {
+          // The belly slide: tipping right over onto its front and back up.
+          const slide = (time % 3) / 3;
+          pitch(slide > 0.5 && slide < 0.9 ? Math.sin(((slide - 0.5) / 0.4) * Math.PI) * 1.2 : 0);
+        } else if (animal === 'bee') {
+          // Buzzing round in a little circle, up off the ground.
+          this.root.position.x += Math.cos(time * 6) * 0.35 * k;
+          this.root.position.z += Math.sin(time * 6) * 0.35 * k;
+          lift(0.25);
+        } else if (animal === 'dragon' || animal === 'phoenix') {
+          // Rearing up proudly at the top of each take-off.
+          pitch(-takeOff * 0.45);
+        }
+        break;
+      }
+      case 'squishy': {
+        // A jelly wobble, twisting this way and that.
+        const beat = time * 5;
+        squish(Math.sin(beat) * 0.22);
+        turn(Math.sin(beat * 0.5) * 0.6);
+        sway(Math.sin(beat * 0.5 + 1) * 0.12);
+        lift(Math.max(0, Math.sin(beat)) * 0.08);
+        break;
+      }
+      case 'fluffy': {
+        // Twirls with a soft bob in between.
+        lift(Math.abs(Math.sin(time * 5)) * 0.16);
+        sway(Math.sin(time * 2.5) * 0.2);
+        turn(spin(1.6, 0.6));
+        break;
+      }
+    }
   }
+
 
   setGliding(gliding: boolean): void {
     this.umbrella.visible = gliding;
@@ -476,8 +607,8 @@ export class PlushView {
   /** How far the band rifle is drawn (0 = not charging). */
   setCharge(amount: number): void {
     this.beam.visible = amount > 0;
-    (this.beam.material as THREE.MeshBasicMaterial).opacity = 0.2 + amount * 0.6;
-    this.beam.scale.x = 1 + amount;
+    (this.beam.material as THREE.MeshBasicMaterial).opacity = 0.2 + amount * 0.25;
+    (this.beamCore.material as THREE.MeshBasicMaterial).opacity = 0.85 + amount * 0.15;
   }
 
   /** Seams flash white when hit. */
@@ -548,6 +679,14 @@ export class PlushView {
       this.bubble.position.y = 0.85 + Math.sin(time * 3) * 0.08;
     }
     this.arms.update(this.weaponSocket.position, this.walkPhase, m);
+    // The band rifle's laser points level along the aim, however the plush leans or bobs (it
+    // pointed at the ground while walking).
+    if (this.beam.visible) {
+      this.weaponSocket.updateWorldMatrix(true, false);
+      this.weaponSocket.getWorldQuaternion(UNLEAN).invert();
+      this.root.getWorldQuaternion(LEVEL).multiply(this.facing.quaternion);
+      this.beam.quaternion.copy(UNLEAN).multiply(LEVEL);
+    }
 
     const pulse = 0.5 + Math.sin(time * 3) * 0.5;
     if (this.glowColor) (this.glowRing.material as THREE.MeshBasicMaterial).opacity = 0.7 + pulse * 0.3;

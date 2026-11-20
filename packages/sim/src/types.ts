@@ -95,17 +95,27 @@ export interface Part {
   slot: PartSlot;
   animal: Animal;
   rarity: Rarity;
+  /** Holographic: a rare shiny version (only for animals whose whole set the finder owns). */
+  holo?: boolean;
+}
+
+/** A part by slot and animal: the last one a set is waiting for. */
+export interface MissingPart {
+  slot: PartSlot;
+  animal: Animal;
 }
 
 /** A part in someone's collection (and how they can start a match wearing it). */
 export interface OwnedPart {
   animal: Animal;
   rarity: Rarity;
+  holo?: boolean;
 }
 
 export interface WornPart {
   animal: Animal;
   rarity: Rarity;
+  holo?: boolean;
   /** Picked up this match, so it drops when the plush is Unstitched. A plush's own look doesn't. */
   found: boolean;
 }
@@ -183,6 +193,10 @@ export interface Player {
    * match; dropped for others if knocked out (worn parts are always kept).
    */
   stash: Part[];
+  /** Animals whose parts can come out holographic for this plush (it owns their whole set). */
+  holoAnimals: Animal[];
+  /** The one part missing from each set this plush's owner has four of: what its luck leans toward. */
+  missingParts: MissingPart[];
   lastInputSeq: number;
   /** Buttons held last tick, to detect presses (E to pick up). */
   heldButtons: number;
@@ -693,6 +707,10 @@ export interface RosterEntry {
   parts?: Partial<Record<PartSlot, Animal | OwnedPart>>;
   /** Up to 2 weapons to start with; defaults to config.player.startingLoadout. */
   loadout?: WeaponSpec[];
+  /** Animals whose whole set this player owns: their parts can come out holographic for them. */
+  holoAnimals?: Animal[];
+  /** The one part missing from each set this player has four of (chests lean toward them). */
+  missingParts?: MissingPart[];
 }
 
 export interface WeaponSpec {

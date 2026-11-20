@@ -21,6 +21,10 @@ export interface LocalSessionOptions {
   watchOnly?: boolean;
   /** Your starting look (from your profile). */
   look?: RosterEntry['parts'];
+  /** Animals whose whole set your profile owns (their parts can come out holographic for you). */
+  holoAnimals?: RosterEntry['holoAnimals'];
+  /** The last piece of each set your profile has four of (chests lean toward them). */
+  missingParts?: RosterEntry['missingParts'];
   /** How tough the bots are. */
   botLevel?: BotLevel;
 }
@@ -40,12 +44,12 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK, botLevel = 'normal' }: LocalSessionOptions,
+    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK, holoAnimals = [], missingParts = [], botLevel = 'normal' }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
     const roster: RosterEntry[] = [
-      ...(watchOnly ? [] : [{ name: tr('You'), isBot: false, parts: look, ...(loadout ? { loadout } : {}) }]),
+      ...(watchOnly ? [] : [{ name: tr('You'), isBot: false, parts: look, holoAnimals, missingParts, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     this.state = createGame({ seed, map, roster, zoneTimeScale, toss: true });

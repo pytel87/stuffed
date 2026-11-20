@@ -1,7 +1,7 @@
 // Skin parts: twenty animals, each with a part for every slot. Parts are cosmetic only.
 import { config } from './config.ts';
-import { pickWeighted } from './rng.ts';
-import type { Animal, Part, PartLoadout, PartSlot, Player, Rarity, RngState } from './types.ts';
+import { nextFloat, pick, pickWeighted } from './rng.ts';
+import type { Animal, MissingPart, Part, PartLoadout, PartSlot, Player, Rarity, RngState, WornPart } from './types.ts';
 
 export const ANIMALS: readonly Animal[] = [
   'bear', 'frog', 'shark', 'chicken', 'dino', 'owl', 'axolotl', 'penguin',
@@ -61,12 +61,59 @@ export function wornSet(parts: PartLoadout): Animal | null {
   return null;
 }
 
+/** A worn part as a loose one (holo only when it is, so plain parts stay as they were). */
+export function looseOf(slot: PartSlot, worn: WornPart): Part {
+  return { slot, animal: worn.animal, rarity: worn.rarity, ...(worn.holo ? { holo: true } : {}) };
+}
+
+/** Animals whose whole regular set is in a collection: their holographic parts can drop for its owner. */
+export function completeSets(owned: readonly Pick<Part, 'slot' | 'animal' | 'holo'>[]): Animal[] {
+  return ANIMALS.filter((animal) => PART_SLOTS.every((slot) => owned.some((p) => p.slot === slot && p.animal === animal && !p.holo)));
+}
+
+/** The last piece of every set four-fifths owned (regular parts; holo ones don't count). */
+export function missingPieces(owned: readonly Pick<Part, 'slot' | 'animal' | 'holo'>[]): MissingPart[] {
+  const out: MissingPart[] = [];
+  for (const animal of ANIMALS) {
+    const missing = PART_SLOTS.filter((slot) => !owned.some((p) => p.slot === slot && p.animal === animal && !p.holo));
+    if (missing.length === 1) out.push({ slot: missing[0]!, animal });
+  }
+  return out;
+}
+
+type Finder = Pick<Player, 'holoAnimals' | 'missingParts' | 'parts' | 'stash'>;
+
+/**
+ * A part found by `finder` (a chest opened, a piñata burst). Now and then it's the last piece of a
+ * set they have four of (one they don't carry yet), and now and then holographic, once they own
+ * that animal's whole set.
+ */
+export function rollPart(rng: RngState, finder: Finder | null | undefined, holoChance: number): Part {
+  const part: Part = { slot: pick(rng, PART_SLOTS), animal: pickAnimal(rng), rarity: 0 };
+  // (Every roll made for every part, lucky or not, so the match's dice don't depend on who opened it.)
+  const lucky = nextFloat(rng);
+  const which = nextFloat(rng);
+  const roll = nextFloat(rng);
+  const carried = (m: MissingPart) => finder!.stash.some((p) => p.slot === m.slot && p.animal === m.animal) || (finder!.parts[m.slot].animal === m.animal && finder!.parts[m.slot].found);
+  const wanted = finder ? finder.missingParts.filter((m) => !carried(m)) : [];
+  if (wanted.length > 0) {
+    // One of the missing pieces, by luck as good as that animal is common.
+    const m = wanted[Math.min(wanted.length - 1, Math.floor(which * wanted.length))]!;
+    if (lucky < config.parts.missingPieceChance[ANIMAL_RARITY[m.animal]]!) {
+      part.slot = m.slot;
+      part.animal = m.animal;
+    }
+  }
+  if (finder?.holoAnimals.includes(part.animal) && roll < holoChance) part.holo = true;
+  return part;
+}
+
 /** Parts a plush could take home: the ones it found and still wears, plus its bag. */
 export function carriedParts(player: Pick<Player, 'parts' | 'stash'>): Part[] {
   const parts: Part[] = [];
   for (const slot of PART_SLOTS) {
     const worn = player.parts[slot];
-    if (worn.found) parts.push({ slot, animal: worn.animal, rarity: worn.rarity });
+    if (worn.found) parts.push(looseOf(slot, worn));
   }
   for (const part of player.stash) parts.push({ ...part });
   return parts;

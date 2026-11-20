@@ -1,7 +1,7 @@
 // The piñata: one per map (a paper donkey on a frame, or a big wrapped present). Shots,
 // hammer bonks and bursts wear it down; when it breaks, good loot showers out around it.
 import { config } from '../config.ts';
-import { PART_SLOTS, pickAnimal } from '../parts.ts';
+import { rollPart } from '../parts.ts';
 import { pick, pickIndexWeighted, pickWeighted } from '../rng.ts';
 import type { EntityId, GameState, Part, Rarity, Vec2 } from '../types.ts';
 import type { World } from '../world.ts';
@@ -50,7 +50,7 @@ export function hitPinata(world: World, state: GameState, amount: number, byId: 
     spawnLoot(world, state, spots[k++]!, { type: 'item', item: { kind: item, count: config.items[item].chestCount } }, p.z);
   }
   for (let i = 0; i < P.loot.parts; i++) {
-    const part: Part = { slot: pick(state.rng, PART_SLOTS), animal: pickAnimal(state.rng), rarity: 0 };
+    const part = rollPart(state.rng, state.players.find((q) => q.id === byId), config.parts.holoChanceRich);
     spawnLoot(world, state, spots[k++]!, { type: 'part', part }, p.z);
   }
   state.events.push({ type: 'pinataBurst', pos: { ...p.pos }, byId });

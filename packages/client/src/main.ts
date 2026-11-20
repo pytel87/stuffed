@@ -1,5 +1,5 @@
 import './style.css';
-import { BACKYARD, Btn, canSee, carriedParts, config, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
+import { BACKYARD, Btn, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -55,7 +55,10 @@ let seed = Number(params.get('seed')) || Date.now() >>> 0;
 /** This device's profile: your collection and the look you start in. */
 const profiles = new ProfileStore();
 const newSolo = () =>
-  new LocalSession(input, { seed, zoneTimeScale, map: savedMap(), botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}), ...(profiles.profile ? { look: profiles.profile.look } : {}) });
+  new LocalSession(input, {
+    seed, zoneTimeScale, map: savedMap(), botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}),
+    ...(profiles.profile ? { look: profiles.profile.look, holoAnimals: completeSets(profiles.profile.parts), missingParts: missingPieces(profiles.profile.parts) } : {}),
+  });
 /** Bots only, behind the title menu and the lobby (a few: it runs on the player's device the whole time). */
 const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 4, watchOnly: true, map: savedMap() });
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
@@ -135,12 +138,13 @@ void profiles.load();
 const sound = new Sound(import.meta.env.BASE_URL);
 /**
  * A part is new to you if it's in neither your collection nor what you carry this match (worn or
- * in the bag): a sparkle floats over it on the ground.
+ * in the bag): a sparkle floats over it on the ground. A holo part counts apart from the plain one.
  */
-function isNewPart(slot: PartSlot, animal: Animal): boolean {
+function isNewPart(slot: PartSlot, animal: Animal, holo = false): boolean {
+  const same = (p: { animal: Animal; holo?: boolean }) => p.animal === animal && !!p.holo === holo;
   const owned = profiles.profile?.parts ?? [];
-  if (owned.some((p) => p.slot === slot && p.animal === animal)) return false;
-  if (me && (me.stash.some((p) => p.slot === slot && p.animal === animal) || (me.parts[slot].animal === animal && me.parts[slot].found))) return false;
+  if (owned.some((p) => p.slot === slot && same(p))) return false;
+  if (me && (me.stash.some((p) => p.slot === slot && same(p)) || (same(me.parts[slot]) && me.parts[slot].found))) return false;
   return true;
 }
 renderer.isNewPart = isNewPart;

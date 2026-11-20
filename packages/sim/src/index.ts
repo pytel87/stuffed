@@ -11,7 +11,7 @@ export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft
 export { segmentBoxT, circleBoxPush } from './collision/geometry.ts';
 export { StaticBoxHash } from './collision/spatial-hash.ts';
 export { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
-export { ANIMAL_RARITY, ANIMALS, COMMON_ANIMALS, PART_SLOTS, pickAnimal, DEFAULT_PARTS, SET_SIZE, carriedParts, fullSet, wornSet } from './parts.ts';
+export { ANIMAL_RARITY, ANIMALS, COMMON_ANIMALS, PART_SLOTS, pickAnimal, DEFAULT_PARTS, SET_SIZE, carriedParts, completeSets, fullSet, looseOf, missingPieces, rollPart, wornSet } from './parts.ts';
 export { applyDamage } from './systems/damage.ts';
 export { chargeAmount, makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems/weapons.ts';
 export { sweepCircle } from './systems/projectiles.ts';

@@ -126,7 +126,7 @@ export class EndScreen {
     this.keptShown = !!parts && parts.length > 0;
     this.kept.hidden = !this.keptShown;
     this.kept.innerHTML = this.keptShown
-      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part">${partIcon(p.slot, p.animal)}</span>`).join('')}`
+      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part${p.holo ? ' holo' : ''}">${partIcon(p.slot, p.animal, 'icon', !!p.holo)}</span>`).join('')}`
       : '';
   }
 }

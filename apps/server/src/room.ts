@@ -2,8 +2,8 @@
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
 import type { BotLevel, MapData } from '@stuffed/sim';
-import { BACKYARD, BOT_LEVELS, BotController, PLAYABLE_MAPS, canSee, carriedParts, config, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
-import type { EntityId, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
+import { BACKYARD, BOT_LEVELS, BotController, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
+import type { Animal, EntityId, MissingPart, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
   MAX_PLAYERS,
@@ -42,6 +42,10 @@ interface Seat {
   /** The player's profile, once looked up: their look, and where kept parts go. */
   profileId: string | null;
   look: Look | null;
+  /** Animals whose whole set the profile owns (their parts can come out holographic for them). */
+  holoAnimals: Animal[];
+  /** The last piece of each set the profile has four of (chests lean toward them). */
+  missingParts: MissingPart[];
   /** The device's profile token, to look the profile up again when its look changes. */
   profileToken: string | null;
 }
@@ -155,7 +159,7 @@ export class Room extends Server<Env> {
       seat.connId = conn.id;
       seat.name = name;
     } else if (this.seats.length < MAX_PLAYERS) {
-      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null, profileToken: null };
+      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null, holoAnimals: [], missingParts: [], profileToken: null };
       this.seats.push(seat);
     }
     if (seat && typeof msg.profile === 'string') {
@@ -181,6 +185,8 @@ export class Room extends Server<Env> {
       const profile = id ? await loadProfile(this.env.DB, id) : null;
       seat.profileId = profile?.id ?? null;
       seat.look = profile?.look ?? null;
+      seat.holoAnimals = profile ? completeSets(profile.parts) : [];
+      seat.missingParts = profile ? missingPieces(profile.parts) : [];
     } catch (err) {
       console.error('profile lookup failed', err);
     }
@@ -234,7 +240,7 @@ export class Room extends Server<Env> {
   private startMatch(humans: Seat[]): void {
     const seed = (Math.random() * 2 ** 32) >>> 0;
     const roster = [
-      ...humans.map((s) => ({ name: s.name, isBot: false, team: this.teams ? 1 : 0, ...(s.look ? { parts: s.look } : {}) })),
+      ...humans.map((s) => ({ name: s.name, isBot: false, team: this.teams ? 1 : 0, holoAnimals: s.holoAnimals, missingParts: s.missingParts, ...(s.look ? { parts: s.look } : {}) })),
       ...Array.from({ length: this.bots }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
     const state = createGame({ seed, map: this.map, roster, toss: true });
@@ -370,6 +376,12 @@ export class Room extends Server<Env> {
     const kept = plush.alive ? carriedParts(plush) : (m.dropped.get(plush.id) ?? []);
     try {
       await addParts(this.env.DB, seat.profileId, kept);
+      // A set completed just now unlocks its holo parts from the next match (and a fourth part, luck for its last).
+      const profile = await loadProfile(this.env.DB, seat.profileId);
+      if (profile) {
+        seat.holoAnimals = completeSets(profile.parts);
+        seat.missingParts = missingPieces(profile.parts);
+      }
     } catch (err) {
       console.error('saving kept parts failed', err);
       return;

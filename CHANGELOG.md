@@ -19,6 +19,29 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 - On touch, no second jump button in the middle while on the blimp or a zip line: the jump
   button drops you.
+- Luck toward a set's last piece: when you have four parts of an animal, a part you find (from a
+  chest you open or a piñata you burst) can be that set's missing one, until you pick it up: 1 time
+  in 15 for a common animal, 25 for a rare one, 40 for an epic one and 60 for a legendary one.
+- A full set drops in style: the umbrella from the blimp (and off a catapult) takes the set's
+  colors and pattern (frog spots, bee stripes, dragon scales, flamingo hearts...), so everyone can
+  see who's coming down.
+- Winning dances by the head's animal: springy ones bounce high and spin (the frog highest), heavy
+  ones stomp from foot to foot, winged ones flutter and take off (the penguin belly-slides, the bee
+  buzzes round in a circle, the dragon and phoenix rear up), squishy ones wobble like jelly, fluffy
+  ones twirl. In a full set, a finale burst every couple of seconds; a whole holo set adds rainbow
+  glitter.
+- Holo parts: rare holographic versions of every part, pearly with rainbow bands that shimmer as
+  the plush turns. Once you own an animal's whole set, its parts can come out holo for you: 1 in 25
+  from chests you open, 1 in 12 from royal chests and piñatas you burst. A holo part on the ground
+  shimmers in its usual ring under a beam drifting through the rainbow (with a rainbow star while
+  you don't own it yet); anyone can grab it. Holo parts are kept like any other and can be worn
+  from the start of a match. In the wardrobe, bag and results card they sit on a soft rainbow with a
+  little rainbow star; the gallery counts each complete set's holo parts (2/5), and a whole holo
+  set turns its card holographic.
+- The gallery opens with a summary of your collection: parts found, complete sets, holo parts and
+  holo sets, each with a progress bar. Protocol 18.
+- The Rubber Band Rifle's laser stays level while you walk (it tipped toward the ground as the
+  plush leaned) and is brighter: a white-pink core in a red glow.
 - Day to sunset over a match: daylight while the Rinse waits, then late afternoon and golden hour
   as it closes in, and a sunset for the final circle (warm lamp-light tones indoors in the
   Bedroom). The sun lowers as it goes, so shadows grow longer. Only the light changes, the same

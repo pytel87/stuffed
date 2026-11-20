@@ -3,6 +3,7 @@
 import { config } from '@stuffed/sim';
 import type { Animal, EntityId, GameEvent, GameState, ItemKind, LootLevel, MapData, Player, Vec2, WeaponKind } from '@stuffed/sim';
 import type { Sound, SoundName, VoiceKind } from './sound.ts';
+import { ANIMAL_KIND } from '../animal-kinds.ts';
 
 const SHOT: Record<WeaponKind, { name: SoundName; volume: number }> = {
   cork_popper: { name: 'cork_pop', volume: 0.7 },
@@ -47,16 +48,6 @@ function surfaceAt(map: MapData, at: Vec2): 'grass' | 'wood' | 'snow' {
   if (indoors) return 'wood';
   return map.theme === 'snow' ? 'snow' : 'grass';
 }
-
-/** How each animal jumps (and lands): springy, heavy, winged, squishy or fluffy. */
-type Hop = 'springy' | 'heavy' | 'winged' | 'squishy' | 'fluffy';
-const HOP: Record<Animal, Hop> = {
-  frog: 'springy', bunny: 'springy', cat: 'springy', fox: 'springy', unicorn: 'springy', mouse: 'springy',
-  bear: 'heavy', panda: 'heavy', pig: 'heavy', lion: 'heavy', elephant: 'heavy', yeti: 'heavy', dino: 'heavy', giraffe: 'heavy',
-  chicken: 'winged', owl: 'winged', penguin: 'winged', flamingo: 'winged', phoenix: 'winged', dragon: 'winged', bee: 'winged',
-  shark: 'squishy', axolotl: 'squishy', octopus: 'squishy', turtle: 'squishy',
-  hedgehog: 'fluffy', koala: 'fluffy', raccoon: 'fluffy', sloth: 'fluffy', sheep: 'fluffy',
-};
 
 interface Seen {
   vz: number;
@@ -116,7 +107,7 @@ export class GameAudio {
     for (const p of state.players) s.needVoice(p.parts.head.animal);
     const voice = (p: Player, kind: VoiceKind, volume: number) =>
       s.play(`voice_${p.parts.head.animal}_${kind}`, { at: p.pos, volume: volume * (p.id === localId ? 1 : 0.75), pitchSpread: 0.14 });
-    const land = (p: Player, volume: number) => s.play(`land_${HOP[p.parts.head.animal]}`, { at: p.pos, volume, pitchSpread: 0.16 });
+    const land = (p: Player, volume: number) => s.play(`land_${ANIMAL_KIND[p.parts.head.animal]}`, { at: p.pos, volume, pitchSpread: 0.16 });
 
     for (const e of events) {
       switch (e.type) {
@@ -313,7 +304,7 @@ export class GameAudio {
       }
       if (!before || !p.alive) continue;
       const mine = p.id === localId;
-      if (before.vz <= 0 && now.vz > 0) s.play(`jump_${HOP[p.parts.head.animal]}`, { at: p.pos, volume: mine ? 0.6 : 0.4, pitchSpread: 0.16 });
+      if (before.vz <= 0 && now.vz > 0) s.play(`jump_${ANIMAL_KIND[p.parts.head.animal]}`, { at: p.pos, volume: mine ? 0.6 : 0.4, pitchSpread: 0.16 });
       if (before.vz < 0 && now.vz === 0) land(p, mine ? 0.6 : 0.35);
       if (!before.reloading && now.reloading) s.play('reload', { at: p.pos, volume: mine ? 0.7 : 0.4 });
       if (before.slot !== now.slot && mine) s.play('swap', { at: p.pos, volume: 0.6 });

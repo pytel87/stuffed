@@ -106,14 +106,14 @@ export class Wardrobe {
     this.picker = this.el.querySelector('.wardrobe-picker')!;
     this.picker.addEventListener('click', (e) => {
       const pick = (e.target as HTMLElement).closest<HTMLElement>('[data-animal]');
-      if (pick) this.wear({ [this.selected]: pick.dataset.animal as Animal });
+      if (pick) this.wear({ [this.selected]: { animal: pick.dataset.animal as Animal, holo: pick.dataset.holo === '1' } });
     });
     // In the gallery: tapping an animal's card puts on every part of it you own, and goes back
     // to the Wardrobe to show the look.
     this.gallery.addEventListener('click', (e) => {
       const card = (e.target as HTMLElement).closest<HTMLElement>('.gallery-card.owned');
       if (!card) return;
-      this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, card.dataset.animal as Animal])));
+      this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, { animal: card.dataset.animal as Animal, holo: false }])));
       this.showGallery(false);
     });
 
@@ -174,20 +174,40 @@ export class Wardrobe {
   private renderGallery(): void {
     const pictures = renderPlushPictures();
     const owned = this.store.profile?.parts ?? [];
-    const has = (slot: PartSlot, animal: Animal) => owned.some((p) => p.slot === slot && p.animal === animal);
+    const has = (slot: PartSlot, animal: Animal) => owned.some((p) => p.slot === slot && p.animal === animal && !p.holo);
+    const hasHolo = (slot: PartSlot, animal: Animal) => owned.some((p) => p.slot === slot && p.animal === animal && p.holo);
     // Common animals first, the legendary last; stars tell how rare each one is.
     const byRarity = [...ANIMALS].sort((a, b) => ANIMAL_RARITY[a] - ANIMAL_RARITY[b]);
-    this.gallery.innerHTML = byRarity.map((animal) => {
+    // The summary on top: how far the whole collection has got.
+    const all = ANIMALS.length * PART_SLOTS.length;
+    const countParts = (own: (slot: PartSlot, animal: Animal) => boolean) => ANIMALS.reduce((n, a) => n + PART_SLOTS.filter((slot) => own(slot, a)).length, 0);
+    const countSets = (own: (slot: PartSlot, animal: Animal) => boolean) => ANIMALS.filter((a) => PART_SLOTS.every((slot) => own(slot, a))).length;
+    const stat = (label: string, have: number, of: number, holo = false) =>
+      `<div class="summary-stat${holo ? ' holo' : ''}"><span>${label}</span><b>${have}<small>/${of}</small></b><i style="--done:${(have / of) * 100}%"></i></div>`;
+    const summary = `<div class="gallery-summary">
+        ${stat(tr('Parts'), countParts(has), all)}
+        ${stat(tr('Sets'), countSets(has), ANIMALS.length)}
+        ${stat(tr('Holo parts'), countParts(hasHolo), all, true)}
+        ${stat(tr('Holo sets'), countSets(hasHolo), ANIMALS.length, true)}
+      </div>`;
+    this.gallery.innerHTML = summary + byRarity.map((animal) => {
       const count = PART_SLOTS.filter((slot) => has(slot, animal)).length;
+      const holoCount = PART_SLOTS.filter((slot) => hasHolo(slot, animal)).length;
       const tier = ANIMAL_RARITY[animal];
       const parts = PART_SLOTS.map(
-        (slot) => `<span class="gallery-part${has(slot, animal) ? ' owned' : ''}" data-slot="${slot}" data-animal="${animal}">${partIcon(slot, animal)}</span>`,
+        // (A holo part owned shows with its sheen.)
+        (slot) =>
+          `<span class="gallery-part${has(slot, animal) || hasHolo(slot, animal) ? ' owned' : ''}${hasHolo(slot, animal) ? ' holo' : ''}" data-slot="${slot}" data-animal="${animal}">${partIcon(slot, animal, 'icon', hasHolo(slot, animal))}</span>`,
       ).join('');
       const picture = pictures.get(animal);
-      return `<div class="gallery-card tier-${tier}${count > 0 ? ' owned' : ''}${count === PART_SLOTS.length ? ' complete' : ''}" data-animal="${animal}">
+      // A set complete unlocks its holo parts: from then on, how many of them you have; all of them
+      // turn the card holographic.
+      const complete = count === PART_SLOTS.length;
+      return `<div class="gallery-card tier-${tier}${count > 0 ? ' owned' : ''}${complete ? ' complete' : ''}${complete && holoCount === PART_SLOTS.length ? ' holo-complete' : ''}" data-animal="${animal}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
         <b class="gallery-tier">${'★'.repeat(tier)}</b>
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
+        ${complete ? `<b class="gallery-holo" title="${tr('Holo')}">${holoCount === PART_SLOTS.length ? '✦ ' : ''}${holoCount}/${PART_SLOTS.length}</b>` : ''}
         <div class="gallery-parts">${parts}</div>
       </div>`;
     }).join('');
@@ -203,21 +223,23 @@ export class Wardrobe {
     back?.();
   }
 
-  /** Owned parts for a slot, commonest animals first (as in the gallery). */
+  /** Owned parts for a slot, commonest animals first (as in the gallery), each holo one after its plain one. */
   private owned(slot: PartSlot): OwnedEntry[] {
     const parts = this.store.profile?.parts.filter((p) => p.slot === slot) ?? [];
-    // One entry per animal (older collections may hold the same part at several rarities).
-    const unique = parts.filter((p, i) => parts.findIndex((q) => q.animal === p.animal) === i);
-    return unique.sort((a, b) => ANIMAL_RARITY[a.animal] - ANIMAL_RARITY[b.animal] || ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal));
+    // One entry per animal and finish (older collections may hold the same part at several rarities).
+    const unique = parts.filter((p, i) => parts.findIndex((q) => q.animal === p.animal && !!q.holo === !!p.holo) === i);
+    return unique.sort(
+      (a, b) => ANIMAL_RARITY[a.animal] - ANIMAL_RARITY[b.animal] || ANIMALS.indexOf(a.animal) - ANIMALS.indexOf(b.animal) || Number(!!a.holo) - Number(!!b.holo),
+    );
   }
 
   /** Puts on owned parts (by slot) and saves the look; `focus` selects that slot's picker. */
-  private wear(parts: Partial<Record<PartSlot, Animal>>, focus?: PartSlot): void {
+  private wear(parts: Partial<Record<PartSlot, { animal: Animal; holo: boolean }>>, focus?: PartSlot): void {
     const look = this.look;
     if (!look) return;
-    for (const [slot, animal] of Object.entries(parts) as [PartSlot, Animal][]) {
-      const owned = this.owned(slot).find((p) => p.animal === animal);
-      if (owned) look[slot] = { animal, rarity: owned.rarity };
+    for (const [slot, want] of Object.entries(parts) as [PartSlot, { animal: Animal; holo: boolean }][]) {
+      const owned = this.owned(slot).find((p) => p.animal === want.animal && !!p.holo === want.holo);
+      if (owned) look[slot] = { animal: want.animal, rarity: owned.rarity, ...(want.holo ? { holo: true } : {}) };
     }
     if (focus) this.selected = focus;
     this.render();
@@ -232,7 +254,8 @@ export class Wardrobe {
     if (!look) return;
     for (const slot of PART_SLOTS) {
       const tab = this.tabs[slot];
-      tab.innerHTML = partIcon(slot, look[slot].animal);
+      tab.innerHTML = partIcon(slot, look[slot].animal, 'icon', !!look[slot].holo);
+      tab.classList.toggle('holo', !!look[slot].holo);
       tab.classList.toggle('selected', slot === this.selected);
     }
     const slot = this.selected;
@@ -246,7 +269,8 @@ export class Wardrobe {
     this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 5, Math.max(1, Math.ceil(most / rows)))));
     this.picker.innerHTML = owned
       .map(
-        (p) => `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.animal === look[slot].animal ? ' worn' : ''}" data-animal="${p.animal}" aria-label="${tr(p.animal)}">${partIcon(slot, p.animal)}</button>`,
+        (p) =>
+          `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.holo ? ' holo' : ''}${p.animal === look[slot].animal && !!p.holo === !!look[slot].holo ? ' worn' : ''}" data-animal="${p.animal}" data-holo="${p.holo ? 1 : 0}" aria-label="${tr(p.animal)}${p.holo ? ` (${tr('Holo')})` : ''}">${partIcon(slot, p.animal, 'icon', !!p.holo)}</button>`,
       )
       .join('');
     this.preview.setLook(look);
@@ -289,6 +313,7 @@ class Preview {
     } else {
       this.plush.setParts(parts);
     }
+    this.plush.setHolo(PART_SLOTS.filter((slot) => look[slot].holo));
   }
 
   start(): void {
