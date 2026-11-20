@@ -19,11 +19,44 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 - On touch, no second jump button in the middle while on the blimp or a zip line: the jump
   button drops you.
+- First-time tips, each once per device as a toast when it matters: the controls card on your
+  very first match, then how to open a chest, put on or bag a part, use an item, what you take
+  home, the Rinse rising; after a match, what a set is, that a complete one unlocks holo parts,
+  and where the gallery is.
+- Toasts: red only for danger on its way (an air strike, the mower, the plow); tips and who won
+  show in the calm cream pill of the area names, and stay up as long as they're meant to.
+- The lobby's team toggle: two blue plushies for teams, one red one for everyone on their own
+  (it was the same picture, just faded).
+- The lobby's Wardrobe button shows up once your profile is ready (a first visit opened the lobby
+  before it, and the button never appeared); the code's box is the same size and shape as the
+  name field under it. Fields in narrow rows shrink to fit (on phones the Wardrobe button stuck out
+  past the card's padding).
+- The same spacing and the same "picked" look on every screen: every card has the same space
+  between its edge and its content on all four sides (a little less on phones); buttons side by
+  side or in a group of picks sit equally apart (the menu, lobby, wardrobe, gallery, options), and anything chosen
+  (a wardrobe slot, the part you wear, the bots, the map) turns yellow with a pink border, keeping
+  its size and place. Icons on pink buttons are white, like their text.
+- The Multi lobby, redone: the code under "Invite friends: send them this code" in a ticket box
+  (tap it to copy) with Share beside it; your name and wardrobe; "Bots" with one-tap picks (0 · 5
+  · 10 · Max: as many as fit, fewer as friends join) and the difficulty on the right; "Map" with
+  every map side by side, the chosen one picked out; "Players 2/16" over who's in (wrapping
+  before the team toggle beside them); Start. On a phone in landscape it's two columns: the invite, bots and map on the left;
+  your name, who's in and Start on the right (for a guest: the code beside the name, who's in
+  across both underneath, and the wait for the host centered). Leaving asks "Leave Multi?" (it asked about a "room").
+- The main menu's buttons read Solo / Multi (it was Solo / Room).
+- On a desktop the weapon, item and bag slots are 1.2x bigger.
+- The recovery code field is centered like the code above it.
+- The recovery code screen: spaced like the main menu and only as big as its content (it stretched
+  almost across the screen); short one-line labels lined up with the code box and the code field
+  ("Your code for another device:", in Czech too: it was always in English); its way back to the
+  Wardrobe sits top-left.
 - The controls help shows the real models (the Cork Popper, a chest, a part, the items) instead
   of drawn stand-ins.
 - Weapon, item and bag slots sink into their shadow when pressed, like the menu buttons (keys 1-5
   and the wheel press them on screen too); held, they still shrink toward a drop.
-- The gallery's cards fade out at its top and bottom edges while scrolling (they were cut off flat).
+- The gallery's cards fade out at its top and bottom edges while there's more to scroll to (they
+  were cut off flat), and stay inside the card's padding (they scrolled up under the corner
+  buttons).
 - Luck toward a set's last piece: when you have four parts of an animal, a part you find (from a
   chest you open or a piñata you burst) can be that set's missing one, until you pick it up: 1 time
   in 15 for a common animal, 25 for a rare one, 40 for an epic one and 60 for a legendary one.

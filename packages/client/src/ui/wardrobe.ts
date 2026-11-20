@@ -33,6 +33,7 @@ export class Wardrobe {
   /** Every animal's full set, with the parts you own lit up (what to chase). */
   private readonly gallery: HTMLElement;
   private readonly galleryToggle: HTMLButtonElement;
+  private updateGalleryEdges: () => void = () => {};
 
   constructor(private readonly store: ProfileStore) {
     document.body.insertAdjacentHTML(
@@ -52,7 +53,7 @@ export class Wardrobe {
            </div>
            <div class="wardrobe-code" hidden>
              <h2>${icon('code', 'icon large')}</h2>
-             <p class="code-hint">Your code: type it on another phone or tablet to play with the same plush and parts.</p>
+             <p class="code-hint">${tr('Your code for another device:')}</p>
              <div class="row code-row">
                <b class="code-box code"></b>
                <button type="button" class="round code-copy" aria-label="${tr('Copy code')}">${icon('copy')}</button>
@@ -73,6 +74,14 @@ export class Wardrobe {
     this.message = this.el.querySelector('.error')!;
     this.preview = new Preview(this.el.querySelector('.wardrobe-preview')!);
     this.gallery = this.el.querySelector('.gallery')!;
+    // Fades only where there's more to scroll to.
+    const edges = () => {
+      const g = this.gallery;
+      const more = [g.scrollTop > 2 ? 'up' : '', g.scrollTop + g.clientHeight < g.scrollHeight - 2 ? 'down' : ''].filter(Boolean).join(' ');
+      g.dataset.more = more;
+    };
+    this.gallery.addEventListener('scroll', edges, { passive: true });
+    this.updateGalleryEdges = edges;
     this.galleryToggle = this.el.querySelector('.gallery-toggle')!;
     this.galleryToggle.addEventListener('click', (e) => {
       if (e.detail > 0) this.galleryToggle.blur();
@@ -153,6 +162,7 @@ export class Wardrobe {
     this.galleryToggle.hidden = on;
     const toggle = this.el.querySelector<HTMLElement>('.code-toggle')!;
     toggle.innerHTML = icon(on ? 'hanger' : 'code');
+    this.el.querySelector('.card')!.classList.toggle('showing-code', on);
     toggle.setAttribute('aria-label', tr(on ? 'Wardrobe' : 'Recovery code'));
     this.message.textContent = '';
   }
@@ -211,6 +221,7 @@ export class Wardrobe {
         <div class="gallery-parts">${parts}</div>
       </div>`;
     }).join('');
+    requestAnimationFrame(() => this.updateGalleryEdges());
   }
 
   hide(): void {

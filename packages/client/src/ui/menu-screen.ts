@@ -34,7 +34,7 @@ export class MenuScreen {
            </div>
            <div class="row">
              <button type="button" class="big primary menu-solo"><span>${tr('Solo')}</span></button>
-             <button type="button" class="big menu-create"><span>${tr('Room')}</span></button>
+             <button type="button" class="big menu-create"><span>${tr('Multi')}</span></button>
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>

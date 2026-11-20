@@ -2,6 +2,16 @@
    chunky buttons, icons over words. Sizes in rem so small screens scale the whole UI. */
 
 :root {
+  /* Anything picked (a bot count, a map, a wardrobe slot, the part you wear): yellow, with a pink
+     border instead of the dark one (no ring round it: it keeps its size and place). */
+  --picked-bg: #ffd36a;
+  --picked-border: var(--pink);
+  /* Spacing, the same on every screen: between buttons (and fields) side by side or in a group
+     of picks, and between the rows of a card. */
+  --gap-buttons: 0.7rem;
+  --gap-rows: 0.9rem;
+  /* And between a card's edge and what's in it, the same on every side and every card. */
+  --card-pad: 1.5rem;
   --ink: #2a1f2d;
   --cream: #fffaf3;
   --paper: #f3e9dc;
@@ -23,7 +33,7 @@
 
 /* Phones (landscape is short): smaller UI. */
 @media (max-height: 520px), (max-width: 640px) {
-  :root { font-size: 13px; --edge: 10px; }
+  :root { font-size: 13px; --edge: 10px; --card-pad: 1.2rem; }
 }
 
 html,
@@ -140,8 +150,9 @@ button {
   color: #fff;
 }
 
+/* Icons on a pink button: white, like its text. */
 .primary .icon {
-  color: var(--ink);
+  color: #fff;
 }
 
 .big:active:not(:disabled),
@@ -167,10 +178,14 @@ button {
   margin-left: 0.2rem;
 }
 
+/* (min-width 0: in a narrow row it shrinks to fit instead of pushing the button beside it out
+   past the card's padding.) */
 .field {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   min-height: 3rem;
   padding: 0 0.8rem;
   border: 3px solid var(--ink);
@@ -180,6 +195,8 @@ button {
 
 .field input {
   flex: 1;
+  /* (Sized by the field, not by its own default width, which kept narrow rows from shrinking.) */
+  width: 0;
   min-width: 0;
   border: 0;
   outline: 0;
@@ -213,7 +230,7 @@ button {
 
 .row {
   display: flex;
-  gap: 0.7rem;
+  gap: var(--gap-buttons);
   align-items: center;
 }
 
@@ -235,9 +252,9 @@ button {
 .card {
   position: relative;
   display: grid;
-  gap: 0.9rem;
+  gap: var(--gap-rows);
   width: min(23rem, 100%);
-  padding: 1.6rem 1.5rem 1.4rem;
+  padding: var(--card-pad);
   border-radius: 1.6rem;
   background: var(--cream);
   border: 4px solid var(--ink);
@@ -276,34 +293,84 @@ button {
   font: 800 0.9rem/1.2 var(--font);
 }
 
-/* lobby */
-.room-code {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.8rem;
-}
-
-.room-code .code {
-  font: 900 2.6rem/1 var(--mono);
-  letter-spacing: 0.18em;
-  color: var(--ink);
-}
-
-/* Share in the top-left corner, Leave in the top-right (where Close sits on other cards). */
-.lobby .lobby-share,
+/* lobby: the invite (a label, the code in its ticket box and Share, like the recovery
+   code screen), who's in, your name, the host's settings and Start; Leave in the top-right corner. */
 .lobby .lobby-leave {
   position: absolute;
   top: -1rem;
+  right: -1rem;
   z-index: 1;
 }
 
-.lobby .lobby-share {
-  left: -1rem;
+.lobby .code-row {
+  width: 100%;
 }
 
-.lobby .lobby-leave {
-  right: -1rem;
+/* Each half of the lobby (the invite and who's in; the match settings and Start): spaced like the card. */
+.lobby-side {
+  display: grid;
+  gap: var(--gap-rows);
+}
+
+/* Under "Players 2/16": who's in, wrapping before the team toggle on the right of the row. */
+.lobby-who {
+  align-items: flex-start;
+}
+
+.lobby-who .chips {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+}
+
+/* The bots (0 · 5 · 10 · Max, then the difficulty) and the maps: picks in a row from the left,
+   under their labels, close together. */
+.lobby .bot-row,
+.lobby .map-picker {
+  display: flex;
+  justify-content: start;
+  gap: var(--gap-buttons);
+}
+
+/* The difficulty on the right of the row, in line with the buttons on the right above. */
+.lobby .bot-row .bot-level {
+  margin-left: auto;
+}
+
+.bot-pick {
+  font: 900 1.15rem/1 var(--font);
+}
+
+.bot-pick[data-bots='max'] {
+  font-size: 0.85rem;
+}
+
+/* The picked one (see --picked-bg). */
+.bot-pick[aria-checked='true'],
+.map-pick[aria-checked='true'] {
+  background: var(--picked-bg);
+  border-color: var(--picked-border);
+}
+
+.bot-pick:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.map-pick:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Who's in, under its label (left, like the label). */
+.lobby .chips {
+  justify-self: stretch;
+  justify-content: flex-start;
+}
+
+.lobby-code {
+  padding: 0;
+  cursor: pointer;
+  font: 900 1.6rem/1 var(--mono);
+  letter-spacing: 0.2em;
 }
 
 .lobby-share.done {
@@ -352,47 +419,16 @@ button {
   justify-content: center;
   justify-items: center;
   align-items: center;
-  column-gap: 1.4rem;
+  column-gap: var(--gap-buttons);
 }
 
-.bots .bot-number {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-/* The bot count: on the face of a big robot head between − and + (which stay in the same columns
-   as the buttons below; the head is a little wider than its column, centered on it). */
-.bots .bot-number {
-  position: relative;
-  width: 4.2rem;
-  height: 3.6rem;
-  justify-content: center;
-  justify-self: center;
-}
-
-.bots .bot-face {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: var(--ink);
-}
-
-.bots .bot-number b {
-  position: relative;
-  /* Centered on the face, below the antenna. */
-  margin-top: 0.7rem;
-}
-
-/* Team mode toggle: light blue when on, faded when off. */
+/* Team mode toggle: light blue with a pair when on, light red with one plush when off. */
 .bots .lobby-team[aria-pressed='true'] {
   background: #dbe9ff;
 }
 
 .bots .lobby-team[aria-pressed='false'] {
-  opacity: 0.45;
-  filter: grayscale(1);
+  background: #ffe1e1;
 }
 
 /* A tap leaves it focused; the blue focus ring read as part of the button. */
@@ -476,6 +512,7 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+
 /* help */
 .help .close,
 .wardrobe .close {
@@ -502,6 +539,13 @@ button {
   z-index: 1;
 }
 
+/* On the code screen it's the way back to the Wardrobe (the hanger): top-left, where the gallery
+   button sits otherwise. */
+.wardrobe .card.showing-code .code-toggle {
+  top: -1rem;
+  bottom: auto;
+}
+
 /* The gallery: every animal's full set; owned parts lit, missing ones faded. */
 .wardrobe .card.showing-gallery {
   width: min(46rem, 100%);
@@ -512,12 +556,23 @@ button {
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9.6rem, 1fr));
-  gap: 0.6rem;
+  gap: var(--gap-buttons);
   max-height: min(70vh, 34rem);
   overflow-y: auto;
-  padding: 1rem 0.2rem;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+  /* Within the card's padding like everything else (nothing scrolls up under the corner buttons);
+     a fade only at an edge there's more beyond (data-more, set while scrolling). */
+  --fade-top: #000;
+  --fade-bottom: #000;
+  -webkit-mask-image: linear-gradient(to bottom, var(--fade-top), #000 1.2rem, #000 calc(100% - 1.2rem), var(--fade-bottom));
+  mask-image: linear-gradient(to bottom, var(--fade-top), #000 1.2rem, #000 calc(100% - 1.2rem), var(--fade-bottom));
+}
+
+.gallery[data-more~='up'] {
+  --fade-top: transparent;
+}
+
+.gallery[data-more~='down'] {
+  --fade-bottom: transparent;
 }
 
 .gallery-card.owned {
@@ -672,7 +727,7 @@ button {
 .wardrobe-body {
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: 0.9rem;
+  gap: var(--gap-rows);
   align-items: center;
 }
 
@@ -687,7 +742,7 @@ button {
 
 .wardrobe-slots {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--gap-buttons);
 }
 
 /* A slot tab: the part you wear there; the selected one is lifted and ringed. */
@@ -710,9 +765,8 @@ button {
 }
 
 .wardrobe-slot.selected {
-  background: #ffd36a;
-  transform: scale(1.12);
-  box-shadow: 0 0 0 3px var(--cream), 0 0 0 6px var(--ink);
+  background: var(--picked-bg);
+  border-color: var(--picked-border);
 }
 
 /* Every part you own for the selected slot; tap one to wear it. */
@@ -721,11 +775,9 @@ button {
   grid-template-columns: repeat(var(--cols, 1), 2.9rem);
   /* Start, not center: centered rows that overflow would be cut off above the scroll. */
   align-content: start;
-  gap: 0.4rem;
+  gap: var(--gap-buttons);
   max-height: 15rem;
   overflow-y: auto;
-  /* Room for the worn part's outline. */
-  padding: 0.45rem;
 }
 
 .wardrobe-picker .pick {
@@ -762,10 +814,10 @@ button {
   --tier: #ffd23a;
 }
 
+/* The worn one: picked out like every chosen option. */
 .wardrobe-picker .pick.worn {
-  background: #fff3c4;
-  outline: 3px solid #ffb800;
-  outline-offset: 1px;
+  background: var(--picked-bg);
+  border-color: var(--picked-border);
 }
 
 /* In the gallery, owned parts and complete sets can be tapped to put on. */
@@ -778,11 +830,15 @@ button {
   transform: scaleX(-1);
 }
 
+/* Spaced like the main menu: the same width inside the card, the same gap between rows, the same
+   field height. A fixed width (not a share of the card, which sizes to its content: that made the
+   card as wide as the explanation on one line). */
 .wardrobe-code {
   display: grid;
   justify-items: center;
-  gap: 0.7rem;
-  width: min(22rem, 100%);
+  gap: var(--gap-rows);
+  width: 23rem;
+  max-width: calc(100vw - 6rem);
   margin: 0 auto;
 }
 
@@ -791,8 +847,12 @@ button {
   line-height: 0;
 }
 
+/* Lined up with the start of the box or field under it (the rows are as wide as the card's middle). */
 .code-hint {
-  margin: 0;
+  justify-self: stretch;
+  /* (Closer to the row it labels than to the one above.) */
+  margin: 0 0 -0.45rem 0.3rem;
+  text-align: left;
   font: 700 0.95rem/1.3 var(--font);
   color: #6b5d73;
 }
@@ -804,12 +864,14 @@ button {
   width: 100%;
 }
 
+/* (The same size and shape as a text field beside it: height, corners, border width.) */
 .code-box {
   flex: 1;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
-  min-height: 3.2rem;
-  border-radius: 1.1rem;
+  height: 3rem;
+  border-radius: 1rem;
   border: 3px dashed var(--ink);
   background: #fff3c4;
   font: 900 1.6rem/1 var(--mono);
@@ -820,13 +882,15 @@ button {
 
 .wardrobe-code .restore .field {
   flex: 1;
-  min-height: 3.2rem;
 }
 
+/* Centered like the code in the box above (the padding makes up for the icon on its left). */
 .wardrobe-code .restore input {
   width: 100%;
   font-family: var(--mono);
   letter-spacing: 0.08em;
+  text-align: center;
+  padding-right: 2.1rem;
 }
 
 .wardrobe .code-toggle:focus:not(:focus-visible),
@@ -843,9 +907,6 @@ button {
   .wardrobe-picker {
     max-height: 11rem;
   }
-  .wardrobe-slots {
-    gap: 0.2rem;
-  }
   .wardrobe-slot {
     width: 2.2rem;
     height: 2.2rem;
@@ -854,13 +915,8 @@ button {
     width: 1.4rem;
     height: 1.4rem;
   }
-  .wardrobe-slot.selected {
-    transform: none;
-    box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px var(--ink);
-  }
   .wardrobe .card {
     gap: 0.5rem;
-    padding-block: 1rem;
   }
 }
 
@@ -1016,7 +1072,7 @@ body.wardrobe-open .sheet {
   right: calc(var(--safe-r) + var(--edge));
   z-index: 20;
   display: grid;
-  gap: 0.6rem;
+  gap: var(--gap-buttons);
   animation: pop 220ms ease-out;
 }
 
@@ -1581,18 +1637,39 @@ body.touch-mode .prompt .icon.tap {
   left: 50%;
   top: calc(var(--safe-t) + var(--edge) + 6.4rem);
   transform: translateX(-50%);
+  max-width: min(36rem, calc(100vw - 2rem));
+  width: max-content;
   padding: 0.3rem 1rem;
-  border-radius: 999px;
-  background: #ff4a1c;
+  border-radius: 1.2rem;
+  background: rgba(255, 250, 243, 0.95);
   border: 3px solid var(--ink);
-  font: 900 1.15rem/1.2 var(--font);
-  color: #fffaf3;
-  white-space: nowrap;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 900 1.05rem/1.3 var(--font);
+  color: var(--ink);
+  text-align: center;
   pointer-events: none;
 }
 
+/* Danger on its way: red, louder, on one line. */
+.toast.warning {
+  border-radius: 999px;
+  background: #ff4a1c;
+  font-size: 1.15rem;
+  color: #fffaf3;
+  white-space: nowrap;
+}
+
+/* Fully readable until its last 0.6 s, then fading (the fade starts --for minus 0.6 s in). */
 .toast.pop {
-  animation: banner-pop 320ms ease-out, fade-late 2.4s linear forwards;
+  animation:
+    banner-pop 320ms ease-out,
+    fade-out 600ms linear calc(var(--for, 3.5s) - 0.6s) forwards;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 .zone-name.pop {
@@ -2162,9 +2239,7 @@ body.touch-mode .gear {
   .overlay.wardrobe {
     padding-block: calc(var(--safe-t) + 1.6rem) calc(var(--safe-b) + 1.6rem);
   }
-  .wardrobe .card {
-    padding: 0.9rem 1.2rem;
-  }
+
   .wardrobe-body {
     gap: 1rem;
   }
@@ -2176,7 +2251,8 @@ body.touch-mode .gear {
     gap: 0.35rem;
   }
   .wardrobe-slot {
-    --s: min(3.3rem, calc((100dvh - var(--safe-t) - var(--safe-b) - 8.6rem) / 5));
+    /* (Five slots and four gaps fit the height.) */
+    --s: min(3.3rem, calc((100dvh - var(--safe-t) - var(--safe-b) - 7.2rem - 4 * var(--gap-buttons)) / 5));
     width: var(--s);
     height: var(--s);
   }
@@ -2297,7 +2373,7 @@ body.touch-mode .gear {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  gap: var(--gap-buttons);
 }
 
 .summary-stat {
@@ -2345,5 +2421,57 @@ body.touch-mode .gear {
 @media (max-width: 560px) {
   .gallery-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* On a big screen with a mouse the weapon and item slots (and the bag) are 1.2x: they're what
+   you use most, and on a wide monitor they were small. Touch keeps its own layout. */
+@media (pointer: fine) and (min-width: 1000px) and (min-height: 640px) {
+  body:not(.touch-mode) .loadout,
+  body:not(.touch-mode) .bag {
+    zoom: 1.2;
+  }
+}
+
+/* Short screens (phones in landscape): the lobby in two columns, the invite, the bots and the map
+   on the left; your name, who's in and Start on the right. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .lobby .card {
+    width: min(46rem, 100%);
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1.8rem;
+    align-items: start;
+  }
+  .lobby .lobby-you {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .lobby .lobby-match {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  /* Your name level with the code (under the invite's label). */
+  .lobby .lobby-name {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+  }
+  /* (At the bottom: Start level with the maps' row.) */
+  .lobby .lobby-go {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+  }
+  /* A guest (no bots or map to set): the code on the left and your name on the right, side by
+     side; who's in below, across both, and the wait for the host under it, centered. */
+  .lobby .card:has(> .lobby-match[hidden]) .lobby-name {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+  }
+  .lobby .card:has(> .lobby-match[hidden]) .lobby-go {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: start;
   }
 }

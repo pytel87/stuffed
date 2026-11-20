@@ -32,6 +32,7 @@ import { Wardrobe } from './ui/wardrobe.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 import { ZoneNames } from './ui/zone-names.ts';
 import { Toast } from './ui/toast.ts';
+import { Tips } from './ui/tips.ts';
 import { tr } from './i18n.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -131,6 +132,7 @@ function openWardrobe(from: { hide(): void }, back: () => void): void {
 profiles.onChange = () => {
   menu.setWardrobe(!!profiles.profile);
   endScreen.setWardrobe(!!profiles.profile);
+  lobbyScreen?.setWardrobe(!!profiles.profile);
 };
 // A new look in the Wardrobe: an online room starts you in it from the next match.
 wardrobe.onLookChanged = () => room?.lookChanged();
@@ -167,6 +169,11 @@ document.addEventListener(
 renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.15 : 0.07, pitchSpread: 0.3 });
 renderer.onStep = (at, id) => audio.step(at, id === session?.localPlayerId);
 const help = new Help();
+/** First-time tips (and the controls card on your first match). */
+const tips = new Tips(
+  (text, seconds) => toast.announce(text, seconds),
+  () => help.show(),
+);
 const options = new Options({
   toggleSound: () => sound.toggleMute(),
   toggleMusic: () => music.toggle(),
@@ -175,7 +182,7 @@ const options = new Options({
   help: () => help.show(),
   leave: showMenu,
   // Online between matches (lobby, results, watching), leaving gives up your seat in the room.
-  leaveQuestion: () => tr(room && phase !== 'playing' ? 'Leave the room?' : 'Leave the match?'),
+  leaveQuestion: () => tr(room && phase !== 'playing' ? 'Leave Multi?' : 'Leave the match?'),
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
 tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
@@ -272,6 +279,7 @@ function beginMatch(next: GameSession): void {
   me = undefined;
   hudEl.classList.remove('out');
   const watching = next.localPlayerId === -1;
+  if (!watching) tips.matchStarted();
   phase = watching ? 'spectating' : 'playing';
   followId = next.localPlayerId;
   spectateEl.hidden = !watching || isBackdrop(next);
@@ -312,7 +320,7 @@ function joinRoom(code: string): void {
   room = new RoomClient(code, playerName(), input, Number(params.get('lag')) || 0, profiles.roomToken);
   room.onKept = (parts) => {
     endScreen.setKept(parts);
-    void profiles.refresh();
+    void profiles.refresh().then(() => tips.collection(profiles.profile?.parts ?? []));
   };
   lobbyScreen = new LobbyScreen(
     document.body,
@@ -322,13 +330,15 @@ function joinRoom(code: string): void {
       saveName(name);
       room?.rename(name);
     },
-    profiles.profile
-      ? () =>
-          openWardrobe(lobbyScreen!, () => {
-            if (room?.lobby?.phase === 'lobby' && !room.match) lobbyScreen?.show();
-          })
-      : null,
+    // (Always wired: the profile may only arrive after the lobby opens; shown once it has.)
+    () => {
+      if (!profiles.profile) return;
+      openWardrobe(lobbyScreen!, () => {
+        if (room?.lobby?.phase === 'lobby' && !room.match) lobbyScreen?.show();
+      });
+    },
   );
+  lobbyScreen.setWardrobe(!!profiles.profile);
   lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;
@@ -474,6 +484,7 @@ function frame(now: number): void {
   zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft());
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   toast.update(dt);
+  if (!isBackdrop(session)) tips.update(dt, state, me, world, events, document.body.classList.contains('touch-mode'));
   debug.update(dt, {
     seed,
     tick: state.tick,
@@ -690,7 +701,10 @@ function reportSolo(parts: Part[], won: boolean): void {
   if (mode !== 'solo' || soloReported) return;
   soloReported = true;
   if (parts.length === 0) return;
-  void profiles.soloResult(parts, won).then((kept) => endScreen.setKept(kept));
+  void profiles.soloResult(parts, won).then((kept) => {
+    endScreen.setKept(kept);
+    tips.collection(profiles.profile?.parts ?? []);
+  });
 }
 
 function isAlive(state: GameState, id: EntityId): boolean {

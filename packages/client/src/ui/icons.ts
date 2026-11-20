@@ -63,6 +63,7 @@ const paths: Record<string, string> = {
   // a four-point sparkle: a part you haven't collected yet
   sparkle: `<path d="M12 2.5c.8 4.8 2.7 6.7 7.5 7.5-4.8.8-6.7 2.7-7.5 7.5-.8-4.8-2.7-6.7-7.5-7.5 4.8-.8 6.7-2.7 7.5-7.5Z" fill="#ffd23a"/><path d="M19 15.5c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" fill="#ffd23a" stroke-width="1.4"/>`,
   // two plushies side by side: team mode
+  alone: `<circle cx="12" cy="9" r="3.4" fill="#ff6b6b"/><path d="M6 19.5a6 6 0 0 1 12 0Z" fill="#ff6b6b"/>`,
   team: `<circle cx="8" cy="9" r="3.2" fill="#5d9cf5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/><circle cx="16" cy="9" r="3.2" fill="#5d9cf5"/><path d="M10.5 19.5a5.5 5.5 0 0 1 11 0Z" fill="#5d9cf5"/>`,
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0Z" fill="#f7c331"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7l-.8-3h-5.4Z"/>`,
   knockout: `<path d="M12 3l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2Z" fill="#fdfbf7"/>`,
