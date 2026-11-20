@@ -55,15 +55,16 @@ export class Tips {
     this.showPending();
     const mine = (e: GameEvent) => 'playerId' in e && e.playerId === me.id;
     const interaction = world && !me.action ? findInteraction(state, me, world) : null;
-    const press = (key: string) => (touch ? tr('Tap the hand') : tr('Press {key}').replace('{key}', key));
-    // (In the order they'd come up; one at a time.)
-    if (interaction?.kind === 'chest') this.tip('chest', `${press('E')}: ${tr('hold to open the chest')}`);
-    else if (interaction?.kind === 'part') this.tip('part', `${press('E')}: ${tr('put the part on')}. ${touch ? tr('Tap the bag') : press('Q')}: ${tr('keep it for later')}`);
+    // (In the order they'd come up; one at a time. On touch the grab button is "the hand button".)
+    if (interaction?.kind === 'chest') this.tip('chest', tr(touch ? 'Hold the hand button to open the chest' : 'Hold E to open the chest'));
+    else if (interaction?.kind === 'part') {
+      this.tip('part', tr(touch ? 'Hand button: put the part on. Bag: keep it for later' : 'E: put the part on. Q: keep it for later'));
+    }
     if (events.some((e) => e.type === 'pickup' && mine(e) && e.what !== 'part' && !(e.what in WEAPONS_SKIP))) {
       this.tip('item', touch ? tr('Tap an item to use it; hold it to drop it') : tr('Keys 3, 4, 5 use your items; hold a slot to drop it'));
     }
     if (events.some((e) => e.type === 'wear' && mine(e) && e.stashed)) this.tip('stash', tr('Parts in your bag and the ones you wear come home with you'));
-    if (events.some((e) => e.type === 'zone' && e.stage === 'shrinking')) this.tip('rinse', tr('The Rinse is rising: stay inside the circle, the water hurts'));
+    if (events.some((e) => e.type === 'zone' && e.stage === 'shrinking')) this.tip('rinse', tr('The zone is shrinking: stay inside it, outside it hurts'));
   }
 
   /** After a match, given your whole collection: a tip on what sets and holo parts are about, shown
