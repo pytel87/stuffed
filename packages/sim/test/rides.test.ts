@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, BEDROOM, Btn, canSee, createGame, createWorld, PARK } from '../src/index.ts';
+import { BACKYARD, COVE, BEDROOM, Btn, canSee, createGame, createWorld, makeWeapon, PARK } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { input, roster, run } from './helpers.ts';
 
@@ -222,7 +222,7 @@ describe('the seesaw', () => {
 });
 
 describe('the catapult', () => {
-  for (const map of [BACKYARD, BEDROOM, PARK]) {
+  for (const map of [BACKYARD, BEDROOM, PARK, COVE]) {
     it(`${map.id}: one on each side of the map`, () => {
       const at = map.rides!.filter((x) => x.kind === 'catapult').map((r) => r.from);
       const mid = { x: map.width / 2, y: map.height / 2 };
@@ -282,5 +282,75 @@ describe('the catapult', () => {
     expect(g.you.umbrella).toBe(false);
     g.go(45);
     expect(g.you.z).toBeLessThan(0.05);
+  });
+});
+
+describe('the lighthouse lookout', () => {
+  const r = COVE.rides!.find((x) => x.kind === 'lookout')!;
+  const atDoor = (g: ReturnType<typeof game>) => {
+    g.you.pos = { x: r.from.x, y: r.from.y };
+    g.you.z = 0;
+  };
+
+  it('E at its door takes you up: nobody sees you there, nothing hits you, and you see far', () => {
+    const g = game(COVE);
+    atDoor(g);
+    g.other.pos = { x: r.from.x + 3, y: r.from.y + 2 };
+    g.go(1, { buttons: Btn.Interact });
+    expect(g.you.ride).not.toBeNull();
+    g.go(5);
+    expect(canSee(g.world, g.state, g.other, g.you)).toBe(false);
+    // Someone 50 away (past the usual 30): seen from up there.
+    g.other.pos = { x: r.to.x, y: r.to.y + 50 };
+    expect(canSee(g.world, g.state, g.you, g.other)).toBe(true);
+    // A shot at the lighthouse doesn't touch you.
+    const full = g.you.stuffing;
+    g.other.pos = { x: r.to.x + 4, y: r.to.y };
+    g.other.weapons = [makeWeapon('cork_popper', 0), null];
+    g.go(20, {}, { aimX: -4, aimY: 0, buttons: Btn.Fire });
+    expect(g.you.stuffing).toBe(full);
+    // Nor can you shoot from up there.
+    g.you.weapons = [makeWeapon('cork_popper', 0), null];
+    g.go(5, { aimX: 4, aimY: 0, buttons: Btn.Fire });
+    expect(g.state.projectiles.some((p) => p.ownerId === g.you.id)).toBe(false);
+  });
+
+  it('brings you back down at its door after a while (or when you Jump), and you can go up again', () => {
+    const g = game(COVE);
+    atDoor(g);
+    g.go(1, { buttons: Btn.Interact });
+    g.go(Math.ceil(r.seconds * 30) + 2);
+    expect(g.you.ride).toBeNull();
+    expect(Math.hypot(g.you.pos.x - r.from.x, g.you.pos.y - r.from.y)).toBeLessThan(0.5);
+    expect(g.you.z).toBeLessThan(0.05);
+    g.go(31);
+    g.go(1, { buttons: Btn.Interact });
+    expect(g.you.ride).not.toBeNull();
+    // Early, with Jump.
+    const h = game(COVE);
+    atDoor(h);
+    h.go(1, { buttons: Btn.Interact });
+    h.go(30);
+    h.go(1, { buttons: Btn.Jump });
+    expect(h.you.ride).toBeNull();
+    expect(Math.hypot(h.you.pos.x - r.from.x, h.you.pos.y - r.from.y)).toBeLessThan(1);
+    // Or with E again.
+    const e = game(COVE);
+    atDoor(e);
+    e.go(1, { buttons: Btn.Interact });
+    e.go(30);
+    e.go(1, { buttons: Btn.Interact });
+    expect(e.you.ride).toBeNull();
+    expect(Math.hypot(e.you.pos.x - r.from.x, e.you.pos.y - r.from.y)).toBeLessThan(1);
+  });
+
+  it('holds one at a time', () => {
+    const g = game(COVE);
+    atDoor(g);
+    g.other.pos = { x: r.from.x + 0.5, y: r.from.y };
+    g.go(1, { buttons: Btn.Interact });
+    g.go(3);
+    g.go(1, {}, { buttons: Btn.Interact });
+    expect(g.other.ride).toBeNull();
   });
 });

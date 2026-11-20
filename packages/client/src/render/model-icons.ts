@@ -84,7 +84,7 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
     shoot(`chest:${loot}`, buildChest({ id: 0, pos: { x: 0, y: 0 }, z: 0, opened: false, loot }).root, new THREE.Euler(0.45, -0.5, 0, 'YXZ'));
   }
   // The air strike button of each kind, for its prompt.
-  for (const kind of ['balloons', 'blocks', 'snowballs'] as const) {
+  for (const kind of ['balloons', 'blocks', 'snowballs', 'cannonballs'] as const) {
     // Without its glow ring and lights, which would only make the button smaller in the picture.
     const button = buildStrikeButton();
     button.glow.removeFromParent();

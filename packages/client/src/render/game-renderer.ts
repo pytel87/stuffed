@@ -126,6 +126,10 @@ export interface RenderOptions {
   time: number;
 }
 
+/** How deep a wading plush sits in the water (drawn; its body's lower half under the surface). */
+const WADE_SINK = 0.38;
+const WATERLINE_GEO = new THREE.RingGeometry(0.42, 0.62, 28).rotateX(-Math.PI / 2);
+
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -154,6 +158,10 @@ export class GameRenderer {
   private readonly finales = new Map<EntityId, number>();
   /** Distance walked since the last step (a splash in water), per plush. */
   private readonly stepWalked = new Map<EntityId, number>();
+  /** How deep each plush is drawn sunk in the water it wades through (eased), and the ring of
+   *  ripples round it there. */
+  private readonly sunk = new Map<EntityId, number>();
+  private readonly waterlines = new Map<EntityId, THREE.Mesh>();
   /** A plush splashed through water (for the sound). */
   onWaterStep: ((at: Vec2, id: EntityId) => void) | null = null;
   /** A plush took a step on dry ground (for the sound). */
@@ -252,7 +260,7 @@ export class GameRenderer {
     if (map.id === this.mapId) return;
     this.mapId = map.id;
     // Far beyond the map (seen in the Toss): deep green past the lawn, dark wood past the floor.
-    this.renderer.setClearColor(map.theme === 'bedroom' ? '#7a5a3e' : map.theme === 'snow' ? '#dce8f2' : '#3f7a3c');
+    this.renderer.setClearColor(map.theme === 'bedroom' ? '#7a5a3e' : map.theme === 'snow' ? '#dce8f2' : map.theme === 'island' ? '#5cc3d8' : '#3f7a3c');
     // Gently falling snow over the Snowy Park.
     this.snowfall?.removeFromParent();
     this.snowfall = map.theme === 'snow' ? makeSnowfall() : null;
@@ -363,6 +371,18 @@ export class GameRenderer {
         case 'ballBounce':
           this.balls.bounce(e.ballId);
           break;
+        case 'wandererBump': {
+          // A shark's bite: a big splash where it comes up.
+          if (this.world.map.wanderers?.[e.index]?.kind === 'shark') this.effects.splash(e.pos.x, e.pos.y);
+          break;
+        }
+        case 'burn': {
+          // A flash, and a puff of smoke off the lava.
+          this.plushes.get(e.playerId)?.flash();
+          const p = state.players.find((x) => x.id === e.playerId);
+          this.effects.burn(e.pos.x, p?.z ?? 0, e.pos.y);
+          break;
+        }
         case 'trainBump': {
           this.plushes.get(e.playerId)?.flash();
           this.effects.pickup(e.pos.x, e.pos.y);
@@ -487,7 +507,7 @@ export class GameRenderer {
     seeThroughBush.receiveShadow = false;
     samples.add(seeThroughBush);
     samples.add(...this.loot.samples(), ...this.projectiles.samples(), ...this.chests.samples());
-    samples.add(buildStrikeButton().root, ...(['balloons', 'blocks', 'snowballs'] as const).map((k) => buildDrop(k)));
+    samples.add(buildStrikeButton().root, ...(['balloons', 'blocks', 'snowballs', 'cannonballs'] as const).map((k) => buildDrop(k)));
     // Spread them out in a grid at the map center, where the shadow camera can see them too.
     samples.children.forEach((o, i) => o.position.set(40 + (i % 8) * 1.5 - 6, 0.5, 40 + Math.floor(i / 8) * 1.5 - 6));
     this.scene.add(samples);
@@ -536,6 +556,9 @@ export class GameRenderer {
   reset(): void {
     for (const view of this.plushes.values()) view.dispose();
     this.plushes.clear();
+    for (const ring of this.waterlines.values()) ring.removeFromParent();
+    this.waterlines.clear();
+    this.sunk.clear();
     this.dripTimers.clear();
     this.finales.clear();
     this.projectiles.clear();
@@ -571,6 +594,8 @@ export class GameRenderer {
     this.world.placed = curr.placedWalls;
     const viewer = curr.players.find((p) => p.id === opts.followId);
 
+    // (Rings at the waterline: shown again below for each plush still wading.)
+    for (const ring of this.waterlines.values()) ring.visible = false;
     for (const p of curr.players) {
       if (!p.alive) continue;
       seen.add(p.id);
@@ -610,7 +635,27 @@ export class GameRenderer {
       // shadow glides down it instead of hopping from step to step inside it).
       const ramp = rampSurface(this.world, pos);
       if (ramp !== null && ramp <= z + 0.3) groundY = ramp;
-      if (view.update(pos, vel, aim, z, groundY, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
+      // Wading: sunk to the waist in the water (eased in and out as you step in and out).
+      const inWater = !p.ride && !p.drop && z < 0.05 && wading(this.world, { pos, z });
+      const sinkWas = this.sunk.get(p.id) ?? 0;
+      const sink = sinkWas + ((inWater ? WADE_SINK : 0) - sinkWas) * (1 - Math.exp(-10 * opts.dt));
+      this.sunk.set(p.id, sink);
+      // A ring of ripples where the water meets it.
+      let ring = this.waterlines.get(p.id);
+      if (!ring && sink > 0.02) {
+        ring = new THREE.Mesh(WATERLINE_GEO, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false }));
+        ring.renderOrder = 1;
+        this.mapLayer.add(ring);
+        this.waterlines.set(p.id, ring);
+      }
+      if (ring) {
+        ring.visible = view.root.visible && sink > 0.02;
+        ring.position.set(pos.x, 0.035, pos.y);
+        const k = sink / WADE_SINK;
+        ring.scale.setScalar(1 + Math.sin(opts.time * 4 + p.id) * 0.06);
+        (ring.material as THREE.MeshBasicMaterial).opacity = 0.55 * k;
+      }
+      if (view.update(pos, vel, aim, z - sink, groundY - sink, opts.dt, opts.time) && view.root.visible) this.effects.landing(pos.x, groundY, pos.y);
       // Up on the roof above you: gone while you're inside, under it.
       fadeObject(view.root, this.roofFade(pos.x, pos.y, z));
       if ((p.drop === 'gliding' || p.umbrella) && view.root.visible && Math.random() < opts.dt * 14) this.effects.glideTrail(pos.x, z, pos.y);
@@ -649,7 +694,9 @@ export class GameRenderer {
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       // Riders are on board the blimp, out of sight (your own plush too).
       // Crawling through a hamster tube: out of sight (you too; the tube's too low for a plush).
-      const inTube = !!p.ride && this.world.map.rides?.[p.ride.index]?.kind === 'tube';
+      // Up in the lighthouse's lookout: inside it, out of sight (you too).
+      const rideKind = p.ride ? this.world.map.rides?.[p.ride.index]?.kind : undefined;
+      const inTube = rideKind === 'tube' || rideKind === 'lookout';
       view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding' || p.umbrella);
       // The victory lap: the winner (or winning team) dances while standing still.
@@ -699,7 +746,7 @@ export class GameRenderer {
     this.toy.update(curr, this.world.map, curr.tick - 1 + alpha, opts.time);
     const followed = curr.players.find((p) => p.id === opts.followId);
     const shownAt = followed && this.plushes.get(followed.id)?.root.position;
-    this.rides.update(this.world.map, curr, shownAt ? { pos: { x: shownAt.x, y: shownAt.z }, z: shownAt.y } : undefined);
+    this.rides.update(this.world.map, curr, shownAt ? { pos: { x: shownAt.x, y: shownAt.z }, z: shownAt.y } : undefined, followed);
     this.games.update(this.world.map, curr, opts.time);
     this.wanderers.update(this.world.map, prev, curr, alpha, curr.tick - 1 + alpha, opts.time);
     // Cardboard Walls: any that vanished burst into bits (shot down or folded away).
@@ -708,7 +755,7 @@ export class GameRenderer {
     this.effects.update(opts.dt);
     this.balls.update(prev, curr, alpha, opts.dt);
     this.goals.update(curr, opts.dt);
-    this.train.update(trainTick, opts.dt, (x, y, z) => this.effects.steam(x, y, z));
+    this.train.update(trainTick, opts.dt, (x, y, z) => this.effects.steam(x, y, z), shownAt ? { pos: { x: shownAt.x, y: shownAt.z }, z: shownAt.y } : undefined);
     this.reviveMarkers.update(curr, viewer, opts.time);
     // How far out the camera is versus the usual (the Toss pulls back; tall screens back off too).
     const zoom = (this.camera.position.distanceTo(this.rig.target) / CAMERA.distance) * Math.max(1, this.camera.aspect / (16 / 9));
@@ -727,7 +774,13 @@ export class GameRenderer {
     // pick a landing spot.
     const flung = !!viewer?.ride && this.world.map.rides?.[viewer.ride.index]?.kind === 'catapult';
     const dropping = !!viewer?.drop || !!viewer?.umbrella || flung;
-    this.rig.update(this.followPos, following && !dropping ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, this.followGround, dropping ? 2.6 : 1);
+    // Up in a lookout: the camera pulls right back, the whole neighbourhood in view.
+    const lookingOut = !!viewer?.ride && this.world.map.rides?.[viewer.ride.index]?.kind === 'lookout';
+    // (Looking in toward the middle of the map: halfway there, so the lighthouse stays in view at
+    // the edge and Treasure Island fills the rest.)
+    const map = this.world.map;
+    const focus = lookingOut ? { x: (this.followPos.x + map.width / 2) / 2, y: (this.followPos.y + map.height / 2) / 2 } : this.followPos;
+    this.rig.update(focus, following && !dropping && !lookingOut ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, lookingOut ? 0 : this.followGround, lookingOut ? 3.4 : dropping ? 2.6 : 1);
     this.toss.update(curr, curr.tick - 1 + alpha, opts.time);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);

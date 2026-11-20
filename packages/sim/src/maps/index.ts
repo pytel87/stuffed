@@ -1,14 +1,15 @@
 import type { MapData } from '../types.ts';
 import { BACKYARD } from './backyard.ts';
 import { BEDROOM } from './bedroom.ts';
+import { COVE } from './cove.ts';
 import { PARK } from './park.ts';
 import { TEST_MAP } from './test-map.ts';
 
 /** Every map by id. TEST_MAP stays for tests. */
-export const MAPS: Record<string, MapData> = { [BACKYARD.id]: BACKYARD, [BEDROOM.id]: BEDROOM, [PARK.id]: PARK, [TEST_MAP.id]: TEST_MAP };
+export const MAPS: Record<string, MapData> = { [BACKYARD.id]: BACKYARD, [BEDROOM.id]: BEDROOM, [PARK.id]: PARK, [COVE.id]: COVE, [TEST_MAP.id]: TEST_MAP };
 
 /** The maps matches can be played on, in the order the map button cycles through them. */
-export const PLAYABLE_MAPS: readonly MapData[] = [BACKYARD, BEDROOM, PARK];
+export const PLAYABLE_MAPS: readonly MapData[] = [BACKYARD, BEDROOM, PARK, COVE];
 
 /** The map with this id (the Backyard if unknown). */
 export function getMap(id: string): MapData {

@@ -1,5 +1,5 @@
 import './style.css';
-import { BACKYARD, Btn, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, TRAIN, trainCars, zoneSecondsLeft } from '@stuffed/sim';
+import { BACKYARD, Btn, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -730,17 +730,17 @@ function nextAlive(state: GameState, near: { x: number; y: number }, team = 0): 
 /** Seconds until the train may toot at you again. */
 let tootWait = 0;
 
-/** The toy train toots when it's about to run into you, so you see it coming. */
+/** The toy train toots (the pirate ship rings its bell) when it's about to run into you, so you see it coming. */
 function tootIfTrainComing(state: GameState, dt: number): void {
   tootWait = Math.max(0, tootWait - dt);
   const track = session?.map.track;
-  if (!track || !me?.alive || me.drop || tootWait > 0 || me.z >= TRAIN.deckHeight - 0.05) return;
+  if (!track || !me?.alive || me.drop || tootWait > 0 || me.z >= layoutOf(track).deckHeight - 0.05) return;
   const pos = renderer.localPlayerPos;
   for (const ahead of [0.6, 1.2, 1.8]) {
-    const engine = trainCars(track, state.tick + ahead * config.tickRate)[0]!;
-    if (Math.hypot(pos.x - engine.pos.x, pos.y - engine.pos.y) < TRAIN.carWidth / 2 + 0.9) {
+    const near = trainCircles(track, state.tick + ahead * config.tickRate).some((c) => c.shoves && Math.hypot(pos.x - c.x, pos.y - c.y) < c.r + 0.9);
+    if (near) {
       const now = trainCars(track, state.tick)[0]!;
-      sound.play('train_toot', { at: now.pos, volume: 0.9, pitchSpread: 0 });
+      sound.play(track.style === 'ship' ? 'ship_bell' : 'train_toot', { at: now.pos, volume: 0.9, pitchSpread: 0 });
       tootWait = 4;
       return;
     }

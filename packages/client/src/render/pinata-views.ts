@@ -1,5 +1,5 @@
-// The map's piñata: a paper donkey hanging from a wooden frame, or a big wrapped present. It
-// jiggles when hit and is gone once it bursts (the donkey's frame and rope stay).
+// The map's piñata: a paper donkey hanging from a tree, a paper parrot from a broken mast's spar, or
+// a big wrapped present. It jiggles when hit and is gone once it bursts (the branch and rope stay).
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
 import type { GameState, PinataKind } from '@stuffed/sim';
@@ -57,6 +57,72 @@ function donkey(): THREE.Group {
   return g;
 }
 
+/** The paper parrot: red fringe body, blue and yellow wings, a long striped tail, a hooked beak;
+ *  its middle at its origin, facing +x, perched upright as it hangs. */
+function parrot(): THREE.Group {
+  const g = new THREE.Group();
+  const red = (r: number, len: number, rings: number) => {
+    const f = new THREE.Group();
+    for (let i = 0; i < rings; i++) {
+      const ring = toonMesh(new THREE.CylinderGeometry(r * (1 - i * 0.04), r * (1.04 - i * 0.04), len / rings, 16), i % 2 ? '#e2433f' : '#ff5a4a', { outline: 0.04 });
+      ring.position.y = -len / 2 + (i + 0.5) * (len / rings);
+      f.add(ring);
+    }
+    return f;
+  };
+  const body = red(0.3, 0.9, 5);
+  body.rotation.z = -0.25;
+  g.add(body);
+  const head = toonMesh(new THREE.SphereGeometry(0.27, 16, 12), '#ff5a4a', { outline: 0.05 });
+  head.position.set(0.14, 0.62, 0);
+  g.add(head);
+  // A white face patch, an eye on each side, and a hooked beak: yellow on top, dark below.
+  for (const s of [-1, 1]) {
+    const patch = toonMesh(new THREE.SphereGeometry(0.12, 10, 8), '#fdfbf7', { outline: false });
+    patch.scale.set(1, 0.9, 0.4);
+    patch.position.set(0.26, 0.66, s * 0.17);
+    g.add(patch);
+    const eye = toonMesh(new THREE.SphereGeometry(0.045, 8, 6), '#2a1f2d', { outline: false });
+    eye.position.set(0.3, 0.68, s * 0.2);
+    g.add(eye);
+  }
+  const beak = toonMesh(new THREE.ConeGeometry(0.11, 0.28, 10), '#f7c331', { outline: 0.08 });
+  beak.rotation.z = -Math.PI / 2 - 0.6;
+  beak.position.set(0.42, 0.56, 0);
+  g.add(beak);
+  const jaw = toonMesh(new THREE.ConeGeometry(0.07, 0.14, 8), '#3a3740', { outline: 0.1 });
+  jaw.rotation.z = -Math.PI / 2 + 0.4;
+  jaw.position.set(0.38, 0.47, 0);
+  g.add(jaw);
+  // Wings folded at its sides: blue with a yellow edge.
+  for (const s of [-1, 1]) {
+    const wing = toonMesh(new THREE.SphereGeometry(0.26, 12, 10), '#3d7ff2', { outline: 0.05 });
+    wing.scale.set(0.55, 1.25, 0.32);
+    wing.rotation.z = -0.35;
+    wing.position.set(-0.08, 0.05, s * 0.28);
+    g.add(wing);
+    const edge = toonMesh(new THREE.SphereGeometry(0.2, 10, 8), '#ffd23a', { outline: 0.05 });
+    edge.scale.set(0.45, 0.9, 0.3);
+    edge.rotation.z = -0.35;
+    edge.position.set(-0.18, -0.12, s * 0.3);
+    g.add(edge);
+  }
+  // The tail: three long feathers fanning down behind.
+  ([['#e2433f', 0], ['#3d7ff2', -0.08], ['#ffd23a', 0.08]] as const).forEach(([c, z], i) => {
+    const feather = toonMesh(new THREE.BoxGeometry(0.12, 0.7, 0.05), c, { outline: 0.08 });
+    feather.position.set(-0.25 - i * 0.03, -0.72, z);
+    feather.rotation.z = -0.35 + (i - 1) * 0.12;
+    g.add(feather);
+  });
+  // Feet curled round its perch.
+  for (const s of [-1, 1]) {
+    const foot = toonMesh(new THREE.TorusGeometry(0.06, 0.025, 6, 10, Math.PI * 1.4), '#f7c331', { outline: 0.15 });
+    foot.position.set(0.05, -0.45, s * 0.1);
+    g.add(foot);
+  }
+  return g;
+}
+
 /** A big pink present with a gold ribbon cross and a bow, its middle at its origin. */
 function present(): THREE.Group {
   const g = new THREE.Group();
@@ -95,27 +161,31 @@ function limb(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number, bark: 
  * at `to` (both relative to the piñata's spot): thick at the trunk, tapering, bending a little,
  * with a leafy twig on the way and leaves at its tip; and the rope hanging from it.
  */
-function branch(from: THREE.Vector3, to: THREE.Vector3): { branch: THREE.Group; rope: THREE.Mesh; knot: number } {
+function branch(from: THREE.Vector3, to: THREE.Vector3, leafy = true): { branch: THREE.Group; rope: THREE.Mesh; knot: number } {
   const g = new THREE.Group();
-  const bark = toonMaterial('#7a5236', { map: null });
+  const bark = toonMaterial(leafy ? '#7a5236' : '#8a5a32', { map: null });
   const out = new THREE.Vector3(to.x - from.x, 0, to.z - from.z).normalize();
   const tip = to.clone().addScaledVector(out, 0.8);
   tip.y += 0.15;
-  // A gentle bend: up a little from the trunk, then out and slightly down to the tip.
+  // A gentle bend: up a little from the trunk, then out and slightly down to the tip. (A mast's
+  // spar: straight out, no leaves.)
   const mid = from.clone().lerp(tip, 0.45);
-  mid.y += 0.35;
-  g.add(limb(from, mid, 0.32, 0.2, bark), limb(mid, tip, 0.2, 0.09, bark));
-  const twigEnd = mid.clone().addScaledVector(new THREE.Vector3(-out.z, 0, out.x), 1.1).add(new THREE.Vector3(0, 0.5, 0));
-  g.add(limb(mid, twigEnd, 0.1, 0.05, bark));
-  const leaves = makeTriplanar(toonMaterial('#4ea34a', { map: foliage(1).map }), 0.9);
-  const clump = (at: THREE.Vector3, r: number) => {
-    const c = toonMesh(new THREE.IcosahedronGeometry(r, 2), '#4ea34a', { outline: 0.05, outlineColor: '#1f3f26', material: leaves });
-    c.position.copy(at);
-    g.add(c);
-  };
-  clump(tip.clone().add(new THREE.Vector3(0, 0.25, 0)), 0.65);
-  clump(tip.clone().addScaledVector(out, 0.4).add(new THREE.Vector3(0, 0.05, 0.35)), 0.45);
-  clump(twigEnd, 0.5);
+  if (leafy) mid.y += 0.35;
+  else mid.y = from.y + (tip.y - from.y) * 0.45;
+  g.add(limb(from, mid, leafy ? 0.32 : 0.16, leafy ? 0.2 : 0.14, bark), limb(mid, tip, leafy ? 0.2 : 0.14, leafy ? 0.09 : 0.11, bark));
+  if (leafy) {
+    const twigEnd = mid.clone().addScaledVector(new THREE.Vector3(-out.z, 0, out.x), 1.1).add(new THREE.Vector3(0, 0.5, 0));
+    g.add(limb(mid, twigEnd, 0.1, 0.05, bark));
+    const leaves = makeTriplanar(toonMaterial('#4ea34a', { map: foliage(1).map }), 0.9);
+    const clump = (at: THREE.Vector3, r: number) => {
+      const c = toonMesh(new THREE.IcosahedronGeometry(r, 2), '#4ea34a', { outline: 0.05, outlineColor: '#1f3f26', material: leaves });
+      c.position.copy(at);
+      g.add(c);
+    };
+    clump(tip.clone().add(new THREE.Vector3(0, 0.25, 0)), 0.65);
+    clump(tip.clone().addScaledVector(out, 0.4).add(new THREE.Vector3(0, 0.05, 0.35)), 0.45);
+    clump(twigEnd, 0.5);
+  }
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 6).translate(0, -0.5, 0), toonMaterial('#efe2c2', { map: null }));
   // Where the branch passes over the rope (along mid → tip): the rope is tied there, so no gap.
   const k = THREE.MathUtils.clamp(Math.hypot(to.x - mid.x, to.z - mid.z) / (Math.hypot(tip.x - mid.x, tip.z - mid.z) || 1), 0, 1);
@@ -160,10 +230,10 @@ export class PinataView {
     (this.glow!.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.sin(time * 2.5) * 0.2;
     this.star!.scale.setScalar(0.45 + Math.sin(time * 4) * 0.08);
     (this.star!.material as THREE.SpriteMaterial).rotation = Math.sin(time * 1.7) * 0.4;
-    if (this.rope) this.rope.scale.y = p.broken ? 0.35 : this.hangY - (config.pinata.lift.donkey + 0.45);
+    if (this.rope) this.rope.scale.y = p.broken ? 0.35 : this.hangY - (config.pinata.lift[p.kind] + 0.45);
     this.jiggle = Math.max(0, this.jiggle - dt * 1.6);
     const wave = Math.sin(time * 14) * this.jiggle * this.side;
-    if (p.kind === 'donkey') {
+    if (p.kind !== 'present') {
       // Swings from the rope (a little all the time, a lot when hit).
       this.pivot!.rotation.x = wave * 0.45 + Math.sin(time * 1.3) * 0.04;
       this.body!.rotation.y = Math.sin(time * 0.7) * 0.3;
@@ -181,17 +251,18 @@ export class PinataView {
     const pivot = new THREE.Group();
     const lift = config.pinata.lift[kind];
     let body: THREE.Group;
-    if (kind === 'donkey') {
-      // Hanging by a rope from a branch of a tree (it swings from the branch).
+    if (kind !== 'present') {
+      // Hanging by a rope from a branch of a tree, or the parrot from a mast's spar (it swings).
       // The rope hangs from the branch a bit below where it leaves the trunk (it droops).
-      const b = branch(new THREE.Vector3((from?.x ?? x - 3) - x, (from?.z ?? 4.5) - z, (from?.y ?? y) - y), new THREE.Vector3(0, (from?.z ?? 4.5) - z - 0.9, 0));
+      const leafy = kind === 'donkey';
+      const b = branch(new THREE.Vector3((from?.x ?? x - 3) - x, (from?.z ?? 4.5) - z, (from?.y ?? y) - y), new THREE.Vector3(0, (from?.z ?? 4.5) - z - (leafy ? 0.9 : 0.3), 0), leafy);
       // Tied to the branch itself (it passes a little higher than where it was aimed).
       this.hangY = b.knot;
       root.add(b.branch);
       this.rope = b.rope;
       pivot.position.y = this.hangY;
       pivot.add(b.rope);
-      body = donkey();
+      body = leafy ? donkey() : parrot();
       body.position.y = lift - this.hangY;
     } else {
       // Wobbles from its bottom.
@@ -208,7 +279,7 @@ export class PinataView {
     glow.position.y = 0.02;
     root.add(glow);
     const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false }));
-    star.position.y = lift + (kind === 'donkey' ? 1.2 : 1.6);
+    star.position.y = lift + (kind === 'present' ? 1.6 : 1.2);
     star.renderOrder = 5;
     root.add(star);
     this.glow = glow;

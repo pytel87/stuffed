@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, BEDROOM, Btn, config, createGame, createWorld, findInteraction, PARK, secondsToTicks } from '../src/index.ts';
+import { BACKYARD, BEDROOM, COVE, Btn, config, createGame, createWorld, findInteraction, PARK, secondsToTicks } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { input, roster, run } from './helpers.ts';
 
@@ -21,7 +21,7 @@ function setup(map: MapData = BACKYARD) {
 
 describe('the air strike button', () => {
   it('each map has one, standing somewhere a plush can reach', () => {
-    for (const map of [BACKYARD, BEDROOM, PARK]) {
+    for (const map of [BACKYARD, BEDROOM, PARK, COVE]) {
       const s = map.strikeButton!;
       expect(s, map.id).toBeDefined();
       for (const w of map.walls) {

@@ -1,8 +1,10 @@
 // The toy train, drawn where the match clock says it is (see sim systems/train.ts): an engine
-// with a chimney puffing steam, then the cars, each turning along the track.
+// with a chimney puffing steam, then the cars, each turning along the track. On Pirate Cove, the
+// pirate ship instead (see ship-model.ts).
 import * as THREE from 'three';
-import { TRAIN, trainCars } from '@stuffed/sim';
-import type { MapData, TrainTrack } from '@stuffed/sim';
+import { carriedBy, TRAIN, trainCars } from '@stuffed/sim';
+import type { MapData, TrainTrack, Vec2 } from '@stuffed/sim';
+import { buildShip, fadeSails, type ShipModel } from './ship-model.ts';
 import { mergeStatic } from './merge-static.ts';
 import { outlinedBox } from './props.ts';
 import { evenOutlines, makePlastic, toonMaterial, toonMesh } from './toon.ts';
@@ -70,11 +72,20 @@ function buildCar(index: number): THREE.Group {
 export class TrainView {
   private readonly cars: THREE.Group[] = [];
   private readonly track: TrainTrack | null;
+  /** On Pirate Cove: the pirate ship instead of a train. */
+  private readonly ship: ShipModel | null = null;
   private smokeIn = 0;
+  private time = 0;
 
   constructor(parent: THREE.Object3D, map: MapData) {
     this.track = map.track ?? null;
     if (!this.track) return;
+    if (this.track.style === 'ship') {
+      this.ship = buildShip();
+      parent.add(this.ship.root);
+      this.cars.push(this.ship.root);
+      return;
+    }
     for (let i = 0; i < this.track.cars; i++) {
       const car = buildCar(i);
       parent.add(car);
@@ -82,15 +93,26 @@ export class TrainView {
     }
   }
 
-  /** `tick` may be fractional (between ticks). `puff` gets the chimney top now and then. */
-  update(tick: number, dt: number, puff: (x: number, y: number, z: number) => void): void {
+  /** `tick` may be fractional (between ticks). `puff` gets the chimney top now and then. `followed`
+   *  is the plush the camera follows (where it's drawn, z its height): the sails fade while it's aboard. */
+  update(tick: number, dt: number, puff: (x: number, y: number, z: number) => void, followed?: { pos: Vec2; z: number }): void {
     if (!this.track) return;
+    this.time += dt;
     const cars = trainCars(this.track, tick);
     cars.forEach((c, i) => {
       const g = this.cars[i]!;
       g.position.set(c.pos.x, 0, c.pos.y);
       g.rotation.y = Math.atan2(c.dir.x, c.dir.y);
     });
+    if (this.ship) {
+      // Rolling a little on the swell, the flag fluttering.
+      this.ship.rocker.rotation.z = Math.sin(this.time * 1.1) * 0.02;
+      this.ship.rocker.rotation.x = Math.sin(this.time * 0.7 + 1) * 0.008;
+      this.ship.flag.rotation.y = Math.sin(this.time * 5) * 0.18;
+      const aboard = !!followed && carriedBy(this.track, tick, tick, followed.pos, followed.z) !== null;
+      fadeSails(this.ship.sails, aboard ? 0.3 : 1);
+      return;
+    }
     this.smokeIn -= dt;
     if (this.smokeIn <= 0 && cars[0]) {
       this.smokeIn = 0.35;

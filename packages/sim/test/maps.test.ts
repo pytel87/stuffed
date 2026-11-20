@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, BACKYARD, BEDROOM, PARK, BotController, Btn, createGame, createWorld, makeWeapon, spawnLoot, step, TRAIN, trainCars, wading } from '../src/index.ts';
+import { applyDamage, config, secondsToTicks, BACKYARD, BEDROOM, COVE, currentAt, onIsland, PARK, BotController, Btn, createGame, createWorld, makeWeapon, SHIP, spawnLoot, step, TRAIN, trainCars, trainCircles, wading } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { openChest } from '../src/systems/loot.ts';
+import { buildingAt } from '../src/systems/movement.ts';
 import { input, roster, run } from './helpers.ts';
 
 const insideBox = (x: number, y: number, b: { x: number; y: number; w: number; h: number }, margin: number) =>
@@ -316,6 +317,300 @@ describe('the Snowy Park', () => {
   });
 });
 
+describe('Pirate Cove', () => {
+  const map = COVE;
+
+  it('has room for 16 plushies, spread out on its islands and clear of walls', () => {
+    const world = createWorld(map);
+    expect(map.spawns.length).toBeGreaterThanOrEqual(16);
+    for (const s of map.spawns) {
+      for (const wall of map.walls) expect(insideBox(s.x, s.y, wall, 1), `spawn ${s.x},${s.y}`).toBe(false);
+      expect(onIsland(world, s), `spawn ${s.x},${s.y} on an island`).toBe(true);
+    }
+    for (const a of map.spawns) for (const b of map.spawns) if (a !== b) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(5);
+  });
+
+  it('keeps every wall and chest on an island, and chests clear of walls', () => {
+    const world = createWorld(map);
+    // (Rocks stand out in the lagoon too.)
+    for (const wall of map.walls) if (wall.kind !== 'rock') expect(onIsland(world, { x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 }), `${wall.kind} at ${wall.x},${wall.y}`).toBe(true);
+    for (const c of map.chestSpawns) {
+      expect(onIsland(world, c), `chest at ${c.x},${c.y}`).toBe(true);
+      // (A chest up on a building stands above the walls under it, like the volcano's tiers.)
+      const up = c.roof ? map.buildings.find((b) => c.x >= b.x && c.x <= b.x + b.w && c.y >= b.y && c.y <= b.y + b.h)!.height : 0;
+      for (const wall of map.walls) if (wall.height > up) expect(insideBox(c.x, c.y, wall, 0.7), `chest at ${c.x},${c.y}`).toBe(false);
+    }
+  });
+
+  it('is shallow sea off the islands: you wade (slower), dry on the islands', () => {
+    const world = createWorld(map);
+    expect(wading(world, { pos: { x: 40, y: 40 }, z: 0 })).toBe(true);
+    expect(wading(world, { pos: { x: 65, y: 65 }, z: 0 })).toBe(false);
+    expect(wading(world, { pos: { x: 40, y: 40 }, z: 1 })).toBe(false);
+  });
+
+  it('has a current slaloming round the isles that carries a plush along it', () => {
+    // Swinging out round the small north isle, it flows east (clockwise on screen).
+    const at = { x: 65, y: 11 };
+    expect(currentAt(map.currents, at)!.x).toBeGreaterThan(5);
+    expect(currentAt(map.currents, { x: 3, y: 65 })).toBeNull();
+    // Never over an island; in and out between the big and the small isles.
+    const sea = createWorld(map);
+    for (const c of map.currents!) for (const q of c.path) expect(onIsland(sea, q), `current at ${q.x},${q.y}`).toBe(false);
+    const radii = map.currents![0]!.path.map((q) => Math.hypot(q.x - 65, q.y - 65));
+    expect(Math.max(...radii) - Math.min(...radii)).toBeGreaterThan(15);
+    const { world, state, p } = solo(map, at);
+    run(world, state, 30, () => input());
+    expect(p.pos.x).toBeGreaterThan(at.x + 4);
+    // Standing still in plain sea, nothing moves you.
+    const calm = solo(map, { x: 3, y: 65 });
+    run(calm.world, calm.state, 30, () => input());
+    expect(Math.hypot(calm.p.pos.x - 3, calm.p.pos.y - 65)).toBeLessThan(0.1);
+  });
+
+  it('sails its ship round the lagoon, clear of the islands and the current', () => {
+    const track = map.track!;
+    for (let tick = 0; tick < 30 * 60; tick += 7) {
+      for (const c of trainCircles(track, tick)) {
+        for (const isle of map.islands!) expect(Math.hypot(c.x - isle.center.x, c.y - isle.center.y)).toBeGreaterThan(isle.radius + c.r);
+        expect(currentAt(map.currents!, c)).toBeNull();
+      }
+    }
+    // Against the current: it goes round anticlockwise (on screen), the current clockwise.
+    const [a, b] = [trainCars(track, 0)[0]!, trainCars(track, 30)[0]!];
+    const cross = (a.pos.x - 65) * (b.pos.y - 65) - (a.pos.y - 65) * (b.pos.x - 65);
+    expect(cross).toBeLessThan(0);
+  });
+
+  it("carries a plush standing anywhere on the ship's deck", () => {
+    const track = map.track!;
+    const ship = trainCars(track, 150)[0]!;
+    // Back near the stern, off to one side.
+    const spot = { along: -4.5, side: 1.5 };
+    const at = { x: ship.pos.x + ship.dir.x * spot.along - ship.dir.y * spot.side, y: ship.pos.y + ship.dir.y * spot.along + ship.dir.x * spot.side };
+    const { world, state, p } = solo(map, at, SHIP.deckHeight);
+    state.tick = 150;
+    run(world, state, 90, () => input());
+    const now = trainCars(track, state.tick)[0]!;
+    expect(p.z).toBeCloseTo(SHIP.deckHeight, 2);
+    const there = { x: now.pos.x + now.dir.x * spot.along - now.dir.y * spot.side, y: now.pos.y + now.dir.y * spot.along + now.dir.x * spot.side };
+    expect(Math.hypot(p.pos.x - there.x, p.pos.y - there.y)).toBeLessThan(0.3);
+    expect(wading(world, p, state)).toBe(false);
+  });
+
+  it('can be boarded with a jump from the water', () => {
+    const track = map.track!;
+    const tick = 400;
+    const ship = trainCars(track, tick + 10)[0]!;
+    const side = { x: -ship.dir.y, y: ship.dir.x };
+    const { world, state, p } = solo(map, { x: ship.pos.x + side.x * 3.4, y: ship.pos.y + side.y * 3.4 });
+    state.tick = tick;
+    expect(wading(world, p, state)).toBe(true);
+    let onBoard = false;
+    for (let i = 0; i < 30 && !onBoard; i++) {
+      run(world, state, 1, (id) => (id === p.id ? input({ buttons: i < 2 ? Btn.Jump : 0, moveX: -side.x, moveY: -side.y }) : input()));
+      onBoard = i > 3 && Math.abs(p.z - SHIP.deckHeight) < 0.01 && p.vz === 0;
+    }
+    expect(onBoard).toBe(true);
+  });
+
+  it('has a volcano you can climb, ledge by ledge, to the chest on its summit', () => {
+    const nw = map.zones!.find((z) => z.name === 'Volcano Isle')!.center;
+    // From the north (no lava down that side).
+    const { world, state, p } = solo(map, { x: nw.x, y: nw.y - 8 });
+    let top = 0;
+    for (let i = 0; i < 200; i++) {
+      // Walking in toward its middle, jumping now and then (a fresh press each time).
+      run(world, state, 1, (id) => (id === p.id ? input({ moveX: 0, moveY: 1, buttons: i % 16 === 0 ? Btn.Jump : 0 }) : input()));
+      top = Math.max(top, p.z);
+    }
+    expect(top).toBeGreaterThan(3.25);
+    const summit = state.chests.find((c) => Math.hypot(c.pos.x - nw.x, c.pos.y - nw.y) < 0.1)!;
+    expect(summit.z).toBeCloseTo(3.3, 2);
+  });
+
+  it("burns whoever steps in the volcano's lava (they hop off it), not on its island", () => {
+    const nw = map.zones!.find((z) => z.name === 'Volcano Isle')!.center;
+    // In the summit's pool.
+    const { world, state, p } = solo(map, { x: nw.x + 1.6, y: nw.y }, 3.3);
+    const before = p.stuffing + p.buttons;
+    run(world, state, 1, () => input());
+    expect(state.events.some((e) => e.type === 'burn' && e.playerId === p.id)).toBe(true);
+    expect(p.stuffing + p.buttons).toBeLessThan(before);
+    expect(p.vz).toBeGreaterThan(0);
+    // On the island by the chest: safe.
+    const safe = solo(map, { x: nw.x + 1.15, y: nw.y + 0.3 }, 3.3);
+    const full = safe.p.stuffing;
+    run(safe.world, safe.state, 30, () => input());
+    expect(safe.p.stuffing).toBe(full);
+    // A stream across a ledge (down the south arm).
+    const stream = solo(map, { x: nw.x, y: nw.y + 5.2 }, 1.1);
+    run(stream.world, stream.state, 1, () => input());
+    expect(stream.state.events.some((e) => e.type === 'burn')).toBe(true);
+  });
+
+  it('has a secret cave behind the waterfall: in through the pond, a high chest inside', () => {
+    const se = map.zones!.find((z) => z.name === 'Waterfall Isle')!.center;
+    const { world, state, p } = solo(map, { x: se.x + 4, y: se.y - 3 });
+    run(world, state, 90, (id) => (id === p.id ? input({ moveX: 0, moveY: -1 }) : input()));
+    const cave = map.buildings.findIndex((b) => b.kind === 'cave');
+    expect(buildingAt(world, p.pos, p.z)).toBe(cave);
+    expect(p.pos.y).toBeLessThan(se.y - 5.6);
+    const inside = state.chests.find((c) => c.loot === 'high' && Math.hypot(c.pos.x - se.x - 4, c.pos.y - se.y + 7.2) < 0.1);
+    expect(inside).toBeDefined();
+  });
+
+  it("doesn't let anyone stand on top of the lighthouse: coming down on it, you slide off", () => {
+    const n = map.zones!.find((z) => z.name === 'Lighthouse Isle')!.center;
+    const { world, state, p } = solo(map, { x: n.x + 0.3, y: n.y + 0.2 }, 9);
+    run(world, state, 90, () => input());
+    expect(p.z).toBeLessThan(0.05);
+    expect(Math.max(Math.abs(p.pos.x - n.x), Math.abs(p.pos.y - n.y))).toBeGreaterThan(1.4);
+  });
+
+  it("leaves a plush in the shallows by a beach alone (doesn't circle round it), and goes for one further out", () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 3, map, roster: roster(2) });
+    const [p] = state.players as [Player, Player];
+    state.tick = 30 * 40;
+    // Just off Volcano Isle's east beach, in the water; a shark out in the open, off to the side.
+    const isle = map.islands![1]!;
+    const edge = { x: isle.center.x + isle.radius + 0.6, y: isle.center.y };
+    p.pos = { ...edge };
+    expect(wading(world, p, state)).toBe(true);
+    for (const w of state.wanderers) w.pos = { x: 120, y: 120 };
+    const shark = state.wanderers[0]!;
+    shark.pos = { x: edge.x + 7, y: edge.y + 4 };
+    let near = 0;
+    for (let i = 0; i < 30 * 10; i++) {
+      p.pos = { ...edge };
+      run(world, state, 1, () => input());
+      expect(state.events.some((e) => e.type === 'wandererBump')).toBe(false);
+      if (Math.hypot(shark.pos.x - edge.x, shark.pos.y - edge.y) < 4) near++;
+    }
+    // Not hanging about round it.
+    expect(near).toBeLessThan(30 * 2);
+    // Further out, it comes for you.
+    const out = { x: edge.x + 4, y: edge.y };
+    shark.pos = { x: out.x + 7, y: out.y + 4 };
+    let bitten = false;
+    for (let i = 0; i < 30 * 10 && !bitten; i++) {
+      p.pos = { ...out };
+      run(world, state, 1, () => input());
+      bitten = state.events.some((e) => e.type === 'wandererBump' && e.playerId === p.id);
+    }
+    expect(bitten).toBe(true);
+  });
+
+  it('swims back out to sea if it ends up right by a shore', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 3, map, roster: roster(2) });
+    const isle = map.islands![1]!;
+    for (const w of state.wanderers) w.pos = { x: 120, y: 120 };
+    const s = state.wanderers[0]!;
+    s.pos = { x: isle.center.x + isle.radius + 0.6, y: isle.center.y };
+    run(world, state, 30, () => input());
+    expect(Math.hypot(s.pos.x - isle.center.x, s.pos.y - isle.center.y)).toBeGreaterThan(isle.radius + 1.5);
+  });
+
+  it('keeps its sharks apart: two heading straight at each other turn away', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 3, map, roster: roster(2) });
+    // Out in open water, nobody wading, facing each other, not about to turn on their own.
+    state.tick = 30 * 40;
+    const [a, b] = state.wanderers;
+    a!.pos = { x: 5, y: 45 };
+    a!.dir = 0;
+    b!.pos = { x: 15, y: 45 };
+    b!.dir = Math.PI;
+    a!.until = b!.until = state.tick + 30 * 60;
+    let closest = Infinity;
+    let swam = 0;
+    for (let i = 0; i < 30 * 5; i++) {
+      run(world, state, 1, () => input());
+      closest = Math.min(closest, Math.hypot(a!.pos.x - b!.pos.x, a!.pos.y - b!.pos.y));
+      swam = Math.max(swam, Math.hypot(a!.pos.x - 5, a!.pos.y - 45));
+    }
+    // (They did swim toward each other.)
+    expect(swam).toBeGreaterThan(2);
+    expect(closest).toBeGreaterThan(2.5);
+  });
+
+  it('has sunken treasure out in the water, clear of the current and the ship', () => {
+    const world = createWorld(map);
+    const sunken = map.digs!.filter((d) => !onIsland(world, d));
+    expect(sunken.length).toBeGreaterThanOrEqual(4);
+    for (const d of sunken) {
+      expect(currentAt(map.currents, d), `dig at ${d.x},${d.y}`).toBeNull();
+      for (let tick = 0; tick < 30 * 60; tick += 15) {
+        for (const c of trainCircles(map.track!, tick)) expect(Math.hypot(c.x - d.x, c.y - d.y)).toBeGreaterThan(c.r + 1);
+      }
+      for (const w of map.walls) expect(insideBox(d.x, d.y, w, 1.2), `dig at ${d.x},${d.y}`).toBe(false);
+    }
+    // Dug up standing in the water (hold E).
+    const spot = sunken[0]!;
+    const { world: w2, state, p } = solo(map, { ...spot });
+    expect(wading(w2, p, state)).toBe(true);
+    const index = map.digs!.indexOf(spot);
+    run(w2, state, secondsToTicks(config.games.digTime) + 3, (id) => (id === p.id ? input({ buttons: Btn.Interact }) : input()));
+    expect(state.games.digs[index]).toBe(true);
+  });
+
+  it('has sharks that keep to the sea, and bite only plushies wading near them', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 3, map, roster: roster(2) });
+    const [p, q] = state.players as [Player, Player];
+    const full = q.stuffing;
+    // One wading right by a rested shark, the other dry on Treasure Island.
+    state.tick = 30 * 40;
+    const shark = state.wanderers[0]!;
+    p.pos = { x: shark.pos.x + 2, y: shark.pos.y + 2 };
+    q.pos = { x: 65, y: 65 };
+    const before = p.stuffing;
+    let bitten = false;
+    for (let i = 0; i < 90 && !bitten; i++) {
+      run(world, state, 1, () => input());
+      bitten = state.events.some((e) => e.type === 'wandererBump' && e.playerId === p.id);
+    }
+    expect(bitten).toBe(true);
+    expect(p.stuffing).toBeLessThan(before);
+    expect(q.stuffing).toBe(full);
+    // Over a long while, never up on an island.
+    for (let i = 0; i < 30 * 120; i++) {
+      run(world, state, 1, () => input());
+      for (const s of state.wanderers) expect(onIsland(world, s.pos), `shark at ${s.pos.x},${s.pos.y}`).toBe(false);
+    }
+  });
+
+  it("has a mast that stops shots across the deck, and doesn't shove whoever's on deck", () => {
+    const track = map.track!;
+    const ship = trainCars(track, 200)[0]!;
+    const side = { x: -ship.dir.y, y: ship.dir.x };
+    // On deck beside the mast, shooting across it.
+    const { world, state, p } = solo(map, { x: ship.pos.x + side.x * 1.6, y: ship.pos.y + side.y * 1.6 }, SHIP.deckHeight);
+    state.tick = 200;
+    p.weapons = [makeWeapon('cork_popper', 0), null];
+    run(world, state, 1, (id) => (id === p.id ? input({ aimX: -side.x * 4, aimY: -side.y * 4, buttons: Btn.Fire }) : input()));
+    run(world, state, 6, () => input());
+    expect(state.projectiles).toHaveLength(0);
+    // Leaning on the mast as it sails: no shove.
+    // (Long enough to reach it and push on it, not so long it slides round it and off the deck.)
+    run(world, state, 12, (id) => (id === p.id ? input({ moveX: -side.x, moveY: -side.y }) : input()));
+    expect(Math.hypot(p.knockback.x, p.knockback.y)).toBeLessThan(0.5);
+    expect(p.z).toBeCloseTo(SHIP.deckHeight, 2);
+    expect(state.events.some((e) => e.type === 'trainBump')).toBe(false);
+  });
+
+  it('plays a whole bots-only match to the end', () => {
+    const world = createWorld(map);
+    const state = createGame({ seed: 4, map, roster: Array.from({ length: 16 }, (_, i) => ({ name: `b${i}`, isBot: true })), zoneTimeScale: 0.3 });
+    const bots = new BotController(4);
+    for (let t = 0; t < 30 * 60 * 4 && state.status === 'playing'; t++) step(world, state, bots.inputs(world, state));
+    expect(state.status).toBe('ended');
+    expect(state.chests.some((c) => c.opened)).toBe(true);
+  });
+});
+
 describe('the toy train', () => {
   const map = BEDROOM;
   const track = map.track!;
@@ -408,7 +703,7 @@ function roofHeight(map: MapData, c: { x: number; y: number }): number {
 }
 
 describe('hideouts', () => {
-  for (const map of [BACKYARD, BEDROOM, PARK]) {
+  for (const map of [BACKYARD, BEDROOM, PARK, COVE]) {
     it(`${map.id}: no bush, laundry pile or pine sits on a prop, a building or a chest`, () => {
       const clashes: string[] = [];
       map.bushes.forEach((b) => {

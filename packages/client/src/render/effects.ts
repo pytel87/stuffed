@@ -544,9 +544,20 @@ export class Effects {
     this.burst(this.cotton, x, base + 0.7, z, 0, 0, 6, 2, 0.08, 0.6, 2);
   }
 
-  /** An air strike drop landing: a big splash, a clatter of dust, or a burst of snow. */
-  strikeLand(kind: 'balloons' | 'blocks' | 'snowballs', x: number, y: number, z: number): void {
+  /** Stepping in lava: a puff of smoke and a few sparks. */
+  burn(x: number, y: number, z: number): void {
+    this.burst(this.cotton, x, y + 0.2, z, 0, 0, 6, 1.6, 0.09, 0.6, 3);
+    this.burst(this.stars, x, y + 0.3, z, 0, 0, 4, 2.5, 0.07, 0.4, 6);
+  }
+
+  /** An air strike drop landing: a big splash, a clatter of dust, a burst of snow, or a cannonball's plume. */
+  strikeLand(kind: 'balloons' | 'blocks' | 'snowballs' | 'cannonballs', x: number, y: number, z: number): void {
     if (kind === 'balloons') this.burst(this.water, x, y + 0.3, z, 0, 0, 16, 4, 0.08, 0.6, 10);
+    else if (kind === 'cannonballs') {
+      // A plume of water (or sand) thrown up, and a puff of smoke.
+      this.burst(this.water, x, y + 0.3, z, 0, 0, 14, 5, 0.09, 0.7, 12);
+      this.burst(this.cotton, x, y + 0.3, z, 0, 0, 8, 2.5, 0.1, 0.6, 1);
+    }
     else if (kind === 'blocks') {
       this.burst(this.cotton, x, y + 0.2, z, 0, 0, 8, 3, 0.09, 0.45, 0);
       this.burst(this.stars, x, y + 0.6, z, 0, 0, 4, 2, 0.1, 0.5, 4);

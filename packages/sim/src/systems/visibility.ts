@@ -15,12 +15,15 @@ import type { World } from '../world.ts';
 export function canSee(world: World, state: GameState, viewer: Player, target: Player): boolean {
   if (viewer.id === target.id) return true;
   if (!target.alive || target.drop === 'riding') return false;
-  // Crawling through a hamster tube: out of sight.
-  if (target.ride && world.map.rides?.[target.ride.index]?.kind === 'tube') return false;
+  // Crawling through a hamster tube, or up in a lookout: out of sight.
+  const ride = target.ride && world.map.rides?.[target.ride.index]?.kind;
+  if (ride === 'tube' || ride === 'lookout') return false;
   // Teammates always see each other (through bushes and roofs).
   if (viewer.team !== 0 && viewer.team === target.team) return true;
   const d = Math.hypot(target.pos.x - viewer.pos.x, target.pos.y - viewer.pos.y);
-  if (d > config.vision.range) return false;
+  // Up in a lookout you see much further.
+  const range = config.vision.range * (viewer.ride && world.map.rides?.[viewer.ride.index]?.kind === 'lookout' ? config.rides.lookoutVision : 1);
+  if (d > range) return false;
   // Glittered: sparkling too much to hide anywhere.
   if (state.tick < target.glitteredUntil) return true;
   const covered = coveredBy(world, target);

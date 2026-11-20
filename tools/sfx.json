@@ -488,6 +488,26 @@
       "prompt": "a toy snowplow honking twice and its engine rumbling as it starts to push snow",
       "seconds": 3
     },
+    "cannon_fire": {
+      "prompt": "a pirate ship's cannons firing a volley out at sea, four booms one after another, then the whistle of cannonballs flying overhead",
+      "seconds": 2.5
+    },
+    "cannonball_land": {
+      "prompt": "a heavy iron cannonball landing with a deep thump and a big splash of water and sand",
+      "seconds": 1
+    },
+    "shark_chomp": {
+      "prompt": "a cartoon shark bursting out of the water and snapping its jaws shut, a big chomp and a splash",
+      "seconds": 1.2
+    },
+    "lava_sizzle": {
+      "prompt": "a quick hot sizzle like a drop of water on a hot pan, with a tiny cartoon squeak of surprise",
+      "seconds": 0.8
+    },
+    "ship_bell": {
+      "prompt": "a small brass ship's bell rung twice, ding ding, with a creak of wooden hull and a splash of a bow wave",
+      "seconds": 2
+    },
     "voice_bear_hurt": {
       "prompt": "a small plush toy bear getting bonked: one short startled little teddy bear growl, 'ouch'",
       "seconds": 0.6,
@@ -937,6 +957,47 @@
       "prompt": "a small plush toy yeti cheering after winning: two happy excited bouncy big soft friendly yeti hooos",
       "seconds": 1.2,
       "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "step_sand": {
+      "prompt": "a single footstep in soft dry beach sand, a muffled crunch and a little sand shifting, close up, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "step_sand_2": {
+      "prompt": "one light footstep on loose warm sand, a short soft scuff, close up, clear, natural",
+      "seconds": 0.5,
+      "style": "realistic subtle foley sound effect, clean, no music, no voice"
+    },
+    "parrot_squawk": {
+      "prompt": "a cartoon parrot squawking in surprise, a short loud funny squawk",
+      "seconds": 1
+    },
+    "current_whoosh": {
+      "prompt": "a swirl of rushing water sweeping something along, a quick watery whoosh",
+      "seconds": 1.2
+    },
+    "sea_waves": {
+      "prompt": "gentle small waves lapping on a sandy tropical beach, soft and steady, calm sea",
+      "seconds": 20,
+      "style": "realistic calm ambient nature sound, seamless steady loop, clean, no music, no voice"
+    },
+    "gull_cry": {
+      "prompt": "a single seagull calling twice in the distance over the sea",
+      "seconds": 2,
+      "style": "realistic nature sound effect, clean, no music, no voice"
+    },
+    "waterfall_rush": {
+      "prompt": "a small waterfall pouring steadily into a pool, a constant soft rushing and splashing",
+      "seconds": 12,
+      "style": "realistic calm ambient nature sound, seamless steady loop, clean, no music, no voice"
+    },
+    "lighthouse_climb": {
+      "prompt": "a creaky wooden door opening, then quick light footsteps hurrying up a spiral iron staircase",
+      "seconds": 2
+    },
+    "shark_warning": {
+      "prompt": "a cartoon shark-approaching warning: two deep slow menacing cello notes, dun dun, then a little faster dun dun",
+      "seconds": 2.5
     }
   }
 }

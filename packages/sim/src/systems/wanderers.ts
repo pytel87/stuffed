@@ -2,13 +2,16 @@
 // - the robot vacuum (Bedroom): roams its patch of floor, turning at walls and now and then; it
 //   bumps plushies aside, and sucks up loot it rolls over, spitting it out again a bit later;
 // - the lawnmower (Backyard) and the snowplow (Snowy Park): a switch (E) sends it along its line
-//   and back next time; the mower bonks everyone in its way, the plow shoves them along.
+//   and back next time; the mower bonks everyone in its way, the plow shoves them along;
+// - the sharks (Pirate Cove): cruise the sea and chase anyone wading near, bite, swim off.
 import { config, DT, secondsToTicks } from '../config.ts';
 import { nextFloat } from '../rng.ts';
 import type { GameState, LootContent, MapData, Player, Vec2, WandererState } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { applyDamage } from './damage.ts';
 import { spawnLoot } from './loot.ts';
+import { wading } from './movement.ts';
+import { trainCircles } from './train.ts';
 
 const W = config.wanderers;
 
@@ -18,7 +21,8 @@ export function initialWanderers(map: MapData): WandererState[] {
     dir: d.to ? Math.atan2(d.to.y - d.y, d.to.x - d.x) : 0,
     mode: 'idle',
     until: 0,
-    readyTick: secondsToTicks(W.firstReady),
+    // (Sharks start hunting sooner than the mower's or plow's switch works.)
+    readyTick: secondsToTicks(d.kind === 'shark' ? W.shark.firstReady : W.firstReady),
     back: false,
     carried: [],
     dropTick: 0,
@@ -28,7 +32,7 @@ export function initialWanderers(map: MapData): WandererState[] {
 
 /** How big each one is (plushies bump into it). */
 export function wandererRadius(kind: string): number {
-  return kind === 'vacuum' ? W.vacuum.radius : W.vehicle.radius;
+  return kind === 'vacuum' ? W.vacuum.radius : kind === 'shark' ? W.shark.radius : W.vehicle.radius;
 }
 
 /** The mower's or plow's switch this plush stands at, ready (for E), or -1. */
@@ -82,6 +86,7 @@ export function updateWanderers(world: World, state: GameState): void {
     const s = state.wanderers[i];
     if (!s) return;
     if (d.kind === 'vacuum') updateVacuum(world, state, i, s, d.area!);
+    else if (d.kind === 'shark') updateShark(world, state, i, s);
     else updateVehicle(world, state, i, s, d.kind, { x: d.x, y: d.y }, d.to!);
   });
 }
@@ -117,6 +122,93 @@ function updateVacuum(world: World, state: GameState, index: number, s: Wanderer
     s.carried.forEach((c: LootContent, k) => spawnLoot(world, state, { x: back.x + (k - 1) * 0.9, y: back.y }, c));
     s.carried = [];
     state.events.push({ type: 'spat', index, pos: back });
+  }
+}
+
+/** Open sea at `p`: on the map, `margin` clear of every island. */
+function openSea(world: World, p: Vec2, margin: number): boolean {
+  const m = world.map;
+  if (p.x < margin || p.y < margin || p.x > m.width - margin || p.y > m.height - margin) return false;
+  return (m.islands ?? []).every((c) => Math.hypot(p.x - c.center.x, p.y - c.center.y) > c.radius + margin);
+}
+
+function updateShark(world: World, state: GameState, index: number, s: WandererState): void {
+  const S = W.shark;
+  // Hunting (when rested): the nearest plush wading within sight (and further off, within smell,
+  // cruising its way).
+  let prey: Player | null = null;
+  let scent: Player | null = null;
+  if (state.tick >= s.readyTick) {
+    let best: number = S.smell;
+    for (const p of state.players) {
+      // (Not in the shallows by a beach: it keeps out of those, so it can't get them there.)
+      if (!p.alive || p.drop || p.ride || !wading(world, p, state) || !openSea(world, p.pos, S.shallows)) continue;
+      const d = Math.hypot(p.pos.x - s.pos.x, p.pos.y - s.pos.y);
+      if (d < best) {
+        best = d;
+        scent = p;
+      }
+    }
+    if (scent && best < S.sight) prey = scent;
+  }
+  if (scent && !prey && state.tick >= s.until) {
+    // Cruising its way, wandering a little.
+    s.dir = Math.atan2(scent.pos.y - s.pos.y, scent.pos.x - s.pos.x) + (nextFloat(state.rng) - 0.5) * 0.9;
+    s.until = state.tick + secondsToTicks(S.turnEvery * (0.4 + nextFloat(state.rng) * 0.4));
+  } else if (prey) {
+    const want = Math.atan2(prey.pos.y - s.pos.y, prey.pos.x - s.pos.x);
+    const turn = Math.atan2(Math.sin(want - s.dir), Math.cos(want - s.dir));
+    const most = S.turnRate * DT;
+    s.dir += Math.max(-most, Math.min(most, turn));
+  } else if (state.tick >= s.until) {
+    s.dir += (nextFloat(state.rng) - 0.5) * Math.PI * 0.8;
+    s.until = state.tick + secondsToTicks(S.turnEvery * (0.6 + nextFloat(state.rng) * 0.8));
+  }
+  const speed = prey ? S.chaseSpeed : S.speed;
+  const defs = world.map.wanderers ?? [];
+  const step = (dir: number) => ({ x: s.pos.x + Math.cos(dir) * speed * DT, y: s.pos.y + Math.sin(dir) * speed * DT });
+  const stuck = !openSea(world, s.pos, S.radius + S.shore);
+  const free = (next: Vec2) => {
+    if ((!stuck && !openSea(world, next, S.radius + S.shore)) || blocked(world, next, S.radius)) return false;
+    if (world.map.track && trainCircles(world.map.track, state.tick).some((c) => Math.hypot(c.x - next.x, c.y - next.y) < c.r + S.radius)) return false;
+    // Another shark there (they'd swim through each other), unless we're already heading apart.
+    return !state.wanderers.some((o, j) => {
+      if (j === index || defs[j]?.kind !== 'shark') return false;
+      const d = Math.hypot(o.pos.x - next.x, o.pos.y - next.y);
+      return d < S.apart && d < Math.hypot(o.pos.x - s.pos.x, o.pos.y - s.pos.y);
+    });
+  };
+  // Too close to a shore already (knocked there): straight back out to sea, away from it.
+  if (!openSea(world, s.pos, S.radius + S.shore)) {
+    const isle = (world.map.islands ?? []).reduce((a, b) => (Math.hypot(s.pos.x - a.center.x, s.pos.y - a.center.y) - a.radius < Math.hypot(s.pos.x - b.center.x, s.pos.y - b.center.y) - b.radius ? a : b));
+    s.dir = Math.atan2(s.pos.y - isle.center.y, s.pos.x - isle.center.x);
+  }
+  // A shore, a rock, the ship or another shark ahead: veer off the least it takes to get by (along
+  // the shore, round the rock), or if there's no way on, turn round.
+  let moved = false;
+  for (const off of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6]) {
+    const next = step(s.dir + off);
+    if (!free(next)) continue;
+    s.dir += off;
+    s.pos = next;
+    moved = true;
+    break;
+  }
+  if (!moved) {
+    s.dir += Math.PI * (0.5 + nextFloat(state.rng) * 0.5);
+    s.until = state.tick + secondsToTicks(1);
+  }
+  if (state.tick < s.readyTick) return;
+  // (It lunges: it bites a little further than its body reaches.)
+  for (const p of touching(state, s.pos, S.radius + S.lunge)) {
+    if (!wading(world, p, state)) continue;
+    // Chomp: knocked away, and it swims off to rest.
+    shove(p, s.pos, S.knock);
+    applyDamage(state, p, S.damage, null, { from: { ...s.pos }, cause: 'shark' });
+    state.events.push({ type: 'wandererBump', index, playerId: p.id, pos: { ...s.pos } });
+    s.readyTick = state.tick + secondsToTicks(S.rest);
+    s.dir += Math.PI;
+    break;
   }
 }
 
@@ -160,10 +252,10 @@ function updateVehicle(world: World, state: GameState, index: number, s: Wandere
   }
 }
 
-/** Each one as a solid circle a plush bumps into (at the plush's level). */
+/** Each one as a solid circle a plush bumps into (at the plush's level); not the sharks, under the water. */
 export function wandererCircles(world: World, state: GameState): { x: number; y: number; r: number }[] {
-  return (world.map.wanderers ?? []).map((d, i) => {
+  return (world.map.wanderers ?? []).flatMap((d, i) => {
     const s = state.wanderers[i]!;
-    return { x: s.pos.x, y: s.pos.y, r: wandererRadius(d.kind) };
+    return d.kind === 'shark' ? [] : [{ x: s.pos.x, y: s.pos.y, r: wandererRadius(d.kind) }];
   });
 }

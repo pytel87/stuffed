@@ -32,6 +32,21 @@
     "stone_top": {
       "prompt": "Top surface of a smooth grey garden stepping stone with soft speckles and a few tiny pits, light warm grey, cheerful storybook style"
     },
+    "rock_cliff": {
+      "prompt": "Craggy natural rock face for a toy island: grey boulder stone with soft cracks, chips and a few patches of yellow-green lichen, medium warm grey, cheerful storybook style"
+    },
+    "roof_thatch": {
+      "prompt": "Thatched roof of a tropical beach hut: dry golden straw and palm-leaf thatch in overlapping layered rows, warm straw yellow, cheerful storybook style"
+    },
+    "lava_molten": {
+      "prompt": "Molten lava for a toy volcano: glowing bright orange and yellow molten rock flowing between floating dark crusty cooled pieces with glowing cracks, cheerful storybook style"
+    },
+    "water_fall": {
+      "prompt": "Falling water of a waterfall seen from the front: streaming vertical ribbons of clear turquoise water with soft white foamy streaks running straight down, tiles seamlessly top to bottom, cheerful storybook style"
+    },
+    "bone_skull": {
+      "prompt": "Surface of an old cartoon skull: smooth ivory cream bone with faint hairline cracks, tiny pores, a few soft brownish age stains and subtle mottling, cheerful storybook style"
+    },
     "cardboard": {
       "prompt": "Plain corrugated cardboard box surface, light kraft brown with faint fibers and very subtle corrugation lines, cheerful storybook style"
     },

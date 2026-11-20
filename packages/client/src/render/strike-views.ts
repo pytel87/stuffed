@@ -1,5 +1,5 @@
 // The air strike: the big toy button on the map, the circles marked where each drop will land,
-// and the drops themselves (water balloons, toy blocks or snowballs) falling the last moment.
+// and the drops themselves (water balloons, toy blocks, snowballs or cannonballs) falling the last moment.
 import * as THREE from 'three';
 import { nextMark, outlineProp } from './props.ts';
 import { config, groundHeight } from '@stuffed/sim';
@@ -41,6 +41,9 @@ export function buildDrop(kind: StrikeKind, n = 0): THREE.Object3D {
   } else if (kind === 'blocks') {
     const color = BLOCK_COLORS[n % BLOCK_COLORS.length]!;
     g.add(toonMesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), color, { outline: 0.06, material: makePlastic(toonMaterial(color, { map: null })) }));
+  } else if (kind === 'cannonballs') {
+    // A round iron shot, shiny.
+    g.add(toonMesh(new THREE.IcosahedronGeometry(0.42, 3), '#3a3740', { outline: 0.06, material: makePlastic(toonMaterial('#3a3740', { map: null })) }));
   } else {
     g.add(toonMesh(new THREE.IcosahedronGeometry(0.45, 2), '#ffffff', { outline: 0.06, outlineColor: '#8aa4bd' }));
   }
@@ -217,7 +220,8 @@ export class StrikeViews {
         this.scene.add(this.button.root);
       }
       const v = this.button;
-      v.root.position.set(b.pos.x, b.z, b.pos.y);
+      // (On a roof, a hair above it: at its height, the roof hid its foot and the two flickered.)
+      v.root.position.set(b.pos.x, b.z + (b.z > 0 ? 0.04 : 0), b.pos.y);
       v.root.visible = fade(b.pos.x, b.pos.y, b.z) > 0.5;
       const ready = tick >= b.readyTick;
       // Recharging: the lights come on one by one; ready: all lit.

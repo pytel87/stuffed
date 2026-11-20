@@ -15,6 +15,8 @@ import { updateZone } from './systems/zone.ts';
 import type { EntityId, GameState, Input, Player } from './types.ts';
 import { recordPoses, type World } from './world.ts';
 import { updateWanderers } from './systems/wanderers.ts';
+import { updateLava } from './systems/lava.ts';
+import { inLookout } from './systems/rides.ts';
 
 /**
  * Advances the game by one tick. Mutates `state` in place and returns it.
@@ -51,8 +53,9 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     if (!player.alive || !input) continue;
     player.inBush = insideBush(world, player.pos, player.z);
     player.building = buildingAt(world, player.pos, player.z);
-    if (player.drop || player.umbrella) {
-      // Still on the Toss, or holding an umbrella: no shooting, looting or items until you land.
+    if (player.drop || player.umbrella || inLookout(world, player)) {
+      // Still on the Toss, holding an umbrella, or up in a lookout (unseen, out of reach: no sniping
+      // from there either): no shooting, looting or items until you're back down.
       player.heldButtons = input.buttons;
       continue;
     }
@@ -81,6 +84,7 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateToys(world, state);
   updateMiniGames(world, state);
   updateWanderers(world, state);
+  updateLava(world, state);
   updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {

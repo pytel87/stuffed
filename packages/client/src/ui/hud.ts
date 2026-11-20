@@ -191,7 +191,10 @@ export class Hud {
     this.set('ps', String(!!action), (v) => (this.progress.hidden = v !== 'true'));
 
     const interaction = action || !me.alive ? null : findInteraction(state, me, world);
-    this.grabReady = !!interaction;
+    // Up in a lookout: E (the hand) brings you down, so the prompt says so, over its door.
+    const lookout = me.alive && me.ride ? world?.map.rides?.[me.ride.index] : undefined;
+    const lookingOut = lookout?.kind === 'lookout' ? lookout : null;
+    this.grabReady = !!interaction || !!lookingOut;
     this.stashReady = interaction?.kind === 'part';
     this.promptAnchor =
       interaction?.kind === 'chest'
@@ -204,6 +207,8 @@ export class Hud {
               ? state.toy && { ...state.toy.pos, z: state.toy.z + 0.8 }
               : interaction?.kind === 'ride'
                 ? rideAnchor(world, interaction.index)
+                : lookingOut
+                  ? { x: lookingOut.from.x, y: lookingOut.from.y, z: lookingOut.from.z + 0.8 }
                 : interaction?.kind === 'dig'
                   ? digAnchor(world, interaction.index)
                   : interaction?.kind === 'switch'
@@ -231,8 +236,10 @@ export class Hud {
       // Hold to dig up the treasure: a little spade.
       art = 'dig';
     } else if (interaction?.kind === 'ride') {
-      // Off you go: along the zip line, or into the tube.
-      art = 'arrow';
+      // Off you go: along the zip line, or into the tube; up a lookout.
+      art = world?.map.rides?.[interaction.index]?.kind === 'lookout' ? 'arrow-up' : 'arrow';
+    } else if (lookingOut) {
+      art = 'arrow-down';
     } else if (interaction?.kind === 'toy' && state.toy) {
       // The toy's crank, tap or drill.
       art = `toy:${state.toy.kind}`;

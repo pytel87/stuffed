@@ -467,7 +467,15 @@ export const config = {
     switchRange: 1.4,
     vacuum: { radius: 0.75, speed: 2.4, turnEvery: 4, bump: 7, binSize: 3, holdFor: 10 },
     vehicle: { radius: 1.1, mowerSpeed: 5, plowSpeed: 3.6, mowerDamage: 14, mowerKnock: 14, plowPush: 2.2, cooldown: 40 },
+    /** A shark (Pirate Cove): cruises toward whoever's wading within `smell`, and chases anyone
+     *  within `sight`, a little faster than you wade (3.6: get to land, or into the current); bites,
+     *  then swims off and rests before hunting again. It keeps `shore` off the islands. */
+    shark: { firstReady: 10, apart: 3.6, radius: 0.9, speed: 2.6, chaseSpeed: 4.1, sight: 15, smell: 40, turnRate: 2.4, turnEvery: 4, damage: 12, knock: 11, rest: 5, shore: 1.5, lunge: 0.3, shallows: 2.5 },
   },
+
+  /** Lava (Pirate Cove's volcano): stepping in it burns, and you hop up off it (landing in it
+   *  again burns again). */
+  lava: { damage: 8, hop: 7 },
 
   /** Mini-games with prizes (see systems/minigames.ts). */
   games: {
@@ -504,6 +512,8 @@ export const config = {
     catapultCooldown: 20,
     catapultCarry: 6,
     catapultReach: 1,
+    /** A lookout (the lighthouse): up there nobody sees or hits you and you see this much further. */
+    lookoutVision: 2.2,
   },
 
   /** The map's big toy (see systems/toys.ts). */
@@ -525,7 +535,7 @@ export const config = {
     /** Its size: shots and plushies bump into it within this of its middle. */
     radius: 0.7,
     /** How high its middle is above what it stands on, and how far up and down it reaches. */
-    lift: { donkey: 0.95, present: 0.5 },
+    lift: { donkey: 0.95, present: 0.5, parrot: 0.95 },
     halfHeight: 0.55,
     /** What showers out: good weapons (rare or better), items, a part. */
     loot: { weapons: 2, items: 2, parts: 1 },
@@ -553,6 +563,7 @@ export const config = {
       balloons: { damage: 8, knockback: 4, soak: 4 },
       blocks: { damage: 20, knockback: 6, soak: 0 },
       snowballs: { damage: 10, knockback: 16, soak: 0 },
+      cannonballs: { damage: 15, knockback: 11, soak: 0 },
     },
     /** Speed multiplier while soaked by a water balloon. */
     soakMoveMultiplier: 0.75,

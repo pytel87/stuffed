@@ -55,6 +55,7 @@ const paths: Record<string, string> = {
   // the maps: a tree (the Backyard) and a bed (the Bedroom)
   'map-backyard': `<rect x="10.5" y="13" width="3" height="8" rx="1" fill="#a0693f"/><circle cx="12" cy="9.5" r="6.5" fill="#5bb46a"/><path d="M3 21h18" stroke-width="1.8"/>`,
   'map-park': `<circle cx="12" cy="16.5" r="4.5" fill="#fff"/><circle cx="12" cy="9" r="3.2" fill="#fff"/><path d="M8.5 6.2h7M9.8 6.2V3.5h4.4v2.7" fill="#2a1f2d"/><path d="M12 9.3l2.4.6" stroke="#f28a2c" stroke-width="1.6"/>`,
+  'map-cove': `<path d="M2.5 17.5c2 1.3 3.5 1.3 5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 5 0" stroke="#3fa9f5" stroke-width="1.8"/><path d="M6 16.5c1-2.6 3.5-4 6-4s5 1.4 6 4Z" fill="#f2d48a"/><path d="M12.5 12.8c0-3 .3-5.2 1.4-7.3" stroke="#a0693f" stroke-width="1.6"/><path d="M13.9 5.5c-2-1.6-4.5-1.4-6 .2 2-.1 3.6.3 4.9 1.4M13.9 5.5c1.6-1.9 4.1-2.1 5.8-.8-2 .2-3.5.9-4.6 2.2M13.9 5.5c.4-1.7 1.9-2.8 3.6-2.8" fill="#5bb46a" stroke-width="1.3"/>`,
   'map-bedroom': `<rect x="3" y="7" width="3" height="13" rx="1" fill="#a0693f"/><rect x="3" y="13" width="18" height="5" rx="1.5" fill="#f6a5c0"/><rect x="6.5" y="10" width="5" height="3" rx="1.2" fill="#fff"/><path d="M21 18v2" stroke-width="1.8"/>`,
   // signal bars: how tough the bots are
   'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
@@ -72,6 +73,9 @@ const paths: Record<string, string> = {
   close: `<path d="M6 6l12 12M18 6L6 18"/>`,
   check: `<path d="M5 12.5l4.5 4.5L19 7.5"/>`,
   arrow: `<path d="M4 12h15M14 7l5 5-5 5"/>`,
+  // up and down (a lookout: going up, coming down)
+  'arrow-up': `<path d="M12 20V5M7 10l5-5 5 5"/>`,
+  'arrow-down': `<path d="M12 4v15M7 14l5 5 5-5"/>`,
   // an upright phone, an arrow curving round, the phone lying sideways
   rotate: `<rect x="2.5" y="2.5" width="7" height="11" rx="1.6" fill="#fff"/><path d="M5 11h2" stroke-width="1.5"/><rect x="9.5" y="14" width="12" height="7" rx="1.6" fill="#fff"/><path d="M19 16v3" stroke-width="1.5"/><path d="M13.5 4.5a6 6 0 0 1 5.5 6"/><path d="M17 9.5l2 2 2-2"/>`,
   key: `<rect x="3" y="5" width="18" height="14" rx="3" fill="#fff"/>`,

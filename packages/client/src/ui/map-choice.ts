@@ -18,7 +18,7 @@ export function savedMap(): MapData {
   return PLAYABLE_MAPS[0]!;
 }
 
-const mapName = (map: MapData) => tr(map.id === 'bedroom' ? 'Bedroom' : map.id === 'park' ? 'Snowy Park' : 'Backyard');
+const mapName = (map: MapData) => tr(map.id === 'bedroom' ? 'Bedroom' : map.id === 'park' ? 'Snowy Park' : map.id === 'cove' ? 'Pirate Cove' : 'Backyard');
 
 function remember(map: MapData): void {
   try {

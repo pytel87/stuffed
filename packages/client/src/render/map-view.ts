@@ -1,13 +1,14 @@
 // Static map visuals: felt lawn (no fence: it carries on past the edges), ground patches (sand, dirt, a picnic blanket,
 // stepping stones), pools, and decorative grass. Built once per match.
 import * as THREE from 'three';
-import type { Circle, Decor, Ground, MapData } from '@stuffed/sim';
+import type { Circle, Current, Decor, Ground, Island, MapData } from '@stuffed/sim';
 import {
   carpetTexture, cloverTexture, bigDrawingTexture, cobblesTexture, dirtTexture, drift, gravelTexture, iceTexture, lawnTexture, mowedTexture, mulchTexture, needlesTexture,
-  outlineProp, patioTexture, picnicTexture, playmatTexture, plowedTexture, rugTexture, sandTexture, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
+  nextMark, outlineProp, patioTexture, picnicTexture, playmatTexture, plowedTexture, rockTexture, rugTexture, sandTexture, smoke, snowTexture, stoneTexture, tiled, waterTexture, woodFloorTexture,
 } from './props.ts';
+import { upgradeTexture } from './image-textures.ts';
 import { mergeStatic } from './merge-static.ts';
-import { evenOutlines, makePlastic, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { evenOutlines, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 /** How far the lawn (and its patches and grass) carries on past the map's edges. */
 const LAWN_BEYOND = 64;
@@ -24,9 +25,14 @@ export function buildMapView(map: MapData): THREE.Group {
   // The Bedroom: wooden floorboards instead of the lawn.
   const indoors = map.theme === 'bedroom';
   const snowy = map.theme === 'snow';
+  // A sea map: the ground is the lagoon's shallow water (its islands are sand patches on it).
+  const sea = !!map.islands;
+  const seaRipples = sea ? tiled(waterTexture(), lw / 9, lh / 9) : null;
   const lawnMat = indoors
     ? toonMaterial('#ffffff', { map: tiled(woodFloorTexture(), lw / 4, lh / 4) })
-    : snowy
+    : sea
+      ? toonMaterial('#8fe0ea', { map: seaRipples })
+      : snowy
       ? toonMaterial('#ffffff', { map: tiled(snowTexture(), lw / 10, lh / 10) })
       : toonMaterial('#ffffff', { map: tiled(lawnTexture(), lw / 8, lh / 8) });
   // Split into tiles: two huge triangles reaching far past the screen get their depth wrong on
@@ -42,9 +48,14 @@ export function buildMapView(map: MapData): THREE.Group {
   lawn.position.set(w / 2, 0, h / 2);
   lawn.receiveShadow = true;
   g.add(lawn);
+  if (seaRipples) {
+    drift(lawn, seaRipples, 0.012);
+    for (const island of map.islands ?? []) g.add(islandView(island, map));
+    for (const current of map.currents ?? []) g.add(currentView(current));
+  }
 
   for (const ground of map.grounds ?? []) g.add(groundPatch(ground, map));
-  for (const pool of map.pools ?? []) g.add(poolView(pool));
+  for (const pool of map.pools ?? []) g.add(map.islands ? pondView(pool, map) : poolView(pool));
   for (const ice of map.ice ?? []) g.add(iceView(ice));
   for (const d of map.decor ?? []) g.add(decorItem(d, mapRandom(map, Math.round(d.x * 13 + d.y * 7))));
   return g;
@@ -184,6 +195,116 @@ function lookPatch(ground: Ground, look: Look, map: MapData): THREE.Mesh {
   return patch;
 }
 
+/** An island: a sandy beach (or grey rock) fading into the lagoon at its ragged edge, ringed by a
+ *  little foam. */
+function islandView(island: Island, map: MapData): THREE.Object3D {
+  const g = new THREE.Group();
+  const look = island.look ?? 'sand';
+  if (look === 'rock') {
+    g.add(lookPatch({ kind: 'stones', circle: island }, { texture: rockTexture, tile: 6, tint: 0.15, feather: 1, color: '#f0e2c8' }, map));
+    g.add(pebbles(island, map));
+  } else g.add(lookPatch({ kind: 'sand', circle: island }, { texture: sandTexture, tile: 7, tint: 0.08, feather: 1.4 }, map));
+  // A soft band of foam where the beach meets the water: faded at both edges, its line wobbling
+  // a little (a crisp circle round a ragged beach looked like a glass dome).
+  const rand = mapRandom(map, Math.round(island.center.x * 3 + island.center.y * 5));
+  const [p1, p2] = [rand() * Math.PI * 2, rand() * Math.PI * 2];
+  const ring = new THREE.RingGeometry(island.radius - 1.2, island.radius + 1.6, 96, 6).rotateX(-Math.PI / 2);
+  const pos = ring.attributes.position!;
+  const colors = new Float32Array(pos.count * 4);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const a = Math.atan2(z, x);
+    const d = Math.hypot(x, z);
+    const wobble = 1 + 0.03 * Math.sin(4 * a + p1) + 0.02 * Math.sin(7 * a + p2);
+    pos.setXYZ(i, x * wobble, 0, z * wobble);
+    // Strongest just off the beach, gone 1.2 inland and 1.6 out to sea.
+    const t = (d - island.radius - 0.3) / (d < island.radius + 0.3 ? 1.5 : 1.3);
+    colors.set([1, 1, 1, 0.45 * Math.max(0, 1 - t * t)], i * 4);
+  }
+  ring.setAttribute('color', new THREE.BufferAttribute(colors, 4));
+  const foam = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
+  foam.position.set(island.center.x, 0.008, island.center.y);
+  foam.renderOrder = -2;
+  g.add(foam);
+  return g;
+}
+
+/** Pebbles and little stones scattered over a rocky isle. */
+function pebbles(isle: Island, map: MapData): THREE.Object3D {
+  const g = new THREE.Group();
+  const rand = mapRandom(map, Math.round(isle.center.x * 5 + isle.center.y * 11));
+  const greys = ['#8f8a82', '#a7a29a', '#7c776f', '#b8b3aa'];
+  for (let i = 0; i < Math.round(isle.radius * 4); i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * (isle.radius - 0.8);
+    const size = 0.12 + rand() * 0.22;
+    const stone = toonMesh(new THREE.IcosahedronGeometry(size, 0), greys[i % greys.length]!, { outline: 0.1 });
+    stone.scale.y = 0.55;
+    stone.rotation.y = rand() * Math.PI;
+    // (Sitting just above the sand: sunk into it, the sand covered a sliver along its outline.)
+    stone.position.set(isle.center.x + Math.cos(a) * r, size * 0.55 + 0.03, isle.center.y + Math.sin(a) * r);
+    g.add(stone);
+  }
+  // Each outlined all round, down to the ground (their foot sits under it).
+  outlineProp(g, nextMark(), 0.025, 0.15, true);
+  return g;
+}
+
+/** A current: a band of slightly deeper water along its path with streaks flowing down it. */
+function currentView(current: Current): THREE.Object3D {
+  const pts = current.loop ? [...current.path, current.path[0]!] : current.path;
+  const half = current.width / 2;
+  // Across the stream: its edges fade into the sea round it.
+  const across = [0, 0.18, 0.5, 0.82, 1];
+  const fade = [0, 1, 1, 1, 0];
+  const cols = across.length;
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const colors: number[] = [];
+  const index: number[] = [];
+  let along = 0;
+  pts.forEach((p, i) => {
+    const prev = pts[Math.max(0, i - 1)]!;
+    const next = pts[Math.min(pts.length - 1, i + 1)]!;
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    if (i > 0) along += Math.hypot(p.x - pts[i - 1]!.x, p.y - pts[i - 1]!.y);
+    across.forEach((u, k) => {
+      const s = half - u * current.width;
+      positions.push(p.x + nx * s, 0.02, p.y + ny * s);
+      uvs.push(u, along / current.width);
+      colors.push(1, 1, 1, fade[k]!);
+    });
+    if (i > 0) {
+      for (let k = 0; k < cols - 1; k++) {
+        const a = (i - 1) * cols + k;
+        const b = i * cols + k;
+        index.push(a, a + 1, b, a + 1, b + 1, b);
+      }
+    }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+  geo.setIndex(index);
+  const g = new THREE.Group();
+  // The sea's own ripples, a touch deeper blue, flowing along at its speed, soft at its edges.
+  const water = tiled(waterTexture(), 1 / 1.5, current.width / 9);
+  const band = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: water, color: '#7fcfe2', vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }));
+  band.renderOrder = -1;
+  g.add(band);
+  // (Its ripples flowing along show which way it runs.)
+  band.onBeforeRender = () => {
+    water.offset.y = -((performance.now() / 1000) * current.speed) / 9;
+  };
+  return g;
+}
+
 /** Small-scale noise, about -1..1, for a ragged edge (in world units). */
 function ragged(x: number, z: number): number {
   return 0.55 * Math.sin(x * 1.3 + z * 0.7) * Math.sin(z * 1.1 - x * 0.5) + 0.3 * Math.sin(x * 2.3 - z * 1.9 + Math.sin(z * 0.9) * 2) + 0.15 * Math.sin(x * 4.1 + z * 3.7 + Math.sin(x * 0.7) * 3);
@@ -318,6 +439,169 @@ function flatEdge(w: number, d: number, y: number): THREE.Mesh {
 }
 
 /** A kiddie pool: shallow water inside an inflatable striped ring, and a rubber duck. */
+/** A pond on an island (Pirate Cove): clear water, paler in its shallows, ringed with smooth round
+ *  stones (a gap here and there). */
+function pondView(pond: Circle, map: MapData): THREE.Object3D {
+  const g = new THREE.Group();
+  g.position.set(pond.center.x, 0, pond.center.y);
+  const ripples = tiled(waterTexture(), pond.radius / 2, pond.radius / 2);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(pond.radius + 0.25, 48).rotateX(-Math.PI / 2), toonMaterial('#7fd8ea', { map: ripples }));
+  drift(water, ripples, 0.03);
+  water.position.y = 0.03;
+  water.receiveShadow = true;
+  g.add(water);
+  const shallows = new THREE.Mesh(
+    new THREE.RingGeometry(pond.radius - 0.5, pond.radius + 0.25, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: '#d8f6f2', transparent: true, opacity: 0.35, depthWrite: false }),
+  );
+  shallows.position.y = 0.035;
+  g.add(shallows);
+  const rand = mapRandom(map, Math.round(pond.center.x * 7 + pond.center.y * 3));
+  const greys = ['#d8d2c8', '#c2bcb2', '#e6e1d8'].map((c) => makeTriplanar(toonMaterial(c, { map: rockTexture() }), 0.3));
+  const count = Math.round(pond.radius * 6);
+  const stones = new THREE.Group();
+  g.add(stones);
+  for (let i = 0; i < count; i++) {
+    if (i % 5 === 3) continue;
+    const a = ((i + rand() * 0.4) / count) * Math.PI * 2;
+    const size = 0.22 + rand() * 0.22;
+    const stone = toonMesh(new THREE.SphereGeometry(size, 12, 8), '#c2bcb2', { outline: 0.08, material: greys[i % greys.length]! });
+    stone.scale.set(1.2, 0.55, 1);
+    stone.rotation.y = rand() * Math.PI;
+    stone.position.set(Math.cos(a) * (pond.radius + 0.2), size * 0.55 + 0.03, Math.sin(a) * (pond.radius + 0.2));
+    stones.add(stone);
+  }
+  // The stones outlined all round, down to the water (their foot sits under it).
+  outlineProp(stones, nextMark(), 0.025, 0.15, true);
+  return g;
+}
+
+let fallTex: THREE.CanvasTexture | null = null;
+/** Falling water (the generated water_fall picture; soft white streaks down pale blue drawn until it
+ *  loads). v runs down the fall. */
+function fallTexture(): THREE.CanvasTexture {
+  if (fallTex) return fallTex;
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = 'rgba(120,214,238,0.85)';
+  g.fillRect(0, 0, 128, 256);
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  g.lineCap = 'round';
+  for (let i = 0; i < 22; i++) {
+    const x = rand() * 128;
+    const y = rand() * 256;
+    const len = 50 + rand() * 90;
+    g.strokeStyle = `rgba(255,255,255,${0.45 + rand() * 0.45})`;
+    g.lineWidth = 3 + rand() * 6;
+    g.beginPath();
+    g.moveTo(x, y);
+    // A gentle waver as it falls (drawn twice, wrapped, so it tiles).
+    for (const dy of [0, -256]) {
+      g.moveTo(x, y + dy);
+      g.bezierCurveTo(x + 4, y + dy + len * 0.3, x - 4, y + dy + len * 0.6, x + 2, y + dy + len);
+    }
+    g.stroke();
+  }
+  fallTex = new THREE.CanvasTexture(c);
+  fallTex.wrapS = fallTex.wrapT = THREE.RepeatWrapping;
+  fallTex.colorSpace = THREE.SRGBColorSpace;
+  // The generated picture (water_fall) once it loads; this drawing until then.
+  return upgradeTexture(fallTex, 'water_fall', { soften: 0.1 });
+}
+
+let foamTex: THREE.CanvasTexture | null = null;
+/** A patch of churning white foam: blotchy, thickest in its middle, fading out at its edge. */
+function foamRingTexture(): THREE.CanvasTexture {
+  if (foamTex) return foamTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d')!;
+  let seed = 3;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 140; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * 46;
+    const grad = g.createRadialGradient(64 + Math.cos(a) * r, 64 + Math.sin(a) * r, 0, 64 + Math.cos(a) * r, 64 + Math.sin(a) * r, 6 + rand() * 8);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+  }
+  foamTex = new THREE.CanvasTexture(c);
+  return foamTex;
+}
+
+/**
+ * A waterfall over a cliff's edge (its face facing +z), `height` high: the water curls over the lip
+ * and falls a little out from the rock (room to walk behind it: the cave's way in), widening as it
+ * goes, its edges wavering; churning foam and mist where it lands.
+ */
+function waterfall(height: number): THREE.Group {
+  const g = new THREE.Group();
+  const width = 2.4;
+  // Down from the lip (t = 0) to the water (1), arcing out from the rock.
+  const at = (t: number) => ({ y: height + 0.1 - (height + 0.1) * t, z: 0.3 + 0.6 * (1 - Math.exp(-t * 6)) });
+  const rows = 18;
+  const sheet = (inset: number, opacity: number, speed: number, scale: number, out: number) => {
+    const pos = new Float32Array((rows + 1) * 2 * 3);
+    const uv: number[] = [];
+    const idx: number[] = [];
+    for (let r = 0; r <= rows; r++) {
+      uv.push(0, (r / rows) * scale, 1, (r / rows) * scale);
+      if (r > 0) idx.push((r - 1) * 2, (r - 1) * 2 + 1, r * 2, (r - 1) * 2 + 1, r * 2 + 1, r * 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    const attr = new THREE.BufferAttribute(pos, 3);
+    geo.setAttribute('position', attr);
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    const tex = tiled(fallTexture(), 1, 1);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false }));
+    m.frustumCulled = false;
+    // All of it flowing down together; its edges waver as it falls.
+    m.onBeforeRender = () => {
+      const time = performance.now() / 1000;
+      tex.offset.y = -time * speed;
+      for (let r = 0; r <= rows; r++) {
+        const t = r / rows;
+        const p = at(t);
+        const w = (width + 0.6 * t) / 2 - inset;
+        const left = Math.sin(time * 5 + t * 11) * 0.07 * t;
+        const right = Math.sin(time * 4.3 + t * 9 + 2) * 0.07 * t;
+        attr.setXYZ(r * 2, -w + left, p.y, p.z + out);
+        attr.setXYZ(r * 2 + 1, w + right, p.y, p.z + out);
+      }
+      attr.needsUpdate = true;
+    };
+    return m;
+  };
+  // (See-through enough to make out the dark archway behind it, if you look.)
+  g.add(sheet(0, 0.72, 1.2, height / 2, 0), sheet(0.2, 0.45, 1.5, height / 1.5, 0.05));
+  // A white curl of water over the lip.
+  const curl = toonMesh(new THREE.CapsuleGeometry(0.15, width - 0.3, 4, 10), '#f2fdff', { outline: false });
+  curl.rotation.z = Math.PI / 2;
+  curl.position.set(0, height + 0.1, 0.3);
+  g.add(curl);
+  // Where it lands: churning foam and mist rising.
+  const land = at(1);
+  const foam = new THREE.Mesh(new THREE.PlaneGeometry(3, 3).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: foamRingTexture(), transparent: true, depthWrite: false }));
+  foam.position.set(0, 0.07, land.z + 0.25);
+  // Along the foot of the fall, bubbling.
+  foam.onBeforeRender = () => {
+    const t = performance.now() / 1000;
+    foam.scale.set(1.15 + Math.sin(t * 5) * 0.04, 1, 0.55 + Math.sin(t * 4) * 0.04);
+  };
+  g.add(foam);
+  g.add(smoke(0, 0.2, land.z + 0.3, 7, { color: '#ffffff', rise: 1.8, size: 0.7, drift: 0.3 }));
+  // After the cliff (its rock is see-through, to fade like a roof over the cave, so it's drawn late
+  // and covered the water in front of it).
+  g.traverse((o) => (o.renderOrder = 5));
+  return g;
+}
+
 function poolView(pool: Circle): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(pool.center.x, 0, pool.center.y);
@@ -587,20 +871,27 @@ function decorItem(d: Decor, rand: () => number): THREE.Object3D {
       }
       break;
     }
+    case 'waterfall':
+      // (Animated, and see-through: not merged or outlined like the little things below.)
+      g.add(waterfall(d.rx ?? 3));
+      return g;
     case 'sled': {
       // A little red wooden sled on curly runners.
       const seat = toonMesh(new THREE.BoxGeometry(1.4, 0.1, 0.6), '#e2433f', { outline: 0.06 });
       seat.position.y = 0.28;
       g.add(seat);
       for (const s of [-1, 1]) {
-        const runner = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.035, 6, 20, Math.PI * 0.6), makePlastic(flat('#c9cfd8')));
+        // (Its ends tucked inside the seat: they poked up through it.)
+        const runner = toonMesh(new THREE.TorusGeometry(0.72, 0.035, 6, 20, Math.PI * 0.6), '#c9cfd8', { outline: 0.1, material: makePlastic(flat('#c9cfd8')) });
         runner.rotation.set(0, 0, Math.PI * 1.2);
-        runner.position.set(0.1, 0.8, s * 0.26);
+        runner.position.set(0.1, 0.72, s * 0.26);
         g.add(runner);
         const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.06), flat('#8a5a34'));
         strut.position.set(s * 0.45, 0.15, 0);
         g.add(strut);
       }
+      // One outline weight on the seat and the thin runners alike.
+      evenOutlines(g, 0.025);
       break;
     }
     case 'snowballs': {

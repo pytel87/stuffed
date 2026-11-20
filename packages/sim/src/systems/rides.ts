@@ -6,7 +6,9 @@
 // - trampolines: landing on one bounces you high (onto roofs);
 // - seesaws: landing on one end launches whoever stands on the other;
 // - catapults (press E at the cup): flung high, where your umbrella opens and you glide down.
-//   One flings again only after a while.
+//   One flings again only after a while;
+// - a lookout (press E at the lighthouse's door): up in its lamp room for a while, out of sight and
+//   out of reach, seeing far round; one at a time; Jump or E to come down early.
 import { config, secondsToTicks } from '../config.ts';
 import type { Box, GameState, Player, Ride, RideDef, Vec2, Wall } from '../types.ts';
 import type { World } from '../world.ts';
@@ -19,9 +21,11 @@ export function rideAt(world: World, state: GameState, player: Player, needsPres
   const rides = world.map.rides ?? [];
   for (let i = 0; i < rides.length; i++) {
     const r = rides[i]!;
-    const pressed = r.kind === 'zip' || r.kind === 'tube' || r.kind === 'catapult';
+    const pressed = r.kind === 'zip' || r.kind === 'tube' || r.kind === 'catapult' || r.kind === 'lookout';
     if (pressed !== needsPress) continue;
     if (r.kind === 'catapult' && !catapultReady(state, i)) continue;
+    // A lookout: one up there at a time.
+    if (r.kind === 'lookout' && state.players.some((p) => p.alive && p.ride?.index === i)) continue;
     if (r.kind === 'catapult') {
       // From the ground (or on top of it) anywhere round it.
       if (player.z > CATAPULT_SIZE / 2) continue;
@@ -65,6 +69,8 @@ export function startRide(world: World, state: GameState, player: Player, index:
 /** Where a ride has the plush at `tick` (also used for drawing between ticks). */
 export function ridePose(world: World, ride: Ride, tick: number): { pos: Vec2; z: number } {
   const r = world.map.rides![ride.index]!;
+  // Up in the lookout the whole time.
+  if (r.kind === 'lookout') return { pos: { x: r.to.x, y: r.to.y }, z: r.to.z };
   const t = Math.min(1, Math.max(0, (tick - ride.startTick) / Math.max(1, ride.endTick - ride.startTick)));
   // Slides and sled runs speed up as they go; a zip line sags in the middle; a tube arcs up; a
   // catapult's throw rises fast and slows toward its top.
@@ -77,10 +83,31 @@ export function ridePose(world: World, ride: Ride, tick: number): { pos: Vec2; z
   };
 }
 
-/** Jump on a zip line: let go there, carried on along it with a little hop. False on other rides. */
+/** Up in a lookout: nobody sees you or can hit you. */
+export function inLookout(world: World, p: Pick<Player, 'ride'>): boolean {
+  return !!p.ride && world.map.rides?.[p.ride.index]?.kind === 'lookout';
+}
+
+/** Down from a lookout: out at its door, on the ground. */
+function comeDown(state: GameState, player: Player, r: RideDef): void {
+  player.ride = null;
+  player.rideAgainTick = state.tick + secondsToTicks(R.again);
+  player.pos = { x: r.from.x, y: r.from.y };
+  player.z = r.from.z;
+  player.vz = 0;
+  player.vel = { x: 0, y: 0 };
+  state.events.push({ type: 'rideEnded', playerId: player.id, kind: r.kind, pos: { ...player.pos } });
+}
+
+/** Jump on a zip line: let go there, carried on along it with a little hop (or come down from a
+ *  lookout early). False on other rides. */
 export function letGoOfZip(world: World, state: GameState, player: Player): boolean {
   const ride = player.ride;
   const r = ride ? world.map.rides![ride.index]! : null;
+  if (ride && r?.kind === 'lookout') {
+    comeDown(state, player, r);
+    return true;
+  }
   if (!ride || r?.kind !== 'zip') return false;
   const { pos, z } = ridePose(world, ride, state.tick);
   player.ride = null;
@@ -108,6 +135,10 @@ export function updateRide(world: World, state: GameState, player: Player): bool
   player.z = z;
   player.vel = { x: 0, y: 0 };
   if (state.tick < ride.endTick) return true;
+  if (r.kind === 'lookout') {
+    comeDown(state, player, r);
+    return true;
+  }
   player.ride = null;
   player.rideAgainTick = state.tick + secondsToTicks(R.again);
   const dx = r.to.x - r.from.x;

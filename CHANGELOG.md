@@ -2,6 +2,51 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Pirate Cove (2026-11-20)
+
+- A fourth map: Pirate Cove, sandy islands in a shallow lagoon. Off the islands you wade (slowly).
+  Treasure Island in the middle has the best loot among crates and casks; four big isles on the
+  diagonals and four small ones between them have palms, bushes to hide in and chests. One small
+  isle is rocky, with a lookout rock to climb; rocks lie out in the lagoon.
+- A current slaloms round the whole map, in and out between the isles: wade into it and it carries
+  you along, a quick but exposed way round. Its streaks show which way it flows. Protocol 19.
+- A pirate ship sails round Treasure Island against the current: jump aboard from the water and
+  ride its deck; the mast is cover from shots. It rings its bell when it's about to run you down,
+  and its sails fade while you're on board so they don't hide the deck.
+- The Shipwreck: an old wreck run aground on the south-west isle, a building to hide in with a
+  high chest inside. Climb onto its deck for the cannon's button: it calls a volley of cannonballs.
+- Sunken treasure: four golden chests sunk in the lagoon between the isles, glowing, bubbles
+  rising; stand in the water and hold E to dig one up (slow and in the open, with the sharks about).
+  Pirate Cove now has 32 chests like the other maps (10 high: in the huts, the caves, the wreck, on
+  the volcano's summit...).
+- Buried treasure (X marks the spot) on three isles, and a paper parrot piñata hanging off a
+  broken mast on Treasure Island. Rowboats pulled up on the beaches; standalone palms (no hiding
+  in those) as well as palms growing out of bushes.
+- Every isle has its own landmark: a stepped volcano to climb on Volcano Isle (rivers of lava
+  down its sides, a smoking lava pool on top round a little island with a chest; the lava
+  burns, and you hop off it with a sizzle), a rocky cliff on Waterfall Isle with a waterfall into a pond (foam,
+  ripples and mist where it lands), and a secret cave behind the falling water with a high chest, a
+  striped lighthouse, Skull Rock, a big cartoon skull with glowing eyes and a cave inside (in through its toothy jaw, a high chest), two huts on
+  Coconut Isle and one on Palm Isle.
+- Catapults on the four small isles fling you toward Treasure Island; a zip line runs (both ways)
+  between the lookout rock on Rocky Isle and the Shipwreck's deck. A thatched hut on Coconut Isle
+  to hide in (a chest inside, its roof climbable from a crate). Rocks have a craggy, lichen-spotted
+  look.
+- The lighthouse's lookout: E at its door takes you up inside for 10 s (Jump or E to come down early).
+  Up there nobody sees you or can hit you, you can't shoot either, and the camera pulls right back
+  so you see far round (2.2x your usual sight). One at a time (a ring round its foot fills while someone's up there).
+- Wading, plushies sit waist-deep in the water, a ring of ripples round them (in the Backyard's pool
+  too).
+- Four sharks cruise the lagoon (hunting from 10 s in), their fins showing and their
+  dark shapes swaying under the water: they sniff out anyone wading,
+  chase them a little faster than you can wade (a dun-dun warns you), lunge up jaws first and bite
+  (12 damage, a shove and a splash), then swim off to rest. Get to land, or into the current, to
+  escape. They swim round the pirate ship. Bots swim away from them.
+- Pirate Cove has its own music (a jolly sea shanty), sand footsteps, the sea lapping all round,
+  a gull now and then, the waterfall's rush as you near it, a whoosh as the current takes you,
+  and the paper parrot squawks when hit.
+- The toy train (and the ship) now turn smoothly along their track instead of in small steps.
+
 ## Victory lap (2026-11-19)
 
 - Knocking out the last plush no longer ends the match on the spot: the winner (or winning team)

@@ -18,7 +18,7 @@ export const SOUNDS = [
   'land_springy', 'land_springy_2', 'land_springy_3', 'land_heavy', 'land_heavy_2', 'land_heavy_3',
   'land_winged', 'land_winged_2', 'land_winged_3', 'land_squishy', 'land_squishy_2', 'land_squishy_3',
   'land_fluffy', 'land_fluffy_2', 'land_fluffy_3',
-  'step_grass', 'step_grass_2', 'step_wood', 'step_wood_2', 'step_snow', 'step_snow_2',
+  'step_grass', 'step_grass_2', 'step_wood', 'step_wood_2', 'step_snow', 'step_snow_2', 'step_sand', 'step_sand_2',
   'rinse_rising', 'win', 'lose', 'click',
   'band_twang', 'band_stretch', 'marble_shot', 'marble_bounce', 'marble_burst',
   'pillow_swing', 'pillow_bonk',
@@ -27,7 +27,8 @@ export const SOUNDS = [
   'jack_tune', 'jack_pop', 'sprinkler_spray', 'ice_crack', 'ice_break',
   'slide_whoosh', 'zip_line', 'tube_pop',
   'dig_scrape', 'duck_ding', 'pin_knock', 'prize_fanfare',
-  'vacuum_slurp', 'vacuum_bump', 'mower_engine', 'plow_horn',
+  'vacuum_slurp', 'vacuum_bump', 'mower_engine', 'plow_horn', 'ship_bell', 'cannon_fire', 'cannonball_land', 'shark_chomp', 'lava_sizzle',
+  'parrot_squawk', 'current_whoosh', 'gull_cry', 'sea_waves', 'waterfall_rush', 'lighthouse_climb', 'shark_warning',
 ] as const;
 export type SoundName = (typeof SOUNDS)[number];
 /** `<sound>_<kind>`, `_2` and `_3` for each kind. */
@@ -40,6 +41,7 @@ const TAKES: Partial<Record<SoundName, readonly SoundName[]>> = {
   ...threeTakes('jump', ['springy', 'heavy', 'winged', 'squishy', 'fluffy']),
   ...threeTakes('land', ['springy', 'heavy', 'winged', 'squishy', 'fluffy']),
   step_grass: ['step_grass', 'step_grass_2'],
+  step_sand: ['step_sand', 'step_sand_2'],
   step_wood: ['step_wood', 'step_wood_2'],
   step_snow: ['step_snow', 'step_snow_2'],
   hit_stuffing: ['hit_stuffing', 'hit_stuffing_2', 'hit_stuffing_3'],
@@ -71,8 +73,10 @@ const STEP_LEVEL = -32;
  *  grander), a few that came out far louder or softer than the rest, the confirms, the weapons. */
 const LEVEL: Partial<Record<SoundName, number>> = {
   chest_open_low: -23, chest_open: -22, chest_open_food: -22, chest_open_high: -19,
-  lose: -18, strike_whistle: -19, train_toot: -20, plow_horn: -19,
+  lose: -18, strike_whistle: -19, train_toot: -20, plow_horn: -19, ship_bell: -20, cannon_fire: -19,
   armor_up: -22, dig_scrape: -23, swap: -23, splash: -25,
+  // Pirate Cove: the parrot and the current over the fight, the sea and gulls well under it.
+  parrot_squawk: -22, current_whoosh: -24, shark_warning: -21, gull_cry: -31, sea_waves: -31, waterfall_rush: -28,
   hit_confirm: -26, ko_confirm: -21,
   // Using an item: under the fight while it lasts, then a clear finish.
   use_puff: -26, use_sewing: -26, use_buttons: -26, use_juice: -26, use_bag: -26, use_cardboard: -26,
@@ -113,6 +117,8 @@ export class Sound {
   /** Animals whose voices are loaded (or asked for before audio started). */
   private readonly animals = new Set<Animal>();
   private muted = false;
+  /** Looping clips, made seamless once. */
+  private readonly loops = new Map<ClipName, AudioBuffer>();
 
   constructor(private readonly baseUrl: string) {
     try {
@@ -200,6 +206,36 @@ export class Sound {
       g.gain.setValueAtTime(g.gain.value, now);
       g.gain.linearRampToValueAtTime(0, now + 0.08);
       source.stop(now + 0.1);
+    };
+  }
+
+  /**
+   * Plays a clip round and round (a place's background sound: waves, a waterfall), seamless, at
+   * `volume` (changed as you move, with `set`); `stop` fades it out. Null until the clip has loaded
+   * (try again later).
+   */
+  loop(name: SoundName, volume: number): { set: (volume: number) => void; stop: () => void } | null {
+    const ctx = this.ctx;
+    const clip = this.buffers.get(name);
+    if (!ctx || !this.master || !clip) return null;
+    let buffer = this.loops.get(name);
+    if (!buffer) this.loops.set(name, (buffer = seamless(ctx, clip, Math.min(2, clip.duration / 4))));
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const level = this.levels.get(name) ?? 1;
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    source.connect(g).connect(this.master);
+    source.start();
+    const set = (v: number) => g.gain.setTargetAtTime(v * level, ctx.currentTime, 0.3);
+    set(volume);
+    return {
+      set,
+      stop: () => {
+        g.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+        source.stop(ctx.currentTime + 1.5);
+      },
     };
   }
 

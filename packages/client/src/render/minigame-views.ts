@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { config, galleryTargets } from '@stuffed/sim';
 import type { GameState, MapData } from '@stuffed/sim';
-import { glowMap, sparkleTexture } from './loot-views.ts';
+import { buildChest, glowMap, sparkleTexture } from './loot-views.ts';
 import { nextMark, outlineProp, outlinedBox } from './props.ts';
 import { evenOutlines, makePlastic, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -163,6 +163,53 @@ function hillView(radius: number): { root: THREE.Group; flag: THREE.Mesh; fill: 
   return { root, flag, fill };
 }
 
+/**
+ * Sunken treasure (a dig spot out in the water): a chest sunk in the shallows, tipped, only its lid
+ * above the water, a gold glow round it under the surface and bubbles rising. Dug up: just a few
+ * bubbles where it was.
+ */
+function sunkenTreasure(x: number, y: number, seed: number): { mound: THREE.Object3D; hole: THREE.Object3D; star: THREE.Sprite } {
+  const mound = new THREE.Group();
+  mound.position.set(x, 0, y);
+  const chest = buildChest({ id: -1, pos: { x: 0, y: 0 }, z: 0, opened: false, loot: 'high' }).root;
+  // Sunk so only its lid shows (the sea hides the rest), tipped a little.
+  chest.position.y = -0.42;
+  chest.rotation.set(0.18, seed * 1.3, -0.12);
+  mound.add(chest);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(1.4, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: GOLD, map: glowMap(), transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false }),
+  );
+  glow.position.y = 0.035;
+  mound.add(glow);
+  mound.add(bubbles(5, 0.9));
+  const hole = new THREE.Group();
+  hole.position.set(x, 0, y);
+  hole.add(bubbles(2, 0.6));
+  hole.visible = false;
+  const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkleTexture(), depthWrite: false, toneMapped: false, transparent: true }));
+  star.position.set(x, 0.9, y);
+  star.renderOrder = 5;
+  return { mound, hole, star };
+}
+
+/** Little bubbles rising from the water and popping, round and round. */
+function bubbles(count: number, spread: number): THREE.Group {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: '#e9fbff', transparent: true, opacity: 0.85, depthWrite: false });
+  for (let i = 0; i < count; i++) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.06 + (i % 3) * 0.025, 8, 6), mat);
+    const a = (i / count) * Math.PI * 2;
+    b.onBeforeRender = () => {
+      const k = (performance.now() / 1000 / 1.6 + i / count) % 1;
+      b.position.set(Math.cos(a + k) * spread * 0.5, 0.05 + k * 0.5, Math.sin(a + k) * spread * 0.5);
+      b.scale.setScalar(k < 0.85 ? 1 : 1 - (k - 0.85) / 0.15);
+    };
+    g.add(b);
+  }
+  return g;
+}
+
 export class MiniGameViews {
   private mapId = '';
   private root: THREE.Group | null = null;
@@ -235,6 +282,14 @@ export class MiniGameViews {
     const root = new THREE.Group();
     const snow = map.theme === 'snow';
     for (const d of map.digs ?? []) {
+      // Out in a sea map's water: sunken treasure.
+      const sunk = !!map.islands && !map.islands.some((c) => Math.hypot(d.x - c.center.x, d.y - c.center.y) < c.radius);
+      if (sunk) {
+        const s = sunkenTreasure(d.x, d.y, this.digs.length);
+        root.add(s.mound, s.hole, s.star);
+        this.digs.push(s);
+        continue;
+      }
       // A darker heap of dug-over sand (or snow) with a red X on it and a soft gold glow round it.
       const mound = new THREE.Group();
       mound.position.set(d.x, 0, d.y);

@@ -1,5 +1,5 @@
 // The air strike: a big toy button on the map (one per map). Pressing it calls a shower of water
-// balloons, toy blocks or snowballs onto the busiest spot away from you. Each lands in a circle
+// balloons, toy blocks, snowballs or cannonballs onto the busiest spot away from you. Each lands in a circle
 // marked on the ground a moment before; a roof keeps you safe. The button then needs a while.
 import { config, secondsToTicks } from '../config.ts';
 import { nextFloat } from '../rng.ts';
@@ -7,6 +7,7 @@ import type { GameState, Player, Strike, Vec2 } from '../types.ts';
 import type { World } from '../world.ts';
 import { applyDamage } from './damage.ts';
 import { buildingAt } from './movement.ts';
+import { inLookout } from './rides.ts';
 
 const S = config.strike;
 
@@ -71,7 +72,7 @@ export function updateStrikes(world: World, state: GameState): void {
     state.events.push({ type: 'strikeLand', kind: s.kind, pos: s.pos });
     const k = S.kinds[s.kind];
     for (const p of state.players) {
-      if (!p.alive || p.drop === 'riding' || buildingAt(world, p.pos, p.z) !== -1) continue;
+      if (!p.alive || p.drop === 'riding' || inLookout(world, p) || buildingAt(world, p.pos, p.z) !== -1) continue;
       const dx = p.pos.x - s.pos.x;
       const dy = p.pos.y - s.pos.y;
       const d = Math.hypot(dx, dy);

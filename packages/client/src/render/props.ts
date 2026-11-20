@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { Wall } from '@stuffed/sim';
 import { detailMaps, noteClone, repeated, upgradeTexture } from './image-textures.ts';
 import type { ImageOptions } from './image-textures.ts';
-import { darken, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { darken, evenOutlines, feltTexture, lighten, makePlastic, makeTriplanar, outlineMaterial, OUTLINE_COLOR, pushedOutlineMaterial, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const OUTLINE = 0.03;
 
@@ -47,6 +47,9 @@ function silhouetteOutline(g: THREE.Object3D, mark: number, width = 0.03, pull =
   });
 }
 
+/** How far a rock's foot stands off the ground: above the sand patches (drawn at 0.012). */
+export const FOOT_LIFT = 0.03;
+
 let markSeq = 0;
 /** Another stencil number for one model's outlineProp (wrapping round; see its mark). */
 export function nextMark(): number {
@@ -65,7 +68,7 @@ const claimed = new WeakMap<THREE.Material, number>();
  * near edges, a gap at the foot). So every prop is outlined all round, its foot included. Pieces an
  * earlier silhouetteOutline already did are left as they are.
  */
-export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull = PROP_PULL): void {
+export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull = PROP_PULL, closedFoot = false): void {
   const solid: THREE.Mesh[] = [];
   const hullColor = new Map<THREE.Object3D, THREE.Color>();
   const old: THREE.Mesh[] = [];
@@ -85,7 +88,8 @@ export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull 
   });
   for (const h of old) h.removeFromParent();
   // Standing things keep an open foot; low things lying on the floor are outlined all round.
-  const openFoot = pull > 0 && new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()).y > 0.5;
+  // (`closedFoot`: lumpy things like rocks, whose sides curve in to the ground, are outlined there too.)
+  const openFoot = !closedFoot && pull > 0 && new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()).y > 0.5;
   const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
   for (const o of solid) {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -445,6 +449,62 @@ const drawnStoneTexture = () =>
     }
   });
 
+/** Craggy rock with lichen (rock_cliff), for Pirate Cove's rocks and Rocky Isle; grey speckles until it loads. */
+export const rockTexture = () =>
+  upgradeTexture(
+    canvasTexture('rock', 128, (g, s) => {
+      const rand = seeded(73);
+      g.fillStyle = '#a49d92';
+      g.fillRect(0, 0, s, s);
+      for (let i = 0; i < 700; i++) {
+        g.fillStyle = rand() < 0.5 ? 'rgba(90,85,78,0.45)' : 'rgba(220,214,204,0.5)';
+        g.fillRect(rand() * s, rand() * s, 2, 2);
+      }
+    }),
+    'rock_cliff',
+    { soften: 0.15 },
+  );
+
+/** Old ivory bone with hairline cracks and stains (bone_skull), for Skull Rock; plain cream until it loads. */
+export const boneTexture = () =>
+  upgradeTexture(
+    canvasTexture('bone', 8, (g, s) => {
+      g.fillStyle = '#efe3c6';
+      g.fillRect(0, 0, s, s);
+    }),
+    'bone_skull',
+    { soften: 0.1 },
+  );
+
+/** Molten lava with cooled crust floating on it (lava_molten); plain orange until it loads. */
+export const lavaTexture = () =>
+  upgradeTexture(
+    canvasTexture('lava', 64, (g, s) => {
+      g.fillStyle = '#ff8a2a';
+      g.fillRect(0, 0, s, s);
+    }),
+    'lava_molten',
+    { soften: 0.1 },
+  );
+
+/** A beach hut's thatch (roof_thatch): rows of golden straw; drawn stripes until it loads. */
+export const thatchTexture = () =>
+  upgradeTexture(
+    canvasTexture('thatch', 128, (g, s) => {
+      g.fillStyle = '#e8b73e';
+      g.fillRect(0, 0, s, s);
+      g.strokeStyle = 'rgba(150,100,30,0.5)';
+      for (let y = 8; y < s; y += 16) {
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(s, y);
+        g.stroke();
+      }
+    }),
+    'roof_thatch',
+    { soften: 0.2 },
+  );
+
 /** Blue gingham for the picnic tablecloth (unlike the red check of the blanket below it). */
 export const ginghamTexture = () =>
   canvasTexture('gingham', 64, (g, s) => {
@@ -620,6 +680,145 @@ const flat = (color: THREE.ColorRepresentation) => toonMaterial(color, { map: nu
 /** A prop for one wall, positioned at the wall's center on the ground. */
 /** `underRoof`: it's trimmed to just under a roof (its outline isn't pulled toward the camera, or
  *  it showed through the roof). */
+let smokeTex: THREE.CanvasTexture | null = null;
+/** A soft grey puff. */
+function smokeTexture(): THREE.CanvasTexture {
+  if (smokeTex) return smokeTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(32, 32, 4, 32, 32, 31);
+  grad.addColorStop(0, 'rgba(235,232,228,0.95)');
+  grad.addColorStop(1, 'rgba(235,232,228,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  smokeTex = new THREE.CanvasTexture(c);
+  return smokeTex;
+}
+
+/** Puffs of smoke rising from (x, y, z) forever, growing and fading as they go. */
+export function smoke(x: number, y: number, z: number, puffs = 6, { color = '#a9a29c', rise = 5, size = 1, drift = 1.2 } = {}): THREE.Group {
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  for (let i = 0; i < puffs; i++) {
+    const puff = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTexture(), transparent: true, depthWrite: false, color }));
+    puff.onBeforeRender = () => {
+      const k = (performance.now() / 1000 / 5 + i / puffs) % 1;
+      puff.position.set(Math.sin(k * 4 + i) * 0.4 + k * drift, k * rise, Math.cos(k * 3 + i) * 0.3);
+      puff.scale.setScalar(size * (1 + k * 3));
+      (puff.material as THREE.SpriteMaterial).opacity = 0.9 * (1 - k) * Math.min(1, k * 6);
+    };
+    g.add(puff);
+  }
+  return g;
+}
+
+/**
+ * A palm tree (Pirate Cove): a ringed trunk curving up to a crown of drooping, notched fronds with a
+ * few coconuts; its foot at the origin. Its lean and size come from `seed`.
+ */
+export function palmTree(seed: number): THREE.Group {
+  let s = seed * 4801 + 7;
+  const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const g = new THREE.Group();
+  const lean = rand() * Math.PI * 2;
+  const tall = 4.2 + rand() * 0.8;
+  const bend = 0.9 + rand() * 0.5;
+  const at = (t: number) => new THREE.Vector3(Math.cos(lean) * bend * t * t, t * tall, Math.sin(lean) * bend * t * t);
+  const bark = [toonMaterial('#a77b4f', { map: null }), toonMaterial('#8a6240', { map: null })];
+  const rings = 9;
+  for (let i = 0; i < rings; i++) {
+    const a = at(i / rings);
+    const b = at((i + 1) / rings);
+    const r0 = 0.3 - (i / rings) * 0.1;
+    const ring = toonMesh(new THREE.CylinderGeometry(r0 - 0.03, r0 + 0.02, a.distanceTo(b) * 1.04, 10), '#a77b4f', { material: bark[i % 2]!, outline: 0.08 });
+    ring.position.copy(a).add(b).multiplyScalar(0.5);
+    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    g.add(ring);
+  }
+  const crown = new THREE.Group();
+  crown.position.copy(at(1));
+  // The fronds: long pointed leaves, notched along their edges, arching out and drooping.
+  const leaf = toonMaterial('#3f9a4a', { map: null });
+  leaf.side = THREE.DoubleSide;
+  const fronds = 8;
+  for (let i = 0; i < fronds; i++) {
+    const len = 2.6 + rand() * 0.6;
+    const shape = new THREE.Shape();
+    const steps = 9;
+    const half = (t: number) => Math.sin(t * Math.PI) * 0.42 * (1 - t * 0.3);
+    shape.moveTo(0, 0);
+    for (let k = 1; k <= steps; k++) shape.lineTo((k / steps) * len, half(k / steps) * (k % 2 ? 1 : 0.62));
+    for (let k = steps - 1; k >= 1; k--) shape.lineTo((k / steps) * len, -half(k / steps) * (k % 2 ? 1 : 0.62));
+    shape.lineTo(0, 0);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false });
+    // Laid flat (x out, z across) and arched: up a little, then drooping toward the tip.
+    geo.rotateX(Math.PI / 2);
+    const pos = geo.attributes.position!;
+    for (let k = 0; k < pos.count; k++) {
+      const t = pos.getX(k) / len;
+      pos.setY(k, pos.getY(k) + 0.5 * t - 1.5 * t * t);
+    }
+    geo.computeVertexNormals();
+    const frond = toonMesh(geo, '#3f9a4a', { material: leaf, outline: false });
+    frond.rotation.y = (i / fronds) * Math.PI * 2 + rand() * 0.3;
+    crown.add(frond);
+  }
+  const nut = toonMaterial('#6b4630', { map: null });
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    const c = toonMesh(new THREE.SphereGeometry(0.2, 10, 8), '#6b4630', { material: nut, outline: 0.1 });
+    c.position.set(Math.cos(a) * 0.24, -0.22, Math.sin(a) * 0.24);
+    crown.add(c);
+  }
+  g.add(crown);
+  evenOutlines(g, 0.03);
+  g.traverse((o) => {
+    if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshToonMaterial) o.castShadow = o.receiveShadow = true;
+  });
+  return g;
+}
+
+/**
+ * A cliff: a mass of rock `w` by `d` and `H` high (its foot at 0), its sides lumpy and leaning in,
+ * its corners well rounded, its top flat (it's walked on).
+ */
+export function rockMass(w: number, H: number, d: number): THREE.Group {
+  const g = new THREE.Group();
+  const b = { w, h: d };
+  // (Its foot just above the island's sand, drawn a hair over the ground: at the ground, the sand
+  // covered a sliver of the rock along its outline. Its top stays at H, it's walked on.)
+  const SINK = -FOOT_LIFT;
+  const geo = new THREE.BoxGeometry(b.w, H + SINK, b.h, Math.max(2, Math.round(b.w * 1.5)), Math.max(3, Math.round(H * 2)), Math.max(2, Math.round(b.h * 1.5)));
+  geo.translate(0, (H + SINK) / 2 - SINK, 0);
+  const pos = geo.attributes.position!;
+  const round = Math.min(b.w, b.h) * 0.4;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i);
+    let z = pos.getZ(i);
+    const cx = Math.sign(x) * (b.w / 2 - round);
+    const cz = Math.sign(z) * (b.h / 2 - round);
+    if (Math.abs(x) > b.w / 2 - round && Math.abs(z) > b.h / 2 - round) {
+      const dx = x - cx;
+      const dz = z - cz;
+      const d = Math.hypot(dx, dz);
+      if (d > round) {
+        x = cx + (dx / d) * round;
+        z = cz + (dz / d) * round;
+      }
+    }
+    const y = pos.getY(i);
+    // (One smooth bulge shared by every face meeting at a point, so corners never crack.)
+    const bump = y > H - 0.01 ? 1 : (1 - 0.07 * (Math.max(0, y) / H)) * (1 + 0.045 * Math.sin(x * 1.3 + z * 1.9 + y * 2.4) + 0.025 * Math.sin(x * 3.1 - z * 2.7 + y));
+    pos.setX(i, x * bump);
+    pos.setZ(i, z * bump);
+  }
+  geo.computeVertexNormals();
+  const stone = makeTriplanar(toonMaterial('#c9bba8', { map: rockTexture() }), 0.45);
+  g.add(toonMesh(geo, '#c9bba8', { material: stone, outline: 0.03 }));
+  return g;
+}
+
 export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 + (index % 220)): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(b.x + b.w / 2, 0, b.y + b.h / 2);
@@ -710,6 +909,228 @@ export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 +
       const water = new THREE.Mesh(new THREE.CircleGeometry(r * 0.88, 24).rotateX(-Math.PI / 2), toonMaterial('#bfe9ff', { map: waterTex }));
       drift(water, waterTex, 0.015);
       add(water, H - 0.08);
+      break;
+    }
+    case 'cask': {
+      const r = Math.min(b.w, b.h) / 2;
+      // A pirate's barrel: fat staves of dark wood, three iron bands, a planked lid nailed on.
+      const profile: THREE.Vector2[] = [];
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8;
+        profile.push(new THREE.Vector2(r * (0.82 + Math.sin(t * Math.PI) * 0.18), t * H));
+      }
+      const staves = toonMaterial('#c99460', { map: tiled(plankTexture(), 3, 0.6) });
+      const cask = new THREE.Mesh(new THREE.LatheGeometry(profile, 24), staves);
+      cask.castShadow = cask.receiveShadow = true;
+      const hull = new THREE.Mesh(new THREE.LatheGeometry(profile.map((v) => new THREE.Vector2(v.x + 0.05, v.y)), 24), outlineMaterial(OUTLINE_COLOR));
+      cask.add(hull);
+      add(cask, 0);
+      for (const t of [0.12, 0.5, 0.88]) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(r * (0.82 + Math.sin(t * Math.PI) * 0.18) + 0.02, 0.055, 6, 28), flat('#4b5158'));
+        band.rotation.x = Math.PI / 2;
+        add(band, t * H);
+      }
+      const lid = new THREE.Mesh(new THREE.CircleGeometry(r * 0.84, 24).rotateX(-Math.PI / 2), toonMaterial('#b98353', { map: tiled(plankTexture(), 1, 1.4) }));
+      add(lid, H - 0.02);
+      const rimTop = new THREE.Mesh(new THREE.TorusGeometry(r * 0.82, 0.06, 6, 28), flat('#8a5a32'));
+      rimTop.rotation.x = Math.PI / 2;
+      add(rimTop, H);
+      break;
+    }
+    case 'palm': {
+      // A palm standing on its own (no bush round its foot: nowhere to hide).
+      g.add(palmTree(index + 101));
+      break;
+    }
+    case 'cliff':
+      g.add(rockMass(b.w, H, b.h));
+      break;
+    case 'lighthouse': {
+      // A lighthouse: a tapering tower in smooth painted red and white bands on a stone foot, an
+      // arched door, a railed gallery up top round the lamp room (glowing glass panes between dark
+      // frames), a red cap with a ball on top.
+      const r = Math.min(b.w, b.h) / 2;
+      const paint = (c: string) => toonMaterial(c, { map: null });
+      add(toonMesh(new THREE.CylinderGeometry(r * 1.05, r * 1.1, 0.6, 24), '#a8a29a', { outline: 0.04, material: makeTriplanar(toonMaterial('#c4c3c2', { map: rockTexture() }), 0.45) }), 0.3);
+      const bands = 4;
+      const radiusAt = (y: number) => r * (1 - 0.22 * ((y - 0.6) / (H - 0.6)));
+      for (let i = 0; i < bands; i++) {
+        const y0 = 0.6 + ((H - 0.6) * i) / bands;
+        const y1 = 0.6 + ((H - 0.6) * (i + 1)) / bands;
+        const color = i % 2 ? '#fdfbf7' : '#e2433f';
+        add(toonMesh(new THREE.CylinderGeometry(radiusAt(y1), radiusAt(y0), y1 - y0, 24), color, { outline: 0.03, material: paint(color) }), (y0 + y1) / 2);
+      }
+      // The door: an arch of dark wood in a white frame, standing on the stone foot, facing south.
+      const arch = (w: number, h: number) => {
+        const sh = new THREE.Shape();
+        sh.moveTo(-w / 2, 0);
+        sh.lineTo(w / 2, 0);
+        sh.lineTo(w / 2, h - w / 2);
+        sh.absarc(0, h - w / 2, w / 2, 0, Math.PI, false);
+        sh.lineTo(-w / 2, 0);
+        return new THREE.ShapeGeometry(sh, 12);
+      };
+      const doorZ = radiusAt(1.1) + 0.02;
+      const frame = new THREE.Mesh(arch(0.86, 1.32), paint('#fdfbf7'));
+      frame.position.set(0, 0.6, doorZ);
+      g.add(frame);
+      const door = new THREE.Mesh(arch(0.66, 1.18), paint('#6b4128'));
+      door.position.set(0, 0.6, doorZ + 0.01);
+      g.add(door);
+      // The gallery: a slate deck with a railing on little posts.
+      const top = radiusAt(H);
+      const deckR = top + 0.38;
+      add(toonMesh(new THREE.CylinderGeometry(deckR, deckR - 0.08, 0.16, 28), '#4a5563', { outline: 0.05, material: paint('#4a5563') }), H + 0.08);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const post = toonMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.45, 6), '#4a5563', { outline: 0.15, material: paint('#4a5563') });
+        post.position.set(Math.cos(a) * (deckR - 0.06), 0, Math.sin(a) * (deckR - 0.06));
+        add(post, H + 0.38);
+      }
+      const rail = toonMesh(new THREE.TorusGeometry(deckR - 0.06, 0.045, 6, 32), '#4a5563', { outline: 0.2, material: paint('#4a5563') });
+      rail.rotation.x = Math.PI / 2;
+      add(rail, H + 0.6);
+      // The lamp room: pale glass with a glowing lamp in it, dark frames between the panes.
+      const roomR = top * 0.78;
+      const glass = new THREE.Mesh(new THREE.CylinderGeometry(roomR, roomR, 0.9, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#fff2b8', toneMapped: false }));
+      add(glass, H + 0.61);
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.92, 0.07), paint('#2f3640'));
+        bar.position.set(Math.cos(a) * roomR, 0, Math.sin(a) * roomR);
+        add(bar, H + 0.61);
+      }
+      add(toonMesh(new THREE.CylinderGeometry(roomR + 0.05, roomR + 0.05, 0.1, 24), '#2f3640', { outline: 0.1, material: paint('#2f3640') }), H + 1.08);
+      add(toonMesh(new THREE.ConeGeometry(roomR + 0.25, 0.75, 24), '#e2433f', { outline: 0.05, material: paint('#e2433f') }), H + 1.5);
+      add(toonMesh(new THREE.SphereGeometry(0.14, 12, 10), '#2f3640', { outline: 0.1, material: paint('#2f3640') }), H + 1.9);
+      break;
+    }
+    case 'hull': {
+      // A shipwreck's side: dark weathered planks, green weed along the bottom, a few barnacles.
+      const long = Math.max(b.w, b.h);
+      const planks = toonMaterial('#ffffff', { map: tiled(plankTexture(), long / 1.6, H / 0.8) });
+      planks.color.set('#9a7454');
+      add(outlinedBox(b.w, H, b.h, planks), H / 2);
+      add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.04, 0.35, b.h + 0.04), flat('#4f8a5a')), 0.17);
+      const bw = b.w > b.h;
+      for (let i = 0; i < Math.floor(long / 1.5); i++) {
+        const t = (i + 0.5) / Math.floor(long / 1.5) - 0.5;
+        for (const s of [-1, 1]) {
+          const barnacle = new THREE.Mesh(new THREE.SphereGeometry(0.09 + ((i * 3) % 2) * 0.04, 8, 6), flat('#d9d4c7'));
+          barnacle.position.set(bw ? t * long : (s * b.w) / 2, 0.45 + ((i * 7) % 3) * 0.12, bw ? (s * b.h) / 2 : t * long);
+          g.add(barnacle);
+        }
+      }
+      break;
+    }
+    case 'mast': {
+      // A broken mast stuck upright in the sand: a thick pole with iron bands, splintered at the
+      // top, a rope coiled round its foot (the parrot piñata hangs off a spar from it).
+      const r = Math.min(b.w, b.h) / 2 * 0.55;
+      const wood = toonMaterial('#8a5a32', { map: null });
+      add(toonMesh(new THREE.CylinderGeometry(r * 0.9, r * 1.05, H, 12), '#8a5a32', { material: wood, outline: 0.08 }), H / 2);
+      for (const t of [0.25, 0.7]) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(r * (1.02 - t * 0.12), 0.05, 6, 20), flat('#4b5158'));
+        band.rotation.x = Math.PI / 2;
+        add(band, H * t);
+      }
+      for (let i = 0; i < 4; i++) {
+        const splinter = toonMesh(new THREE.ConeGeometry(r * 0.35, 0.35 + (i % 2) * 0.25, 5), '#a8743f', { outline: 0.1 });
+        const a = (i / 4) * Math.PI * 2 + 0.4;
+        splinter.position.set(Math.cos(a) * r * 0.5, 0, Math.sin(a) * r * 0.5);
+        add(splinter, H + 0.12).position.set(Math.cos(a) * r * 0.5, H + 0.12, Math.sin(a) * r * 0.5);
+      }
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(r * 1.6, 0.09, 6, 20), flat('#d9c08f'));
+      coil.rotation.x = Math.PI / 2;
+      add(coil, 0.1);
+      break;
+    }
+    case 'rowboat': {
+      // A little rowboat pulled up on the beach: a painted hull with a
+      // pointed bow, two seats across it and an oar inside.
+      const long = b.w >= b.h;
+      const L = Math.max(b.w, b.h);
+      const W = Math.min(b.w, b.h);
+      const boat = new THREE.Group();
+      boat.rotation.y = long ? Math.PI / 2 : 0;
+      const half = (t: number) => (W / 2) * (t < 0.55 ? 1 : Math.sqrt(Math.max(0, (1 - t) / 0.45)));
+      const shape = (inset: number) => {
+        const pts: THREE.Vector2[] = [];
+        // (Clamped at 0: inset, the sides would cross over at the bow tip, and a shape that crosses
+        // itself fills with holes: the floor showed the dark outline under it.)
+        for (let i = 0; i <= 12; i++) pts.push(new THREE.Vector2(Math.max(0, half(i / 12) - inset), -L / 2 + inset + ((L - 2 * inset) * i) / 12));
+        for (let i = 11; i >= 0; i--) pts.push(new THREE.Vector2(-Math.max(0, half(i / 12) - inset), -L / 2 + inset + ((L - 2 * inset) * i) / 12));
+        // (Kept within the hull's width, but a rim standing out from it may stand out all along:
+        // clamped to the hull's sides, its face lay on theirs and flickered.)
+        const most = W / 2 + Math.max(0, -inset);
+        return pts.map((v) => new THREE.Vector2(Math.max(-most, Math.min(most, v.x)), -v.y));
+      };
+      const slab = (outer: THREE.Vector2[], y0: number, y1: number, hole?: THREE.Vector2[]) => {
+        const sh = new THREE.Shape(outer);
+        if (hole) sh.holes.push(new THREE.Path(hole));
+        return new THREE.ExtrudeGeometry(sh, { depth: y1 - y0, bevelEnabled: false }).rotateX(-Math.PI / 2).translate(0, y0, 0);
+      };
+      const paint = ['#3d7ff2', '#e2574c', '#5bd16a'][index % 3]!;
+      // (Drawn from both sides: the walls round the hollow came out facing away, so the inside
+      // showed the dark outline behind them.)
+      boat.add(toonMesh(slab(shape(0), 0, H, shape(0.14)), paint, { outline: false, material: toonMaterial(paint, { map: null, side: THREE.DoubleSide }) }));
+      boat.add(new THREE.Mesh(slab(shape(0.1), 0.12, 0.2), toonMaterial('#c99460', { map: null })));
+      // (Its inside a hair further in than the hull's: on the same spot, the two flickered. It
+      // casts no shadow: a thin rim shadowing itself came out in stripes.)
+      const rim = toonMesh(slab(shape(-0.02), H - 0.12, H + 0.02, shape(0.17)), '#fdfbf7', { outline: false, castShadow: false, material: toonMaterial('#fdfbf7', { map: null, side: THREE.DoubleSide }) });
+      rim.receiveShadow = false;
+      boat.add(rim);
+      for (const z of [-L * 0.2, L * 0.15]) {
+        // As wide as the hull's inside there (it narrows toward the bow: a full-width seat poked
+        // out through its side).
+        const inside = 2 * (half((z + L / 2) / L + 0.05) - 0.16);
+        const seat = toonMesh(new THREE.BoxGeometry(inside, 0.08, 0.32), '#a8743f', { outline: 0.06 });
+        seat.position.set(0, H * 0.7, z);
+        boat.add(seat);
+      }
+      // An oar lying inside, clear of the narrowing bow.
+      const oar = toonMesh(new THREE.BoxGeometry(0.08, 0.06, L * 0.55), '#d9b07a', { outline: 0.1 });
+      oar.position.set(W * 0.12, 0.3, -L * 0.08);
+      boat.add(oar);
+      const blade = toonMesh(new THREE.BoxGeometry(0.22, 0.05, 0.45), '#d9b07a', { outline: 0.08 });
+      blade.position.set(W * 0.12, 0.3, L * 0.22);
+      boat.add(blade);
+      // (Sitting flat on the sand: tilted, one side lifted off it and its outline showed under it.)
+      add(boat, 0.03);
+      break;
+    }
+    case 'rock': {
+      // A lumpy grey rock (its shape from its spot, so each is different).
+      const geo = new THREE.IcosahedronGeometry(1, 2);
+      const pos = geo.attributes.position!;
+      let seed = Math.round(b.x * 131 + b.y * 71) || 1;
+      const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const bumps = [rand(), rand(), rand()].map((v) => v * Math.PI * 2);
+      for (let i = 0; i < pos.count; i++) {
+        const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+        const k = 1 + 0.12 * Math.sin(3 * v.x + bumps[0]!) + 0.1 * Math.sin(4 * v.z + bumps[1]!) + 0.08 * Math.sin(5 * v.y + bumps[2]!);
+        v.multiplyScalar(k);
+        // A dome: below its middle it goes straight down (not curving back in under itself, where
+        // the ground hid its outline), to a flat foot.
+        if (v.y < 0) {
+          const out = Math.hypot(v.x, v.z) || 1;
+          const r = k * Math.sqrt(1 - Math.min(0.9, (v.y / k) ** 2) * 0.15);
+          v.x = (v.x / out) * r;
+          v.z = (v.z / out) * r;
+          v.y = Math.max(v.y, -0.3);
+        }
+        pos.setXYZ(i, v.x, v.y, v.z);
+      }
+      geo.computeVertexNormals();
+      // (Its foot just above the island's sand, which is drawn a hair over the ground and covered
+      // a sliver of the rock along its outline.)
+      geo.translate(0, 0.3 + FOOT_LIFT, 0);
+      geo.scale(b.w / 2, H / 1.3, b.h / 2);
+      const stone = makeTriplanar(toonMaterial('#c4c3c2', { map: rockTexture() }), 0.45);
+      const boulder = add(toonMesh(geo, '#c4c3c2', { material: stone, outline: 0.03 }), 0);
+      // An even line all round, down to where it meets the ground (a scaled-up copy left only
+      // broken slivers there).
+      evenOutlines(boulder, 0.03);
       break;
     }
     case 'trunk': {
@@ -1018,7 +1439,8 @@ export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 +
   }
   // One even outline round the whole prop (see outlineProp).
   // (Walls that touch share `mark`: one outline round them all, none across the joint.)
-  outlineProp(g, mark, 0.03, underRoof ? -0.01 : PROP_PULL);
+  // (Rocks curve in to the ground and the rowboat lies tilted on it: outlined round their foot too.)
+  outlineProp(g, mark, 0.03, underRoof ? -0.01 : PROP_PULL, kind === 'rock' || kind === 'cliff' || kind === 'rowboat');
   return g;
 }
 

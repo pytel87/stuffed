@@ -5,7 +5,8 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { CATAPULT_SIZE, config, slopeAt } from '@stuffed/sim';
-import type { GameState, MapData, RideDef } from '@stuffed/sim';
+import type { GameState, MapData, Player, RideDef } from '@stuffed/sim';
+import { glowMap } from './loot-views.ts';
 import { nextMark, outlineProp, snowTexture, softBox, tiled } from './props.ts';
 import { evenOutlines, fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, toonMesh } from './toon.ts';
 
@@ -104,6 +105,57 @@ function ramp(r: RideDef): THREE.Group {
     g.add(kick);
   }
   return g;
+}
+
+/** The ready glow's color (the toys' too). */
+const GLOW = new THREE.Color('#ffd23a');
+
+/**
+ * The lighthouse's door (a lookout's way in), lit up like a toy that's ready: the door itself
+ * glowing gold, breathing, and a soft gold light on the sand in front. On the tower's face (round
+ * `to`, facing `from`), over the painted door, in its shape.
+ */
+function lookoutDoor(r: RideDef): { root: THREE.Group; door: THREE.MeshToonMaterial; light: THREE.MeshBasicMaterial; track: THREE.Mesh; fill: THREE.Mesh; radius: number; step: number } {
+  const root = new THREE.Group();
+  root.position.set(r.to.x, 0, r.to.y);
+  root.rotation.y = Math.atan2(r.from.x - r.to.x, r.from.y - r.to.y);
+  // The door: 0.66 wide, 1.18 tall, its foot 0.6 up (on the stone foot), on the tower's face.
+  const w = 0.66;
+  const h = 1.18;
+  const arch = new THREE.Shape();
+  arch.moveTo(-w / 2, 0);
+  arch.lineTo(w / 2, 0);
+  arch.lineTo(w / 2, h - w / 2);
+  arch.absarc(0, h - w / 2, w / 2, 0, Math.PI, false);
+  arch.lineTo(-w / 2, 0);
+  const door = toonMaterial('#6b4128', { map: null });
+  const panel = new THREE.Mesh(new THREE.ShapeGeometry(arch, 12), door);
+  // Just over the painted door (the tower's face is ~1.39 out there).
+  panel.position.set(0, 0.6, 1.425);
+  root.add(panel);
+  const light = new THREE.MeshBasicMaterial({ color: GLOW, map: glowMap(), transparent: true, depthWrite: false, toneMapped: false });
+  const spot = new THREE.Mesh(new THREE.CircleGeometry(1.4, 32).rotateX(-Math.PI / 2), light);
+  spot.position.set(0, 0.03, 1.9);
+  root.add(spot);
+  // The ring round its foot while you have to wait (as round a recharging toy): a dark track, a gold
+  // arc filling it from the top round clockwise (as seen from the camera).
+  const radius = Math.hypot(r.from.x - r.to.x, r.from.y - r.to.y) + 0.1;
+  const ring = new THREE.Group();
+  ring.rotation.y = -root.rotation.y;
+  ring.position.y = 0.025;
+  const track = new THREE.Mesh(
+    new THREE.RingGeometry(radius - 0.08, radius + 0.08, 64).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, transparent: true, opacity: 0.5, depthWrite: false }),
+  );
+  track.renderOrder = 1;
+  track.visible = false;
+  const fill = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: '#ffd23a', depthWrite: false, transparent: true, toneMapped: false }));
+  fill.position.y = 0.004;
+  fill.renderOrder = 2;
+  fill.visible = false;
+  ring.add(track, fill);
+  root.add(ring);
+  return { root, door, light, track, fill, radius, step: -1 };
 }
 
 /** A zip line: a pole at each end and a cable sagging between them. */
@@ -256,6 +308,8 @@ export class RideViews {
   private tilts: number[] = [];
   /** Each catapult's spring and platform, by its ride's index. */
   private launchers: { ride: number; rings: THREE.Mesh[]; top: THREE.Group }[] = [];
+  /** Each lookout's glowing doorway, by its ride's index. */
+  private doors: ({ ride: number } & ReturnType<typeof lookoutDoor>)[] = [];
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -266,11 +320,13 @@ export class RideViews {
     this.tilts = [];
     this.ramps = [];
     this.launchers = [];
+    this.doors = [];
     this.mapId = '';
   }
 
   /** `viewer`: the plush we follow; a slide it stands under fades so it can be seen. */
-  update(map: MapData, state: GameState, viewer?: { pos: { x: number; y: number }; z: number }): void {
+  /** `you`: the plush we follow (a lookout shows how long until it may go up). */
+  update(map: MapData, state: GameState, viewer?: { pos: { x: number; y: number }; z: number }, you?: Player): void {
     if (this.mapId !== map.id) this.build(map);
     for (const r of this.ramps) {
       const h = viewer ? slopeAt(r.ride, viewer.pos) : null;
@@ -284,6 +340,27 @@ export class RideViews {
       const s = state.seesaws[i];
       plank.rotation.z = s && s.tick >= 0 && s.down === 'b' ? -this.tilts[i]! : this.tilts[i]!;
     });
+    // A lookout's door glows like a ready toy when you may go up (breathing gold, a light on the sand
+    // in front). While someone else is up there, a ring round its foot fills up till they come down,
+    // like a toy's recharging.
+    const t = performance.now() / 1000;
+    for (const d of this.doors) {
+      const up = state.players.find((p) => p.alive && p.ride?.index === d.ride);
+      const wait = up?.ride && up.id !== you?.id ? ([up.ride.endTick, up.ride.endTick - up.ride.startTick] as const) : null;
+      const ready = !wait && up?.id !== you?.id;
+      d.door.emissive.copy(GLOW).multiplyScalar(ready ? 0.32 + Math.sin(t * 3) * 0.14 : 0);
+      d.light.visible = ready;
+      d.light.opacity = 0.65 + Math.sin(t * 3) * 0.2;
+      const progress = wait ? Math.max(0, Math.min(1, 1 - (wait[0] - state.tick) / Math.max(1, wait[1]))) : 1;
+      const step = Math.floor(progress * 64);
+      d.track.visible = !!wait;
+      d.fill.visible = !!wait && step > 0;
+      if (wait && step !== d.step) {
+        d.step = step;
+        d.fill.geometry.dispose();
+        d.fill.geometry = new THREE.RingGeometry(d.radius - 0.06, d.radius + 0.06, 64, 1, Math.PI / 2 - (step / 64) * Math.PI * 2, (step / 64) * Math.PI * 2).rotateX(-Math.PI / 2);
+      }
+    }
     for (const v of this.launchers) {
       const c = state.catapults.find((x) => x.ride === v.ride);
       const since = c && c.firedTick >= 0 ? (state.tick - c.firedTick) / config.tickRate : null;
@@ -319,8 +396,14 @@ export class RideViews {
       root.add(v.root);
       this.launchers.push({ ride: index, rings: v.rings, top: v.top });
     });
+    (map.rides ?? []).forEach((r, index) => {
+      if (r.kind !== 'lookout') return;
+      const door = lookoutDoor(r);
+      root.add(door.root);
+      this.doors.push({ ride: index, ...door });
+    });
     for (const r of map.rides ?? []) {
-      if (r.kind === 'catapult') continue;
+      if (r.kind === 'catapult' || r.kind === 'lookout') continue;
       if (r.kind === 'slide' || r.kind === 'sled') {
         const group = ramp(r);
         root.add(group);

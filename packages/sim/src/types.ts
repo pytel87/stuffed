@@ -90,6 +90,24 @@ export type Animal =
   | 'turtle' | 'hedgehog' | 'koala' | 'octopus'
   | 'mouse' | 'sheep' | 'raccoon' | 'bee' | 'flamingo' | 'giraffe' | 'sloth' | 'dragon' | 'phoenix' | 'yeti';
 
+/** A stream in the sea: water `width` wide along `path` (a loop if `loop`) flowing at `speed`. */
+/** Dry land on a sea map: a sandy isle (the default) or a rocky one. Only the look differs. */
+export interface Island extends Circle {
+  look?: 'sand' | 'rock';
+}
+
+/** Lava at height `z`: a pool (a ring round a safe island in its middle) or a stream across a ledge. */
+export type Lava =
+  | { kind: 'pool'; center: Vec2; radius: number; island: number; z: number }
+  | { kind: 'stream'; from: Vec2; to: Vec2; width: number; z: number };
+
+export interface Current {
+  path: Vec2[];
+  width: number;
+  speed: number;
+  loop?: boolean;
+}
+
 /** A skin part: purely cosmetic, never changes stats or hitboxes. */
 export interface Part {
   slot: PartSlot;
@@ -303,6 +321,8 @@ export type GameEvent =
   | { type: 'bounce'; pos: Vec2 }
   /** The toy train shoved a plush out of its way. */
   | { type: 'trainBump'; playerId: EntityId; pos: Vec2 }
+  /** A plush stepped in lava: burnt, and hopping. */
+  | { type: 'burn'; playerId: EntityId; pos: Vec2 }
   /** A beach ball rolled into goal `goal` (index in map.goals). */
   | { type: 'goal'; goal: number; ballId: number; pos: Vec2 }
   /** A plush ran into a beach ball and got bounced back (`pos`: the ball's center). */
@@ -354,7 +374,7 @@ export type GameEvent =
  * Something that moves about on its own: a robot vacuum roaming `area`, or a lawnmower or snowplow driving from (x, y) to `to` (and back) when its `switch` is pressed.
  */
 export interface WandererDef {
-  kind: 'vacuum' | 'mower' | 'plow';
+  kind: 'vacuum' | 'mower' | 'plow' | 'shark';
   x: number;
   y: number;
   area?: Box;
@@ -408,7 +428,7 @@ export interface Ride {
  * (press E at its cup, `from`) flings you up to `to`, where your umbrella opens.
  */
 export interface RideDef {
-  kind: 'slide' | 'sled' | 'zip' | 'tube' | 'catapult';
+  kind: 'slide' | 'sled' | 'zip' | 'tube' | 'catapult' | 'lookout';
   from: { x: number; y: number; z: number };
   to: { x: number; y: number; z: number };
   seconds: number;
@@ -435,7 +455,7 @@ export interface ToyState {
 }
 
 /** The map's piñata: a paper donkey on a frame, or a big wrapped present. */
-export type PinataKind = 'donkey' | 'present';
+export type PinataKind = 'donkey' | 'present' | 'parrot';
 
 export interface PinataState {
   pos: Vec2;
@@ -449,10 +469,11 @@ export interface PinataState {
 }
 
 /** What knocked a plush out when it wasn't someone's weapon. */
-export type KnockoutCause = 'rinse' | 'strike' | 'jack' | 'icedrill' | 'mower';
+export type KnockoutCause = 'rinse' | 'strike' | 'jack' | 'icedrill' | 'mower' | 'shark' | 'lava';
 
-/** What an air strike drops: water balloons (soak), toy blocks (hurt) or snowballs (knock back). */
-export type StrikeKind = 'balloons' | 'blocks' | 'snowballs';
+/** What an air strike drops: water balloons (soak), toy blocks (hurt), snowballs (knock back) or
+ *  cannonballs (hurt and knock back). */
+export type StrikeKind = 'balloons' | 'blocks' | 'snowballs' | 'cannonballs';
 
 /** One drop of an air strike, marked on the ground until it lands. */
 export interface Strike {
@@ -562,7 +583,25 @@ export type WallKind =
   // The Snowy Park.
   | 'snowman' | 'gift' | 'snowwall' | 'iceblock' | 'log' | 'lamppost'
   /** An igloo's snow-block ring (drawn with its dome, as part of the building's roof). */
-  | 'igloo';
+  | 'igloo'
+  // Pirate Cove.
+  /** A lidded pirate barrel (the backyard's 'barrel' is an open rain barrel). */
+  | 'cask'
+  /** A broken mast stuck upright in the sand (the parrot piñata hangs off its spar). */
+  | 'mast'
+  /** A little rowboat pulled up on a beach. */
+  | 'rowboat'
+  /** A rock on the shore or out in the lagoon. */
+  | 'rock'
+  /** A shipwreck's side: old planks, under its broken deck (the building's roof). */
+  | 'hull'
+  /** A palm tree standing on its own (its trunk; no bush to hide in). */
+  | 'palm'
+  /** A block of a volcano's tier (the volcano is drawn whole, from all of them); a cliff of rock;
+   *  a skull-shaped rock's walls (drawn with its dome, the building's roof); a lighthouse. */
+  | 'volcano' | 'cliff' | 'skull' | 'lighthouse'
+  /** A hollow cliff's rock round the cave inside it (drawn whole, as the building's roof). */
+  | 'cave';
 
 export interface Toss {
   from: Vec2;
@@ -583,6 +622,8 @@ export interface Wall extends Box {
   height: number;
   /** Look only; without it the renderer picks one from the height. */
   kind?: WallKind;
+  /** Its top is no floor (a pointed roof, like the lighthouse's): whoever comes down on it slides off. */
+  noTop?: boolean;
 }
 
 /**
@@ -592,7 +633,7 @@ export interface Wall extends Box {
 export interface Building extends Box {
   height: number;
   /** Roof look only. */
-  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk' | 'cabin' | 'igloo';
+  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk' | 'cabin' | 'igloo' | 'wreck' | 'hut' | 'skull' | 'volcano' | 'cave';
 }
 
 /** A patch of ground drawn differently (no effect on play). */
@@ -628,7 +669,7 @@ export interface MapZone {
 export interface MapData {
   id: string;
   /** How it looks: a lawn with leafy bushes, a bedroom floor with laundry piles, or snow with pine trees. */
-  theme?: 'backyard' | 'bedroom' | 'snow';
+  theme?: 'backyard' | 'bedroom' | 'snow' | 'island';
   width: number;
   height: number;
   walls: Wall[];
@@ -639,6 +680,12 @@ export interface MapData {
   chestSpawns: ChestSpawn[];
   /** Shallow water: plushies wading in it move slower. */
   pools?: Circle[];
+  /** A sea map: everywhere but its islands is shallow water to wade through (it doesn't hurt). */
+  islands?: Island[];
+  /** Lava that burns whoever stands in it (see systems/lava.ts). */
+  lava?: Lava[];
+  /** Streams in the sea that carry anyone wading in them along (see systems/currents.ts). */
+  currents?: Current[];
   /** Ice: plushies on it slide (they speed up and slow down only gradually). */
   ice?: Circle[];
   /** A big toy button that calls an air strike; `z` is what it stands on (0: the ground). */
@@ -672,7 +719,7 @@ export interface MapData {
   zones?: MapZone[];
   /** Things lying on the floor just for looks (no effect on play). */
   decor?: Decor[];
-  /** A toy train running round an oval track (see systems/train.ts). */
+  /** A toy train (or a pirate ship) running round an oval track (see systems/train.ts). */
   track?: TrainTrack;
 }
 
@@ -681,19 +728,21 @@ export interface TrainTrack {
   center: Vec2;
   rx: number;
   ry: number;
-  /** Units per second. */
+  /** Units per second (negative: the other way round). */
   speed: number;
   cars: number;
+  /** A toy train (the default) or a pirate ship: one long hull to ride, with a mast (see SHIP). */
+  style?: 'train' | 'ship';
 }
 
 /** A bit of floor clutter, drawn only: crayons, drawings, socks, a train track... */
 export interface Decor {
-  kind: 'track' | 'crayon' | 'paper' | 'sock' | 'puzzle' | 'marbles' | 'car' | 'sled' | 'snowballs' | 'mitten';
+  kind: 'track' | 'crayon' | 'paper' | 'sock' | 'puzzle' | 'marbles' | 'car' | 'sled' | 'snowballs' | 'mitten' | 'waterfall';
   x: number;
   y: number;
   /** Turn (radians). */
   turn?: number;
-  /** The track: its half-width and half-depth. */
+  /** The track: its half-width and half-depth (a waterfall: rx is how high it falls from). */
   rx?: number;
   ry?: number;
 }

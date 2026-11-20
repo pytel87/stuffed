@@ -20,6 +20,10 @@
     "match_snow": {
       "prompt": "Wintry, bouncy instrumental loop for a cartoon battle game with plush toys in a snowy park: sleigh bells, glockenspiel, pizzicato strings, celesta and soft brushed drums, cheerful and frosty, upbeat but not intense. No vocals. Loops seamlessly.",
       "seconds": 90
+    },
+    "match_island": {
+      "prompt": "Jolly, bouncy instrumental sea-shanty loop for a cartoon battle game with plush toys on tropical pirate islands: accordion and concertina melody, fiddle, plucked ukulele, a tin whistle, light hand drums and a stomping beat, cheerful and adventurous, upbeat but not intense. No vocals. Loops seamlessly.",
+      "seconds": 90
     }
   }
 }

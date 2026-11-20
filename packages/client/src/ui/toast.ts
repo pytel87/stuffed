@@ -1,11 +1,13 @@
 // A short message popping up under the players count: in red when something big is set off on the
 // map (an air strike called, the lawnmower or the snowplow sent off), so everyone knows what's
 // coming; in the calm cream of the area names for anything else (a tip, who won).
-import type { GameEvent } from '@stuffed/sim';
+import type { GameEvent, StrikeKind } from '@stuffed/sim';
 import { escapeHtml } from './escape.ts';
 import { tr } from '../i18n.ts';
 
 const SHOW_SECONDS = 3.5;
+
+const STRIKE_TOAST: Record<StrikeKind, string> = { balloons: 'Water balloons!', blocks: 'Falling blocks!', snowballs: 'Snowball barrage!', cannonballs: 'Cannonballs!' };
 
 export class Toast {
   private readonly el: HTMLElement;
@@ -24,7 +26,7 @@ export class Toast {
   /** Shows a message for any event that calls for one. */
   events(events: readonly GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'strikeCalled') this.show(tr(e.kind === 'balloons' ? 'Water balloons!' : e.kind === 'blocks' ? 'Falling blocks!' : 'Snowball barrage!'), true);
+      if (e.type === 'strikeCalled') this.show(tr(STRIKE_TOAST[e.kind]), true);
       else if (e.type === 'wandererStarted') this.show(tr(e.kind === 'plow' ? 'Snowplow!' : 'Lawnmower!'), true);
     }
   }

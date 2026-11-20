@@ -1,7 +1,7 @@
 // Decides which sounds a frame of the game makes: from sim events (shots, hits, chests, ...)
 // and from changes between frames the sim has no event for (jumps, landings, reloads, swaps).
-import { config } from '@stuffed/sim';
-import type { Animal, EntityId, GameEvent, GameState, ItemKind, LootLevel, MapData, Player, Vec2, WeaponKind } from '@stuffed/sim';
+import { config, createWorld, currentAt, wading } from '@stuffed/sim';
+import type { Animal, EntityId, GameEvent, GameState, ItemKind, LootLevel, MapData, Player, RideDef, StrikeKind, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { Sound, SoundName, VoiceKind } from './sound.ts';
 import { ANIMAL_KIND } from '../animal-kinds.ts';
 
@@ -41,9 +41,10 @@ const GRAB: Record<ItemKind, SoundName> = {
 };
 
 /** What a footstep lands on: wooden planks in the Bedroom and on the floors indoors elsewhere,
- *  snow on the Snowy Park, grass on the Backyard. */
-function surfaceAt(map: MapData, at: Vec2): 'grass' | 'wood' | 'snow' {
+ *  snow on the Snowy Park, sand on Pirate Cove, grass on the Backyard. */
+function surfaceAt(map: MapData, at: Vec2): 'grass' | 'wood' | 'snow' | 'sand' {
   if (map.theme === 'bedroom') return 'wood';
+  if (map.theme === 'island') return 'sand';
   const indoors = map.grounds?.some((g) => g.kind === 'floor' && g.box && at.x >= g.box.x && at.x <= g.box.x + g.box.w && at.y >= g.box.y && at.y <= g.box.y + g.box.h);
   if (indoors) return 'wood';
   return map.theme === 'snow' ? 'snow' : 'grass';
@@ -63,6 +64,12 @@ interface Seen {
   umbrella: boolean;
 }
 
+/** How each kind of ride sounds setting off. */
+const RIDE_SOUND: Record<RideDef['kind'], SoundName> = { zip: 'zip_line', tube: 'tube_pop', catapult: 'ball_boing', lookout: 'lighthouse_climb', slide: 'slide_whoosh', sled: 'slide_whoosh' };
+
+/** How each kind of air strike drop sounds landing. */
+const LAND_SOUND: Record<StrikeKind, SoundName> = { balloons: 'balloon_splash', blocks: 'block_clatter', snowballs: 'snow_thud', cannonballs: 'cannonball_land' };
+
 export class GameAudio {
   private readonly seen = new Map<EntityId, Seen>();
   /** Chest rattles still playing, to cut short when the opening stops early. */
@@ -79,6 +86,7 @@ export class GameAudio {
 
   /** Forget per-player history (new match). */
   reset(): void {
+    this.inCurrent = false;
     this.seen.clear();
     this.yelped.clear();
     this.cheered = false;
@@ -90,9 +98,52 @@ export class GameAudio {
 
   private map: MapData | null = null;
 
-  /** A new map: what footsteps land on. */
+  /** A new map: what footsteps land on, and the place's background sounds. */
   setMap(map: MapData): void {
     this.map = map;
+    this.world = map.currents || map.wanderers?.some((w) => w.kind === 'shark') ? createWorld(map) : null;
+    for (const l of this.ambience.values()) l.stop();
+    this.ambience.clear();
+    this.gullIn = 6;
+  }
+
+  /** The place's background sounds now playing (Pirate Cove: the sea, the waterfall). */
+  private readonly ambience = new Map<SoundName, { set: (volume: number) => void; stop: () => void }>();
+  private gullIn = 6;
+  private lastFrame = 0;
+  /** For telling where the sea's currents are (maps with any). */
+  private world: World | null = null;
+  /** A shark was hunting your plush (for its warning, once each time). */
+  private hunted = false;
+  /** Your plush was being carried along by a current. */
+  private inCurrent = false;
+
+  /** Pirate Cove's sounds: the sea lapping all round, the waterfall louder the nearer you are,
+   *  a gull now and then far off. */
+  private updateAmbience(): void {
+    const map = this.map;
+    const now = performance.now() / 1000;
+    const dt = Math.min(0.5, this.lastFrame ? now - this.lastFrame : 0);
+    this.lastFrame = now;
+    if (map?.theme !== 'island') return;
+    const at = this.sound.listener;
+    const want = new Map<SoundName, number>([['sea_waves', 0.8]]);
+    const fall = map.decor?.find((d) => d.kind === 'waterfall');
+    if (fall) want.set('waterfall_rush', Math.max(0, 1 - Math.hypot(at.x - fall.x, at.y - fall.y) / 22) ** 1.5);
+    for (const [name, volume] of want) {
+      const playing = this.ambience.get(name);
+      if (playing) playing.set(volume);
+      else {
+        const started = this.sound.loop(name, volume);
+        if (started) this.ambience.set(name, started);
+      }
+    }
+    this.gullIn -= dt;
+    if (this.gullIn <= 0) {
+      this.gullIn = 9 + Math.random() * 14;
+      const a = Math.random() * Math.PI * 2;
+      this.sound.play('gull_cry', { at: { x: at.x + Math.cos(a) * 14, y: at.y + Math.sin(a) * 14 }, volume: 0.9, pitchSpread: 0.2 });
+    }
   }
 
   /** A footstep on dry ground (grass, wooden planks or snow), the same for every plush: soft (yours a little louder), felt more than heard. */
@@ -103,6 +154,21 @@ export class GameAudio {
   update(events: GameEvent[], state: GameState, localId: EntityId): void {
     const byId = new Map(state.players.map((p) => [p.id, p]));
     const s = this.sound;
+    this.updateAmbience();
+    // Caught by a current: a whoosh of water as it takes you.
+    const me = byId.get(localId);
+    const carried = !!me?.alive && !!this.world?.map.currents && wading(this.world, me) && currentAt(this.world.map.currents, me.pos) !== null;
+    if (carried && !this.inCurrent && me) s.play('current_whoosh', { at: me.pos, volume: 0.9 });
+    this.inCurrent = carried;
+    // A shark coming for you in the water: dun-dun (once each time one closes in).
+    const sharks = this.map?.wanderers ?? [];
+    // (Not in the shallows by a beach: sharks leave you alone there.)
+    const shallows = !!me && (this.map?.islands ?? []).some((c) => Math.hypot(me.pos.x - c.center.x, me.pos.y - c.center.y) < c.radius + config.wanderers.shark.shallows);
+    if (me?.alive && this.world && sharks.some((d) => d.kind === 'shark') && wading(this.world, me) && !shallows) {
+      const hunted = state.wanderers.some((w, i) => sharks[i]?.kind === 'shark' && state.tick >= w.readyTick && Math.hypot(w.pos.x - me.pos.x, w.pos.y - me.pos.y) < config.wanderers.shark.sight);
+      if (hunted && !this.hunted) s.play('shark_warning', { volume: 0.9, pitchSpread: 0 });
+      this.hunted = hunted;
+    } else this.hunted = false;
     // Each plush speaks with its head's animal.
     for (const p of state.players) s.needVoice(p.parts.head.animal);
     const voice = (p: Player, kind: VoiceKind, volume: number) =>
@@ -144,8 +210,13 @@ export class GameAudio {
         case 'ballBounce':
           s.play('ball_boing', { at: e.pos, volume: 0.7 });
           break;
+        case 'burn':
+          s.play('lava_sizzle', { at: e.pos, volume: 0.9 });
+          break;
         case 'trainBump':
-          s.play('train_toot', { at: e.pos, volume: 0.8 });
+          // The toy train toots; the pirate ship's bow wave splashes over you.
+          if (this.map?.track?.style === 'ship') s.play('splash', { at: e.pos, volume: 0.9 });
+          else s.play('train_toot', { at: e.pos, volume: 0.8 });
           s.play('pillow_bonk', { at: e.pos, volume: 0.6 });
           break;
         case 'goal':
@@ -212,20 +283,28 @@ export class GameAudio {
           // The button's click where it was pressed; the falling whistle over where it's coming down.
           const by = state.players.find((p) => p.id === e.playerId);
           if (by) s.play('click', { at: by.pos, volume: 1, pitchSpread: 0 });
-          // Heard all over the map: an alarm, so everyone knows something's coming down.
-          s.play('strike_whistle', { volume: 0.8, pitchSpread: 0 });
+          // Heard all over the map: an alarm, so everyone knows something's coming down (the pirate
+          // ship's cannons firing, on Pirate Cove).
+          s.play(e.kind === 'cannonballs' ? 'cannon_fire' : 'strike_whistle', { volume: 0.8, pitchSpread: 0 });
           break;
         }
         case 'pinataHit':
           s.play('pinata_hit', { at: e.pos, volume: 0.7 });
+          // The paper parrot squawks.
+          if (this.map?.pinata?.kind === 'parrot') s.play('parrot_squawk', { at: e.pos, volume: 0.8, pitchSpread: 0.25 });
           break;
         case 'pinataBurst':
           s.play('pinata_burst', { at: e.pos, volume: 1, pitchSpread: 0 });
+          if (this.map?.pinata?.kind === 'parrot') s.play('parrot_squawk', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
         case 'sucked':
           s.play('vacuum_slurp', { at: e.pos, volume: 0.8 });
           break;
         case 'wandererBump':
+          if (this.map?.wanderers?.[e.index]?.kind === 'shark') {
+            s.play('shark_chomp', { at: e.pos, volume: 1 });
+            break;
+          }
           s.play(e.index >= 0 && state.wanderers[e.index] && state.wanderers[e.index]!.mode === 'moving' ? 'pillow_bonk' : 'vacuum_bump', { at: e.pos, volume: 0.8 });
           break;
         case 'wandererStarted':
@@ -242,12 +321,14 @@ export class GameAudio {
           s.play('pin_knock', { at: e.pos, volume: 0.8 });
           break;
         case 'rideStarted': {
-          const stop = s.play(e.kind === 'zip' ? 'zip_line' : e.kind === 'tube' ? 'tube_pop' : e.kind === 'catapult' ? 'ball_boing' : 'slide_whoosh', { at: e.pos, volume: 0.9 });
+          const stop = s.play(RIDE_SOUND[e.kind], { at: e.pos, volume: 0.9 });
           if (e.kind === 'zip') this.zips.set(e.playerId, stop);
           break;
         }
         case 'rideEnded':
           if (e.kind === 'tube') s.play('tube_pop', { at: e.pos, volume: 0.9 });
+          // Down the lighthouse's stairs and out of its door.
+          if (e.kind === 'lookout') s.play('lighthouse_climb', { at: e.pos, volume: 0.7, pitchSpread: 0.15 });
           // Off the zip line (at its end, or let go early with Jump): its whir stops.
           if (e.kind === 'zip') {
             this.zips.get(e.playerId)?.();
@@ -264,7 +345,7 @@ export class GameAudio {
           s.play(e.kind === 'jack' ? 'jack_pop' : 'ice_break', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
         case 'strikeLand':
-          s.play(e.kind === 'balloons' ? 'balloon_splash' : e.kind === 'blocks' ? 'block_clatter' : 'snow_thud', { at: e.pos, volume: 0.9 });
+          s.play(LAND_SOUND[e.kind], { at: e.pos, volume: 0.9 });
           break;
         default:
           break;

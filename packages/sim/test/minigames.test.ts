@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, BEDROOM, Btn, config, createGame, createWorld, makeWeapon, PARK, secondsToTicks } from '../src/index.ts';
+import { BACKYARD, BEDROOM, COVE, Btn, config, createGame, createWorld, makeWeapon, PARK, secondsToTicks } from '../src/index.ts';
 import type { EntityId, Input, MapData, Player } from '../src/index.ts';
 import { galleryTargets } from '../src/systems/minigames.ts';
 import { input, roster, run } from './helpers.ts';
@@ -19,7 +19,7 @@ const prizeNear = (g: ReturnType<typeof game>, at: { x: number; y: number }) =>
 
 describe('buried treasure', () => {
   it('hold E at a sparkling spot to dig up a prize, once', () => {
-    for (const map of [BACKYARD, PARK]) {
+    for (const map of [BACKYARD, PARK, COVE]) {
       const g = game(map);
       const spot = map.digs![0]!;
       g.you.pos = { ...spot };

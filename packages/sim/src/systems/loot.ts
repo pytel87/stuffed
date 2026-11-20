@@ -118,17 +118,6 @@ export function findInteraction(state: GameState, player: Player, world?: World)
   if (best?.content.type === 'part') return { kind: 'part', loot: best, part: best.content.part };
   if (best) return { kind: 'weapon', loot: best };
 
-  if (strikeReady(state, player)) return { kind: 'strike' };
-  if (toyReady(state, player)) return { kind: 'toy' };
-  if (world) {
-    const ride = rideAt(world, state, player, true);
-    if (ride !== -1) return { kind: 'ride', index: ride };
-    const dig = digAt(world, state, player);
-    if (dig !== -1) return { kind: 'dig', index: dig };
-    const sw = switchAt(world, state, player);
-    if (sw !== -1) return { kind: 'switch', index: sw };
-  }
-
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
   for (const c of state.chests) {
@@ -139,7 +128,20 @@ export function findInteraction(state: GameState, player: Player, world?: World)
       chestD = d;
     }
   }
-  return chest ? { kind: 'chest', chest } : null;
+  // A chest before the map's buttons, toys and rides: opening it is what you came for.
+  if (chest) return { kind: 'chest', chest };
+
+  if (strikeReady(state, player)) return { kind: 'strike' };
+  if (toyReady(state, player)) return { kind: 'toy' };
+  if (world) {
+    const ride = rideAt(world, state, player, true);
+    if (ride !== -1) return { kind: 'ride', index: ride };
+    const dig = digAt(world, state, player);
+    if (dig !== -1) return { kind: 'dig', index: dig };
+    const sw = switchAt(world, state, player);
+    if (sw !== -1) return { kind: 'switch', index: sw };
+  }
+  return null;
 }
 
 /**

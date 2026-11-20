@@ -1,3 +1,4 @@
+import { currentAt } from './currents.ts';
 import { config, DT } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
@@ -5,9 +6,9 @@ import { Btn } from '../types.ts';
 import type { Ball, GameState, Input, Player, Vec2 } from '../types.ts';
 import { wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
-import { carriedBy, TRAIN, trainCircles, trainFloor } from './train.ts';
+import { carriedBy, layoutOf, trainCircles, trainFloor, type TrainLayout } from './train.ts';
 import { iceOpen } from './toys.ts';
-import { landed, letGoOfZip, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
+import { inLookout, landed, letGoOfZip, onTrampoline, rampInTheWay, rampSurface, rideAt, seesawInTheWay, seesawSurface, startRide, updateRide } from './rides.ts';
 import { pinsInTheWay } from './minigames.ts';
 import { wandererCircles } from './wanderers.ts';
 
@@ -44,7 +45,9 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   }
   // On a zip line, Jump lets go (then on as if falling); on a slide, a sled run, a zip line or in a
   // tube: carried along, no walking.
-  const letGo = (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0 && letGoOfZip(world, state, player);
+  // (E too, up in a lookout: the same key that took you up brings you down.)
+  const fresh = (b: number) => (input.buttons & b) !== 0 && (player.heldButtons & b) === 0;
+  const letGo = (fresh(Btn.Jump) || (fresh(Btn.Interact) && inLookout(world, player))) && letGoOfZip(world, state, player);
   if (!letGo && updateRide(world, state, player)) return;
   // Riding a train wagon: carried along with it (and turned with the track) first.
   if (world.map.track && player.z > 0.05) {
@@ -67,8 +70,10 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   player.vel.x += (move.x * speed - player.vel.x) * blend;
   player.vel.y += (move.y * speed - player.vel.y) * blend;
 
-  const dx = (player.vel.x + player.knockback.x) * DT;
-  const dy = (player.vel.y + player.knockback.y) * DT;
+  // Wading in a current: carried along with it.
+  const flow = player.z <= 0.05 && world.map.currents && wading(world, player, state) ? currentAt(world.map.currents, player.pos) : null;
+  const dx = (player.vel.x + player.knockback.x + (flow?.x ?? 0)) * DT;
+  const dy = (player.vel.y + player.knockback.y + (flow?.y ?? 0)) * DT;
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / MAX_SUBSTEP));
   for (let i = 0; i < steps; i++) {
     player.pos.x += dx / steps;
@@ -121,7 +126,7 @@ export function groundHeight(world: World, state: GameState, pos: Vec2, z: numbe
   let best = 0;
   const reach = z + STEP;
   for (const w of wallsNear(world, pos.x, pos.y, pos.x, pos.y)) {
-    if (w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
+    if (!w.noTop && w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
   }
   for (const c of state.chests) {
     const top = c.z + config.chest.height;
@@ -241,7 +246,7 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
     if (world.map.track) {
       for (const c of trainCircles(world.map.track, state.tick)) {
         // Standing on (or above) a car: it's floor, not a wall.
-        if (c.top > feet) moved = trainBump(state, player, c) || moved;
+        if (c.top > feet) moved = trainBump(state, player, c, layoutOf(world.map.track)) || moved;
       }
     }
     if (!moved) return;
@@ -277,7 +282,7 @@ function kickBall(state: GameState, player: Player, ball: Ball): boolean {
 }
 
 /** A train car in the way: pushed out, and shoved hard if it's heading into you (a toot). */
-function trainBump(state: GameState, player: Player, c: { x: number; y: number; r: number; dir: Vec2 }): boolean {
+function trainBump(state: GameState, player: Player, c: { x: number; y: number; r: number; dir: Vec2; shoves: boolean }, L: TrainLayout): boolean {
   const dx = player.pos.x - c.x;
   const dy = player.pos.y - c.y;
   const min = player.radius + c.r;
@@ -288,11 +293,11 @@ function trainBump(state: GameState, player: Player, c: { x: number; y: number; 
   const ny = d < 1e-9 ? c.dir.x : dy / d;
   pushOut(player, nx, ny, min - d);
   const ahead = nx * c.dir.x + ny * c.dir.y;
-  const shoved = Math.hypot(player.knockback.x, player.knockback.y) > TRAIN.shove * 0.6;
-  if (ahead > 0.2 && !shoved) {
+  const shoved = Math.hypot(player.knockback.x, player.knockback.y) > L.shove * 0.6;
+  if (c.shoves && ahead > 0.2 && !shoved) {
     // Off to the side and forward, like a cow catcher.
-    player.knockback.x = (nx + c.dir.x) * 0.5 * TRAIN.shove * 1.4;
-    player.knockback.y = (ny + c.dir.y) * 0.5 * TRAIN.shove * 1.4;
+    player.knockback.x = (nx + c.dir.x) * 0.5 * L.shove * 1.4;
+    player.knockback.y = (ny + c.dir.y) * 0.5 * L.shove * 1.4;
     state.events.push({ type: 'trainBump', playerId: player.id, pos: { x: player.pos.x, y: player.pos.y } });
   }
   return true;
@@ -384,9 +389,16 @@ export function onIce(world: World, player: Pick<Player, 'pos' | 'z'>, state?: G
   return false;
 }
 
-/** Standing in a pool's shallow water (not jumping over it), or in the pond while it's open. */
+/** On a sea map, standing on one of its islands (dry land). */
+export function onIsland(world: World, p: Vec2): boolean {
+  return (world.map.islands ?? []).some((c) => Math.hypot(p.x - c.center.x, p.y - c.center.y) < c.radius);
+}
+
+/** Standing in a pool's shallow water (not jumping over it), in the pond while it's open, or in a
+ *  sea map's sea (anywhere off its islands). */
 export function wading(world: World, player: Pick<Player, 'pos' | 'z'>, state?: GameState): boolean {
   if (player.z > 0.05) return false;
+  if (world.map.islands && !onIsland(world, player.pos)) return true;
   const water = state && iceOpen(state) ? [...(world.map.pools ?? []), ...(world.map.ice ?? [])] : (world.map.pools ?? []);
   for (const pool of water) {
     if (Math.hypot(player.pos.x - pool.center.x, player.pos.y - pool.center.y) < pool.radius) return true;

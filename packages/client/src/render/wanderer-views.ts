@@ -1,5 +1,5 @@
 // The wanderers, drawn: a robot vacuum (a round grey disc with a bumper and a blinking light), a red
-// toy lawnmower, and a red snowplow with a blade and a beacon; plus each
+// toy lawnmower, a red snowplow with a blade and a beacon, and a toy shark; plus each
 // vehicle's switch, a push button like the air strike's.
 import * as THREE from 'three';
 import { config } from '@stuffed/sim';
@@ -185,6 +185,307 @@ interface View {
   root: THREE.Group;
   light?: THREE.Mesh;
   lever?: ReturnType<typeof pushButton>;
+  /** A shark: its body (lunges up out of the water to bite), its open mouth, its dark shape under
+   *  the water, how far into a lunge it is, and when it last bit (its rest starting is the sign). */
+  shark?: { body: THREE.Group; mouth: THREE.Object3D; jaw: THREE.Object3D; shadow: THREE.Object3D; foam: THREE.Group; splash: ReturnType<typeof biteSplash>; lunge: number; ready: number };
+}
+
+/**
+ * The water thrown up as a shark bursts out to bite (`set(lunge)`: 1 as it starts, 0 when done): a
+ * ring of foam round where it breaks the surface, spreading, and drops flying up and falling back.
+ */
+function biteSplash(): { root: THREE.Group; set: (lunge: number) => void } {
+  const root = new THREE.Group();
+  root.position.set(0.5, 0.03, 0);
+  const white = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false });
+  const ring: THREE.Mesh[] = [];
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.2 + (i % 3) * 0.06, 10, 6), white);
+    b.userData.a = a;
+    root.add(b);
+    ring.push(b);
+  }
+  const drops: THREE.Mesh[] = [];
+  for (let i = 0; i < 10; i++) {
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.07 + (i % 3) * 0.03, 8, 6), white);
+    d.userData.a = (i / 10) * Math.PI * 2 + 0.3;
+    d.userData.v = 2.4 + (i % 4) * 0.5;
+    root.add(d);
+    drops.push(d);
+  }
+  root.visible = false;
+  const set = (lunge: number) => {
+    root.visible = lunge > 0;
+    if (!root.visible) return;
+    const t = 1 - lunge;
+    white.opacity = Math.min(1, lunge * 2.5);
+    for (const b of ring) {
+      const r = 0.8 + t * 0.9;
+      b.position.set(Math.cos(b.userData.a) * r * 1.3, 0, Math.sin(b.userData.a) * r * 0.8);
+      b.scale.set(1, 0.4, 1);
+    }
+    for (const d of drops) {
+      const r = 0.5 + t * 1.6;
+      d.position.set(Math.cos(d.userData.a) * r, Math.max(0, d.userData.v * t - 4 * t * t), Math.sin(d.userData.a) * r * 0.8);
+    }
+  };
+  return { root, set };
+}
+
+/**
+ * The water round a shark's fin as it cuts along (facing +x): a collar of foam bubbles bobbing round
+ * the fin's foot, and two thin curved lines of foam trailing off behind it, spreading and fading.
+ */
+function finFoam(): THREE.Group {
+  const g = new THREE.Group();
+  g.position.y = 0.03;
+  const white = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthWrite: false });
+  // The collar: little flat blobs round the fin's foot, more at its front (the bow wave).
+  const blobs: [number, number, number][] = [[0.5, 0, 0.16], [0.38, 0.14, 0.13], [0.38, -0.14, 0.13], [0.2, 0.2, 0.11], [0.2, -0.2, 0.11], [-0.05, 0.19, 0.1], [-0.05, -0.19, 0.1], [-0.35, 0.14, 0.08], [-0.35, -0.14, 0.08]];
+  blobs.forEach(([x, z, r], i) => {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 6), white);
+    b.scale.y = 0.35;
+    b.position.set(x, 0, z);
+    b.onBeforeRender = () => {
+      const t = performance.now() / 1000;
+      b.scale.set(1 + Math.sin(t * 7 + i * 1.7) * 0.15, 0.35, 1 + Math.sin(t * 6 + i) * 0.15);
+    };
+    g.add(b);
+  });
+  // The trailing lines: thin ribbons curving out and back, white fading to nothing.
+  for (const side of [-1, 1]) {
+    const n = 14;
+    const pos = new Float32Array((n + 1) * 2 * 3);
+    const col: number[] = [];
+    const idx: number[] = [];
+    for (let k = 0; k <= n; k++) {
+      const a = (1 - k / n) * 0.9;
+      col.push(1, 1, 1, a, 1, 1, 1, a);
+      if (k > 0) idx.push((k - 1) * 2, (k - 1) * 2 + 1, k * 2, (k - 1) * 2 + 1, k * 2 + 1, k * 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    const attr = new THREE.BufferAttribute(pos, 3);
+    geo.setAttribute('position', attr);
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+    geo.setIndex(idx);
+    const line = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+    line.frustumCulled = false;
+    line.onBeforeRender = () => {
+      const time = performance.now() / 1000;
+      for (let k = 0; k <= n; k++) {
+        const t = k / n;
+        const x = 0.3 - t * 2.6;
+        // Out from the fin's sides, curving away behind, rippling a little.
+        const z = side * (0.22 + 0.75 * Math.sqrt(t) + Math.sin(time * 5 - t * 9) * 0.04 * t);
+        const w = 0.06 * (1 - t * 0.6);
+        attr.setXYZ(k * 2, x, 0, z - w);
+        attr.setXYZ(k * 2 + 1, x, 0, z + w);
+      }
+      attr.needsUpdate = true;
+    };
+    g.add(line);
+  }
+  return g;
+}
+
+/** The shark's body: its half-length, half-height and half-width. */
+const SHARK = { l: 1.5, h: 0.48, w: 0.55 };
+
+/** Across the shark's body at `x` along it (see sharkBody): how far out its side is, and how low
+ *  its underside. */
+function snoutAt(x: number): { half: number; bottom: number } {
+  // The sphere's point whose stretched x is `x` (the stretch only grows along it).
+  let lo = -1;
+  let hi = 1;
+  const stretched = (u: number) => u * SHARK.l * (1 + 0.18 * Math.max(0, (u - 0.15) / 0.85));
+  for (let k = 0; k < 30; k++) {
+    const mid = (lo + hi) / 2;
+    if (stretched(mid) < x) lo = mid;
+    else hi = mid;
+  }
+  const u = (lo + hi) / 2;
+  const t = Math.max(0, (u - 0.15) / 0.85);
+  const k = 1 - 0.7 * t ** 1.4;
+  const r = Math.sqrt(Math.max(0, 1 - u * u));
+  return { half: SHARK.w * r * k, bottom: -SHARK.h * r * k };
+}
+
+/** A shark's body along +x, `l` long, `h` tall, `w` wide: round, tapering to a pointed snout. */
+function sharkBody(l: number, h: number, w: number): THREE.BufferGeometry {
+  const geo = new THREE.SphereGeometry(1, 28, 16);
+  const pos = geo.attributes.position!;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    // Toward the front, narrower and drawn out to a point.
+    const t = Math.max(0, (x - 0.15) / 0.85);
+    const k = 1 - 0.7 * t ** 1.4;
+    pos.setXYZ(i, x * l * (1 + 0.18 * t), pos.getY(i) * h * k, pos.getZ(i) * w * k);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * A toy shark, facing +x, swimming under the water with just its fin out (the sea hides what's
+ * below 0; it comes up to bite): a soft
+ * blue-grey body with a white belly, a tall fin and a tail fin, little eyes and a toothy grin.
+ */
+function shark(): { root: THREE.Group; body: THREE.Group; mouth: THREE.Object3D; jaw: THREE.Object3D; shadow: THREE.Object3D; foam: THREE.Group; splash: ReturnType<typeof biteSplash> } {
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+  const skin = toonMaterial('#6f93ad', { map: null });
+  const torso = toonMesh(sharkBody(SHARK.l, SHARK.h, SHARK.w), '#6f93ad', { outline: 0.03, material: skin });
+  body.add(torso);
+  // (Shorter than the body, ending behind the mouth: it showed inside the open jaws.)
+  const belly = toonMesh(sharkBody(1.05, 0.36, 0.46), '#eef3f6', { outline: false });
+  belly.position.set(-0.2, -0.12, 0);
+  body.add(belly);
+  body.updateMatrixWorld(true);
+  const fin = (points: [number, number][], depth: number) => {
+    const s = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
+    return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false }).translate(0, 0, -depth / 2);
+  };
+  // The dorsal fin: tall and swept back, the bit you see cutting through the water.
+  const dorsal = toonMesh(fin([[0.4, 0], [-0.5, 0], [-0.42, 1.0]], 0.11), '#6f93ad', { outline: 0.05, material: skin });
+  dorsal.position.set(0, 0.38, 0);
+  body.add(dorsal);
+  const tail = toonMesh(fin([[0, 0], [-0.55, 0.55], [-0.4, 0], [-0.55, -0.45]], 0.08), '#6f93ad', { outline: 0.05, material: skin });
+  // (Kept under the surface while it cruises: its tip poked out as a stray dot.)
+  tail.position.set(-1.35, -0.12, 0);
+  body.add(tail);
+  for (const s of [-1, 1]) {
+    const flipper = toonMesh(fin([[0.25, 0], [-0.25, 0], [-0.3, -0.5]], 0.06), '#6f93ad', { outline: 0.06, material: skin });
+    flipper.rotation.x = s * 1.1;
+    flipper.position.set(0.25, -0.15, s * 0.42);
+    body.add(flipper);
+    // A small eye painted flat on its side, a mean lid over it.
+    const ray = new THREE.Raycaster(new THREE.Vector3(1.0, 0.1, s * 2), new THREE.Vector3(0, 0, -s));
+    const hit = ray.intersectObject(torso, false)[0];
+    if (hit) {
+      const face = new THREE.Group();
+      face.position.copy(hit.point);
+      const n = hit.face!.normal.clone().transformDirection(torso.matrixWorld);
+      face.lookAt(hit.point.clone().add(n));
+      const flat = (geo: THREE.BufferGeometry, color: string, x: number, y: number, z: number) => {
+        const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+        m.position.set(x, y, z);
+        face.add(m);
+        return m;
+      };
+      // A small, mean eye: a dark almond with a white glint, a heavy lid slanting down over its
+      // front (a shark's eye, not a cartoon's round one).
+      const fwd = s;
+      const eye = flat(new THREE.CircleGeometry(0.075, 16), '#1f1b24', 0, 0, 0.004);
+      eye.scale.set(1.35, 0.8, 1);
+      eye.rotation.z = fwd * -0.25;
+      flat(new THREE.CircleGeometry(0.02, 8), '#ffffff', fwd * 0.03, 0.02, 0.006);
+      const lid = flat(new THREE.PlaneGeometry(0.22, 0.045), '#3b5466', fwd * 0.01, 0.06, 0.007);
+      lid.rotation.z = fwd * -0.45;
+      body.add(face);
+    }
+  }
+  // The jaws, open only for a bite, shaped to the snout (its outline from above): the roof of the
+  // mouth dark red under it with the upper teeth along its edge, pointing down; a lower jaw of the
+  // same pointed outline hinged under it, dropping open, red inside, its teeth pointing up.
+  const mouth = new THREE.Group();
+  const toothMat = toonMaterial('#ffffff', { map: null });
+  const red = toonMaterial('#7a2430', { map: null, side: THREE.DoubleSide });
+  const HINGE = 0.45;
+  const TIP = SHARK.l * 1.18 - 0.08;
+  const STEPS = 10;
+  const xs = Array.from({ length: STEPS + 1 }, (_, i) => HINGE + ((TIP - HINGE) * i) / STEPS);
+  // The roof of the mouth: the snout's underside, dark red, just outside its skin (across its
+  // middle, out to EDGE of its width), the upper teeth hanging down from its rim on both sides.
+  const EDGE = 0.72;
+  const under = (x: number, f: number) => {
+    const { half, bottom } = snoutAt(x);
+    return { y: bottom * Math.sqrt(Math.max(0, 1 - f * f)) - 0.012, z: half * f };
+  };
+  const ACROSS = 8;
+  const roofPos: number[] = [];
+  const roofIdx: number[] = [];
+  xs.forEach((x, i) => {
+    for (let j = 0; j <= ACROSS; j++) {
+      const p = under(x, -EDGE + (2 * EDGE * j) / ACROSS);
+      roofPos.push(x, p.y, p.z);
+      if (i > 0 && j > 0) {
+        const a0 = (i - 1) * (ACROSS + 1) + j - 1;
+        const b0 = i * (ACROSS + 1) + j - 1;
+        roofIdx.push(a0, a0 + 1, b0, a0 + 1, b0 + 1, b0);
+      }
+    }
+  });
+  const roofGeo = new THREE.BufferGeometry();
+  roofGeo.setAttribute('position', new THREE.Float32BufferAttribute(roofPos, 3));
+  roofGeo.setIndex(roofIdx);
+  roofGeo.computeVertexNormals();
+  mouth.add(new THREE.Mesh(roofGeo, red));
+  const teeth = (along: (x: number) => number, y: (x: number) => number, down: boolean, parent: THREE.Object3D, ox = 0, oy = 0) => {
+    for (let i = 1; i < STEPS; i++) {
+      const x = xs[i]!;
+      for (const side of [-1, 1]) {
+        const t = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.13, 4), toothMat);
+        if (down) t.rotation.z = Math.PI;
+        t.position.set(x - ox, y(x) - oy, side * along(x));
+        parent.add(t);
+      }
+    }
+  };
+  // Upper teeth along the roof's rim, pointing down.
+  teeth((x) => under(x, EDGE * 0.92).z, (x) => under(x, EDGE * 0.92).y - 0.055, true, mouth);
+  // The lower jaw: hinged at the back of the mouth, lying along the snout's underside when shut.
+  const jaw = new THREE.Group();
+  const hingeY = snoutAt(HINGE).bottom * 0.8;
+  jaw.position.set(HINGE, hingeY, 0);
+  const tipY = snoutAt(TIP).bottom * 0.6;
+  jaw.userData.shut = Math.atan2(tipY - hingeY, TIP - HINGE);
+  const outline: THREE.Vector2[] = [];
+  xs.forEach((x) => outline.push(new THREE.Vector2(x - HINGE, snoutAt(x).half * 0.9)));
+  for (let i = STEPS; i >= 0; i--) outline.push(new THREE.Vector2(xs[i]! - HINGE, -snoutAt(xs[i]!).half * 0.9));
+  const chin = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(new THREE.Shape(outline), { depth: 0.05, bevelEnabled: false }).rotateX(Math.PI / 2),
+    // (The shark's own grey outside, red only inside: a pale edge read as a white rim.)
+    skin,
+  );
+  jaw.add(chin);
+  const inner = outline.map((v) => new THREE.Vector2(v.x * 0.94 + 0.03, v.y * 0.8));
+  const tongue = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(inner)).rotateX(Math.PI / 2), red);
+  tongue.position.y = 0.005;
+  jaw.add(tongue);
+  teeth((x) => snoutAt(x).half * 0.78, () => 0.06, false, jaw, HINGE, 0);
+  mouth.add(jaw);
+  mouth.visible = false;
+  body.add(mouth);
+  // Its shape under the surface, seen through the water: a dark shark from above (body, forked
+  // tail, side fins), swaying as it swims.
+  const s = new THREE.Shape();
+  s.moveTo(1.55, 0);
+  s.quadraticCurveTo(1.35, 0.42, 0.5, 0.52);
+  s.lineTo(0.35, 0.95);
+  s.lineTo(0.0, 0.5);
+  s.quadraticCurveTo(-0.9, 0.38, -1.25, 0.12);
+  s.lineTo(-1.95, 0.55);
+  s.lineTo(-1.7, 0);
+  s.lineTo(-1.95, -0.55);
+  s.lineTo(-1.25, -0.12);
+  s.quadraticCurveTo(-0.9, -0.38, 0.0, -0.5);
+  s.lineTo(0.35, -0.95);
+  s.lineTo(0.5, -0.52);
+  s.quadraticCurveTo(1.35, -0.42, 1.55, 0);
+  const shadow = new THREE.Mesh(
+    new THREE.ShapeGeometry(s, 8).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: '#16465a', transparent: true, opacity: 0.42, depthWrite: false }),
+  );
+  shadow.position.y = 0.02;
+  shadow.renderOrder = -1;
+  root.add(shadow);
+  const foam = finFoam();
+  root.add(foam);
+  const splash = biteSplash();
+  root.add(splash.root);
+  return { root, body, mouth, jaw, shadow, foam, splash };
 }
 
 export class WandererViews {
@@ -212,6 +513,29 @@ export class WandererViews {
       let turn = b.dir - a.dir;
       turn = Math.atan2(Math.sin(turn), Math.cos(turn));
       v.root.rotation.y = -(a.dir + turn * alpha);
+      if (v.shark) {
+        // A bite (it starts resting): up out of the water, jaws open, then back down.
+        if (v.shark.ready >= 0 && b.readyTick !== v.shark.ready && b.readyTick > tick) v.shark.lunge = 1;
+        v.shark.ready = b.readyTick;
+        v.shark.lunge = Math.max(0, v.shark.lunge - 1 / 40);
+        const up = Math.sin(v.shark.lunge * Math.PI);
+        // (Nose well up: from above, its open jaws face the camera.)
+        v.shark.body.position.y = -0.5 + up * 1.3 + Math.sin(time * 2.2 + i) * 0.04;
+        v.shark.body.rotation.z = up * 0.95;
+        v.shark.body.rotation.x = Math.sin(time * 3 + i) * 0.06;
+        v.shark.mouth.visible = up > 0.15;
+        // The jaw drops open as it comes up, snapping shut as it goes back down.
+        v.shark.jaw.rotation.z = (v.shark.jaw.userData.shut as number) - Math.min(1, up * 1.6) * 0.75;
+        // It sways as it swims, its fin and its shape under the water together (the shape hides
+        // while it's up out of the water, mid-bite).
+        const sway = Math.sin(time * 4 + i) * 0.12;
+        v.shark.shadow.rotation.y = sway;
+        v.shark.body.rotation.y = sway;
+        v.shark.shadow.visible = up < 0.3;
+        v.shark.foam.rotation.y = sway;
+        v.shark.foam.visible = up < 0.3;
+        v.shark.splash.set(v.shark.lunge);
+      }
       if (v.def.kind === 'vacuum' && v.light) v.light.visible = Math.sin(time * 4) > -0.3;
       if (v.def.kind === 'plow' && v.light) {
         const on = b.mode === 'moving';
@@ -245,7 +569,11 @@ export class WandererViews {
     const root = new THREE.Group();
     for (const d of map.wanderers ?? []) {
       const v: View = { def: d, root: new THREE.Group() };
-      if (d.kind === 'vacuum') {
+      if (d.kind === 'shark') {
+        const m = shark();
+        v.root.add(m.root);
+        v.shark = { body: m.body, mouth: m.mouth, jaw: m.jaw, shadow: m.shadow, foam: m.foam, splash: m.splash, lunge: 0, ready: -1 };
+      } else if (d.kind === 'vacuum') {
         const m = vacuum();
         v.root.add(m.root);
         v.light = m.light;

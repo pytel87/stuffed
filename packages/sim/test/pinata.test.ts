@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, BEDROOM, Btn, config, createGame, createWorld, makeWeapon, PARK } from '../src/index.ts';
+import { BACKYARD, BEDROOM, COVE, Btn, config, createGame, createWorld, makeWeapon, PARK } from '../src/index.ts';
 import type { MapData, Player, WeaponKind } from '../src/index.ts';
 import { input, roster, run } from './helpers.ts';
 
@@ -18,7 +18,7 @@ function atPinata(map: MapData, kind: WeaponKind, gap = 4) {
 
 describe('the piñata', () => {
   it('each map has one, out in the open', () => {
-    for (const map of [BACKYARD, BEDROOM, PARK]) {
+    for (const map of [BACKYARD, BEDROOM, PARK, COVE]) {
       const p = map.pinata!;
       expect(p, map.id).toBeDefined();
       for (const w of map.walls) {
@@ -29,7 +29,7 @@ describe('the piñata', () => {
   });
 
   it('shots wear it down until it breaks and showers good loot around it', () => {
-    for (const map of [BACKYARD, BEDROOM, PARK]) {
+    for (const map of [BACKYARD, BEDROOM, PARK, COVE]) {
       const g = atPinata(map, 'foam_dart_smg');
       g.fire(10);
       expect(g.pin.hp, map.id).toBeLessThan(config.pinata.hp);

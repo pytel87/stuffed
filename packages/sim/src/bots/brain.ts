@@ -7,7 +7,8 @@ import { nextFloat, nextRange, seedRng } from '../rng.ts';
 import { chestInReach, findInteraction } from '../systems/loot.ts';
 import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
-import { TRAIN, trainCars } from '../systems/train.ts';
+import { wading } from '../systems/movement.ts';
+import { layoutOf, trainCars } from '../systems/train.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
 import type { Box, Building, EntityId, GameState, GroundLoot, Input, Part, Player, RngState, Vec2, WeaponInstance, WeaponKind } from '../types.ts';
@@ -366,14 +367,16 @@ export class BotController {
   /** Which way to step if a train car will be here within a second or so (null: safe). */
   private dodgeTrain(world: World, state: GameState, bot: Player): Vec2 | null {
     const track = world.map.track;
-    if (!track || bot.z >= TRAIN.deckHeight - 0.05) return null;
+    if (!track) return null;
+    const L = layoutOf(track);
+    if (bot.z >= L.deckHeight - 0.05) return null;
     // Where the cars will be over the next second and a half.
     for (const ahead of [0.2, 0.5, 0.8, 1.1, 1.5]) for (const car of trainCars(track, state.tick + Math.round(ahead * T))) {
       const dx = bot.pos.x - car.pos.x;
       const dy = bot.pos.y - car.pos.y;
       const along = dx * car.dir.x + dy * car.dir.y;
       const side = dx * -car.dir.y + dy * car.dir.x;
-      if (Math.abs(along) > TRAIN.carLength * 1.5 || Math.abs(side) > TRAIN.carWidth / 2 + bot.radius + 0.4) continue;
+      if (Math.abs(along) > L.carLength * 1.5 || Math.abs(side) > L.carWidth / 2 + bot.radius + 0.4) continue;
       // Out the side it's already nearer.
       const s = side >= 0 ? 1 : -1;
       return { x: -car.dir.y * s, y: car.dir.x * s };
@@ -674,6 +677,10 @@ export class BotController {
       const dx = bot.pos.x - s.pos.x;
       const dy = bot.pos.y - s.pos.y;
       const dist = Math.hypot(dx, dy);
+      if (d.kind === 'shark' && state.tick >= s.readyTick && dist < 6 && wading(world, bot, state)) {
+        // A shark close by in the water: swim straight away from it.
+        return { x: dx / (dist || 1), y: dy / (dist || 1) };
+      }
       if ((d.kind === 'mower' || d.kind === 'plow') && s.mode === 'moving' && dist < 5) {
         // Coming this way: step off its line, to the side it's already on.
         const ux = Math.cos(s.dir);

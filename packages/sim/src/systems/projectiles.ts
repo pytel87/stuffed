@@ -3,13 +3,13 @@ import { segmentBoxT } from '../collision/geometry.ts';
 import type { Ball, Box, GameState, PlacedWall, Player, Projectile, Vec2 } from '../types.ts';
 import { poseAt, raycastWalls, wallsNear, type World } from '../world.ts';
 import { pushBall } from './balls.ts';
-import { TRAIN, trainCircles } from './train.ts';
+import { layoutOf, trainCircles } from './train.ts';
 import { applyDamage, teammates } from './damage.ts';
 import { removeWall } from './items.ts';
 import { groundHeight } from './movement.ts';
 import { galleryDuck, hitDuck } from './minigames.ts';
 import { hitPinata, levelWithPinata } from './pinata.ts';
-import { rampHit } from './rides.ts';
+import { inLookout, rampHit } from './rides.ts';
 
 /**
  * Moves projectiles with a swept test so fast ones can't skip through a plush or a wall
@@ -46,7 +46,7 @@ export function updateProjectiles(world: World, state: GameState): void {
     let hitT = Infinity;
     const owner = state.players.find((p) => p.id === proj.ownerId);
     for (const p of state.players) {
-      if (!p.alive || p.id === proj.ownerId || p.drop || teammates(owner, p)) continue;
+      if (!p.alive || p.id === proj.ownerId || p.drop || inLookout(world, p) || teammates(owner, p)) continue;
       // Online, where the target was when the shooter saw it (lag compensation).
       const at = proj.rewind ? (poseAt(world, p.id, state.tick - proj.rewind) ?? { x: p.pos.x, y: p.pos.y, z: p.z }) : { x: p.pos.x, y: p.pos.y, z: p.z };
       const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, at.x, at.y, p.radius + r);
@@ -89,8 +89,8 @@ export function updateProjectiles(world: World, state: GameState): void {
         ballHit = ball;
       }
     }
-    // The toy train's cars stop shots too.
-    if (world.map.track && lowest < TRAIN.engineHeight) {
+    // The toy train's cars (and the pirate ship's hull and mast) stop shots too.
+    if (world.map.track && lowest < layoutOf(world.map.track).tallest) {
       for (const c of trainCircles(world.map.track, state.tick)) {
         if (lowest >= c.top) continue;
         const t = sweepCircle(proj.pos.x, proj.pos.y, dx, dy, c.x, c.y, c.r + r);
@@ -261,7 +261,7 @@ function burst(world: World, state: GameState, proj: Projectile, at: Vec2, z: nu
   const radius = s.blastRadius ?? 0;
   const owner = state.players.find((p) => p.id === proj.ownerId);
   for (const p of state.players) {
-    if (!p.alive || p.drop) continue;
+    if (!p.alive || p.drop || inLookout(world, p)) continue;
     const d = Math.hypot(p.pos.x - at.x, p.pos.y - at.y);
     if (d > radius + p.radius) continue;
     if (p.z > z + radius || p.z + config.player.height < z - radius) continue;
