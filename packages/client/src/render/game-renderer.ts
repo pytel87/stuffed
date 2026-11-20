@@ -21,6 +21,7 @@ import { PlacedWallViews } from './placed-walls.ts';
 import { TossView } from './toss-view.ts';
 import { PlushView } from './plush-view.ts';
 import { ProjectileViews } from './projectile-views.ts';
+import { Daylight, evening } from './daylight.ts';
 import { RINSE_BW, RinseFog, RinseView } from './rinse-view.ts';
 import { buildPart } from './placeholder-parts.ts';
 import { fadeObject, makeTriplanar, toonMaterial } from './toon.ts';
@@ -29,7 +30,6 @@ import { buildWeapon } from './weapon-models.ts';
 
 /** Height of the plane the cursor ray hits for aiming (roughly chest height). */
 const AIM_PLANE_HEIGHT = 0.6;
-const SUN_OFFSET = new THREE.Vector3(-8, 20, 10);
 /** How far round the camera's focus the snow falls (a box this wide and this tall). */
 const SNOW_SPAN = 56;
 const SNOW_HEIGHT = 22;
@@ -75,12 +75,16 @@ function fallSnow(points: THREE.Points, focus: THREE.Vector3, dt: number): void 
   points.position.set(focus.x, 0, focus.z);
 }
 
-/** The sun's view (rotation only), to snap the shadow camera in its own plane. */
-const SUN_VIEW = new THREE.Matrix4().lookAt(SUN_OFFSET, new THREE.Vector3(), new THREE.Vector3(0, 1, 0));
-const SUN_VIEW_INV = SUN_VIEW.clone().invert();
+/** The sun's view (rotation only), to snap the shadow camera in its own plane; follows the sun. */
+const SUN_VIEW = new THREE.Matrix4();
+const SUN_VIEW_INV = new THREE.Matrix4();
+const ORIGIN = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
 
-/** `out` = `target` moved to the nearest whole shadow-map texel, as the sun sees it. */
-function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, out: THREE.Vector3): void {
+/** `out` = `target` moved to the nearest whole shadow-map texel, as the sun (shining from `from`) sees it. */
+function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, from: THREE.Vector3, out: THREE.Vector3): void {
+  SUN_VIEW.lookAt(from, ORIGIN, UP);
+  SUN_VIEW_INV.copy(SUN_VIEW).invert();
   const cam = sun.shadow.camera;
   const texel = (cam.right - cam.left) / sun.shadow.mapSize.x;
   out.copy(target).applyMatrix4(SUN_VIEW_INV);
@@ -115,6 +119,9 @@ export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(35, 1, 0.5, 200);
   private readonly rig = new CameraRig(this.camera);
   private readonly sun = new THREE.DirectionalLight('#ffffff', 2.1);
+  private readonly sky = new THREE.HemisphereLight('#ffffff', '#9a8aa8', 1.25);
+  /** Day to sunset over the match, as the Rinse closes in. */
+  private readonly daylight = new Daylight(this.sky, this.sun);
   private readonly plushes = new Map<EntityId, PlushView>();
   private readonly projectiles = new ProjectileViews(this.scene);
   private readonly effects = new Effects(this.scene);
@@ -191,7 +198,7 @@ export class GameRenderer {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.setClearColor('#8ccdee');
 
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#9a8aa8', 1.25));
+    this.scene.add(this.sky);
     if (this.rinseFog) this.scene.fog = this.rinseFog as unknown as THREE.Fog;
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.setScalar(handheld ? 1024 : 2048);
@@ -479,7 +486,7 @@ export class GameRenderer {
     eye.position.set(40, 30, 52);
     eye.lookAt(40, 0, 40);
     this.sun.target.position.set(40, 0, 40);
-    this.sun.position.set(40, 0, 40).add(SUN_OFFSET);
+    this.sun.position.set(40, 0, 40).add(this.daylight.sunOffset);
     this.renderer.render(this.scene, eye);
     this.scene.remove(samples);
   }
@@ -700,9 +707,11 @@ export class GameRenderer {
     this.setShadowReach(1 + Math.max(0, Math.ceil((this.rig.zoomedOut - 1.02) / 0.4)) * 0.4);
     // Keep the shadow camera centered on what the player sees.
     // ...moving it in whole shadow-map texels, so shadow edges stay still instead of crawling.
-    snapToTexels(this.rig.target, this.sun, this.shadowTarget);
+    // The light of the hour: day while the Rinse waits, sunset by the final circle.
+    this.daylight.apply(this.world.map, evening(curr));
+    snapToTexels(this.rig.target, this.sun, this.daylight.sunOffset, this.shadowTarget);
     this.sun.target.position.copy(this.shadowTarget);
-    this.sun.position.copy(this.shadowTarget).addScaledVector(SUN_OFFSET, this.shadowReach);
+    this.sun.position.copy(this.shadowTarget).addScaledVector(this.daylight.sunOffset, this.shadowReach);
 
     this.renderer.render(this.scene, this.camera);
     this.adaptQuality(opts.dt);

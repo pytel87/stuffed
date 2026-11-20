@@ -19,6 +19,10 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - Behind the menu and the lobby, 4 bots play instead of 9 (lighter on phones).
 - On touch, no second jump button in the middle while on the blimp or a zip line: the jump
   button drops you.
+- Day to sunset over a match: daylight while the Rinse waits, then late afternoon and golden hour
+  as it closes in, and a sunset for the final circle (warm lamp-light tones indoors in the
+  Bedroom). The sun lowers as it goes, so shadows grow longer. Only the light changes, the same
+  for everyone.
 - The results card shows damage dealt with a broken heart instead of a lightning bolt.
 - Snowy Park's lampposts: a matte cap with snow on its tip (a glossy highlight and a ball of snow
   overlapped on top).
