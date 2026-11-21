@@ -9,9 +9,10 @@ import { config, fullSet, PART_SLOTS } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot, Rarity, Vec2, WeaponKind } from '@stuffed/sim';
 import { bodyColor, buildPart, FACE_ACCESSORIES, HEAD_TOP_LIFT, type PartObject } from './placeholder-parts.ts';
 import { mergeStatic } from './merge-static.ts';
-import { PlushArms } from './plush-arms.ts';
+import { HAND_Y, PlushArms } from './plush-arms.ts';
 import { detailMaps, repeated } from './image-textures.ts';
-import { feltTexture, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial } from './toon.ts';
+import { feltTexture, makePlastic, outlineMaterial, OUTLINE_COLOR, toonMaterial, type NeckCut } from './toon.ts';
+import { DEPTH, neckSeam } from './body-shapes.ts';
 import { buildWeapon } from './weapon-models.ts';
 
 /** Where each slot's part attaches, in rig space (+z = facing direction, y = up). */
@@ -87,24 +88,9 @@ const SET_GLOW: Record<Animal, string> = {
   dragon: '#ff5a4a',
   phoenix: '#ff9a3a',
   yeti: '#a8e4ff',
+  otter: '#ffb36a',
+  mermaid: '#7ff0e0',
 };
-
-let glowTexture: THREE.CanvasTexture | null = null;
-function glowMap(): THREE.CanvasTexture {
-  if (!glowTexture) {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const g = c.getContext('2d')!;
-    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, 'rgba(255,255,255,1)');
-    grad.addColorStop(0.5, 'rgba(255,255,255,0.6)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 64, 64);
-    glowTexture = new THREE.CanvasTexture(c);
-  }
-  return glowTexture;
-}
 
 const UMBRELLA_PANELS = ['#ff8a80', '#ffd166', '#8fd3ff', '#a5d6a7', '#ffb3cf', '#b39ddb', '#ffab5e', '#fff3d6'];
 /** Where the canopy's sphere sits (its top is higher, its rim lower). */
@@ -179,6 +165,34 @@ function glitterFlakeTexture(): THREE.CanvasTexture {
   return glitterTex;
 }
 
+/** How far a tail's socket sits inside the body's back (as on the plain bodies). */
+const TAIL_SINK = 0.03;
+/** How far back a body (turned from `profile`, see shapedBody) reaches at height `y`. */
+function backAt(profile: readonly (readonly [number, number])[], y: number): number {
+  for (let i = 1; i < profile.length; i++) {
+    const [r0, y0] = profile[i - 1]!;
+    const [r1, y1] = profile[i]!;
+    if (y <= y1) return (r0 + ((r1 - r0) * (y - y0)) / Math.max(1e-6, y1 - y0)) * DEPTH;
+  }
+  return 0;
+}
+
+/** The head ball's radius, where the neck seam runs (see sewNeck). */
+const NECK_RADIUS = 0.42;
+/** The seam's thickness, and how far out of the crease it sits. */
+const NECK_THICK = 0.016;
+const NECK_OUT = 0.009;
+const neckMaterials = new Map<string, THREE.MeshBasicMaterial>();
+function neckMaterial(color: string): THREE.MeshBasicMaterial {
+  let m = neckMaterials.get(color);
+  if (!m) neckMaterials.set(color, (m = new THREE.MeshBasicMaterial({ color })));
+  return m;
+}
+
+/** How many twinkles circle a plush in a full set. */
+const SPARKLES = 5;
+const WHITE = new THREE.Color('#ffffff');
+
 /** Scratch for aiming the laser level. */
 const UNLEAN = new THREE.Quaternion();
 const LEVEL = new THREE.Quaternion();
@@ -214,11 +228,13 @@ export class PlushView {
   private wasAirborne = false;
   private lastZ = 0;
   private landSquash = 0;
-  /** While the plush wears a full set: a ring of light underfoot and a pulsing tint in the set's color. */
-  private readonly glowRing: THREE.Mesh;
+  /** While the plush wears a full set: a few twinkles in the set's color circling its head. (A
+   *  tint over the whole plush shone too much, and a glow on the ground showed under the blimp.) */
+  private readonly sparkles: THREE.Group;
   /** Team mode: a blue ring on the ground under a teammate. */
   private readonly teamRing: THREE.Mesh;
-  private glowColor: THREE.Color | null = null;
+  /** The seam where the head sinks into the body (see sewNeck). */
+  private neck: THREE.Mesh | null = null;
   /** A soap bubble around the plush while it's trapped. */
   private readonly bubble: THREE.Mesh;
   private bubbleAmount = 0;
@@ -267,13 +283,17 @@ export class PlushView {
       new THREE.MeshBasicMaterial({ color: '#000000', map: shadowMap(), transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
     );
     this.root.add(this.blob);
-    this.glowRing = new THREE.Mesh(
-      new THREE.CircleGeometry(1.3, 32).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ map: glowMap(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
-    );
-    this.glowRing.position.y = 0.01;
-    this.glowRing.visible = false;
-    this.blob.add(this.glowRing);
+    this.sparkles = new THREE.Group();
+    for (let i = 0; i < SPARKLES; i++) {
+      const sparkle = new THREE.Sprite(
+        // (Not added on: on bright grass or sand added light washed every set's color to white.)
+        new THREE.SpriteMaterial({ map: glitterFlakeTexture(), transparent: true, depthWrite: false, toneMapped: false }),
+      );
+      sparkle.renderOrder = 6;
+      this.sparkles.add(sparkle);
+    }
+    this.sparkles.visible = false;
+    this.squash.add(this.sparkles);
     this.teamRing = new THREE.Mesh(
       new THREE.RingGeometry(0.66, 0.8, 40).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: '#5d9cf5', transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }),
@@ -373,14 +393,25 @@ export class PlushView {
       if (slot === 'legs') this.legPivots = part.userData.swing ?? [];
     }
     if (!changed) return false;
+    // The tail on the body's back: a slimmer body's (the mermaid's) is nearer, and the tail floated
+    // off it (as much sunk in as on the others, a wider body's back is further out than the socket).
+    const profile = this.slots.body.children[0]?.userData.profile as [number, number][] | undefined;
+    const back = profile ? backAt(profile, SOCKETS.tail[1] - SOCKETS.body[1]) : null;
+    this.slots.tail.position.z = back === null ? SOCKETS.tail[2] : Math.max(SOCKETS.tail[2], -back + TAIL_SINK);
+    // Free hands rest beside the body, however wide.
+    this.arms.setHipWidth(profile ? backAt(profile, HAND_Y - SOCKETS.body[1]) / DEPTH : 0);
     // Hats sit on top of a taller head (the octopus's dome) instead of sinking into it.
     const lift = FACE_ACCESSORIES.has(parts.accessory.animal) ? 0 : (HEAD_TOP_LIFT[parts.head.animal] ?? 0);
     this.slots.accessory.position.y = SOCKETS.accessory[1] + lift;
+    this.sewNeck();
     const set = fullSet(parts);
     this.dressUmbrella(set);
-    this.glowRing.visible = set !== null;
-    this.glowColor = set ? new THREE.Color(SET_GLOW[set]) : null;
-    if (set) (this.glowRing.material as THREE.MeshBasicMaterial).color.set(SET_GLOW[set]);
+    this.sparkles.visible = set !== null;
+    if (set) {
+      // Every other one paler, so they twinkle and don't just read as colored dots.
+      const color = new THREE.Color(SET_GLOW[set]);
+      this.sparkles.children.forEach((c, i) => (c as THREE.Sprite).material.color.copy(color).lerp(WHITE, i % 2 ? 0.35 : 0));
+    }
     if (this.bodyAnimal !== parts.body.animal) {
       this.bodyAnimal = parts.body.animal;
       this.arms.setColor(bodyColor(parts.body.animal));
@@ -389,6 +420,66 @@ export class PlushView {
     this.collectMaterials();
     this.trimShadows();
     return true;
+  }
+
+  /**
+   * A dark seam where the head sinks into the body: seen from the front, the crease between them
+   * had no line (an outline goes round a shape's edge, not along where two shapes meet), and a
+   * head and body of one color ran together.
+   */
+  private sewNeck(): void {
+    this.neck?.removeFromParent();
+    this.neck?.geometry.dispose();
+    this.neck = null;
+    const body = this.slots.body.children[0];
+    const profile = body?.userData.profile as [number, number][] | undefined;
+    const center = new THREE.Vector3(...SOCKETS.head).sub(new THREE.Vector3(...SOCKETS.body));
+    const seam = profile ? neckSeam(profile, center, NECK_RADIUS) : null;
+    this.cutNeckLines(seam, center);
+    if (!seam) return;
+    // Out of the crease a little, between the head's and the body's surface (right in it, half
+    // of it sank into each and it showed only in broken dashes).
+    const out = new THREE.Vector3();
+    for (const p of seam) {
+      out.copy(p).sub(center).normalize().add(new THREE.Vector3(p.x, 0, p.z).normalize());
+      p.addScaledVector(out.normalize(), NECK_OUT);
+    }
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seam, true), 64, NECK_THICK, 6, true);
+    this.neck = new THREE.Mesh(geo, neckMaterial(this.outlineColor));
+    this.neck.name = 'outline';
+    this.slots.body.add(this.neck);
+  }
+
+  /**
+   * Where the head's line over its body stops (see neckLineMaterial): at the seam, a plane fitted
+   * through it in the head's space (the hat's too, a little lower down from it). Without one, a
+   * little below the head's middle.
+   */
+  private cutNeckLines(seam: THREE.Vector3[] | null, center: THREE.Vector3): void {
+    let a = -0.3;
+    let b = 0;
+    if (seam) {
+      // Least squares: y = a + b·z through the seam's points.
+      let sz = 0, sy = 0, szz = 0, szy = 0;
+      for (const p of seam) {
+        const y = p.y - center.y;
+        const z = p.z - center.z;
+        sz += z; sy += y; szz += z * z; szy += z * y;
+      }
+      const n = seam.length;
+      const det = n * szz - sz * sz;
+      b = Math.abs(det) > 1e-9 ? (n * szy - sz * sy) / det : 0;
+      a = (sy - b * sz) / n;
+    }
+    const lift = this.slots.accessory.position.y - this.slots.head.position.y;
+    for (const [slot, drop] of [['head', 0], ['accessory', lift]] as const) {
+      this.slots[slot].traverse((o) => {
+        const cut = o instanceof THREE.Mesh ? ((o.material as THREE.Material).userData.neck as NeckCut | undefined) : undefined;
+        if (!cut) return;
+        cut.a.value = a - drop;
+        cut.b.value = b;
+      });
+    }
   }
 
   /** The parasol in a full set's colors and pattern, or the rainbow one. */
@@ -688,18 +779,22 @@ export class PlushView {
       this.beam.quaternion.copy(UNLEAN).multiply(LEVEL);
     }
 
-    const pulse = 0.5 + Math.sin(time * 3) * 0.5;
-    if (this.glowColor) (this.glowRing.material as THREE.MeshBasicMaterial).opacity = 0.7 + pulse * 0.3;
+    if (this.sparkles.visible) {
+      // Slowly round the head, bobbing, each twinkling up and fading in turn.
+      this.sparkles.children.forEach((c, i) => {
+        const k = i / SPARKLES;
+        const a = time * 0.9 + k * Math.PI * 2;
+        c.position.set(Math.cos(a) * 0.62, 1.2 + Math.sin(time * 1.7 + k * 5) * 0.18, Math.sin(a) * 0.62);
+        const twinkle = Math.max(0, Math.sin(time * 2.6 - k * Math.PI * 2));
+        c.scale.setScalar(0.24 + twinkle * 0.36);
+        (c as THREE.Sprite).material.opacity = 0.6 + twinkle * 0.4;
+      });
+    }
 
-    // Hit flash (white) on top of the full-set tint.
+    // Hit flash (white).
     const flash = this.flashTime > 0 ? this.flashTime / FLASH_SECONDS : 0;
     this.flashTime = Math.max(0, this.flashTime - dt);
-    const tint = this.glowColor ? 0.12 + pulse * 0.14 : 0;
-    for (const mat of this.toonMaterials) {
-      if (this.glowColor) mat.emissive.copy(this.glowColor).multiplyScalar(tint);
-      else mat.emissive.setScalar(0);
-      if (flash > 0) mat.emissive.addScalar(flash * 0.7);
-    }
+    for (const mat of this.toonMaterials) mat.emissive.setScalar(flash * 0.7);
     return landed;
   }
 

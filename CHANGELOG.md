@@ -2,6 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Sea folk (2026-11-21)
+
+- Two new animals: the Otter (epic), a diver with a diving mask and snorkel, big orange flippers
+  and a paddle tail; and the Mermaid (legendary), with curly sea-green
+  hair, a seashell bikini top on a string of pearls, a crown of shells, a fish tail she hops on and a
+  shimmering rainbow fin. Their own voices, set effects (bubbles; glittering splashes) and umbrellas.
+  Protocol 20.
+- A full set no longer tints the whole plush or glows on the ground (it shone too much, and lit up
+  the ground under the blimp): a few twinkles in the set's color circle its head instead.
+- The Penguin's white face and tummy are sewn on cleanly (they broke up in dark blotches at the edges).
+- Cleaner plushies, whatever they're stitched from: an unbroken line where the head meets the body
+  (also mid-run), tails outlined where they lie over the body, tummy patches and stitches lying flat
+  (no more teeth along the sides), bee stripes that wrap round, a closed turtle shell, a tidy
+  elephant blanket, a solid lily pad, a nightcap that sits right, no "face" on the flamingo's tail,
+  tails that reach the Mermaid's slim back, and resting hands beside wide bodies instead of in them.
+
 ## Pirate Cove (2026-11-20)
 
 - A fourth map: Pirate Cove, sandy islands in a shallow lagoon. Off the islands you wade (slowly).

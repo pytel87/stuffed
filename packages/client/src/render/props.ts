@@ -51,9 +51,10 @@ function silhouetteOutline(g: THREE.Object3D, mark: number, width = 0.03, pull =
 export const FOOT_LIFT = 0.03;
 
 let markSeq = 0;
-/** Another stencil number for one model's outlineProp (wrapping round; see its mark). */
+/** Another stencil number for one model's outlineProp (wrapping round; see its mark). Below 232:
+ *  the plushies' parts have the numbers above (see placeholder-parts.ts). */
 export function nextMark(): number {
-  return 32 + (markSeq++ % 220);
+  return 32 + (markSeq++ % 200);
 }
 
 /** How far a prop's outline is pulled toward the camera (see outlineProp). */

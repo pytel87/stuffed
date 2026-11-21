@@ -13,8 +13,9 @@ import { MORE_PARTS } from './more-animals.ts';
 import { YET_MORE_PARTS } from './yet-more-animals.ts';
 import { FINAL_PARTS } from './final-animals.ts';
 import { MYTHIC_PARTS } from './mythic-animals.ts';
+import { SEA_PARTS } from './sea-animals.ts';
 import { detailMaps, repeated } from './image-textures.ts';
-import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, evenOutlines, smoothNormals, thickOutlineMaterial, toonMaterial, toonMesh } from './toon.ts';
+import { feltTexture, lighten, darken, makePlastic, OUTLINE_COLOR, evenOutlines, smoothNormals, thickOutlineMaterial, neckLineMaterial, toonMaterial, toonMesh } from './toon.ts';
 
 const HEAD_RADIUS = 0.42;
 
@@ -37,11 +38,33 @@ export function bodyColor(animal: Animal): string {
 const PART_OUTLINE = 0.024;
 
 /**
- * Each slot's stencil mark (no other model uses these; see outlinePart). Slots sharing one are
- * outlined as one: the head with what it wears, and the body with its tail and feet, so the only
- * line inside a plush is where its head meets its body.
+ * Each slot's stencil mark (no other model uses these; see outlinePart, and props' below 232).
+ * Slots sharing one are outlined as one: the head with what it wears, and the body with its tail
+ * and feet, so the only line inside a plush is where its head meets its body.
  */
-const SLOT_MARK: Record<PartSlot, number> = { head: 240, accessory: 240, body: 241, legs: 241, tail: 241 };
+const HEAD_MARK = 240;
+const BODY_MARK = 241;
+/** The tail's: outlined on its own, also where it lies over the body (outlined as one with it, a
+ *  cat's tail curled up the back had no line there, a fox's ran into its body). It differs from
+ *  the body's in one bit only, which the head's neck line ignores (see NECK_SAME). */
+const TAIL_MARK = 243;
+const NECK_SAME = 0xff & ~(BODY_MARK ^ TAIL_MARK);
+const SLOT_MARK: Record<PartSlot, number> = { head: HEAD_MARK, accessory: HEAD_MARK, body: BODY_MARK, legs: BODY_MARK, tail: TAIL_MARK };
+/** The mark of a piece outlined on its own (`userData.ownLine`), even where it lies over the rest of
+ *  the plush: a diving mask's frame on the face, which otherwise ran into the fur with no line. */
+const OWN_LINE_MARK = 248;
+/**
+ * Where the head lies over its body, the body (just behind) hid the head's line in broken dots or
+ * a pale gap, depending on the angle (worse leaning into a run); pulling the line toward the
+ * camera only moved the trouble (from the front it showed through the body below the chin). So the
+ * head draws its line again, on its body only (with its tail and feet: wings and flippers sit
+ * right beside the head), whatever's in front (drawn after every outline), all but where it's
+ * sunk in the body (its line would float below the chin): the plush cuts it off at its neck seam
+ * (see PlushView.sewNeck).
+ */
+const NECK_ORDER = 4;
+/** How far a mask frame's line is pulled toward the camera: where it lies close over the fur. */
+const OWN_LINE_PULL = 0.06;
 
 /**
  * One clean outline round each part as a whole: every piece of it marks where it's drawn (its
@@ -51,23 +74,31 @@ const SLOT_MARK: Record<PartSlot, number> = { head: 240, accessory: 240, body: 2
  */
 function outlinePart(part: THREE.Object3D, mark: number): void {
   const bare: THREE.Mesh[] = [];
+  const hulls: THREE.Mesh[] = [];
   part.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     const hull = mats.find((m) => m instanceof THREE.MeshBasicMaterial && m.side === THREE.BackSide) as THREE.MeshBasicMaterial | undefined;
+    // (A hull is its piece's child.)
+    const own = o.userData.ownLine || (hull && o.parent?.userData.ownLine) ? OWN_LINE_MARK : mark;
     if (hull) {
-      o.material = thickOutlineMaterial('#' + hull.color.getHexString(), PART_OUTLINE, mark);
+      o.material = own === OWN_LINE_MARK
+        ? thickOutlineMaterial('#' + hull.color.getHexString(), PART_OUTLINE, own, OWN_LINE_PULL)
+        : thickOutlineMaterial('#' + hull.color.getHexString(), PART_OUTLINE, own);
       o.renderOrder = 3;
+      if (own === HEAD_MARK) hulls.push(o);
       return;
     }
     if (mats.some((m) => m.transparent || !m.depthWrite)) return;
     for (const m of mats) {
       m.stencilWrite = true;
-      m.stencilRef = mark;
+      m.stencilRef = own;
       m.stencilZPass = THREE.ReplaceStencilOp;
     }
     const hasHull = o.children.some((c) => c instanceof THREE.Mesh && c.material instanceof THREE.MeshBasicMaterial && c.material.side === THREE.BackSide);
-    if (!hasHull) bare.push(o);
+    // (Not what lies flat on the part, `userData.flat`: a belly patch's or a stripe's line stood out
+    // past the part's edge in little teeth where it curves away.)
+    if (!hasHull && !o.userData.flat) bare.push(o);
   });
   // Pieces that had none get one too (only shown round the part, like the rest).
   const smooth = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
@@ -79,6 +110,20 @@ function outlinePart(part: THREE.Object3D, mark: number): void {
     hull.renderOrder = 3;
     hull.castShadow = false;
     o.add(hull);
+    if (mark === HEAD_MARK) hulls.push(hull);
+  }
+  if (mark !== HEAD_MARK || hulls.length === 0) return;
+  // The head's line over its own body (see NECK_ORDER).
+  const neckLine = neckLineMaterial(OUTLINE_COLOR, PART_OUTLINE, BODY_MARK, NECK_SAME);
+  for (const h of hulls) {
+    const neck = new THREE.Mesh(h.geometry, neckLine);
+    neck.name = 'outline';
+    neck.renderOrder = NECK_ORDER;
+    neck.castShadow = false;
+    neck.position.copy(h.position);
+    neck.quaternion.copy(h.quaternion);
+    neck.scale.copy(h.scale);
+    h.parent!.add(neck);
   }
 }
 
@@ -132,7 +177,7 @@ type Builder = (outline: string) => PartObject;
  *  top of the head are lifted by this, so hats sit on it instead of sinking in. */
 export const HEAD_TOP_LIFT: Partial<Record<Animal, number>> = { octopus: 0.2 };
 /** Accessories worn on the face, not on top (they stay put on a taller head). */
-export const FACE_ACCESSORIES: ReadonlySet<Animal> = new Set<Animal>(['owl', 'shark', 'turtle']);
+export const FACE_ACCESSORIES: ReadonlySet<Animal> = new Set<Animal>(['owl', 'shark', 'turtle', 'otter']);
 
 const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
   head: {
@@ -146,6 +191,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...YET_MORE_PARTS.head,
     ...FINAL_PARTS.head,
     ...MYTHIC_PARTS.head,
+    ...SEA_PARTS.head,
   },
   // Each animal's body has its own shape (animal-bodies.ts); all fit any head, legs and arms.
   body: BODIES,
@@ -160,6 +206,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...YET_MORE_PARTS.legs,
     ...FINAL_PARTS.legs,
     ...MYTHIC_PARTS.legs,
+    ...SEA_PARTS.legs,
   },
   tail: {
     bear: (o) => pomTail(o),
@@ -172,6 +219,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...YET_MORE_PARTS.tail,
     ...FINAL_PARTS.tail,
     ...MYTHIC_PARTS.tail,
+    ...SEA_PARTS.tail,
   },
   accessory: {
     bear: (o) => bow(o),
@@ -184,6 +232,7 @@ const BUILDERS: Record<PartSlot, Record<Animal, Builder>> = {
     ...YET_MORE_PARTS.accessory,
     ...FINAL_PARTS.accessory,
     ...MYTHIC_PARTS.accessory,
+    ...SEA_PARTS.accessory,
   },
 };
 
@@ -399,22 +448,25 @@ function pomTail(outline: string): PartObject {
 /** A lily pad worn like a little backpack, with a pink flower on it. */
 function lilyPad(outline: string): PartObject {
   const g = new THREE.Group();
-  // A soft, puffy pad (a squashed ball with its notch cut out) with a few veins.
+  // A soft, puffy pad with its notch cut out, and a few veins. (Solid: a squashed open ball drawn
+  // from both sides flickered where its two walls lay close together.)
   const padColor = '#4fa04a';
-  const pad = toonMesh(new THREE.SphereGeometry(0.3, 28, 12, 0.35, Math.PI * 2 - 0.7), padColor, {
-    outline: 0.06,
-    outlineColor: outline,
-    material: toonMaterial(padColor, { side: THREE.DoubleSide }),
-  });
-  pad.scale.set(1, 0.22, 1);
-  pad.rotation.x = Math.PI / 2 - 0.25;
+  const outlineShape = new THREE.Shape();
+  outlineShape.moveTo(0, 0);
+  outlineShape.absarc(0, 0, 0.28, -Math.PI / 2 + 0.35, Math.PI * 1.5 - 0.35, false);
+  outlineShape.lineTo(0, 0);
+  const padGeo = new THREE.ExtrudeGeometry(outlineShape, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.02, bevelSegments: 3, curveSegments: 28 });
+  padGeo.translate(0, 0, -0.01);
+  const pad = toonMesh(padGeo, padColor, { outline: 0.06, outlineColor: outline });
+  pad.rotation.x = -0.25;
   pad.position.set(0, 0.12, -0.02);
   g.add(pad);
-  for (const a of [1.2, 2.2, 3.1, 4.0, 5.0]) {
-    // On the outer face (local -y faces away from the back once tilted).
-    const vein = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.05, 0.14), toonMaterial(darken(padColor, 0.25).getStyle(), { map: null }));
-    vein.position.set(Math.sin(a) * 0.1, -0.27, Math.cos(a) * 0.1);
-    vein.rotation.y = a;
+  for (const a of [-0.4, 0.5, 1.4, 2.3, 3.2, 4.1]) {
+    // On its outer face (-z), running out from the middle.
+    const vein = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.13, 0.01), toonMaterial(darken(padColor, 0.25).getStyle(), { map: null }));
+    vein.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, -0.038);
+    vein.rotation.z = a - Math.PI / 2;
+    vein.userData.flat = true;
     pad.add(vein);
   }
   const flower = new THREE.Group();

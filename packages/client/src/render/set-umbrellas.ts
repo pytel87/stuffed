@@ -37,6 +37,8 @@ const LOOKS: Record<Animal, { a: string; b: string; ink: string; pattern: Patter
   dragon: { a: '#d64545', b: '#ffd166', ink: '#9e2a2a', pattern: 'scales' },
   phoenix: { a: '#ff7a3d', b: '#ffd166', ink: '#e2352a', pattern: 'scales' },
   yeti: { a: '#f4f8ff', b: '#bfe0ff', ink: '#8fc3ff', pattern: 'fluff' },
+  otter: { a: '#9a6a45', b: '#f2dcc0', ink: '#ff8a3d', pattern: 'stripes' },
+  mermaid: { a: '#3fc9b8', b: '#ffb3d1', ink: '#2aa596', pattern: 'scales' },
 };
 
 /** A panel's fabric: its color with the pattern printed on (white where untouched, so it tints). */

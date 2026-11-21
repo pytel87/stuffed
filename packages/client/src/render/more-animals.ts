@@ -294,20 +294,66 @@ function starClip(outline: string): PartObject {
 // ---------- Penguin ----------
 const PEN = ANIMAL_COLORS.penguin;
 
+/**
+ * A patch lying flush on the head ball's front, `lift` above it: its outline is `edge(angle)` (how
+ * far out from `center`, measured along the surface, in each direction), filled with rings so it
+ * follows the ball's curve. Its weave lines up with the ball's (the same UVs). A flattened ball
+ * pressed into the head instead met it at such a shallow angle that the seam broke up in blotches.
+ */
+function headPatch(center: [number, number], edge: (angle: number) => number, lift = 0.006): THREE.BufferGeometry {
+  const RINGS = 8;
+  const SPOKES = 48;
+  const r = HEAD_RADIUS + lift;
+  const pos: number[] = [];
+  const uv: number[] = [];
+  const idx: number[] = [];
+  const put = (sx: number, sy: number) => {
+    const lon = sx / HEAD_RADIUS;
+    const lat = sy / HEAD_RADIUS;
+    const x = Math.cos(lat) * Math.sin(lon);
+    const y = Math.sin(lat);
+    const z = Math.cos(lat) * Math.cos(lon);
+    pos.push(x * r, y * r, z * r);
+    // As THREE.SphereGeometry lays its UVs out (u round the equator, v pole to pole).
+    uv.push(Math.atan2(z, -x) / (Math.PI * 2), 1 - Math.acos(y) / Math.PI);
+  };
+  put(center[0], center[1]);
+  for (let i = 1; i <= RINGS; i++) {
+    for (let j = 0; j < SPOKES; j++) {
+      const a = (j / SPOKES) * Math.PI * 2;
+      const d = (edge(a) * i) / RINGS;
+      put(center[0] + Math.cos(a) * d, center[1] + Math.sin(a) * d);
+    }
+  }
+  const at = (i: number, j: number) => (i === 0 ? 0 : 1 + (i - 1) * SPOKES + (j % SPOKES));
+  for (let j = 0; j < SPOKES; j++) idx.push(0, at(1, j), at(1, j + 1));
+  for (let i = 1; i < RINGS; i++) {
+    for (let j = 0; j < SPOKES; j++) idx.push(at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j), at(i + 1, j + 1), at(i, j + 1));
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function penguinHead(outline: string): PartObject {
   const g = headBall(PEN.main, outline);
-  // A white face patch, an orange beak.
-  const face = toonMesh(sphere(0.3), PEN.belly, { outline: false });
-  face.scale.set(1.25, 0.95, 0.55);
-  face.position.set(0, -0.02, 0.24);
-  g.add(face);
+  // A white face mask round the eyes and down over the cheeks, dipping to a point between the eyes
+  // (the dark cap's widow's peak); an orange beak.
+  const mask = (a: number) => {
+    const ellipse = 1 / Math.sqrt((Math.cos(a) / 0.29) ** 2 + (Math.sin(a) / 0.25) ** 2);
+    const peak = Math.exp(-(((a - Math.PI / 2) / 0.32) ** 2));
+    return ellipse * (1 - 0.32 * peak);
+  };
+  g.add(toonMesh(headPatch([0, -0.02], mask), PEN.belly, { outline: false }));
   const beak = toonMesh(new THREE.ConeGeometry(0.07, 0.16, 10), '#f7a531', { outline: 0.12, outlineColor: outline });
   beak.rotation.x = Math.PI / 2;
   beak.position.set(0, -0.06, 0.48);
   g.add(beak);
-  // Eyes sit on the white face patch, not under it.
-  eye(g, -0.13, 0.07, 0.065, 0.42);
-  eye(g, 0.13, 0.07, 0.065, 0.42);
+  eye(g, -0.13, 0.07, 0.065);
+  eye(g, 0.13, 0.07, 0.065);
   return g;
 }
 

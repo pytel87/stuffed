@@ -289,8 +289,10 @@ function koalaTail(outline: string): PartObject {
 function nightcap(outline: string): PartObject {
   const g = new THREE.Group();
   const cap = new THREE.Group();
-  cap.position.set(0, 0.32, -0.02);
   cap.rotation.set(-0.25, 0, 0.35);
+  // Out along its tilt, so its brim sits on the head all the way round (set straight up, the
+  // tilted brim sank into the head on its low side).
+  cap.position.set(0, 1, 0).applyEuler(cap.rotation).multiplyScalar(0.33);
   const cone = toonMesh(new THREE.ConeGeometry(0.3, 0.6, 18, 4), '#5d9cf5', { outline: 0.06, outlineColor: outline });
   cone.position.y = 0.3;
   cap.add(cone);

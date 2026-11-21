@@ -161,7 +161,13 @@ const thickOutlines = new Map<string, THREE.MeshBasicMaterial>();
  * smoothed ones, see smoothNormals), on top of however much bigger it already is: a plush's tiny
  * parts (feet, ears, spikes) got hairline outlines from a hull only a share of their size bigger.
  */
-export function thickOutlineMaterial(color: string, extra = 0.016, stencilMark = 0, pull = 0, openFoot = false): THREE.MeshBasicMaterial {
+export function thickOutlineMaterial(
+  color: string,
+  extra = 0.016,
+  stencilMark = 0,
+  pull = 0,
+  openFoot = false,
+): THREE.MeshBasicMaterial {
   const key = `${color}|${extra}|${stencilMark}|${pull}|${openFoot}`;
   let mat = thickOutlines.get(key);
   if (!mat) {
@@ -193,6 +199,44 @@ export function thickOutlineMaterial(color: string, extra = 0.016, stencilMark =
     mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}`;
     thickOutlines.set(key, mat);
   }
+  return mat;
+}
+
+/** Where a neck line stops (see neckLineMaterial): below y = a + b·z, in the head's own space. */
+export interface NeckCut {
+  a: { value: number };
+  b: { value: number };
+}
+
+/**
+ * A head's line drawn again over its own body (stencil `over`), whatever is in front, cut off
+ * where the head sinks into the body (`userData.neck`, a NeckCut the plush sets once it knows its
+ * body; see placeholder-parts.ts). One per head: each plush's body is different.
+ */
+export function neckLineMaterial(color: string, extra: number, over: number, overMask = 0xff): THREE.MeshBasicMaterial {
+  const mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide, depthTest: false });
+  mat.stencilWrite = true;
+  mat.stencilRef = over;
+  mat.stencilFuncMask = overMask;
+  mat.stencilFunc = THREE.EqualStencilFunc;
+  mat.stencilFail = mat.stencilZFail = mat.stencilZPass = THREE.KeepStencilOp;
+  const cut: NeckCut = { a: { value: -0.3 }, b: { value: 0 } };
+  mat.userData.neck = cut;
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.neckA = cut.a;
+    shader.uniforms.neckB = cut.b;
+    shader.vertexShader = 'varying vec3 vOwnPos;\n' + shader.vertexShader
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvOwnPos = position;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        mvPosition.xyz += normalize( normalMatrix * normal ) * length( normal ) * ${extra.toFixed(4)};
+        gl_Position = projectionMatrix * mvPosition;`,
+      );
+    shader.fragmentShader = 'uniform float neckA;\nuniform float neckB;\nvarying vec3 vOwnPos;\n' + shader.fragmentShader
+      .replace('void main() {', 'void main() {\n  if ( vOwnPos.y < neckA + neckB * vOwnPos.z ) discard;');
+  };
+  mat.customProgramCacheKey = () => `neckLine${extra}`;
   return mat;
 }
 

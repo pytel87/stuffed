@@ -460,12 +460,7 @@ function flamingoTail(outline: string): PartObject {
     f.scale.set(0.85, len / 0.14, 0.6);
     f.position.y = len * 0.55;
     pivot.add(f);
-    if (i === 1 || i === 3) {
-      const tip = toonMesh(sphere(0.045, 10, 8), INK, { outline: false });
-      tip.scale.set(1, 1.4, 0.8);
-      tip.position.y = len * 1.02;
-      pivot.add(tip);
-    }
+    // (No black tips: seen from behind, two read as eyes over a beak, and a row of them as teeth.)
     g.add(pivot);
   });
   return g;

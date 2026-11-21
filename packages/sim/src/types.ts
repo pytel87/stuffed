@@ -86,7 +86,7 @@ export type PartSlot = 'head' | 'body' | 'legs' | 'tail' | 'accessory';
 /** Every animal has one part for each slot. */
 export type Animal =
   | 'bear' | 'frog' | 'shark' | 'chicken' | 'dino' | 'owl' | 'axolotl' | 'penguin'
-  | 'bunny' | 'unicorn' | 'cat' | 'fox' | 'panda' | 'pig' | 'lion' | 'elephant'
+  | 'bunny' | 'unicorn' | 'cat' | 'fox' | 'panda' | 'pig' | 'lion' | 'elephant' | 'otter' | 'mermaid'
   | 'turtle' | 'hedgehog' | 'koala' | 'octopus'
   | 'mouse' | 'sheep' | 'raccoon' | 'bee' | 'flamingo' | 'giraffe' | 'sloth' | 'dragon' | 'phoenix' | 'yeti';
 

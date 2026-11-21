@@ -54,8 +54,10 @@ const paths: Record<string, string> = {
   revive: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
   // the maps: a tree (the Backyard) and a bed (the Bedroom)
   'map-backyard': `<rect x="10.5" y="13" width="3" height="8" rx="1" fill="#a0693f"/><circle cx="12" cy="9.5" r="6.5" fill="#5bb46a"/><path d="M3 21h18" stroke-width="1.8"/>`,
-  'map-park': `<circle cx="12" cy="16.5" r="4.5" fill="#fff"/><circle cx="12" cy="9" r="3.2" fill="#fff"/><path d="M8.5 6.2h7M9.8 6.2V3.5h4.4v2.7" fill="#2a1f2d"/><path d="M12 9.3l2.4.6" stroke="#f28a2c" stroke-width="1.6"/>`,
-  'map-cove': `<path d="M2.5 17.5c2 1.3 3.5 1.3 5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 5 0" stroke="#3fa9f5" stroke-width="1.8"/><path d="M6 16.5c1-2.6 3.5-4 6-4s5 1.4 6 4Z" fill="#f2d48a"/><path d="M12.5 12.8c0-3 .3-5.2 1.4-7.3" stroke="#a0693f" stroke-width="1.6"/><path d="M13.9 5.5c-2-1.6-4.5-1.4-6 .2 2-.1 3.6.3 4.9 1.4M13.9 5.5c1.6-1.9 4.1-2.1 5.8-.8-2 .2-3.5.9-4.6 2.2M13.9 5.5c.4-1.7 1.9-2.8 3.6-2.8" fill="#5bb46a" stroke-width="1.3"/>`,
+  // a snowman filling the button: a top hat, a carrot nose
+  'map-park': `<circle cx="12" cy="16.2" r="5.2" fill="#fff"/><circle cx="12" cy="8.6" r="3.5" fill="#fff"/><path d="M7.8 5.3h8.4M9.6 5.3V2.2h4.8v3.1" fill="#2a1f2d"/><path d="M12.1 8.8l2.6.6" stroke="#f28a2c" stroke-width="1.8"/>`,
+  // a pirate ship on blue waves: a wooden hull, a striped sail on its mast, a black pennant
+  'map-cove': `<path d="M2 21c1.7 1 3.3 1 5 0s3.3-1 5 0 3.3 1 5 0 3.3-1 5 0" stroke="#3fa9f5"/><path d="M12 6.5V2.5M12 12.8v2"/><path d="M12 2.5l4.6 1.4L12 5.3Z" fill="#2a1f2d"/><path d="M6.4 6.5h11.2c.8 2.2.8 4.3 0 6.3H6.4c.8-2 .8-4.1 0-6.3Z" fill="#fff"/><path d="M9 6.8c.5 2 .5 3.9 0 5.7h2V6.8ZM13 6.8v5.7h2c.5-1.8.5-3.7 0-5.7Z" fill="#e2574c" stroke="none"/><path d="M2.8 14.8h18.4c-.6 2.3-1.9 3.9-3.6 4.7H6.4c-1.7-.8-3-2.4-3.6-4.7Z" fill="#a0693f"/>`,
   'map-bedroom': `<rect x="3" y="7" width="3" height="13" rx="1" fill="#a0693f"/><rect x="3" y="13" width="18" height="5" rx="1.5" fill="#f6a5c0"/><rect x="6.5" y="10" width="5" height="3" rx="1.2" fill="#fff"/><path d="M21 18v2" stroke-width="1.8"/>`,
   // signal bars: how tough the bots are
   'level-easy': `<rect x="4" y="16" width="4" height="4" rx="1" fill="#5bd16a"/><rect x="10" y="11" width="4" height="9" rx="1" fill="none"/><rect x="16" y="6" width="4" height="14" rx="1" fill="none"/>`,
@@ -131,6 +133,8 @@ const HEAD_EXTRAS: Record<Animal, string> = {
   dragon: `<path d="M7.5 6.5L6 1.5l4 3.5M16.5 6.5L18 1.5l-4 3.5" fill="#fff3d6"/>`,
   phoenix: `<path d="M12 5.5L10 0.5l2.5 2.5L14 0.5Z" fill="#ffcf3d"/>`,
   yeti: `<path d="M4 9l1.5-3 1.5 2 1.5-3.5 2 2.5 1.5-3 1.5 3 2-2.5 1.5 3.5 1.5-2 1.5 3" fill="M"/>`,
+  otter: `<circle cx="5.5" cy="9" r="2.4" fill="M"/><circle cx="18.5" cy="9" r="2.4" fill="M"/>`,
+  mermaid: `<path d="M5 8c-2 4-2 9 0 13M19 8c2 4 2 9 0 13" stroke="#3fc9b8" stroke-width="3.2"/>`,
 };
 /** ...and in front of it. */
 const HEAD_FRONT: Partial<Record<Animal, string>> = {
@@ -153,6 +157,8 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
   sloth: `<path d="M7 10.5l3 2M17 10.5l-3 2" stroke="#5e4632" stroke-width="2.6"/>`,
   phoenix: `<path d="M11 14.5h2l-1 2.5Z" fill="#f7c331" stroke-width="1.3"/>`,
   yeti: `<ellipse cx="12" cy="13.5" rx="4.5" ry="4" fill="#8fb6e8" stroke="none"/>`,
+  otter: `<ellipse cx="12" cy="15.2" rx="3.4" ry="2.3" fill="#f2dcc0" stroke="none"/><ellipse cx="12" cy="14" rx="1.3" ry=".85" fill="#3a2a24" stroke="none"/>`,
+  mermaid: `<path d="M7 7c2-3 8-3 10 0" stroke="#3fc9b8" stroke-width="3"/>`,
 };
 
 /** A skin part as a slot shape in its animal's colors. */

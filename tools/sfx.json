@@ -998,6 +998,36 @@
     "shark_warning": {
       "prompt": "a cartoon shark-approaching warning: two deep slow menacing cello notes, dun dun, then a little faster dun dun",
       "seconds": 2.5
+    },
+    "voice_otter_hurt": {
+      "prompt": "a small plush toy otter getting bonked: one short startled playful squeaky sea otter chirp, 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_otter_ko": {
+      "prompt": "a small plush toy otter getting knocked out: a long dramatic dizzy playful squeaky sea otter chirp that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_otter_cheer": {
+      "prompt": "a small plush toy otter cheering after winning: two happy excited bouncy playful squeaky sea otter chirps",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mermaid_hurt": {
+      "prompt": "a small plush toy mermaid getting bonked: one short startled sweet bubbly giggling mermaid hum (no words), 'ouch'",
+      "seconds": 0.6,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mermaid_ko": {
+      "prompt": "a small plush toy mermaid getting knocked out: a long dramatic dizzy sweet bubbly giggling mermaid hum (no words) that wobbles down and trails off, comedic",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
+    },
+    "voice_mermaid_cheer": {
+      "prompt": "a small plush toy mermaid cheering after winning: two happy excited bouncy sweet bubbly giggling mermaid hum (no words)s",
+      "seconds": 1.2,
+      "style": "cute cartoon plush toy animal sound effect, soft and squeaky, playful, clean, no music, no human speech or words"
     }
   }
 }

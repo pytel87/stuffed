@@ -294,6 +294,16 @@ export class Effects {
         this.burst(this.glitter[3]!, x, y + 0.15, z, -dirX * 0.4, -dirZ * 0.4, 4, 1.1, 0.06, 0.7, 2);
         if (step % 2 === 0) this.shockwave(x, y + 0.04, z, 0.7, '#a8e4ff');
         break;
+      case 'otter':
+        // Bubbles trailing behind, the diver's.
+        this.burst(this.water, x, y + 0.4, z, -dirX * 0.3, -dirZ * 0.3, 3, 0.6, 0.06, 0.7, -1.2);
+        break;
+      case 'mermaid': {
+        // A splash of glittering water.
+        this.burst(this.water, x, y + 0.2, z, -dirX * 0.4, -dirZ * 0.4, 3, 1, 0.06, 0.6, 3);
+        this.burst(this.glitter[step % 2 ? 2 : 0]!, x, y + 0.4, z, -dirX * 0.3, -dirZ * 0.3, 2, 0.8, 0.05, 0.8, -0.8);
+        break;
+      }
     }
   }
 
@@ -406,6 +416,15 @@ export class Effects {
       case 'yeti':
         this.burst(this.glitter[3]!, x, 1, z, 0, 0, 36, 4.5, 0.08, 1.4, 1.5);
         this.shockwave(x, 0.05, z, 2, '#a8e4ff');
+        break;
+      case 'otter':
+        this.burst(this.water, x, 0.8, z, 0, 0, 36, 3.5, 0.09, 1.2, -1);
+        this.shockwave(x, 0.05, z, 2.2, '#ffcc33');
+        break;
+      case 'mermaid':
+        this.burst(this.water, x, 0.8, z, 0, 0, 30, 4.5, 0.08, 1.1, 4);
+        for (const pool of this.glitter.slice(0, 3)) this.burst(pool, x, 1, z, 0, 0, 10, 4, 0.08, 1.3, -0.5);
+        this.shockwave(x, 0.05, z, 2.4, '#7ff0e0');
         break;
     }
   }

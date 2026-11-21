@@ -5,6 +5,7 @@ import type { Animal } from '@stuffed/sim';
 import { ANIMAL_COLORS } from './animal-colors.ts';
 import { DEPTH, shapedBody } from './body-shapes.ts';
 import { GIRAFFE_SPOT, YETI_FUR } from './mythic-animals.ts';
+import { scallopShell } from './sea-animals.ts';
 import { darken, toonMaterial, toonMesh } from './toon.ts';
 
 const flat = (c: string) => toonMaterial(c, { map: null });
@@ -129,7 +130,7 @@ function axolotlBody(outline: string): THREE.Object3D {
 function penguinBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.penguin;
   // A tall white tuxedo front and a red bow tie.
-  const b = shapedBody({ shape: 'pin', main: c.main, belly: c.belly, outline, bellyW: 0.27, bellyH: 0.33, bellyY: -0.02, stitch: '#c9d2e0' });
+  const b = shapedBody({ shape: 'pin', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.28, bellyY: -0.02, stitch: '#c9d2e0' });
   const bow = toonMesh(new THREE.SphereGeometry(0.06, 10, 8), '#e2574c', { outline: 0.12, outlineColor: outline });
   bow.scale.set(1.9, 1, 0.8);
   bow.position.copy(b.surface(0, 0.31, 0.02));
@@ -231,15 +232,13 @@ function lionBody(outline: string): THREE.Object3D {
 function elephantBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.elephant;
   const b = shapedBody({ shape: 'bell', main: c.main, belly: c.belly, outline, bellyW: 0.24, bellyH: 0.22, bellyY: -0.1 });
-  // A circus blanket on the back with gold trim.
-  const blanket = toonMesh(new THREE.SphereGeometry(1, 20, 14), '#e2433f', { outline: false });
-  blanket.scale.set(0.28, 0.24, 0.1);
-  blanket.position.copy(b.surface(0, 0.0, -0.07, true));
-  b.group.add(blanket);
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
+  // A circus blanket on the back with gold trim round its edge.
+  b.group.add(b.patch('#e2433f', 0.26, 0.24, 0.0, true));
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
     const dot = toonMesh(new THREE.SphereGeometry(0.022, 8, 6), '#f7c331', { outline: false });
-    const p = b.surface(Math.cos(a) * 0.3, Math.sin(a) * 0.26, 0.005, true);
+    dot.userData.flat = true;
+    const p = b.surface(Math.cos(a) * 0.26, Math.sin(a) * 0.24, 0.008, true);
     dot.position.copy(p);
     b.group.add(dot);
   }
@@ -250,13 +249,21 @@ function turtleBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.turtle;
   const b = shapedBody({ shape: 'round', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.26, bellyY: -0.04, stitch: '#c9b56a' });
   // A domed shell on the back with hexagon plates.
-  const shell = toonMesh(new THREE.SphereGeometry(0.42, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), '#8a5a3c', { outlineColor: outline });
+  // A closed dome (flat underneath): an open bowl's rim is wider than the body, and its outline
+  // ran loose round the rim with the body showing through between.
+  const dome = [new THREE.Vector2(0, 0), ...Array.from({ length: 13 }, (_, i) => {
+    const a = (i / 12) * (Math.PI / 2);
+    return new THREE.Vector2(Math.cos(a) * 0.42, Math.sin(a) * 0.42);
+  })];
+  const shell = toonMesh(new THREE.LatheGeometry(dome, 24), '#8a5a3c', { outlineColor: outline });
   // Sticking well out of the back: base inside the body, dome behind it.
   const SHELL_Z = -0.22;
   const SHELL_DEPTH = 0.75;
   shell.rotation.x = -Math.PI / 2;
   shell.scale.set(1.05, SHELL_DEPTH, 1.05);
   shell.position.set(0, -0.02, SHELL_Z);
+  // Its own line, also where it lies over the body (outlined as one with it, it had none there).
+  shell.userData.ownLine = true;
   b.group.add(shell);
   for (const [x, y] of [[0, 0], [-0.2, 0.15], [0.2, 0.15], [-0.2, -0.17], [0.2, -0.17], [0, 0.3], [0, -0.3]] as const) {
     const plate = new THREE.Mesh(new THREE.CircleGeometry(0.09, 6), flat('#b07a4a'));
@@ -264,6 +271,7 @@ function turtleBody(outline: string): THREE.Object3D {
     plate.position.set(x, y - 0.02, SHELL_Z - SHELL_DEPTH * 0.42 * Math.sqrt(k) - 0.012);
     // Facing out of the dome.
     plate.lookAt(plate.position.clone().add(new THREE.Vector3(x * 1.5, y * 1.5, -1)));
+    plate.userData.flat = true;
     b.group.add(plate);
   }
   return b.group;
@@ -389,13 +397,16 @@ function raccoonBody(outline: string): THREE.Object3D {
 function beeBody(outline: string): THREE.Object3D {
   const c = ANIMAL_COLORS.bee;
   const b = shapedBody({ shape: 'egg', main: c.main, belly: c.belly, outline, bellyW: 0.2, bellyH: 0.2, bellyY: -0.04 });
-  // Black stripes round the body.
+  // Black stripes round the body, following its curve (a straight band, the body bulged through).
   for (const y of [0.2, -0.04, -0.27]) {
-    const top = y + 0.05;
-    const bottom = y - 0.05;
-    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(b.radiusAt(top) + 0.03, b.radiusAt(bottom) + 0.03, 0.1, 40, 1, true), flat('#2a1f2d'));
+    const ring: THREE.Vector2[] = [];
+    for (let i = 0; i <= 4; i++) {
+      const at = y - 0.05 + (i / 4) * 0.1;
+      ring.push(new THREE.Vector2(b.radiusAt(at) + 0.012, at));
+    }
+    const stripe = new THREE.Mesh(new THREE.LatheGeometry(ring, 40), flat('#2a1f2d'));
     stripe.scale.z = DEPTH;
-    stripe.position.y = y;
+    stripe.userData.flat = true;
     b.group.add(stripe);
   }
   return b.group;
@@ -510,6 +521,39 @@ function yetiBody(outline: string): THREE.Object3D {
   return b.group;
 }
 
+/** The otter: sleek brown, a cream chest. */
+function otterBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.otter;
+  return shapedBody({ shape: 'barrel', main: c.main, belly: c.belly, outline, bellyW: 0.25, bellyH: 0.28, bellyY: 0.02 }).group;
+}
+
+/**
+ * The mermaid: two pink scallop shells for a top on a string of pearls (her fish tail is her
+ * legs).
+ */
+function mermaidBody(outline: string): THREE.Object3D {
+  const c = ANIMAL_COLORS.mermaid;
+  const b = shapedBody({ shape: 'slim', main: c.main, belly: c.main, outline, bare: true });
+  // The shell top: two pink scallop shells, ridged, and a string of pearls round the neck.
+  for (const s of [-1, 1]) {
+    const top = scallopShell(0.15, outline);
+    top.scale.y = 1.4;
+    top.position.copy(b.surface(s * 0.125, -0.02, 0.005));
+    top.rotation.set(-0.2, s * 0.22, -s * 0.12);
+    b.group.add(top);
+  }
+  const pearl = toonMaterial('#fffaf0', { map: null });
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    const x = -0.2 + t * 0.4;
+    const y = 0.28 - Math.sin(t * Math.PI) * 0.08;
+    const p = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), pearl);
+    p.position.copy(b.surface(x, y, 0.015));
+    b.group.add(p);
+  }
+  return b.group;
+}
+
 export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   bear: bearBody,
   frog: frogBody,
@@ -541,4 +585,6 @@ export const BODIES: Record<Animal, (outline: string) => THREE.Object3D> = {
   dragon: dragonBody,
   phoenix: phoenixBody,
   yeti: yetiBody,
+  otter: otterBody,
+  mermaid: mermaidBody,
 };

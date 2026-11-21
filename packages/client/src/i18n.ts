@@ -155,7 +155,7 @@ const CS: Record<string, string> = {
   mouse: 'myš', sheep: 'ovečka', shark: 'žralok', owl: 'sova', penguin: 'tučňák', fox: 'liška', panda: 'panda',
   hedgehog: 'ježek', koala: 'koala', raccoon: 'mýval', bee: 'včela', dino: 'dinosaurus', axolotl: 'axolotl',
   lion: 'lev', elephant: 'slon', octopus: 'chobotnice', flamingo: 'plameňák', giraffe: 'žirafa', sloth: 'lenochod',
-  unicorn: 'jednorožec', dragon: 'drak', phoenix: 'fénix', yeti: 'yetti',
+  unicorn: 'jednorožec', dragon: 'drak', phoenix: 'fénix', yeti: 'yetti', otter: 'vydra', mermaid: 'mořská panna',
 };
 
 /** `en` in the game's language (unknown strings stay as they are). */

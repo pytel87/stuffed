@@ -1,5 +1,5 @@
 import './style.css';
-import { BACKYARD, Btn, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
+import { ANIMALS, BACKYARD, Btn, PART_SLOTS, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -48,6 +48,8 @@ const touch = new TouchControls(input);
 let world = createWorld(BACKYARD);
 const params = new URLSearchParams(location.search);
 const loadout = loadoutFromUrl();
+// ?animal=mermaid starts a solo match dressed head to tail as that animal (for trying new ones).
+const testAnimal = ANIMALS.find((a) => a === params.get('animal'));
 // ?zonescale=0.1 runs the Rinse 10x faster for testing.
 const zoneTimeScale = Number(params.get('zonescale')) || 1;
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs (first match only).
@@ -59,6 +61,7 @@ const newSolo = () =>
   new LocalSession(input, {
     seed, zoneTimeScale, map: savedMap(), botLevel: savedBotLevel(), ...(loadout ? { loadout } : {}),
     ...(profiles.profile ? { look: profiles.profile.look, holoAnimals: completeSets(profiles.profile.parts), missingParts: missingPieces(profiles.profile.parts) } : {}),
+    ...(testAnimal ? { look: Object.fromEntries(PART_SLOTS.map((slot) => [slot, testAnimal])) } : {}),
   });
 /** Bots only, behind the title menu and the lobby (a few: it runs on the player's device the whole time). */
 const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 4, watchOnly: true, map: savedMap() });
@@ -781,7 +784,7 @@ function loadoutFromUrl(): WeaponSpec[] | undefined {
 }
 
 // An invite link (?room=CODE) goes straight to that room's lobby; ?online creates a room;
-// ?solo starts a solo match; otherwise the title menu.
+// ?solo (or ?animal) starts a solo match; otherwise the title menu.
 const roomCode = parseRoomCode(params.get('room') ?? '');
 if (roomCode) {
   joinRoom(roomCode);
@@ -792,7 +795,7 @@ if (roomCode) {
       showMenu();
       menu.showError(`${tr("Couldn't reach the game server.")} ${err instanceof Error ? err.message : ''}`);
     });
-} else if (params.has('solo') || params.has('seed') || params.has('loadout')) {
+} else if (params.has('solo') || params.has('seed') || params.has('loadout') || testAnimal) {
   mode = 'solo';
   beginMatch(newSolo());
 } else {

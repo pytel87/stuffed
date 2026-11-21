@@ -11,6 +11,10 @@ const SHOULDERS = [new THREE.Vector3(-0.3, 0.8, 0.12), new THREE.Vector3(0.3, 0.
 /** Where a free hand rests, swinging with the walk. */
 const REST = [new THREE.Vector3(-0.44, 0.5, 0.06), new THREE.Vector3(0.44, 0.5, 0.06)] as const;
 const ARM_SWING = 0.16;
+/** How far out from the body's side a free hand's middle rests. */
+const HAND_OFF = 0.07;
+/** Where a free hand rests, above the body's middle (rig space; see REST). */
+export const HAND_Y = 0.5;
 const FORWARD = new THREE.Vector3(0, 0, 1);
 
 // Unit-length tube along +z, scaled to the shoulder-hand distance each frame.
@@ -32,6 +36,7 @@ export class PlushArms {
   private grip: WeaponKind | null = null;
   private readonly hand = new THREE.Vector3();
   private readonly dir = new THREE.Vector3();
+  private hipWidth = 0;
 
   constructor(outlineColor: string) {
     // As thick as the parts' outlines on every piece (scaled copies were hairlines on a mitten).
@@ -65,6 +70,15 @@ export class PlushArms {
     });
   }
 
+  /**
+   * How wide the body is where a free hand rests: the hand hangs just outside it (at a fixed
+   * width, on a wide body it sank in, leaving a loose hand without an outline and its arm's line
+   * in dashes down the side).
+   */
+  setHipWidth(radius: number): void {
+    this.hipWidth = radius;
+  }
+
   setColor(bodyColor: string): void {
     this.armMat.color.set(bodyColor);
     this.mittenMat.color.copy(lighten(bodyColor, 0.15));
@@ -87,6 +101,7 @@ export class PlushArms {
       } else {
         const swing = Math.sin(walkPhase + (i === 0 ? 0 : Math.PI)) * ARM_SWING * moveAmount;
         this.hand.copy(REST[i]!).setZ(REST[i]!.z + swing);
+        this.hand.x = Math.sign(REST[i]!.x) * Math.max(Math.abs(REST[i]!.x), this.hipWidth + HAND_OFF);
       }
       this.dir.subVectors(this.hand, shoulder);
       const len = Math.max(0.01, this.dir.length());

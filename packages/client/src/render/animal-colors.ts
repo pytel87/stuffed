@@ -32,4 +32,7 @@ export const ANIMAL_COLORS: Record<Animal, { main: string; belly: string }> = {
   dragon: { main: '#d64545', belly: '#ffd166' },
   phoenix: { main: '#ff7a3d', belly: '#ffd166' },
   yeti: { main: '#f4f8ff', belly: '#bfe0ff' },
+  otter: { main: '#9a6a45', belly: '#f2dcc0' },
+  // Her skin; the belly color is her fish tail's scales.
+  mermaid: { main: '#ffd9c4', belly: '#3fc9a8' },
 };
