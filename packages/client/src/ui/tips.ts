@@ -77,8 +77,8 @@ export class Tips {
       this.mark(id);
       return true;
     };
-    if (sets.length > 0 && next('holo', tr('Set complete! Its parts can now drop holographic for you'))) return;
-    if (sets.length === 0 && Math.max(0, ...countByAnimal(owned)) >= 2 && next('set', tr('Collect all five parts of one animal for a set: it glows, and unlocks holo parts'))) return;
+    if (sets.length > 0 && next('holo', tr('Set complete! Now you can find its holo parts'))) return;
+    if (sets.length === 0 && Math.max(0, ...countByAnimal(owned)) >= 2 && next('set', tr('Collect all five parts of one animal for a set'))) return;
     if (owned.length >= 8) next('gallery', tr('See your whole collection in the Wardrobe gallery'));
   }
 
