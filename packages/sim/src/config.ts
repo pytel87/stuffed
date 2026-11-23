@@ -343,6 +343,8 @@ export const config = {
     missingPieceChance: [0, 1 / 15, 1 / 25, 1 / 40, 1 / 60],
   },
 
+  /** A warm-up's dance (B): how long one goes on. */
+  danceSeconds: 4,
   chest: {
     /** Buttons (the currency) a chest puts in its opener's pocket: [fewest, most], by its loot. */
     buttons: { low: [1, 2], medium: [2, 3], food: [1, 2], high: [3, 5] } as Record<LootLevel, [number, number]>,

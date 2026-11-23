@@ -6,6 +6,7 @@ import { initialZone } from './systems/zone.ts';
 import type { GameState, MapData, PartLoadout, Player, RosterEntry, RngState, Toss, Vec2, WeaponInstance, WeaponSpec } from './types.ts';
 import { initialGames } from './systems/minigames.ts';
 import { initialWanderers } from './systems/wanderers.ts';
+import { meetingSlot, meetingSpot, ringSlot } from './systems/meeting.ts';
 
 export interface CreateGameOptions {
   seed: number;
@@ -27,7 +28,9 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
   const spawns = shuffle(rng, map.spawns.slice());
   let nextId = 1;
 
-  const players = roster.map((entry, i): Player => makePlayer(nextId++, entry, spawns[i]!, map, rng));
+  // A warm-up: everyone together round the map's meeting spot instead of its spawn points.
+  const meet = peaceful ? meetingSpot(map) : null;
+  const players = roster.map((entry, i): Player => makePlayer(nextId++, entry, meet ? ringSlot(meet, i) : spawns[i]!, map, rng));
 
   const chests = peaceful ? [] : map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, z: pos.roof ? roofUnder(map, pos) : 0, opened: false, loot: pos.loot ?? 'medium' }));
 
@@ -96,18 +99,13 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
 }
 
 /**
- * Someone joins a warm-up under way: a new plush at a free spawn point (the one furthest from
- * everyone), or null if the map has no room. Returns its id.
+ * Someone joins a warm-up under way: a new plush beside the others at the map's meeting spot (the
+ * nearest place there nobody's standing), or null if the map has no room. Returns it.
  */
 export function addPlayer(state: GameState, map: MapData, entry: RosterEntry): Player | null {
   if (state.players.length >= map.spawns.length) return null;
-  let best: Vec2 | null = null;
-  let bestD = -1;
-  for (const s of map.spawns) {
-    const d = Math.min(Infinity, ...state.players.map((p) => Math.hypot(p.pos.x - s.x, p.pos.y - s.y)));
-    if (d > bestD) (best = s), (bestD = d);
-  }
-  const player = makePlayer(state.nextId++, entry, best!, map, state.rng);
+  const at = meetingSlot(map, state.players.map((p) => p.pos));
+  const player = makePlayer(state.nextId++, entry, at, map, state.rng);
   state.players.push(player);
   return player;
 }
@@ -137,6 +135,7 @@ function makePlayer(id: number, entry: RosterEntry, spawn: Vec2, map: MapData, r
     stuffing: config.player.maxStuffing,
     patches: 0,
     pocket: 0,
+    danceUntil: 0,
     alive: true,
     eliminatedTick: null,
     placement: null,

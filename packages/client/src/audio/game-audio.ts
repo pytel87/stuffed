@@ -314,6 +314,13 @@ export class GameAudio {
         case 'wandererStarted':
           s.play(e.kind === 'plow' ? 'plow_horn' : 'mower_engine', { at: e.pos, volume: 1, pitchSpread: 0 });
           break;
+        case 'joined': {
+          // Someone came into the warm-up: a pop, and their animal's happy cry.
+          s.play('cork_pop', { at: e.pos, volume: 0.8, pitchSpread: 0.1 });
+          const p = state.players.find((q) => q.id === e.playerId);
+          if (p) voice(p, 'cheer', 0.9);
+          break;
+        }
         case 'prize':
           s.play('prize_fanfare', { at: e.pos, volume: 1, pitchSpread: 0 });
           s.play('pinata_burst', { at: e.pos, volume: 0.7, pitchSpread: 0 });

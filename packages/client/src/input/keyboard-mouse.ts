@@ -127,6 +127,7 @@ export class KeyboardMouseInput implements InputSource {
         (k.has('KeyR') ? Btn.Reload : 0) |
         (k.has('KeyQ') ? Btn.Stash : 0) |
         (k.has('Space') ? Btn.Jump : 0) |
+        (k.has('KeyB') ? Btn.Dance : 0) |
         this.virtualButtons |
         this.tapButtons,
       weaponSlot: this.weaponSlot,

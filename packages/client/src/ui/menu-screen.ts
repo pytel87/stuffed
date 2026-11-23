@@ -4,6 +4,7 @@ import { bindBotLevel, botLevelHtml } from './bot-level.ts';
 import { bindMapChoice, mapChoiceHtml } from './map-choice.ts';
 import { icon } from './icons.ts';
 import { tr } from '../i18n.ts';
+import { flashMessage } from './flash.ts';
 
 export interface MenuActions {
   solo: (name: string) => void;
@@ -116,8 +117,9 @@ export class MenuScreen {
     for (const b of this.buttons) b.disabled = busy;
   }
 
+  /** A pill on the card's bottom edge for a few seconds ('' clears it). */
   showError(text: string): void {
-    this.error.textContent = text;
+    flashMessage(this.error, text);
     this.setBusy(false);
   }
 }

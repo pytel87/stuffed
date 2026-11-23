@@ -11,6 +11,14 @@ const RADIUS = config.strike.radius;
 const FALL_TICKS = 18;
 const FALL_HEIGHT = 14;
 const WARN = '#ff3b5c';
+/**
+ * The cap's height when it's up: sunk a little into the collar (its top is at 0.58), so the two
+ * cross cleanly. Standing right on it, the outline under the cap's base fought the collar's top.
+ */
+const CAP_UP = 0.555;
+/** Pushed in, while it recharges (sunk into the box). */
+const CAP_DOWN = 0.45;
+
 /** Little lights round the button, lit one by one as it recharges. */
 const DOTS = 12;
 
@@ -159,13 +167,16 @@ export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots:
   });
   // A hair above the striped plate, so their edges never fight.
   collar.position.y = 0.53;
+  // No shadows on it: the cap's, where the two meet, came out as grainy specks that shimmered
+  // whenever the camera moved (aiming).
+  collar.receiveShadow = false;
   root.add(collar);
   // Built from its bottom up, so pressing it down (scaling) keeps it on the collar.
   const cap = toonMesh(new THREE.CylinderGeometry(0.31, 0.31, 0.2, 32).translate(0, 0.1, 0), WARN, {
     outline: 0.05,
     material: makePlastic(toonMaterial('#ff4a1c', { map: null })),
   });
-  cap.position.y = 0.58;
+  cap.position.y = CAP_UP;
   root.add(cap);
   // What it calls, floating over it.
   // Recharge lights round the collar.
@@ -185,6 +196,15 @@ export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots:
   glow.position.y = 0.03;
   root.add(glow);
   return { root, cap, dots, glow };
+}
+
+/**
+ * A push button (the air strike's, the mower's switch): pushed in while it recharges (sunk into
+ * the box, and greyed), up and bright when ready.
+ */
+export function showButtonReady(button: { cap: THREE.Mesh }, ready: boolean): void {
+  button.cap.position.y = ready ? CAP_UP : CAP_DOWN;
+  (button.cap.material as THREE.MeshToonMaterial).color.set(ready ? '#ff4a1c' : '#b8a9ad');
 }
 
 interface DropView {
@@ -233,9 +253,7 @@ export class StrikeViews {
       v.dots.forEach((d, i) => (d.visible = progress >= (i + 1) / DOTS));
       // (No glowing ring: the popped-up red button and its lit dots say it's ready.)
       v.glow.visible = false;
-      // Pushed in while it recharges (sunk into the box, and greyed); up and bright when ready.
-      v.cap.position.y = ready ? 0.58 : 0.45;
-      (v.cap.material as THREE.MeshToonMaterial).color.set(ready ? '#ff4a1c' : '#b8a9ad');
+      showButtonReady(v, ready);
     }
 
     const seen = new Set<EntityId>();

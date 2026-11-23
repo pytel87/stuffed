@@ -1,5 +1,5 @@
 import { currentAt } from './currents.ts';
-import { config, DT } from '../config.ts';
+import { config, DT, secondsToTicks } from '../config.ts';
 import { circleBoxPush } from '../collision/geometry.ts';
 import { clamp, clampLength1, normalizeOrNull } from '../math.ts';
 import { Btn } from '../types.ts';
@@ -47,6 +47,11 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   // tube: carried along, no walking.
   // (E too, up in a lookout: the same key that took you up brings you down.)
   const fresh = (b: number) => (input.buttons & b) !== 0 && (player.heldButtons & b) === 0;
+  // A warm-up: B starts a dance (or stops it); walking off, jumping or shooting stops it too.
+  if (state.peaceful) {
+    if (fresh(Btn.Dance)) player.danceUntil = player.danceUntil > state.tick ? 0 : state.tick + secondsToTicks(config.danceSeconds);
+    else if (Math.hypot(input.moveX, input.moveY) > 0.3 || (input.buttons & (Btn.Jump | Btn.Fire)) !== 0) player.danceUntil = 0;
+  }
   const letGo = (fresh(Btn.Jump) || (fresh(Btn.Interact) && inLookout(world, player))) && letGoOfZip(world, state, player);
   if (!letGo && updateRide(world, state, player)) return;
   // Riding a train wagon: carried along with it (and turned with the track) first.

@@ -26,6 +26,8 @@ export const Btn = {
   Jump: 8,
   /** Q: put the part in reach into the stash, or swap the stash with the part worn in its slot. */
   Stash: 16,
+  /** B: dance (in a warm-up, while waiting for the match). */
+  Dance: 32,
 } as const;
 
 /** One player's intent for one tick. Clients and bots produce these; only the sim interprets them. */
@@ -161,6 +163,8 @@ export interface Player {
   stuffing: number;
   /** Armor: sewn-on patches that soak up damage before the stuffing. */
   patches: number;
+  /** Dancing until this tick (a warm-up's dance: B, or the dance button; walking off stops it). */
+  danceUntil: Tick;
   /** Buttons (the currency) found this match, from chests and piñatas: banked when it ends for them. */
   pocket: number;
   alive: boolean;
@@ -303,6 +307,8 @@ export type GameEvent =
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
   /** Buttons (the currency) went into a plush's pocket, from `pos` (a chest, a piñata). */
   | { type: 'buttonsFound'; playerId: EntityId; amount: number; pos: Vec2 }
+  /** Someone came into a warm-up (a room's lobby): they pop in there. */
+  | { type: 'joined'; playerId: EntityId; pos: Vec2 }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
   /**

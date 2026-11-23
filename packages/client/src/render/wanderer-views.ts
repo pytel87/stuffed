@@ -6,7 +6,7 @@ import { config } from '@stuffed/sim';
 import type { GameState, MapData, WandererDef } from '@stuffed/sim';
 import { sparkleGlowTexture } from './loot-views.ts';
 import { nextMark, outlineProp, snowTexture } from './props.ts';
-import { buildStrikeButton, hazardTexture } from './strike-views.ts';
+import { buildStrikeButton, hazardTexture, showButtonReady } from './strike-views.ts';
 import { makePlastic, toonMaterial, toonMesh } from './toon.ts';
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
@@ -557,8 +557,7 @@ export class WandererViews {
         const progress = ready ? 1 : b.mode === 'moving' ? 0 : Math.max(0, 1 - (b.readyTick - tick) / span);
         v.lever.dots.forEach((d, k) => (d.visible = progress >= (k + 1) / v.lever!.dots.length));
         v.lever.glow.visible = false;
-        v.lever.cap.position.y = ready ? 0.58 : 0.45;
-        (v.lever.cap.material as THREE.MeshToonMaterial).color.set(ready ? '#ff4a1c' : '#b8a9ad');
+        showButtonReady(v.lever, ready);
       }
     });
   }

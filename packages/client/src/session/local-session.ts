@@ -19,6 +19,8 @@ export interface LocalSessionOptions {
   zoneTimeScale?: number;
   /** Bots only, nobody to control (the match behind the title menu). */
   watchOnly?: boolean;
+  /** The menu's backdrop: just the map, nobody in it and no blimp (see main.ts, it's drawn once). */
+  still?: boolean;
   /** Your starting look (from your profile). */
   look?: RosterEntry['parts'];
   /** Animals whose whole set your profile owns (their parts can come out holographic for you). */
@@ -44,7 +46,7 @@ export class LocalSession implements GameSession {
 
   constructor(
     private readonly input: InputSource,
-    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, look = YOUR_LOOK, holoAnimals = [], missingParts = [], botLevel = 'normal' }: LocalSessionOptions,
+    { seed, map = BACKYARD, botCount = 15, loadout, zoneTimeScale = 1, watchOnly = false, still = false, look = YOUR_LOOK, holoAnimals = [], missingParts = [], botLevel = 'normal' }: LocalSessionOptions,
   ) {
     this.map = map;
     this.world = createWorld(map);
@@ -52,7 +54,7 @@ export class LocalSession implements GameSession {
       ...(watchOnly ? [] : [{ name: tr('You'), isBot: false, parts: look, holoAnimals, missingParts, ...(loadout ? { loadout } : {}) }]),
       ...Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true })),
     ];
-    this.state = createGame({ seed, map, roster, zoneTimeScale, toss: true });
+    this.state = createGame({ seed, map, roster, zoneTimeScale, toss: !still });
     this.bots = new BotController(seed, botLevel);
     this.prev = structuredClone(this.state);
     this.localPlayerId = watchOnly ? -1 : this.state.players[0]!.id;

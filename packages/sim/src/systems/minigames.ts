@@ -27,6 +27,11 @@ export function initialGames(map: MapData): MiniGames {
 
 /** A prize: good weapons (rare or better) and items, in a little ring around `at`, on height `z`. */
 export function spawnPrize(world: World, state: GameState, at: Vec2, z: number, weapons = 1, items = 1): void {
+  // A warm-up: the games still work and cheer, but nothing comes of them (nothing's kept there).
+  if (state.peaceful) {
+    state.events.push({ type: 'prize', pos: { ...at } });
+    return;
+  }
   const n = weapons + items;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + nextFloat(state.rng) * 0.5;

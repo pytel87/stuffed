@@ -8,6 +8,7 @@ import { renderPlushPictures } from '../render/model-icons.ts';
 import { icon, partIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
 import { mapName } from './map-choice.ts';
+import { flashMessage } from './flash.ts';
 
 /**
  * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
@@ -114,7 +115,7 @@ export class Wardrobe {
     this.look = structuredClone(profile.look);
     // Its own close button takes the corner where the options gear sits.
     document.body.classList.add('wardrobe-open');
-    this.message.textContent = '';
+    flashMessage(this.message, '');
     this.render();
     this.showGallery(false);
     this.el.hidden = false;
@@ -234,18 +235,9 @@ export class Wardrobe {
 
   /** A message that pops in, stays a few seconds and fades away (see .error.flash). */
   private flashError(text: string): void {
-    const m = this.message;
-    m.textContent = text;
-    // Restart the animation (a second tap while it shows plays it again).
-    m.classList.remove('flash');
-    void m.offsetWidth;
-    m.classList.add('flash');
-    m.onanimationend = (e) => {
-      if (e.target !== m || m.textContent !== text) return;
-      m.classList.remove('flash');
-      m.textContent = '';
-    };
+    flashMessage(this.message, text);
   }
+
 
   hide(): void {
     if (this.el.hidden) return;

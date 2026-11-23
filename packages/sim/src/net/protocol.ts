@@ -32,7 +32,8 @@ export function parseRoomCode(input: string): string | null {
 export type ClientMessage =
   /** First message on every connection. `token` identifies the seat across reconnects. */
   /** `profile` is the device's profile token, if it has one (for its look and keeping parts). */
-  | { t: 'hello'; v: number; name: string; token: string; profile?: string }
+  /** `mapId`: the map you'd play (a new friends' room starts its warm-up there; see Room.hello). */
+  | { t: 'hello'; v: number; name: string; token: string; profile?: string; mapId?: string }
   /** One per client tick (30 per second) while playing. */
   | { t: 'input'; i: Input }
   /** Host only: start a match (from the lobby or after one ends). */
@@ -135,7 +136,7 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius' | 
 /** Someone else's living plush: only what drawing it needs. */
 export interface SeenPlayer extends Pick<
   Player,
-  | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'patches' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
+  | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'patches' | 'danceUntil' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
   | 'chargeStartTick' | 'bubbledUntil' | 'glitteredUntil' | 'soakedUntil' | 'juiceUntil' | 'drop' | 'umbrella' | 'ride'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
@@ -205,7 +206,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     }
     const look = (w: WeaponInstance | null): WeaponLook | null => (w ? { kind: w.kind, rarity: w.rarity, reloadEndTick: w.reloadEndTick } : null);
     others.push({
-      id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, patches: p.patches,
+      id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, patches: p.patches, danceUntil: p.danceUntil,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
       revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, glitteredUntil: p.glitteredUntil, soakedUntil: p.soakedUntil, ride: p.ride, juiceUntil: p.juiceUntil, drop: p.drop, umbrella: p.umbrella,
       weapons: [look(p.weapons[0]), look(p.weapons[1])],
@@ -354,7 +355,9 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
   }));
   if (msg.me) living.push({ ...identity(msg.me.id), ...msg.me });
   const players = [...living, ...parts.fallen].sort((a, b) => a.id - b.id);
-  const zone: Zone = { ...parts.zone, current: circleAt({ ...parts.zone, current: parts.zone.start }, msg.tick) };
+  // (Still waiting, it's the whole circle: a warm-up's water never rises, however long it runs.)
+  const plan = parts.zone;
+  const zone: Zone = { ...plan, current: plan.stage === 'waiting' ? { center: { ...plan.start.center }, radius: plan.start.radius } : circleAt({ ...plan, current: plan.start }, msg.tick) };
   const state: GameState = {
     tick: msg.tick,
     rng: [0, 0, 0, 0],

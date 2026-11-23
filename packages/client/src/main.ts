@@ -1,7 +1,7 @@
 import './style.css';
 import { ANIMALS, BACKYARD, Btn, BUTTONS, PART_SLOTS, canSee, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
-import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
+import type { Animal, EntityId, GameState, KnockoutCause, MapData, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
 import { Music } from './audio/music.ts';
 import { Sound } from './audio/sound.ts';
@@ -75,7 +75,76 @@ const newSolo = () =>
     ...(testAnimal ? { look: Object.fromEntries(PART_SLOTS.map((slot) => [slot, testAnimal])) } : {}),
   });
 /** Bots only, behind the title menu and the lobby (a few: it runs on the player's device the whole time). */
-const newBackdrop = () => new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 4, watchOnly: true, map: savedMap() });
+/**
+ * Behind the menu (and a room's lobby until its warm-up starts): the map, still, from above its middle. Nobody plays on it:
+ * it's drawn for a moment (the camera settling), then left as it is until something changes (the
+ * map, the window's size), so the menu costs a phone nothing.
+ */
+const newBackdrop = () => {
+  backdropSeconds = 0;
+  return new LocalSession(input, { seed: (Math.random() * 2 ** 32) >>> 0, botCount: 0, watchOnly: true, still: true, map: savedMap() });
+};
+/** Seconds the still backdrop has been drawn for; past BACKDROP_SECONDS it isn't drawn again
+ *  (the time textures still loading need to show up). */
+let backdropSeconds = 0;
+const BACKDROP_SECONDS = 1.2;
+/** How far back the backdrop's camera is, against play's. */
+const BACKDROP_ZOOM = 3.6;
+addEventListener('resize', () => (backdropSeconds = 0));
+
+const sceneFade = document.querySelector<HTMLElement>('#scene-fade')!;
+/** How long the veil takes to fall over the scene (ms; as in the CSS). */
+const FADE_OUT_MS = 220;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+let swapping = 0;
+/** Frames drawn of the scene behind the veil since it changed; null when the veil is up anyway. */
+let veiledFrames: number | null = null;
+/** At most this long behind the veil (a scene that never draws mustn't keep the screen dark). */
+const VEIL_MAX_MS = 4000;
+/** Frames of a new match drawn behind the veil before it lifts. */
+const VEIL_FRAMES = 8;
+let veilTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** The veil falls over the scene (smoothly), e.g. as soon as Solo or Online is pressed. */
+function veilDown(): void {
+  sceneFade.classList.add('on');
+  if (veilTimer) clearTimeout(veilTimer);
+  veilTimer = setTimeout(liftVeil, VEIL_MAX_MS);
+}
+
+/**
+ * A new scene (beginMatch): straight behind the veil (at once, if it isn't down already), and it
+ * lifts once the scene is drawn and settled (textures in, the still backdrop done), so nothing
+ * flickers or pops in on the way.
+ */
+function veilUntilSettled(): void {
+  if (!sceneFade.classList.contains('on')) {
+    sceneFade.classList.add('start', 'on');
+    requestAnimationFrame(() => sceneFade.classList.remove('start'));
+  }
+  veiledFrames = 0;
+  if (veilTimer) clearTimeout(veilTimer);
+  veilTimer = setTimeout(liftVeil, VEIL_MAX_MS);
+}
+
+function liftVeil(): void {
+  veiledFrames = null;
+  if (veilTimer) clearTimeout(veilTimer);
+  veilTimer = null;
+  sceneFade.classList.remove('on', 'start');
+}
+
+/** Another map picked on the menu: the veil falls, the map is swapped behind it, and it lifts. */
+async function swapBackdrop(): Promise<void> {
+  const turn = ++swapping;
+  veilDown();
+  await wait(FADE_OUT_MS);
+  if (turn !== swapping || mode !== 'menu') return;
+  beginMatch(newBackdrop());
+}
+
+// The page opens behind the veil: the first picture comes in when it's ready.
+sceneFade.classList.add('on', 'start');
 /** What the player is doing: at the title menu, a solo match, or in an online room. */
 let mode: 'menu' | 'solo' | 'online' = 'menu';
 /** The match being shown: solo (in the browser), online (from the server) or the menu backdrop. */
@@ -135,7 +204,7 @@ const menu = new MenuScreen(document.body, playerName(), {
     joinRoom(code);
   },
   mapChanged: () => {
-    if (mode === 'menu') beginMatch(newBackdrop());
+    if (mode === 'menu') void swapBackdrop();
   },
   wardrobe: () => openWardrobe(menu, () => {
     if (mode === 'menu') menu.show();
@@ -217,7 +286,7 @@ const options = new Options({
   help: () => help.show(),
   leave: showMenu,
   // Online between matches (lobby, results, watching), leaving gives up your seat in the room.
-  leaveQuestion: () => tr(room && !room.isSolo && (phase !== 'playing' || room.inWarmup) ? 'Leave Multi?' : 'Leave the match?'),
+  leaveQuestion: () => tr(room && !room.isSolo && (phase !== 'playing' || room.inWarmup) ? 'Leave the room?' : 'Leave the match?'),
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
 tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
@@ -295,6 +364,7 @@ function isBackdrop(s: GameSession | null): boolean {
 /** Shows a new match: solo, online, or the bots-only backdrop. */
 function beginMatch(next: GameSession): void {
   session = next;
+  veilUntilSettled();
   updates.setPlaying(!isBackdrop(next));
   renderer.setMap(next.map);
   world = createWorld(next.map);
@@ -345,6 +415,7 @@ function showMenu(): void {
  * Offline (or the server can't), an offline practice match here instead: it counts for nothing.
  */
 function playSolo(): void {
+  veilDown();
   createSoloRoom(savedBotLevel(), savedMap().id)
     .then((code) => joinRoom(code, 'solo'))
     .catch(() => practiceSolo());
@@ -359,6 +430,7 @@ function practiceSolo(): void {
 
 /** "Play online": into the public room that's filling up (from the menu, or again after a match). */
 function playOnline(): void {
+  veilDown();
   findPublicRoom()
     .then((code) => joinRoom(code, 'public'))
     .catch((err: unknown) => {
@@ -400,6 +472,8 @@ function playAgain(): void {
 function joinRoom(code: string, kind: 'friends' | 'public' | 'solo' = 'friends'): void {
   mode = 'online';
   menu.hide();
+  // The scene goes dark while the room connects; its warm-up (or the match) comes in when drawn.
+  veilDown();
   // (A friend's room can be shared by its link; a public or solo one is just for now.)
   history.replaceState(null, '', kind === 'friends' ? `?room=${code}` : location.pathname);
   // Bots play in the background until the host starts.
@@ -526,7 +600,21 @@ function frame(now: number): void {
     requestAnimationFrame(frame);
     return;
   }
-  session.advance(dt);
+  // The still backdrop, settled: nothing to draw.
+  if (isBackdrop(session)) {
+    if (backdropSeconds >= BACKDROP_SECONDS) {
+      // The still picture is done: show it.
+      if (veiledFrames !== null) liftVeil();
+      requestAnimationFrame(frame);
+      return;
+    }
+    backdropSeconds += Math.max(dt, 1 / 60);
+    // The middle of the map, pulled well back: a good part of it in the picture.
+    renderer.lookAt({ x: session.map.width / 2, y: session.map.height / 2 }, BACKDROP_ZOOM);
+  }
+  // (The still backdrop's clock doesn't run: the toy train, the mower and the rest stay put. It's
+  // drawn a few frames only so textures still loading show up.)
+  else session.advance(dt);
   if (!session.ready) {
     requestAnimationFrame(frame);
     return;
@@ -575,7 +663,8 @@ function frame(now: number): void {
     followId,
     localAim: input.currentAim,
     aimOffset,
-    dt,
+    // (The still backdrop: a long step, so the camera is where it's going at once, no glide.)
+    dt: isBackdrop(session) ? 30 : dt,
     time: now / 1000,
   });
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
@@ -633,12 +722,10 @@ function updatePhase(state: GameState): void {
   if (!session) return;
   // The language switch reloads the page: not while you're playing a match.
   options.setCanSwitchLang(isBackdrop(session) || phase === 'over' || phase === 'out');
+  // A match behind the veil: a few frames drawn (shaders linked, textures in), then it lifts.
+  if (veiledFrames !== null && !isBackdrop(session) && ++veiledFrames >= VEIL_FRAMES) liftVeil();
   const total = state.players.length;
-  if (isBackdrop(session)) {
-    if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
-    if (state.status === 'ended') beginMatch(newBackdrop());
-    return;
-  }
+  if (isBackdrop(session)) return;
   if (!me) {
     // Watching a match you're not in: keep following someone; show the result at the end.
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });

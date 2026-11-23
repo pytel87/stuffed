@@ -132,7 +132,7 @@ export class Room extends Server<Env> {
   async claimPublic(): Promise<boolean> {
     if (!(await this.claim())) return false;
     this.isPublic = true;
-    // The map it'll be played on, picked now: the warm-up shows it while everyone waits.
+    // A map picked now, in case the first one in brings none; theirs wins (see hello).
     this.map = PLAYABLE_MAPS[Math.floor(Math.random() * PLAYABLE_MAPS.length)]!;
     return true;
   }
@@ -195,6 +195,11 @@ export class Room extends Server<Env> {
       return conn.close(4000, 'protocol version');
     }
     this.claimed = true;
+    // The first one into a new room (a friends' room's host, or whoever opens a public one): it's
+    // played on their map, and the warm-up starts there. Who joins later gets that map.
+    if (!this.solo && this.seats.length === 0 && !this.match && this.phase === 'lobby') {
+      this.map = PLAYABLE_MAPS.find((m) => m.id === msg.mapId) ?? this.map;
+    }
     const token = String(msg.token).slice(0, 64);
     const name = String(msg.name).trim().slice(0, NAME_MAX) || 'Plush';
 
@@ -386,7 +391,11 @@ export class Room extends Server<Env> {
     if (!m?.warmup) return this.startWarmup();
     if (!m.plushOf.has(seat.seat)) {
       const plush = addPlayer(m.state, this.map, this.warmupEntry(seat));
-      if (plush) m.plushOf.set(seat.seat, plush.id);
+      if (plush) {
+        m.plushOf.set(seat.seat, plush.id);
+        // Everyone sees (and hears) them pop in.
+        m.events.push({ type: 'joined', playerId: plush.id, pos: { ...plush.pos } });
+      }
     }
     const conn = this.getConnection<ConnState>(seat.connId);
     if (conn) this.sendWarmupStart(conn);

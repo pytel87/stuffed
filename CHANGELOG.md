@@ -2,6 +2,46 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A still menu, a veil between scenes, dancing (2026-11-23)
+
+- The title menu's background is the chosen map, still, seen from well above its middle, not
+  a bots' match playing behind it: drawn once, then left, so the menu costs a phone next to nothing.
+- "Odejít z Multi?" is now "Odejít z místnosti?".
+- Every change of scene goes through a dark veil: picking another map on the menu, Solo, Online,
+  joining a room, its warm-up and its match starting, going back to the menu. The veil falls,
+  the new scene is built and drawn behind it, and it lifts only once the picture is settled
+  (textures in, the still backdrop done), so nothing flickers or pops in. The cards (menu, lobby,
+  results) stay above it.
+- A warm-up gathers everyone at one meeting spot near the middle of the map (open, dry ground: by
+  the house in the Backyard, on Treasure Island, beside the frozen pond, not on it), standing in
+  rings; a newcomer pops in beside the others with a burst of confetti, a pop and their animal's
+  happy cry, so you see (and hear) friends arrive.
+- A new friends' room's warm-up starts straight on the host's chosen map (it started in the
+  Backyard and only moved there a moment later, or not at all on a slow connection).
+- Sharper picture: the game drew fewer pixels after any slow moment (loading a map, a busy
+  warm-up, the menu's backdrop) and never went back, so plushies could turn blurry for the rest of
+  the visit. Each scene now starts at full resolution, and its first moments (while it loads)
+  aren't held against it.
+- The Rinse no longer closes in during a room's warm-up: the server kept it still, but players'
+  screens worked the circle out from the clock, so a long wait showed the water rising.
+- An Online match is played on the map of whoever opened its room (their pick on the menu), not
+  one picked at random; who joins later plays there too.
+- Messages on every card (a wrong room code on the menu, the shop, the Profil card) show the same
+  way: a pill on the card's bottom edge that pops in and fades after a few seconds; the card no
+  longer grows a line for them.
+- The red push buttons (the air strike's, and the mower's switch by the Backyard's meeting spot)
+  no longer flicker round the cap's base while you aim: a ready cap stood exactly on its grey
+  collar, and the outline under it fought the collar's top as the camera moved. The cap now sits a
+  little into the collar (one height for both buttons; the mower's switch kept the old one), and
+  the collar takes no shadows (the cap's came out there as grainy specks). The sun's shadows also
+  move toward and away from the sun in steps now (as they already did sideways), not gliding with
+  the camera.
+- Nothing to loot in a warm-up: the map's games (digs, treasure, the gallery, pins, goals) still
+  work and cheer, but give no prize (nothing found there would be kept).
+- Dance in a room's warm-up: B (or the music-note button on touch) starts your animal's dance for a
+  few seconds, seen by everyone; pressing again, walking, jumping or shooting stops it. It's on the
+  desktop Controls card.
+
 ## Warm-up in the lobby (2026-11-23)
 
 - While a room fills up (friends' rooms and public ones), everyone in it is already on the map:

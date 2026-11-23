@@ -5,6 +5,7 @@ import type { ProfileStore } from '../session/profile.ts';
 import { AccountPanel } from './account.ts';
 import { icon, partIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
+import { flashMessage } from './flash.ts';
 
 export class ProfileCard {
   private readonly el: HTMLElement;
@@ -77,7 +78,7 @@ export class ProfileCard {
     document.body.classList.add('wardrobe-open');
     this.head.innerHTML = partIcon('head', profile.look.head.animal, 'icon large');
     this.code.textContent = profile.recovery;
-    this.message.textContent = '';
+    flashMessage(this.message, '');
     this.account.render();
     this.el.hidden = false;
   }
@@ -92,17 +93,9 @@ export class ProfileCard {
   }
 
   private flash(text: string): void {
-    const m = this.message;
-    m.textContent = text;
-    m.classList.remove('flash');
-    void m.offsetWidth;
-    m.classList.add('flash');
-    m.onanimationend = (e) => {
-      if (e.target !== m || m.textContent !== text) return;
-      m.classList.remove('flash');
-      m.textContent = '';
-    };
+    flashMessage(this.message, text);
   }
+
 
   private async restore(): Promise<void> {
     const ok = await this.store.recover(this.restoreInput.value);

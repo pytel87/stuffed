@@ -4,6 +4,7 @@ import PartySocket from 'partysocket';
 import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from '@stuffed/sim/net';
 import type { BotLevel, ButtonAward, Input, Part } from '@stuffed/sim';
 import { NetworkMatch } from './network-match.ts';
+import { savedMap } from '../ui/map-choice.ts';
 import type { InputSource } from './session.ts';
 
 export type LobbyState = Extract<ServerMessage, { t: 'lobby' }>;
@@ -101,7 +102,7 @@ export class RoomClient {
     });
     this.socket.addEventListener('open', () => {
       this.status = 'open';
-      this.send({ t: 'hello', v: PROTOCOL_VERSION, name: this.name, token: seatToken(code), ...(this.profileToken ? { profile: this.profileToken } : {}) });
+      this.send({ t: 'hello', v: PROTOCOL_VERSION, name: this.name, token: seatToken(code), mapId: savedMap().id, ...(this.profileToken ? { profile: this.profileToken } : {}) });
     });
     this.socket.addEventListener('close', () => {
       this.status = 'closed';

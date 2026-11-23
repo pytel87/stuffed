@@ -40,6 +40,7 @@ export class TouchControls {
          <button type="button" class="touch-btn touch-jump">${icon('jump')}</button>
          <button type="button" class="touch-btn touch-grab">${icon('hand')}</button>
          <button type="button" class="touch-btn touch-stash" hidden>${icon('stash')}</button>
+         <button type="button" class="touch-btn touch-dance" aria-label="Dance">${icon('music')}</button>
        </div>`,
     );
     this.root = document.querySelector<HTMLElement>('.touch')!;
@@ -87,6 +88,8 @@ export class TouchControls {
     this.hold(this.root.querySelector<HTMLElement>('.touch-jump')!, Btn.Jump);
     this.hold(this.grab, Btn.Interact);
     this.hold(this.stash, Btn.Stash);
+    // (Shown only in a lobby's warm-up, see the CSS.)
+    this.hold(this.root.querySelector<HTMLElement>('.touch-dance')!, Btn.Dance);
 
     // Touch mode turns on with the first touch and off when a real mouse moves.
     window.addEventListener('pointerdown', (e) => {

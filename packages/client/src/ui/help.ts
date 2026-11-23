@@ -45,6 +45,7 @@ export class Help {
         ${row(keys('R'), icon('reload'), tr('Reload the weapon'))}
         ${row(keys('G'), icon('cork_popper'), tr('Drop the weapon'))}
         ${row(keys('3', '4', '5'), `${icon('cotton_puff')} ${icon('patch_pack')} ${icon('juice_box')}`, tr('Use an item'))}
+        ${row(keys('B'), icon('music'), tr('Dance (while waiting in a room)'))}
       </div>
       <div class="help-touch">
         <div class="demo-screen" aria-hidden="true">

@@ -2983,11 +2983,9 @@ body.touch-mode .gear {
   }
 }
 
-/* In the Wardrobe the message sits on the card's bottom edge, a pill (like the balance on its top
-   edge), instead of taking a row: the card (the gallery especially) kept jumping taller and back
-   as it came and went. */
-.wardrobe .card .error,
-.profile .card .error {
+/* Every card's passing message (see ui/flash.ts): a pill on its bottom edge, over it, so the card
+   never changes height as it comes and goes. */
+.card .error {
   position: absolute;
   left: 50%;
   bottom: -1.25rem;
@@ -3277,4 +3275,40 @@ body.warmup .zone {
 
 .name-tag.me {
   color: #ffd1e1;
+}
+
+/* A dark veil over the 3D scene (not the cards: they're above it), for changing the menu's
+   background map: in quickly, out slowly. */
+#scene-fade {
+  position: fixed;
+  inset: 0;
+  /* Over the scene and the in-match HUD, under the cards (the menu, the lobby, results). */
+  z-index: 9;
+  background: #1b1030;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 450ms ease-out;
+}
+
+#scene-fade.on {
+  opacity: 1;
+  transition-duration: 220ms;
+  transition-timing-function: ease-in;
+}
+
+/* Straight to dark (page load, a scene that changed by itself): no fade in to dark first. */
+#scene-fade.start {
+  transition: none;
+}
+
+/* Dance (a lobby's warm-up only): above Jump, on the right edge. */
+.touch-dance {
+  display: none;
+  right: calc(var(--safe-r) + var(--edge) + 0.4rem);
+  bottom: calc(var(--safe-b) + var(--edge) + 11.6rem);
+  background: #ffd1e6;
+}
+
+body.warmup .touch-dance {
+  display: grid;
 }

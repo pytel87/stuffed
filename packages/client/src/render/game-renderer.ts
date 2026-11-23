@@ -94,7 +94,15 @@ const SUN_VIEW_INV = new THREE.Matrix4();
 const ORIGIN = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 
-/** `out` = `target` moved to the nearest whole shadow-map texel, as the sun (shining from `from`) sees it. */
+/** How far the shadow camera moves at a time toward or away from the sun (world units). */
+const SHADOW_DEPTH_STEP = 2;
+
+/**
+ * `out` = `target` moved to the nearest whole shadow-map texel, as the sun (shining from `from`)
+ * sees it, and toward the sun in whole SHADOW_DEPTH_STEPs. (Gliding there, every depth in the
+ * shadow map shifted a little each frame, and where two surfaces nearly touch, like the strike
+ * button's cap on its collar, their shadow flickered while the camera moved.)
+ */
 function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, from: THREE.Vector3, out: THREE.Vector3): void {
   SUN_VIEW.lookAt(from, ORIGIN, UP);
   SUN_VIEW_INV.copy(SUN_VIEW).invert();
@@ -103,11 +111,12 @@ function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, from: 
   out.copy(target).applyMatrix4(SUN_VIEW_INV);
   out.x = Math.round(out.x / texel) * texel;
   out.y = Math.round(out.y / texel) * texel;
+  out.z = Math.round(out.z / SHADOW_DEPTH_STEP) * SHADOW_DEPTH_STEP;
   out.applyMatrix4(SUN_VIEW);
 }
 /**
  * Adaptive resolution: if frames average slower than this (seconds), render fewer pixels.
- * Retina screens start at 2x; each step drops 0.25 down to 1x.
+ * Retina screens start at 2x; each step drops 0.25 down to 1x. Every scene starts sharp again.
  */
 const SLOW_FRAME = 1 / 48;
 const QUALITY_STEP = 0.25;
@@ -140,6 +149,16 @@ export class GameRenderer {
   /** Day to sunset over the match, as the Rinse closes in. */
   private readonly daylight = new Daylight(this.sky, this.sun);
   private readonly plushes = new Map<EntityId, PlushView>();
+
+  /** With nobody to follow (the menu's still backdrop), the camera looks at `at`, from `zoom` times
+   *  further back than in play. */
+  lookAt(at: Vec2, zoom = 1): void {
+    this.followPos.x = at.x;
+    this.followPos.y = at.y;
+    this.lookZoom = zoom;
+  }
+
+  private lookZoom = 1;
 
   /** Where a plush is drawn (its feet), if it's drawn at all: for labels over it (see NameTags). */
   plushAt(id: EntityId): THREE.Vector3 | null {
@@ -201,6 +220,8 @@ export class GameRenderer {
   private readonly dripTimers = new Map<EntityId, number>();
   private debug = false;
   private pixelRatio: number;
+  /** The sharpest this screen is drawn (where every scene starts). */
+  private readonly fullPixelRatio: number;
   private readonly frameTimes: number[] = [];
   private qualityCooldown = QUALITY_COOLDOWN;
   /** Height of the surface the local plush stands over (for aiming). */
@@ -221,7 +242,8 @@ export class GameRenderer {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', stencil: true });
     // Phones and tablets: dense screens, small GPUs. 1.5x still looks sharp at arm's length.
     const handheld = matchMedia('(pointer: coarse)').matches;
-    this.pixelRatio = Math.min(handheld ? 1.5 : 2, window.devicePixelRatio || 1);
+    this.fullPixelRatio = Math.min(handheld ? 1.5 : 2, window.devicePixelRatio || 1);
+    this.pixelRatio = this.fullPixelRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -410,6 +432,11 @@ export class GameRenderer {
         case 'prize':
           this.effects.pinata(e.pos.x, 0.8, e.pos.y, true);
           break;
+        case 'joined':
+          // A newcomer to the warm-up pops in: a burst of confetti and buttons, and a puff of fluff.
+          this.effects.pinata(e.pos.x, 0.9, e.pos.y, true);
+          this.effects.landing(e.pos.x, 0, e.pos.y);
+          break;
         case 'bounced': {
           const p = byId.get(e.playerId);
           if (p) this.effects.landing(e.pos.x, p.z, e.pos.y);
@@ -544,11 +571,16 @@ export class GameRenderer {
   }
 
   private adaptQuality(dt: number): void {
-    if (this.fixedQuality || dt <= 0 || this.pixelRatio <= 1) return;
-    this.qualityCooldown -= dt;
+    // (Longer than a frame can be: the still backdrop's camera jump, not a slow frame.)
+    if (this.fixedQuality || dt <= 0 || dt > 0.1 || this.pixelRatio <= 1) return;
+    // The first moments of a scene (building it, compiling shaders) aren't counted.
+    if (this.qualityCooldown > 0) {
+      this.qualityCooldown -= dt;
+      return;
+    }
     this.frameTimes.push(dt);
     if (this.frameTimes.length > QUALITY_SAMPLES) this.frameTimes.shift();
-    if (this.qualityCooldown > 0 || this.frameTimes.length < QUALITY_SAMPLES) return;
+    if (this.frameTimes.length < QUALITY_SAMPLES) return;
     const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
     if (avg <= SLOW_FRAME) return;
     this.pixelRatio = Math.max(1, this.pixelRatio - QUALITY_STEP);
@@ -560,6 +592,16 @@ export class GameRenderer {
 
   /** Clears everything from the last match (the map stays) so a new match can start. */
   reset(): void {
+    this.lookZoom = 1;
+    // Each scene starts at full resolution: one slow moment (loading, a busy warm-up) shouldn't
+    // leave everything after it blurry.
+    if (this.pixelRatio !== this.fullPixelRatio) {
+      this.pixelRatio = this.fullPixelRatio;
+      this.renderer.setPixelRatio(this.pixelRatio);
+      this.resize();
+    }
+    this.frameTimes.length = 0;
+    this.qualityCooldown = QUALITY_COOLDOWN;
     for (const view of this.plushes.values()) view.dispose();
     this.plushes.clear();
     for (const ring of this.waterlines.values()) ring.removeFromParent();
@@ -705,9 +747,10 @@ export class GameRenderer {
       const inTube = rideKind === 'tube' || rideKind === 'lookout';
       view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding' || p.umbrella);
-      // The victory lap: the winner (or winning team) dances while standing still.
+      // The victory lap: the winner (or winning team) dances while standing still. In a warm-up,
+      // anyone who pressed dance (B) does.
       const won = curr.victoryUntil !== null && p.alive && (curr.winnerId === p.id || (curr.winnerTeam !== null && p.team === curr.winnerTeam));
-      const dancing = won && speedNow < 0.6 && z - groundY < 0.05;
+      const dancing = (won || curr.tick < p.danceUntil) && speedNow < 0.6 && z - groundY < 0.05;
       view.dance(dancing, opts.dt, opts.time, p.parts.head.animal);
       // In a full set, a finale every couple of seconds: its animal's burst (a whole holo set adds a
       // shower of rainbow glitter).
@@ -786,7 +829,7 @@ export class GameRenderer {
     // the edge and Treasure Island fills the rest.)
     const map = this.world.map;
     const focus = lookingOut ? { x: (this.followPos.x + map.width / 2) / 2, y: (this.followPos.y + map.height / 2) / 2 } : this.followPos;
-    this.rig.update(focus, following && !dropping && !lookingOut ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, lookingOut ? 0 : this.followGround, lookingOut ? 3.4 : dropping ? 2.6 : 1);
+    this.rig.update(focus, following && !dropping && !lookingOut ? opts.aimOffset : { x: 0, y: 0 }, opts.dt, lookingOut ? 0 : this.followGround, lookingOut ? 3.4 : dropping ? 2.6 : this.lookZoom);
     this.toss.update(curr, curr.tick - 1 + alpha, opts.time);
     // Aim at chest height of the level you stand on.
     this.aimPlane.constant = -(this.localGround + config.combat.shotHeight);
