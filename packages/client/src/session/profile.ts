@@ -23,20 +23,40 @@ function saveToken(token: string): void {
   }
 }
 
+/**
+ * The ?transfer= code, taken out of the address as soon as the page starts (before anything else
+ * rewrites it, an invite link's room for one), so a reload or a shared link won't try it again.
+ */
+function takeTransferCode(): string | null {
+  const url = new URL(location.href);
+  const code = url.searchParams.get('transfer');
+  if (!code) return null;
+  url.searchParams.delete('transfer');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  return code;
+}
+
 export class ProfileStore {
   profile: Profile | null = null;
   /** Called whenever the profile changes (loaded, look changed, parts kept). */
   onChange: () => void = () => {};
   private token: string | null = readToken();
+  /** Arrived from the game's old address with a code for this device's profile (see hand-over.ts). */
+  private readonly transferCode = takeTransferCode();
 
   /** The token rooms use to find your profile, if you have one. */
   get roomToken(): string | null {
     return this.profile ? this.token : null;
   }
 
-  /** Loads this device's profile, creating one on the first visit. Quietly gives up offline. */
+  /**
+   * Loads this device's profile, creating one on the first visit. Quietly gives up offline. Arrived
+   * from the game's old address (?transfer=code, see hand-over.ts): takes that profile and the
+   * settings along, then reloads so everything starts with them.
+   */
   async load(): Promise<void> {
     try {
+      if (await this.claimTransfer()) return;
       if (this.token) {
         const res = await this.call('GET', '/api/profile');
         if (res.ok) return this.set(((await res.json()) as { profile: Profile }).profile);
@@ -46,6 +66,23 @@ export class ProfileStore {
     } catch (err) {
       console.warn('No profile (offline?)', err);
     }
+  }
+
+  /** Swaps a transfer code from the address for this device's own token (and settings). */
+  private async claimTransfer(): Promise<boolean> {
+    const code = this.transferCode;
+    if (!code) return false;
+    const res = await this.call('POST', '/api/profile/claim', { code });
+    if (!res.ok) return false;
+    const { token, prefs } = (await res.json()) as { token: string; prefs: Record<string, string> };
+    try {
+      for (const [key, value] of Object.entries(prefs)) if (key.startsWith('stuffed.') && key !== TOKEN_KEY) localStorage.setItem(key, value);
+    } catch {
+      // settings not kept; the profile still is
+    }
+    saveToken(token);
+    location.reload();
+    return true;
   }
 
   /** Puts on a look built from owned parts. */

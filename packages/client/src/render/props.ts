@@ -658,7 +658,7 @@ export const corrugatedTexture = () =>
 
 const BLOCK_COLORS = ['#e2574c', '#4a7fd6', '#f2c14e', '#5bb46a', '#9a6bd6'];
 const BOOK_COLORS = ['#c0504d', '#3f6fb5', '#4f9a5d', '#8e5bb8', '#d9822b'];
-const LETTERS = 'STUFFEDTOYS';
+const LETTERS = 'PLUFFSTOYS';
 const CARDBOARD = '#c9a27e';
 
 function letterTexture(color: string, letter: string): THREE.CanvasTexture {

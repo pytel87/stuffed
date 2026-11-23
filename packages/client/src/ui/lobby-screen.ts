@@ -205,7 +205,7 @@ export class LobbyScreen {
     url.search = `?room=${this.client.code}`;
     const link = url.toString();
     try {
-      if (navigator.share) await navigator.share({ title: 'STUFFED', url: link });
+      if (navigator.share) await navigator.share({ title: 'Pluffs', url: link });
       else await navigator.clipboard.writeText(link);
       this.share.classList.add('done');
       setTimeout(() => this.share.classList.remove('done'), 1200);

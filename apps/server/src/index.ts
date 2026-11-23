@@ -4,7 +4,7 @@ import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
 import { ANIMALS, matchButtons } from '@stuffed/sim';
 import type { Animal } from '@stuffed/sim';
-import { addParts, awardButtons, buySet, createProfile, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
+import { addParts, awardButtons, buySet, claimTransfer, createProfile, startTransfer, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
 import type { Room } from './room.ts';
 
 export { Room } from './room.ts';
@@ -61,6 +61,8 @@ const MAX_CARRIED = 8;
  * Profiles (all JSON; the device's token goes in `authorization: Bearer ...`):
  * POST /api/profile → new profile and its token · GET /api/profile → yours ·
  * PUT /api/profile/look {look} · POST /api/profile/recover {code} → a token for this device ·
+ * POST /api/profile/transfer {prefs} → a one-time code to take this profile to the game's new
+ * address · POST /api/profile/claim {code} → a token for it there, and the settings ·
  * POST /api/profile/solo {parts, won, placement, knockouts, found, matchId} → the parts carried home
  * from a solo match, saved, and its Buttons (guarded: the browser reports these, see BUTTONS) · POST /api/shop/buy
  * {animal, holo, requestId} → the parts missing from that set, for Buttons.
@@ -79,6 +81,10 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
   // (Creating things and reporting results, limited per address; reading isn't.)
   if (req.method !== 'GET' && !(await underLimit(req, path === '/api/profile' ? env.LIMIT_PROFILES : env.LIMIT_WRITES))) return tooMany();
   if (path === '/api/profile' && req.method === 'POST') return json(await createProfile(env.DB));
+  if (path === '/api/profile/claim' && req.method === 'POST') {
+    const found = await claimTransfer(env.DB, String((await body()).code ?? ''));
+    return found ? json(found) : json({ error: 'unknown_code' }, 404);
+  }
   if (path === '/api/profile/recover' && req.method === 'POST') {
     const found = await recoverProfile(env.DB, String((await body()).code ?? ''));
     return found ? json(found) : json({ error: 'unknown_code' }, 404);
@@ -89,6 +95,18 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
   if (!id) return json({ error: 'no_profile' }, 401);
 
   if (path === '/api/profile' && req.method === 'GET') return json({ profile: await loadProfile(env.DB, id) });
+  if (path === '/api/profile/transfer' && req.method === 'POST') {
+    // The device's settings: a few short strings under the game's own keys.
+    const raw = (await body()).prefs;
+    const prefs: Record<string, string> = {};
+    if (raw && typeof raw === 'object') {
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, 20)) {
+        // (Never the device's token: the new address gets its own.)
+        if (/^stuffed\.[\w.-]{1,30}$/.test(k) && k !== 'stuffed.profile' && typeof v === 'string' && v.length <= 200) prefs[k] = v;
+      }
+    }
+    return json({ code: await startTransfer(env.DB, id, prefs) });
+  }
   if (path === '/api/profile/look' && req.method === 'PUT') {
     const look = parseLook((await body()).look);
     const profile = look && (await setLook(env.DB, id, look));

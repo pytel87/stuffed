@@ -116,6 +116,38 @@ export async function loadProfile(db: D1Database, id: string): Promise<Profile |
   return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts, buttons: Number(balance!.results[0]?.buttons ?? 0) };
 }
 
+/** How long a transfer code lasts: the hop from the old address to the new one takes seconds. */
+const TRANSFER_MS = 5 * 60_000;
+
+/**
+ * A one-time code for taking this profile (and `prefs`, the device's small local settings) to the
+ * game's new address. Long and random, unlike a recovery code: it travels in a link.
+ */
+export async function startTransfer(db: D1Database, id: string, prefs: Record<string, string>): Promise<string> {
+  const code = randomToken();
+  const now = Date.now();
+  await db.batch([
+    // (Old ones go while we're here.)
+    db.prepare('DELETE FROM transfers WHERE expires_at < ?').bind(now),
+    db.prepare('INSERT INTO transfers (code, profile_id, prefs, expires_at) VALUES (?, ?, ?, ?)').bind(code, id, JSON.stringify(prefs), now + TRANSFER_MS),
+  ]);
+  return code;
+}
+
+/** Uses up a transfer code: this device gets its own token for that profile, and the settings. */
+export async function claimTransfer(db: D1Database, code: string): Promise<{ token: string; profile: Profile; prefs: Record<string, string> } | null> {
+  if (!/^[\w-]{20,64}$/.test(code)) return null;
+  const row = await db
+    .prepare('DELETE FROM transfers WHERE code = ? AND expires_at >= ? RETURNING profile_id, prefs')
+    .bind(code, Date.now())
+    .first<{ profile_id: string; prefs: string }>();
+  if (!row) return null;
+  const token = randomToken();
+  await db.prepare('INSERT INTO tokens (token_hash, profile_id, created_at) VALUES (?, ?, ?)').bind(await hashToken(token), row.profile_id, Date.now()).run();
+  const profile = await loadProfile(db, row.profile_id);
+  return profile ? { token, profile, prefs: JSON.parse(row.prefs) as Record<string, string> } : null;
+}
+
 /** Adds this device to the profile with that recovery code; returns a token for it. */
 export async function recoverProfile(db: D1Database, code: string): Promise<{ token: string; profile: Profile } | null> {
   const clean = normalizeCode(code);

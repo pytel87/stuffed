@@ -1,4 +1,7 @@
-# STUFFED
+# Pluffs
+
+*Plush Battle Royale.* (Called STUFFED while in development; the code, packages and the server
+keep that name.)
 
 A top-down cartoon battle royale. Players are patchwork stuffed-animal plushies stitched from
 swappable parts; they loot toy chests and fight until one is left while a soapy flood

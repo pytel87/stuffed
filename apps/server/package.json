@@ -6,7 +6,7 @@
   "description": "Authoritative game server: a Cloudflare Worker with one Durable Object per room.",
   "scripts": {
     "dev": "wrangler d1 migrations apply stuffed --local && wrangler dev --port 1999",
-    "deploy": "wrangler d1 migrations apply stuffed --remote && wrangler deploy --assets ../../packages/client/dist --var ALLOWED_ORIGINS:https://stuffed-rooms.partyhub-vs.workers.dev",
+    "deploy": "wrangler d1 migrations apply stuffed --remote && wrangler deploy --assets ../../packages/client/dist --var ALLOWED_ORIGINS:https://pluffs.cz,https://www.pluffs.cz,https://stuffed-rooms.partyhub-vs.workers.dev",
     "typecheck": "tsc -p tsconfig.json",
     "cf-typegen": "wrangler types --strict-vars=false",
     "dev:lan": "wrangler d1 migrations apply stuffed --local && wrangler dev --port 1999 --ip 0.0.0.0"

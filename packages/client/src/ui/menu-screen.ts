@@ -28,7 +28,7 @@ export class MenuScreen {
       `<div class="overlay menu" hidden>
          <div class="card">
            <span class="button-balance" hidden title="${tr('Buttons')}">${icon('button')}<b></b></span>
-           <h1 class="logo">STUFFED</h1>
+           <h1 class="logo">PLUFFS</h1>
            <div class="row">
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="${tr('Your name')}"></label>
              <button type="button" class="round menu-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>

@@ -11,6 +11,7 @@ import { GameRenderer } from './render/game-renderer.ts';
 import { renderModelIcons } from './render/model-icons.ts';
 import { LocalSession } from './session/local-session.ts';
 import { ProfileStore } from './session/profile.ts';
+import { leaveForNewAddress } from './session/hand-over.ts';
 import { createRoom, RoomClient } from './session/room-client.ts';
 import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
@@ -143,7 +144,10 @@ profiles.onChange = () => {
 };
 // A new look in the Wardrobe: an online room starts you in it from the next match.
 wardrobe.onLookChanged = () => room?.lookChanged();
-void profiles.load();
+// On an old address, off to the game's own one first (taking the profile along); see hand-over.ts.
+void leaveForNewAddress().then((leaving) => {
+  if (!leaving) void profiles.load();
+});
 const sound = new Sound(import.meta.env.BASE_URL);
 /**
  * A part is new to you if it's in neither your collection nor what you carry this match (worn or

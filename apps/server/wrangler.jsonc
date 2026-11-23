@@ -4,6 +4,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
+  // The game's own address (the zone is in this Cloudflare account; HTTPS comes with it). The
+  // workers.dev address stays up: it hands each device over to pluffs.cz (see hand-over.ts).
+  "routes": [
+    { "pattern": "pluffs.cz", "custom_domain": true },
+    { "pattern": "www.pluffs.cz", "custom_domain": true }
+  ],
   "preview_urls": false,
   "durable_objects": {
     "bindings": [{ "name": "Room", "class_name": "Room" }]

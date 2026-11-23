@@ -11,7 +11,7 @@
     "sfx": "node tools/generate-sfx.mjs",
     "dev:lan": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev:lan",
     "dev:solo": "pnpm --filter @stuffed/client dev",
-    "deploy": "pnpm build && pnpm --filter @stuffed/server run deploy",
+    "deploy": "VITE_CANONICAL_ORIGIN=https://pluffs.cz pnpm build && pnpm --filter @stuffed/server run deploy",
     "music": "node tools/generate-music.mjs",
     "textures": "node tools/generate-textures.mjs"
   },

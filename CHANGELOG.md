@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Pluffs (2026-11-23)
+
+- The game is now called **Pluffs** (*Plush Battle Royale*): the menu's logo, the page title, the
+  home-screen app name and the share text; the Bedroom's alphabet blocks spell it too. STUFFED was
+  already taken by a teddy-bear shooter on Steam and Xbox. The code keeps its working name.
+- Ready for the move to the game's own address: the old one sends each device over with a one-time
+  code, so its profile (collection, Buttons, look) and settings (name, map, sound) come along.
+  Switched on by VITE_CANONICAL_ORIGIN at build time; until then nothing moves.
+
 ## Getting ready for players (2026-11-23)
 
 - A page left open while a newer game is deployed now says so: "Je tu nová verze hry" with a
