@@ -4,6 +4,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Pluffs (2026-11-23)
 
+- Fixed: returning players' profiles didn't load (no Wardrobe, no Buttons) since the API was locked
+  to the game's own pages: browsers send no Origin header on same-site GETs, and those were refused.
 - The game is now called **Pluffs** (*Plush Battle Royale*): the menu's logo, the page title, the
   home-screen app name and the share text; the Bedroom's alphabet blocks spell it too. STUFFED was
   already taken by a teddy-bear shooter on Steam and Xbox. The code keeps its working name.

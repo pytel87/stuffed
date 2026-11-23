@@ -15,12 +15,18 @@ export { Room } from './room.ts';
  */
 const ROOM_LOCATION: DurableObjectLocationHint = 'weur';
 
-/** The Worker's own pages are always allowed; other sites only if listed in ALLOWED_ORIGINS. */
+/**
+ * The Worker's own pages are always allowed; other sites only if listed in ALLOWED_ORIGINS. A
+ * request without an Origin header is the game's own (browsers leave it off same-site GETs, a
+ * returning player's profile load among them) or not from a browser at all: other sites' pages
+ * always send theirs. Unless the browser itself says it came from another site.
+ */
 function originAllowed(req: Request, env: Env): boolean {
   const allowed = env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
   if (allowed.length === 0) return true;
   const origin = req.headers.get('origin');
-  return !!origin && (origin === new URL(req.url).origin || allowed.includes(origin));
+  if (!origin) return req.headers.get('sec-fetch-site') !== 'cross-site';
+  return origin === new URL(req.url).origin || allowed.includes(origin);
 }
 
 function cors(req: Request, env: Env, res: Response): Response {
