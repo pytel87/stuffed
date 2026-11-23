@@ -1,7 +1,7 @@
 // This device's profile on the game server: created on first visit, remembered by a token in
 // localStorage. Holds the collection and the look you start matches in. Everything here is
 // optional: without a server (offline solo play) the game works, just without keeping parts.
-import type { Part } from '@stuffed/sim';
+import type { Animal, ButtonAward, Part } from '@stuffed/sim';
 import type { Look, Profile } from '@stuffed/sim/net';
 import { serverHost } from './room-client.ts';
 
@@ -65,17 +65,40 @@ export class ProfileStore {
     return true;
   }
 
-  /** A solo match ended for you: roll which carried parts you keep. Returns the kept ones. */
-  async soloResult(parts: Part[], won: boolean): Promise<Part[]> {
-    if (!this.profile) return [];
+  /** A solo match ended for you: the parts you carried home, and the match's Buttons. */
+  async soloResult(result: { parts: Part[]; won: boolean; placement: number | null; knockouts: number; found: number; matchId: string }): Promise<{ kept: Part[]; award: ButtonAward | null }> {
+    if (!this.profile) return { kept: [], award: null };
     try {
-      const res = await this.call('POST', '/api/profile/solo', { parts, won });
-      if (!res.ok) return [];
-      const { kept, profile } = (await res.json()) as { kept: Part[]; profile: Profile };
+      const res = await this.call('POST', '/api/profile/solo', result);
+      if (!res.ok) return { kept: [], award: null };
+      const { kept, award, profile } = (await res.json()) as { kept: Part[]; award: ButtonAward; profile: Profile };
       this.set(profile);
-      return kept;
+      return { kept, award };
     } catch {
-      return [];
+      return { kept: [], award: null };
+    }
+  }
+
+  /** An online match's Buttons came in: the new balance. */
+  setButtons(balance: number): void {
+    if (!this.profile) return;
+    this.set({ ...this.profile, buttons: balance });
+  }
+
+  /**
+   * Buys the parts missing from an animal's set (or holo set) with Buttons. 'ok', or why not.
+   * (One request id per purchase: retried, it still counts once.)
+   */
+  async buySet(animal: Animal, holo: boolean): Promise<'ok' | 'too_few' | 'failed'> {
+    if (!this.profile) return 'failed';
+    try {
+      const res = await this.call('POST', '/api/shop/buy', { animal, holo, requestId: crypto.randomUUID() });
+      if (res.status === 402) return 'too_few';
+      if (!res.ok) return 'failed';
+      this.set(((await res.json()) as { profile: Profile }).profile);
+      return 'ok';
+    } catch {
+      return 'failed';
     }
   }
 

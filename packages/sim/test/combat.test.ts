@@ -17,26 +17,26 @@ const fire = input({ aimX: 1, buttons: Btn.Fire });
 const idle = input({ aimX: 1 });
 
 describe('damage and armor', () => {
-  it('takes damage from buttons first, then stuffing', () => {
+  it('takes damage from patches first, then stuffing', () => {
     const { state, b } = duel(5);
-    b.buttons = 30;
+    b.patches = 30;
     applyDamage(state, b, 50, null);
-    expect(b.buttons).toBe(0);
+    expect(b.patches).toBe(0);
     expect(b.stuffing).toBe(80);
     expect(state.events).toContainEqual({ type: 'hit', targetId: b.id, sourceId: null, damage: 20, armorDamage: 30 });
   });
 
   it('leaves stuffing alone while armor covers the hit', () => {
     const { state, b } = duel(5);
-    b.buttons = 100;
+    b.patches = 100;
     applyDamage(state, b, 40, null);
-    expect(b.buttons).toBe(60);
+    expect(b.patches).toBe(60);
     expect(b.stuffing).toBe(100);
   });
 
   it('counts damage dealt and knockouts for the shooter', () => {
     const { state, a, b } = duel(5);
-    b.buttons = 20;
+    b.patches = 20;
     applyDamage(state, b, 50, a.id);
     expect(a.damageDealt).toBe(50);
     applyDamage(state, b, 200, a.id); // only 70 stuffing was left

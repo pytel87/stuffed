@@ -2,6 +2,25 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Buttons and home maps (2026-11-23)
+
+- Buttons (Knoflíky), a currency you earn in matches: every chest drops a few into your pocket
+  (a high chest 8-12), a broken piñata 15, and the end of a match adds 5 for playing, more for knockouts, a top 5
+  or top 3 finish, a win and the first win of the day. You keep what you found even when knocked
+  out. The players-left count shows your pocket; the results card shows what the match earned (tap
+  it for the breakdown); your balance sits on the menu card's corner. Online matches are counted by
+  the server; solo ones (reported by the browser) earn the same, with two guards against scripts:
+  none for a match reported within a minute of the last, and at most 2000 a day.
+- Armor is now patches (záplaty), so it isn't mixed up with the Buttons: the Patch Pack and the
+  Patch Bundle (a stack tied with a ribbon), sewn on with a stitching sound, a patch on the health
+  bar's coat, and bits of fabric flying off when it takes a hit.
+- A shop in the Wardrobe gallery: each animal's card offers to complete its set for Buttons (you
+  pay only for the parts you're missing: 20, 40, 80 or 200 a part, by rarity), and a finished set offers its
+  holo set (three times the price). Tap once to ask, again to buy. Any animal can be bought.
+- Home maps: every animal has one, where its parts turn up four times as often, and legendaries
+  only there (the unicorn in the Backyard, the dragon in the Bedroom, the yeti in the Snowy Park,
+  the mermaid and phoenix in Pirate Cove). Each gallery card shows its animal's home map. Protocol 21.
+
 ## Sea folk (2026-11-21)
 
 - Two new animals: the Otter (epic), a diver with a diving mask and snorkel, big orange flippers

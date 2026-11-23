@@ -134,6 +134,7 @@ function openWardrobe(from: { hide(): void }, back: () => void): void {
 }
 profiles.onChange = () => {
   menu.setWardrobe(!!profiles.profile);
+  menu.setButtons(profiles.profile?.buttons ?? null);
   endScreen.setWardrobe(!!profiles.profile);
   lobbyScreen?.setWardrobe(!!profiles.profile);
 };
@@ -209,6 +210,8 @@ let celebrated = false;
 let knockedOutBy = '';
 /** Solo: the match result went to the server already (which parts you keep). */
 let soloReported = false;
+/** Names this solo match to the server (its Buttons are given once). */
+let soloMatchId = crypto.randomUUID();
 
 let last = performance.now();
 const aimOffset = { x: 0, y: 0 };
@@ -279,6 +282,8 @@ function beginMatch(next: GameSession): void {
   zoneNames.reset();
   toast.reset();
   endScreen.setKept(null);
+  endScreen.setButtons(null);
+  soloMatchId = crypto.randomUUID();
   me = undefined;
   hudEl.classList.remove('out');
   const watching = next.localPlayerId === -1;
@@ -324,6 +329,10 @@ function joinRoom(code: string): void {
   room.onKept = (parts) => {
     endScreen.setKept(parts);
     void profiles.refresh().then(() => tips.collection(profiles.profile?.parts ?? []));
+  };
+  room.onButtons = (award, balance) => {
+    endScreen.setButtons(award);
+    profiles.setButtons(balance);
   };
   lobbyScreen = new LobbyScreen(
     document.body,
@@ -442,6 +451,7 @@ function frame(now: number): void {
       if (e.armorDamage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.armorDamage)), 'armor');
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
+    if (e.type === 'buttonsFound' && e.playerId === localId) numbers.add(e.pos.x, e.pos.y, '', 'buttons', `${icon('button')}<b>+${e.amount}</b>`);
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId, e.cause);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
@@ -452,8 +462,12 @@ function frame(now: number): void {
     if (e.type === 'shot' && mine?.alive && !mine.drop && !mate && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
       hitDirection.addShot(e.pos, e.playerId);
     }
-    // Solo: the parts you kept when knocked out (already rolled by the game) go to your collection.
-    if (e.type === 'partsDropped' && e.playerId === session.localPlayerId) reportSolo(e.kept, true);
+    // Solo: knocked out, the match is over for you: the parts you kept (already rolled by the game,
+    // in the same tick's partsDropped, if you carried any) go to your collection, with its Buttons.
+    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) {
+      const dropped = events.find((d) => d.type === 'partsDropped' && d.playerId === e.playerId);
+      reportSolo(dropped?.type === 'partsDropped' ? dropped.kept : [], false, state.players.find((p) => p.id === e.playerId));
+    }
   }
 
   me = state.players.find((p) => p.id === localId);
@@ -576,7 +590,7 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
-    reportSolo(carriedParts(me), true);
+    reportSolo(carriedParts(me), true, me);
     endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
     return;
   }
@@ -700,12 +714,13 @@ function aimByTouch(state: GameState, me: Player): void {
  * Solo matches run in the browser, so the parts you carried home go to the server from here.
  * Online, the room does this.
  */
-function reportSolo(parts: Part[], won: boolean): void {
+function reportSolo(parts: Part[], won: boolean, plush: Player | undefined): void {
   if (mode !== 'solo' || soloReported) return;
   soloReported = true;
-  if (parts.length === 0) return;
-  void profiles.soloResult(parts, won).then((kept) => {
-    endScreen.setKept(kept);
+  const result = { parts, won, placement: plush?.placement ?? null, knockouts: plush?.knockouts ?? 0, found: plush?.pocket ?? 0, matchId: soloMatchId };
+  void profiles.soloResult(result).then(({ kept, award }) => {
+    if (kept.length > 0) endScreen.setKept(kept);
+    endScreen.setButtons(award);
     tips.collection(profiles.profile?.parts ?? []);
   });
 }

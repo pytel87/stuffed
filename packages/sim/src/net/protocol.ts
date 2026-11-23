@@ -2,9 +2,10 @@
 import { DEFAULT_PARTS } from '../parts.ts';
 import { circleAt } from '../systems/zone.ts';
 import type { BotLevel } from '../bots/brain.ts';
+import type { ButtonAward } from '../economy.ts';
 import type { Ball, Chest, EntityId, GameEvent, GameState, GroundLoot, Input, OwnedPart, Part, PartSlot, PinataState, PlacedWall, Player, Projectile, Strike, StrikeButtonState, Toss, ToyState, WeaponInstance, Zone } from '../types.ts';
 
-export const PROTOCOL_VERSION = 20;
+export const PROTOCOL_VERSION = 21;
 /** Plushies per match, humans and bots together. */
 export const MAX_PLAYERS = 16;
 /** The server sends a snapshot every this many ticks (1 = 30 per second: others drawn fresher). */
@@ -63,6 +64,8 @@ export type ServerMessage =
   | { t: 'pong'; c: number; s: number }
   /** After a match: the parts that went into your collection. */
   | { t: 'kept'; parts: Part[] }
+  /** The Buttons this match earned you (sent once, when your result is final). */
+  | { t: 'buttons'; award: ButtonAward; balance: number }
   | { t: 'error'; code: 'version' | 'full' | 'not_host' | 'bad_message' };
 
 // ---------- profiles (HTTP API, see apps/server) ----------
@@ -81,6 +84,8 @@ export interface Profile {
   recovery: string;
   look: Look;
   parts: OwnedEntry[];
+  /** Buttons (Knoflíky) to spend in the shop. */
+  buttons: number;
 }
 
 /** Rounds floats so snapshots stay small (millimeter precision is plenty). */
@@ -111,7 +116,7 @@ export type MovingPlayer = Omit<Player, 'name' | 'isBot' | 'parts' | 'radius' | 
 /** Someone else's living plush: only what drawing it needs. */
 export interface SeenPlayer extends Pick<
   Player,
-  | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'buttons' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
+  | 'id' | 'pos' | 'vel' | 'z' | 'vz' | 'aim' | 'stuffing' | 'patches' | 'activeSlot' | 'action' | 'inBush' | 'soggy' | 'building' | 'revealedUntilTick'
   | 'chargeStartTick' | 'bubbledUntil' | 'glitteredUntil' | 'soakedUntil' | 'juiceUntil' | 'drop' | 'umbrella' | 'ride'
 > {
   weapons: [WeaponLook | null, WeaponLook | null];
@@ -181,7 +186,7 @@ export function encodeSnapshot(state: GameState, visible: Player[], you: EntityI
     }
     const look = (w: WeaponInstance | null): WeaponLook | null => (w ? { kind: w.kind, rarity: w.rarity, reloadEndTick: w.reloadEndTick } : null);
     others.push({
-      id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, buttons: p.buttons,
+      id: p.id, pos: p.pos, vel: p.vel, z: p.z, vz: p.vz, aim: p.aim, stuffing: p.stuffing, patches: p.patches,
       activeSlot: p.activeSlot, action: p.action, inBush: p.inBush, soggy: p.soggy, building: p.building,
       revealedUntilTick: p.revealedUntilTick, chargeStartTick: p.chargeStartTick, bubbledUntil: p.bubbledUntil, glitteredUntil: p.glitteredUntil, soakedUntil: p.soakedUntil, ride: p.ride, juiceUntil: p.juiceUntil, drop: p.drop, umbrella: p.umbrella,
       weapons: [look(p.weapons[0]), look(p.weapons[1])],
@@ -317,6 +322,7 @@ export function decodeSnapshot(msg: CompactSnapshot, parts: SnapshotParts): { st
     placement: null,
     eliminatedBy: null,
     knockouts: 0,
+    pocket: 0,
     damageDealt: 0,
     weapons: [weaponFrom(p.weapons[0]), weaponFrom(p.weapons[1])],
     items: [null, null, null],

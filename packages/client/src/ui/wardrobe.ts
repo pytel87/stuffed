@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMAL_RARITY, ANIMALS, PART_SLOTS } from '@stuffed/sim';
+import { ANIMAL_RARITY, ANIMALS, getMap, HOME_MAP, PART_SLOTS, setOffer } from '@stuffed/sim';
 import type { Animal, PartLoadout, PartSlot } from '@stuffed/sim';
 import type { Look, OwnedEntry } from '@stuffed/sim/net';
 import { PlushView } from '../render/plush-view.ts';
@@ -7,6 +7,7 @@ import type { ProfileStore } from '../session/profile.ts';
 import { renderPlushPictures } from '../render/model-icons.ts';
 import { icon, partIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
+import { mapName } from './map-choice.ts';
 
 /**
  * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
@@ -43,6 +44,7 @@ export class Wardrobe {
            <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <button type="button" class="round gallery-toggle" aria-label="${tr('Gallery')}">${icon('gallery')}</button>
            <button type="button" class="round code-toggle" aria-label="${tr('Recovery code')}">${icon('code')}</button>
+           <div class="gallery-balance" hidden title="${tr('Buttons')}">${icon('button')}<b></b></div>
            <div class="gallery" hidden></div>
            <div class="wardrobe-body">
              <canvas class="wardrobe-preview"></canvas>
@@ -118,8 +120,12 @@ export class Wardrobe {
       if (pick) this.wear({ [this.selected]: { animal: pick.dataset.animal as Animal, holo: pick.dataset.holo === '1' } });
     });
     // In the gallery: tapping an animal's card puts on every part of it you own, and goes back
-    // to the Wardrobe to show the look.
+    // to the Wardrobe to show the look. Its buy button (tapped twice: once to ask, once to buy)
+    // completes the set with Buttons.
     this.gallery.addEventListener('click', (e) => {
+      const buy = (e.target as HTMLElement).closest<HTMLButtonElement>('.gallery-buy');
+      if (buy) return void this.buyTapped(buy);
+      if ((e.target as HTMLElement).closest('.gallery-home')) return;
       const card = (e.target as HTMLElement).closest<HTMLElement>('.gallery-card.owned');
       if (!card) return;
       this.wear(Object.fromEntries(PART_SLOTS.map((slot) => [slot, { animal: card.dataset.animal as Animal, holo: false }])));
@@ -170,6 +176,7 @@ export class Wardrobe {
   /** Switches between dressing up and the gallery of all the animals. */
   private showGallery(on: boolean): void {
     this.gallery.hidden = !on;
+    this.el.querySelector<HTMLElement>('.gallery-balance')!.hidden = !on;
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
     this.showCode(false);
     this.galleryToggle.hidden = false;
@@ -194,6 +201,7 @@ export class Wardrobe {
     const countSets = (own: (slot: PartSlot, animal: Animal) => boolean) => ANIMALS.filter((a) => PART_SLOTS.every((slot) => own(slot, a))).length;
     const stat = (label: string, have: number, of: number, holo = false) =>
       `<div class="summary-stat${holo ? ' holo' : ''}"><span>${label}</span><b>${have}<small>/${of}</small></b><i style="--done:${(have / of) * 100}%"></i></div>`;
+    this.el.querySelector('.gallery-balance b')!.textContent = String(this.store.profile?.buttons ?? 0);
     const summary = `<div class="gallery-summary">
         ${stat(tr('Parts'), countParts(has), all)}
         ${stat(tr('Sets'), countSets(has), ANIMALS.length)}
@@ -216,12 +224,81 @@ export class Wardrobe {
       return `<div class="gallery-card tier-${tier}${count > 0 ? ' owned' : ''}${complete ? ' complete' : ''}${complete && holoCount === PART_SLOTS.length ? ' holo-complete' : ''}" data-animal="${animal}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
         <b class="gallery-tier">${'★'.repeat(tier)}</b>
+        ${this.homeBadge(animal)}
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
         ${complete ? `<b class="gallery-holo" title="${tr('Holo')}">${holoCount === PART_SLOTS.length ? '✦ ' : ''}${holoCount}/${PART_SLOTS.length}</b>` : ''}
         <div class="gallery-parts">${parts}</div>
+        ${this.buyButton(animal)}
       </div>`;
     }).join('');
     requestAnimationFrame(() => this.updateGalleryEdges());
+  }
+
+  /** Where to look for an animal: its home map's picture, its parts turn up most there. */
+  private homeBadge(animal: Animal): string {
+    const map = getMap(HOME_MAP[animal]);
+    const hint = tr('Found most often on: {map}').replace('{map}', mapName(map));
+    // (A button, so it gets the menus' tooltip on hover or a long press.)
+    return `<button type="button" class="gallery-home" aria-label="${hint}">${icon(`map-${map.id}`)}</button>`;
+  }
+
+  /** The shop's offer on an animal's card: its missing parts, or (set complete) its holo set. */
+  private buyButton(animal: Animal): string {
+    const owned = this.store.profile?.parts ?? [];
+    const plain = setOffer(owned, animal, false);
+    const offer = plain.missing.length > 0 ? plain : setOffer(owned, animal, true);
+    if (offer.missing.length === 0 || offer.locked) return '';
+    const short = offer.price > (this.store.profile?.buttons ?? 0);
+    const label = tr(offer.holo ? 'Holo set' : 'Complete');
+    // (No aria-label: its text says it all, and a label would pop up the menus' tooltip.)
+    return `<button type="button" class="gallery-buy${offer.holo ? ' holo' : ''}${short ? ' short' : ''}" data-animal="${animal}" data-holo="${offer.holo ? 1 : 0}"><span class="buy-label">${label}</span>${icon('button')}<b>${offer.price}</b></button>`;
+  }
+
+  /** First tap asks (the button turns into "Buy?"), a second one within a few seconds buys. */
+  private async buyTapped(button: HTMLButtonElement): Promise<void> {
+    if (button.classList.contains('short')) {
+      // A little "no" wiggle, and why.
+      button.classList.remove('nope');
+      void button.offsetWidth;
+      button.classList.add('nope');
+      this.flashError(tr('Not enough Buttons yet: play matches to earn them'));
+      return;
+    }
+    if (!button.classList.contains('confirm')) {
+      for (const other of this.gallery.querySelectorAll('.gallery-buy.confirm')) other.classList.remove('confirm');
+      button.classList.add('confirm');
+      button.querySelector('.buy-label')!.textContent = tr('Buy?');
+      setTimeout(() => {
+        if (!button.isConnected || !button.classList.contains('confirm')) return;
+        button.classList.remove('confirm');
+        button.querySelector('.buy-label')!.textContent = tr(button.dataset.holo === '1' ? 'Holo set' : 'Complete');
+      }, 3000);
+      return;
+    }
+    button.disabled = true;
+    const animal = button.dataset.animal as Animal;
+    const result = await this.store.buySet(animal, button.dataset.holo === '1');
+    if (result === 'too_few') this.flashError(tr('Not enough Buttons yet: play matches to earn them'));
+    else if (result === 'failed') this.flashError(tr("Couldn't reach the game server."));
+    const scroll = this.gallery.scrollTop;
+    this.renderGallery();
+    this.gallery.scrollTop = scroll;
+    if (result === 'ok') this.gallery.querySelector(`.gallery-card[data-animal="${animal}"]`)?.classList.add('just-bought');
+  }
+
+  /** A message that pops in, stays a few seconds and fades away (see .error.flash). */
+  private flashError(text: string): void {
+    const m = this.message;
+    m.textContent = text;
+    // Restart the animation (a second tap while it shows plays it again).
+    m.classList.remove('flash');
+    void m.offsetWidth;
+    m.classList.add('flash');
+    m.onanimationend = (e) => {
+      if (e.target !== m || m.textContent !== text) return;
+      m.classList.remove('flash');
+      m.textContent = '';
+    };
   }
 
   hide(): void {

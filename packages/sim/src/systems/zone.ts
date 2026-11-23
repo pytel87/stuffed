@@ -78,7 +78,7 @@ export function updateZone(state: GameState): void {
 
   for (const p of state.players) if (p.alive) p.soggy = !p.drop && isOutside(z, p.pos);
 
-  // Soggy plushies lose stuffing once per second; buttons don't protect against water.
+  // Soggy plushies lose stuffing once per second; patches don't protect against water.
   if (state.tick % config.tickRate === 0) {
     const dps = zoneDamagePerSecond(z, state.tick);
     for (const p of state.players) {

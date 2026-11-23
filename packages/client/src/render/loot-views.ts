@@ -292,6 +292,28 @@ function sewingButton(r: number, color: string): THREE.Group {
   return button;
 }
 
+/** A square fabric patch (armor) `size` across, lying flat, with a running stitch round its edge. */
+function fabricPatch(size: number, color: string): THREE.Group {
+  const patch = new THREE.Group();
+  const h = Math.max(0.025, size * 0.12);
+  patch.add(toonMesh(new THREE.BoxGeometry(size, h, size), color, { outline: 0.06 }));
+  const stitch = toonMaterial(new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.75), { map: null });
+  const inset = size * 0.38;
+  const n = 4;
+  for (let side = 0; side < 4; side++) {
+    for (let k = 0; k < n; k++) {
+      const t = -inset + ((k + 0.5) / n) * inset * 2;
+      const dash = new THREE.Mesh(new THREE.BoxGeometry(size * 0.12, 0.006, size * 0.035), stitch);
+      const along = side % 2 === 0;
+      const edge = side < 2 ? inset : -inset;
+      dash.position.set(along ? t : edge, h / 2 + 0.003, along ? edge : t);
+      dash.rotation.y = along ? 0 : Math.PI / 2;
+      patch.add(dash);
+    }
+  }
+  return patch;
+}
+
 export function buildItem(kind: ItemKind): THREE.Group {
   const g = new THREE.Group();
   switch (kind) {
@@ -365,13 +387,13 @@ export function buildItem(kind: ItemKind): THREE.Group {
       g.add(strand);
       break;
     }
-    case 'button_pack':
-      // A few buttons scattered on the ground (the same size as the Button Pile's).
-      for (const [x, z, c, tilt, turn] of [[-0.13, -0.06, '#e2574c', 0.1, 0.3], [0.12, -0.09, '#3d7ff2', -0.15, 1.4], [0.01, 0.12, '#f7c331', 0.2, 2.2], [0.17, 0.13, '#5bd16a', 0.05, 0.9]] as const) {
-        const button = sewingButton(0.11, c);
-        button.position.set(x, 0.03 + Math.abs(tilt) * 0.1, z);
-        button.rotation.set(tilt, turn, tilt * 0.5);
-        g.add(button);
+    case 'patch_pack':
+      // A few fabric patches dropped on the ground, a little askew (the same size as the Bundle's).
+      for (const [x, z, c, tilt, turn] of [[-0.13, -0.05, '#3d7ff2', 0.08, 0.3], [0.13, -0.08, '#e2574c', -0.1, 1.2], [0.02, 0.13, '#f7c331', 0.12, 2.1]] as const) {
+        const patch = fabricPatch(0.2, c);
+        patch.position.set(x, 0.02 + Math.abs(tilt) * 0.1, z);
+        patch.rotation.set(tilt, turn, tilt * 0.5);
+        g.add(patch);
       }
       break;
     case 'big_stuffing_bag': {
@@ -454,26 +476,22 @@ export function buildItem(kind: ItemKind): THREE.Group {
       }
       break;
     }
-    case 'button_pile': {
-      // A big heap of colorful buttons: many more of the Button Pack's.
-      const colors = ['#e2574c', '#3d7ff2', '#f7c331', '#5bd16a', '#ff9cbf', '#9b7bd8'];
-      // [x, y, z, radius, tilt] from the bottom layer up to a big one on top.
-      const heap: [number, number, number, number, number][] = [];
-      for (let i = 0; i < 9; i++) {
-        const a = (i / 9) * Math.PI * 2;
-        heap.push([Math.cos(a) * 0.24, 0.03, Math.sin(a) * 0.24, 0.1, 0.25]);
-      }
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + 0.4;
-        heap.push([Math.cos(a) * 0.13, 0.1, Math.sin(a) * 0.13, 0.11, 0.4]);
-      }
-      heap.push([0, 0.17, 0, 0.12, 0.15], [0.05, 0.22, -0.03, 0.11, 0.5]);
-      heap.forEach(([x, y, z, r, tilt], i) => {
-        const button = sewingButton(r, colors[i % colors.length]!);
-        button.position.set(x, y, z);
-        button.rotation.set(Math.sin(i * 1.7) * tilt, i * 0.9, Math.cos(i * 1.3) * tilt);
-        g.add(button);
+    case 'patch_pile': {
+      // A bundle of patches: a neat stack of them, tied with a red ribbon.
+      const colors = ['#3d7ff2', '#e2574c', '#f7c331', '#5bd16a', '#ff9cbf', '#9b7bd8'];
+      colors.forEach((c, i) => {
+        const patch = fabricPatch(0.34, c);
+        patch.position.y = 0.025 + i * 0.045;
+        patch.rotation.y = Math.sin(i * 2.3) * 0.18;
+        g.add(patch);
       });
+      const ribbon = toonMesh(new THREE.BoxGeometry(0.07, 0.32, 0.37), '#e2433f', { outline: 0.08 });
+      ribbon.position.y = 0.14;
+      g.add(ribbon);
+      const bow = toonMesh(new THREE.TorusGeometry(0.05, 0.02, 6, 14), '#e2433f', { outline: 0.1 });
+      bow.position.set(0, 0.32, 0);
+      bow.rotation.x = Math.PI / 2;
+      g.add(bow);
       break;
     }
     case 'cardboard_wall': {

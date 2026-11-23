@@ -1,6 +1,7 @@
 import { isOutside, zoneDamagePerSecond } from '@stuffed/sim';
 import type { GameState, Player, Vec2 } from '@stuffed/sim';
 import { icon } from './icons.ts';
+import { tr } from '../i18n.ts';
 
 /** How many plushies are left, and a badge pointing back to safety while you're out in the Rinse
  *  (it pulses faster the more it hurts). No countdown or call-outs: the grey edge shows it coming. */
@@ -10,12 +11,15 @@ export class ZoneHud {
   private lastLeft = -1;
   private readonly soggy: HTMLElement;
   private readonly arrow: HTMLElement;
+  /** Buttons found this match (shown once there are some). */
+  private readonly pocket: HTMLElement;
+  private lastPocket = -1;
 
   constructor(root: HTMLElement) {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="zone">
-         <div class="zone-row"><span class="alive-count">${icon('person')}<b class="left"></b></span></div>
+         <div class="zone-row"><span class="alive-count">${icon('person')}<b class="left"></b></span><span class="alive-count pocket-count" hidden title="${tr('Buttons')}">${icon('button')}<b></b></span></div>
          <div class="soggy" hidden>${icon('drained')}<span class="arrow">${icon('arrow')}</span></div>
        </div>`,
     );
@@ -23,6 +27,7 @@ export class ZoneHud {
     this.left = q('.alive-count .left');
     this.soggy = q('.soggy');
     this.arrow = q('.soggy .arrow');
+    this.pocket = q('.pocket-count');
   }
 
   /** `left`: plushies still in the match. */
@@ -31,6 +36,17 @@ export class ZoneHud {
     if (left !== this.lastLeft) {
       this.lastLeft = left;
       this.left.textContent = String(left);
+    }
+
+    const pocket = me?.pocket ?? 0;
+    if (pocket !== this.lastPocket) {
+      const more = pocket > this.lastPocket && this.lastPocket >= 0;
+      this.lastPocket = pocket;
+      this.pocket.hidden = pocket <= 0;
+      this.pocket.querySelector('b')!.textContent = String(pocket);
+      // Restart the pop.
+      this.pocket.classList.remove('more');
+      if (more) void this.pocket.offsetWidth, this.pocket.classList.add('more');
     }
 
     const soggy = !!me?.alive && isOutside(z, mePos);

@@ -43,7 +43,8 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       aim: { x: toCenter.x / len, y: toCenter.y / len },
       aimDistance: 0,
       stuffing: config.player.maxStuffing,
-      buttons: 0,
+      patches: 0,
+      pocket: 0,
       alive: true,
       eliminatedTick: null,
       placement: null,
@@ -67,7 +68,7 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
       juiceUntil: 0,
       drop: null,
       umbrella: false,
-      parts: rollParts(rng, entry.parts),
+      parts: rollParts(rng, entry.parts, map.id),
       stash: [],
       holoAnimals: (entry.holoAnimals ?? []).filter((a) => ANIMALS.includes(a)),
       missingParts: (entry.missingParts ?? []).filter((m) => ANIMALS.includes(m.animal) && PART_SLOTS.includes(m.slot)),
@@ -147,13 +148,13 @@ function startingWeapons(loadout: readonly WeaponSpec[]): [WeaponInstance | null
 }
 
 /** A plush's own look: Hand-me-down parts that never drop. */
-function rollParts(rng: RngState, fixed: RosterEntry['parts'] = {}): PartLoadout {
+function rollParts(rng: RngState, fixed: RosterEntry['parts'] = {}, mapId?: string): PartLoadout {
   const parts = {} as PartLoadout;
   for (const slot of PART_SLOTS) {
     const own = fixed[slot];
     const owned = typeof own === 'string' ? { animal: own, rarity: 0 as const } : own;
     // A real animal only (the look may come from outside, e.g. a saved profile).
-    const animal = owned && ANIMALS.includes(owned.animal) ? owned.animal : pickAnimal(rng);
+    const animal = owned && ANIMALS.includes(owned.animal) ? owned.animal : pickAnimal(rng, mapId);
     const rarity = owned && animal === owned.animal && owned.rarity >= 0 && owned.rarity <= 4 ? owned.rarity : 0;
     const holo = !!owned && typeof owned === 'object' && animal === owned.animal && owned.holo === true;
     parts[slot] = { animal, rarity, found: false, ...(holo ? { holo: true } : {}) };

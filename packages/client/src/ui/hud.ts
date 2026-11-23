@@ -10,7 +10,7 @@ const PROMPT_HEIGHT = 1.5;
 const OVERHEAD_HEIGHT = 2.4;
 
 /**
- * In-match HUD, mostly icons: one toughness bar (stuffing, with buttons as a yellow coat over it),
+ * In-match HUD, mostly icons: one toughness bar (stuffing, with patches as a yellow coat over it),
  * the two weapon cards (ammo as a draining bar that refills while reloading; tap to switch, tap
  * the active one to reload), three item slots (tap to use), and in the scene: what E/Grab would
  * do, floating over the chest or item, and a progress bar over what's being opened or used.
@@ -20,8 +20,8 @@ export class Hud {
   private readonly vitals: HTMLElement;
   private readonly stuffingFill: HTMLElement;
   private readonly stuffingNum: HTMLElement;
-  private readonly buttonsFill: HTMLElement;
-  private readonly buttonsNum: HTMLElement;
+  private readonly patchesFill: HTMLElement;
+  private readonly patchesNum: HTMLElement;
   private readonly weapons: { root: HTMLElement; art: HTMLElement; ammo: HTMLElement }[];
   private readonly items: { root: HTMLElement; art: HTMLElement; count: HTMLElement }[];
   private readonly prompt: HTMLElement;
@@ -49,8 +49,8 @@ export class Hud {
       'beforeend',
       `<div class="vitals">
          <span class="health">${icon('stuffing')}<b class="num"></b></span>
-         <div class="track"><div class="fill stuffing"></div><div class="fill buttons"></div></div>
-         <b class="coat" hidden>${icon('buttons')}<span></span></b>
+         <div class="track"><div class="fill stuffing"></div><div class="fill patches"></div></div>
+         <b class="coat" hidden>${icon('patches')}<span></span></b>
        </div>
        <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
        <div class="loadout">
@@ -72,8 +72,8 @@ export class Hud {
     this.vitals = q('.vitals');
     this.stuffingFill = q('.vitals .stuffing');
     this.stuffingNum = q('.vitals .num');
-    this.buttonsFill = q('.vitals .buttons');
-    this.buttonsNum = q('.vitals .coat span');
+    this.patchesFill = q('.vitals .patches');
+    this.patchesNum = q('.vitals .coat span');
     this.prompt = q('.prompt');
     this.promptArt = q('.prompt .art');
     this.promptStash = q('.prompt .stash-opt');
@@ -124,14 +124,14 @@ export class Hud {
   update(state: GameState, me: Player | undefined, alpha: number, world?: World): void {
     if (!me) return;
     const stuffing = Math.ceil(me.stuffing);
-    const buttons = Math.ceil(me.buttons);
+    const patches = Math.ceil(me.patches);
     this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => (this.stuffingFill.style.width = v));
     this.set('sN', String(stuffing), (v) => (this.stuffingNum.textContent = v));
     this.set('sLow', String(stuffing <= 30), (v) => this.vitals.classList.toggle('low', v === 'true'));
-    this.set('bW', `${(buttons / config.player.maxButtons) * 100}%`, (v) => (this.buttonsFill.style.width = v));
-    this.set('bN', String(buttons), (v) => {
-      this.buttonsNum.textContent = v;
-      this.buttonsNum.parentElement!.hidden = v === '0';
+    this.set('bW', `${(patches / config.player.maxPatches) * 100}%`, (v) => (this.patchesFill.style.width = v));
+    this.set('bN', String(patches), (v) => {
+      this.patchesNum.textContent = v;
+      this.patchesNum.parentElement!.hidden = v === '0';
     });
 
     me.weapons.forEach((w, i) => {

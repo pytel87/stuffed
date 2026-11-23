@@ -433,10 +433,10 @@ describe('Pirate Cove', () => {
     const nw = map.zones!.find((z) => z.name === 'Volcano Isle')!.center;
     // In the summit's pool.
     const { world, state, p } = solo(map, { x: nw.x + 1.6, y: nw.y }, 3.3);
-    const before = p.stuffing + p.buttons;
+    const before = p.stuffing + p.patches;
     run(world, state, 1, () => input());
     expect(state.events.some((e) => e.type === 'burn' && e.playerId === p.id)).toBe(true);
-    expect(p.stuffing + p.buttons).toBeLessThan(before);
+    expect(p.stuffing + p.patches).toBeLessThan(before);
     expect(p.vz).toBeGreaterThan(0);
     // On the island by the chest: safe.
     const safe = solo(map, { x: nw.x + 1.15, y: nw.y + 0.3 }, 3.3);

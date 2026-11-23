@@ -233,7 +233,7 @@ export function revivable(state: GameState, p: Player): boolean {
 export function revive(state: GameState, p: Player, by: Player): void {
   p.alive = true;
   p.stuffing = config.team.reviveStuffing;
-  p.buttons = 0;
+  p.patches = 0;
   const [a, b] = config.player.startingLoadout;
   p.weapons = [a ? makeWeapon(a.kind, a.rarity) : null, b ? makeWeapon(b.kind, b.rarity) : null];
   p.activeSlot = 0;
@@ -258,7 +258,10 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   const rarity = kind === 'cork_popper' ? (Math.max(1, rolled) as Rarity) : rolled;
   const item = pickWeighted(state.rng, chest.loot === 'food' ? config.chest.foodItemWeights : config.chest.itemWeights);
   // (Parts have no rarity of their own; one can come out holographic for the opener.)
-  const part = rollPart(state.rng, opener, chest.loot === 'high' ? config.parts.holoChanceRich : config.parts.holoChance);
+  const part = rollPart(state.rng, opener, chest.loot === 'high' ? config.parts.holoChanceRich : config.parts.holoChance, state.mapId);
+  // (Rolled whoever opens it, so the match's dice don't depend on that.)
+  const [few, most] = config.chest.buttons[chest.loot];
+  const buttons = few + Math.floor(nextFloat(state.rng) * (most - few + 1));
 
   // Drops land to either side of the opener (60 degrees off their direction), not under them.
   const toward = opener ? unit(opener.pos.x - chest.pos.x, opener.pos.y - chest.pos.y) : { x: 0, y: 1 };
@@ -274,6 +277,10 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
   spawnLoot(world, state, spots[1]!, { type: 'item', item: { kind: item, count: config.items[item].chestCount } }, chest.z);
   spawnLoot(world, state, spots[2]!, { type: 'part', part }, chest.z);
   state.events.push({ type: 'chestOpened', chestId: chest.id, playerId: opener?.id ?? 0 });
+  if (opener) {
+    opener.pocket += buttons;
+    state.events.push({ type: 'buttonsFound', playerId: opener.id, amount: buttons, pos: { ...chest.pos } });
+  }
 }
 
 /**

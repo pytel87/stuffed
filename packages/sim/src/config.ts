@@ -183,7 +183,7 @@ export interface ItemStats {
   /** Seconds to use; you move at items.useMoveMultiplier speed meanwhile. */
   readonly useTime: number;
   readonly stuffing: number;
-  readonly buttons: number;
+  readonly patches: number;
   /** Heals stop at this much stuffing. */
   readonly stuffingCap: number;
   readonly maxStack: number;
@@ -196,14 +196,14 @@ export interface ItemStats {
 }
 
 const items: Record<ItemKind, ItemStats> = {
-  cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, buttons: 0, stuffingCap: 100, maxStack: 5, chestCount: 2, rarity: 0 },
-  sewing_kit: { name: 'Sewing Kit', useTime: 4, stuffing: 50, buttons: 0, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 2 },
-  button_pack: { name: 'Button Pack', useTime: 2, stuffing: 0, buttons: 25, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 1 },
-  big_stuffing_bag: { name: 'Big Stuffing Bag', useTime: 8, stuffing: 100, buttons: 0, stuffingCap: 100, maxStack: 1, chestCount: 1, rarity: 3 },
-  juice_box: { name: 'Juice Box', useTime: 2, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2, effect: 'juice' },
+  cotton_puff: { name: 'Cotton Puff', useTime: 1, stuffing: 15, patches: 0, stuffingCap: 100, maxStack: 5, chestCount: 2, rarity: 0 },
+  sewing_kit: { name: 'Sewing Kit', useTime: 4, stuffing: 50, patches: 0, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 2 },
+  patch_pack: { name: 'Patch Pack', useTime: 2, stuffing: 0, patches: 25, stuffingCap: 100, maxStack: 3, chestCount: 1, rarity: 1 },
+  big_stuffing_bag: { name: 'Big Stuffing Bag', useTime: 8, stuffing: 100, patches: 0, stuffingCap: 100, maxStack: 1, chestCount: 1, rarity: 3 },
+  juice_box: { name: 'Juice Box', useTime: 2, stuffing: 0, patches: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2, effect: 'juice' },
   // The big armor: like the Sewing Kit is to the Cotton Puff.
-  button_pile: { name: 'Button Pile', useTime: 4, stuffing: 0, buttons: 50, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2 },
-  cardboard_wall: { name: 'Cardboard Wall', useTime: 1, stuffing: 0, buttons: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 1, effect: 'wall' },
+  patch_pile: { name: 'Patch Bundle', useTime: 4, stuffing: 0, patches: 50, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 2 },
+  cardboard_wall: { name: 'Cardboard Wall', useTime: 1, stuffing: 0, patches: 0, stuffingCap: 100, maxStack: 2, chestCount: 1, rarity: 1, effect: 'wall' },
 };
 
 /** Tuning for the items with special effects. */
@@ -242,7 +242,7 @@ export const config = {
   player: {
     radius: 0.5,
     maxStuffing: 100,
-    maxButtons: 100,
+    maxPatches: 100,
     /** Top speed in units per second. */
     moveSpeed: 6,
     /** How quickly velocity reaches the target speed (1/s); higher feels snappier. */
@@ -332,6 +332,8 @@ export const config = {
     bagSize: 3,
     /** Relative odds of a chest's part being each animal, by the animal's rarity (1-4). */
     animalWeights: [0, 6, 4, 3, 1],
+    /** An animal's parts are this many times likelier on its home map (see HOME_MAP). */
+    homeBoost: 4,
     /** Odds of a part coming out holographic (for an animal whose whole set the finder owns):
      *  from most chests, and from royal chests and piñatas. */
     holoChance: 1 / 25,
@@ -342,6 +344,8 @@ export const config = {
   },
 
   chest: {
+    /** Buttons (the currency) a chest puts in its opener's pocket: [fewest, most], by its loot. */
+    buttons: { low: [1, 3], medium: [2, 5], food: [1, 3], high: [8, 12] } as Record<LootLevel, [number, number]>,
     /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,
     height: 0.75,
@@ -373,20 +377,20 @@ export const config = {
     itemWeights: {
       cotton_puff: 4,
       sewing_kit: 2,
-      button_pack: 3,
+      patch_pack: 3,
       big_stuffing_bag: 0.6,
       juice_box: 1.5,
-      button_pile: 1.2,
+      patch_pile: 1.2,
       cardboard_wall: 1.6,
     } satisfies Record<ItemKind, number>,
     /** Food crates (picnic) favor healing. */
     foodItemWeights: {
       cotton_puff: 5,
       sewing_kit: 4,
-      button_pack: 1,
+      patch_pack: 1,
       big_stuffing_bag: 2,
       juice_box: 3,
-      button_pile: 0.5,
+      patch_pile: 0.5,
       cardboard_wall: 0.5,
     } satisfies Record<ItemKind, number>,
   },
@@ -447,7 +451,7 @@ export const config = {
   /**
    * The Rinse: after a grace period the water rises without pause, shrinking the safe circle
    * smoothly from the whole map to a random final point. Outside the circle you take damage
-   * every second (stuffing only, buttons don't help) and move at player.soggySpeedMultiplier.
+   * every second (stuffing only, patches don't help) and move at player.soggySpeedMultiplier.
    */
   zone: {
     /** Seconds before the water starts rising (time to land and loot). */
@@ -530,6 +534,8 @@ export const config = {
 
   /** The map's piñata (see systems/pinata.ts). */
   pinata: {
+    /** Buttons (the currency) for whoever breaks it. */
+    buttons: 15,
     /** Damage it takes before it breaks (about nine Cork Popper shots). */
     hp: 160,
     /** Its size: shots and plushies bump into it within this of its middle. */

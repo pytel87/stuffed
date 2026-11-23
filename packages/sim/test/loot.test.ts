@@ -101,7 +101,7 @@ describe('weapon pickup', () => {
 });
 
 describe('items', () => {
-  function withItems(kind: 'cotton_puff' | 'sewing_kit' | 'button_pack', count: number) {
+  function withItems(kind: 'cotton_puff' | 'sewing_kit' | 'patch_pack', count: number) {
     const g = solo(OPEN_MAP);
     g.state.loot.push({ id: 999, pos: { x: 21, y: 40 }, z: 0, rarity: 0, content: { type: 'item', item: { kind, count } } });
     return g;
@@ -120,7 +120,7 @@ describe('items', () => {
     const { world, state, p } = withItems('sewing_kit', 1);
     p.items = [
       { kind: 'cotton_puff', count: 1 },
-      { kind: 'button_pack', count: 1 },
+      { kind: 'patch_pack', count: 1 },
       { kind: 'cotton_puff', count: 5 },
     ];
     run(world, state, 1, () => idle);
@@ -141,18 +141,18 @@ describe('items', () => {
     expect(p.action).toBeNull(); // already full: nothing to do
   });
 
-  it('Sewing Kit heals 50 up to 100; Button Pack adds 25 armor up to 100', () => {
+  it('Sewing Kit heals 50 up to 100; Patch Pack adds 25 armor up to 100', () => {
     const { world, state, p } = solo(OPEN_MAP);
-    p.items = [{ kind: 'sewing_kit', count: 1 }, { kind: 'button_pack', count: 1 }, null];
+    p.items = [{ kind: 'sewing_kit', count: 1 }, { kind: 'patch_pack', count: 1 }, null];
     p.stuffing = 80;
-    p.buttons = 90;
+    p.patches = 90;
     run(world, state, 1, () => input({ useItemSlot: 0 }));
     run(world, state, secondsToTicks(config.items.sewing_kit.useTime), () => idle);
     expect(p.stuffing).toBe(100);
     expect(p.items[0]).toBeNull();
     run(world, state, 1, () => input({ useItemSlot: 1 }));
-    run(world, state, secondsToTicks(config.items.button_pack.useTime), () => idle);
-    expect(p.buttons).toBe(100);
+    run(world, state, secondsToTicks(config.items.patch_pack.useTime), () => idle);
+    expect(p.patches).toBe(100);
   });
 
   it('slow you down while in use and are cancelled by shooting', () => {
@@ -175,7 +175,7 @@ describe('knockouts', () => {
     a.pos = { x: 20, y: 40 };
     b.pos = { x: 40, y: 40 };
     b.weapons = [makeWeapon('super_soaker', 2), makeWeapon('foam_dart_smg', 1)];
-    b.items = [{ kind: 'cotton_puff', count: 3 }, null, { kind: 'button_pack', count: 1 }];
+    b.items = [{ kind: 'cotton_puff', count: 3 }, null, { kind: 'patch_pack', count: 1 }];
     applyDamage(state, b, 200, a.id);
     run(world, state, 1, () => idle);
     expect(b.weapons).toEqual([null, null]);

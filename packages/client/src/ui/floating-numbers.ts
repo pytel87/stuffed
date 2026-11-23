@@ -16,12 +16,16 @@ export class FloatingNumbers {
 
   constructor(private readonly layer: HTMLElement) {}
 
-  add(x: number, z: number, text: string, kind: 'stuffing' | 'armor'): void {
+  /** `kind` 'buttons': Buttons (the currency) found, with the button picture (`html`, trusted). */
+  add(x: number, z: number, text: string, kind: 'stuffing' | 'armor' | 'buttons', html?: string): void {
     const el = document.createElement('div');
     el.className = `floater ${kind}`;
-    el.textContent = text;
+    if (html) el.innerHTML = html;
+    else el.textContent = text;
     this.layer.appendChild(el);
-    this.items.push({ el, world: new THREE.Vector3(x + (Math.random() - 0.5) * 0.5, 1.9, z), age: 0 });
+    // (Found Buttons stay up a little longer, and come out of the chest rather than off a plush.)
+    const jitter = kind === 'buttons' ? 0 : (Math.random() - 0.5) * 0.5;
+    this.items.push({ el, world: new THREE.Vector3(x + jitter, kind === 'buttons' ? 1.3 : 1.9, z), age: kind === 'buttons' ? -0.4 : 0 });
   }
 
   update(dt: number, camera: THREE.Camera, width: number, height: number): void {
@@ -33,7 +37,7 @@ export class FloatingNumbers {
         this.items.splice(i, 1);
         continue;
       }
-      const t = f.age / LIFE;
+      const t = Math.max(0, f.age) / LIFE;
       this.v.copy(f.world).setY(f.world.y + RISE * t).project(camera);
       const sx = (this.v.x * 0.5 + 0.5) * width;
       const sy = (-this.v.y * 0.5 + 0.5) * height;

@@ -20,22 +20,22 @@ const SHOT: Record<WeaponKind, { name: SoundName; volume: number }> = {
  *  the royal one bursts open with a rising chime, the picnic basket crackles and pops. */
 const CHEST_OPEN: Record<LootLevel, SoundName> = { low: 'chest_open_low', medium: 'chest_open', high: 'chest_open_high', food: 'chest_open_food' };
 
-/** Using an item, while it lasts: cotton fluffed, stitching, buttons clicked on one by one, a straw
+/** Using an item, while it lasts: cotton fluffed, stitching (patches sewn on too), a straw
  *  slurped, stuffing stuffed in, cardboard unfolded. */
 const USING: Record<ItemKind, SoundName> = {
   cotton_puff: 'use_puff', sewing_kit: 'use_sewing', big_stuffing_bag: 'use_bag',
-  button_pack: 'use_buttons', button_pile: 'use_buttons', juice_box: 'use_juice', cardboard_wall: 'use_cardboard',
+  patch_pack: 'use_sewing', patch_pile: 'use_sewing', juice_box: 'use_juice', cardboard_wall: 'use_cardboard',
 };
 /** And when it's done: a small poof for a puff, stitches and a twinkle for the sewing kit, a big poof for the
  *  bag, buttons snapping into place, a happy gulp. (The cardboard wall thumps down on its own event.) */
 const USED: Record<ItemKind, SoundName | null> = {
   cotton_puff: 'heal_small', sewing_kit: 'heal', big_stuffing_bag: 'heal_big',
-  button_pack: 'armor_up', button_pile: 'armor_up', juice_box: 'juice_done', cardboard_wall: null,
+  patch_pack: 'armor_up', patch_pile: 'armor_up', juice_box: 'juice_done', cardboard_wall: null,
 };
 
 /** Picking up an item: a rattle of buttons, a rustle of stuffing, a clink of the sewing tin, a slosh of juice, a flap of cardboard. */
 const GRAB: Record<ItemKind, SoundName> = {
-  button_pack: 'grab_buttons', button_pile: 'grab_buttons',
+  patch_pack: 'grab_stuffing', patch_pile: 'grab_stuffing',
   cotton_puff: 'grab_stuffing', big_stuffing_bag: 'grab_stuffing',
   sewing_kit: 'grab_sewing', juice_box: 'grab_juice', cardboard_wall: 'grab_cardboard',
 };
@@ -250,6 +250,10 @@ export class GameAudio {
           if (c) s.play(CHEST_OPEN[c.loot], { at: c.pos, volume: 0.8 });
           break;
         }
+        case 'buttonsFound':
+          // Your own find: a rattle of Buttons into the pocket.
+          if (e.playerId === localId) s.play('grab_buttons', { at: e.pos, volume: 0.6 });
+          break;
         case 'pickup': {
           const p = byId.get(e.playerId);
           // Parts make their sound on the 'wear' event (which also covers swapping from the stash).

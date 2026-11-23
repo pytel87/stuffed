@@ -36,7 +36,7 @@ export class Help {
         <span>${keys('Q')}</span><span>${icon('stash')} ${icon('swap')}</span>
         <span>${keys('1', '2')}</span><span>${icon('swap')}</span>
         <span>${keys('R')}</span><span>${icon('reload')}</span>
-        <span>${keys('3', '4', '5')}</span><span>${icon('cotton_puff')} ${icon('button_pack')} ${icon('juice_box')}</span>
+        <span>${keys('3', '4', '5')}</span><span>${icon('cotton_puff')} ${icon('patch_pack')} ${icon('juice_box')}</span>
       </div>
       <div class="help-touch">
         <div class="pad"><div class="stick"><div class="stick-knob"></div></div>${icon('person')}</div>

@@ -2,7 +2,9 @@
 // the profile API (/api/profile...).
 import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
-import { addParts, createProfile, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
+import { ANIMALS, matchButtons } from '@stuffed/sim';
+import type { Animal } from '@stuffed/sim';
+import { addParts, awardButtons, buySet, createProfile, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
 import type { Room } from './room.ts';
 
 export { Room } from './room.ts';
@@ -47,7 +49,9 @@ const MAX_CARRIED = 8;
  * Profiles (all JSON; the device's token goes in `authorization: Bearer ...`):
  * POST /api/profile → new profile and its token · GET /api/profile → yours ·
  * PUT /api/profile/look {look} · POST /api/profile/recover {code} → a token for this device ·
- * POST /api/profile/solo {parts, won} → the parts carried home from a solo match, saved; returns them.
+ * POST /api/profile/solo {parts, won, placement, knockouts, found, matchId} → the parts carried home
+ * from a solo match, saved, and its Buttons (guarded: the browser reports these, see BUTTONS) · POST /api/shop/buy
+ * {animal, holo, requestId} → the parts missing from that set, for Buttons.
  */
 async function profileApi(req: Request, env: Env, path: string): Promise<Response> {
   const json = (body: unknown, status = 200) => Response.json(body, { status });
@@ -81,7 +85,21 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
     const parts = parseParts(b.parts, MAX_CARRIED);
     if (!parts) return json({ error: 'bad_parts' }, 400);
     await addParts(env.DB, id, parts);
-    return json({ kept: parts, profile: await loadProfile(env.DB, id) });
+    const placement = Number.isInteger(b.placement) && (b.placement as number) >= 1 ? (b.placement as number) : null;
+    const knockouts = Number.isInteger(b.knockouts) ? (b.knockouts as number) : 0;
+    const matchId = typeof b.matchId === 'string' && /^[\w-]{6,64}$/.test(b.matchId) ? b.matchId : crypto.randomUUID();
+    const won = b.won === true;
+    const found = Number.isInteger(b.found) ? (b.found as number) : 0;
+    const { award } = await awardButtons(env.DB, id, matchButtons({ placement: won ? 1 : placement, knockouts, won, found }), `solo:${id}:${matchId}`, true);
+    return json({ kept: parts, award, profile: await loadProfile(env.DB, id) });
+  }
+  if (path === '/api/shop/buy' && req.method === 'POST') {
+    const b = await body();
+    const animal = b.animal as Animal;
+    const requestId = typeof b.requestId === 'string' && /^[\w-]{6,64}$/.test(b.requestId) ? b.requestId : null;
+    if (!ANIMALS.includes(animal) || !requestId) return json({ error: 'bad_request' }, 400);
+    const result = await buySet(env.DB, id, animal, b.holo === true, requestId);
+    return 'error' in result ? json(result, result.error === 'too_few_buttons' ? 402 : 400) : json(result);
   }
   return json({ error: 'not_found' }, 404);
 }

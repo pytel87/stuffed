@@ -27,6 +27,7 @@ export class MenuScreen {
       'beforeend',
       `<div class="overlay menu" hidden>
          <div class="card">
+           <span class="button-balance" hidden title="${tr('Buttons')}">${icon('button')}<b></b></span>
            <h1 class="logo">STUFFED</h1>
            <div class="row">
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="${tr('Your name')}"></label>
@@ -85,6 +86,13 @@ export class MenuScreen {
   /** The Wardrobe needs a profile (a reachable server). */
   setWardrobe(available: boolean): void {
     this.el.querySelector<HTMLElement>('.menu-wardrobe')!.hidden = !available;
+  }
+
+  /** Your Buttons (null: no profile, hidden). */
+  setButtons(balance: number | null): void {
+    const el = this.el.querySelector<HTMLElement>('.button-balance')!;
+    el.hidden = balance === null;
+    el.querySelector('b')!.textContent = String(balance ?? 0);
   }
 
   setBusy(busy: boolean): void {

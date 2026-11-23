@@ -91,6 +91,8 @@ interface Emitter {
 export class Effects {
   private readonly cotton: ParticlePool;
   private readonly buttons: ParticlePool[];
+  /** Bits of fabric patch (armor) knocked loose. */
+  private readonly patches: ParticlePool[];
   private readonly water: ParticlePool;
   /** Glitter in a few bright colors; also marble shards and bonk stars. */
   private readonly glitter: ParticlePool[];
@@ -117,6 +119,8 @@ export class Effects {
     this.cotton = new ParticlePool(scene, puff, toonMaterial('#fdfbf7', { map: null }));
     const disc = new THREE.CylinderGeometry(1, 1, 0.35, 12);
     this.buttons = ['#e2574c', '#3d7ff2', '#f7c331'].map((c) => new ParticlePool(scene, disc, toonMaterial(c, { map: null })));
+    const square = new THREE.BoxGeometry(1.5, 0.3, 1.5);
+    this.patches = ['#3d7ff2', '#f7c331', '#e2574c'].map((c) => new ParticlePool(scene, square, toonMaterial(c, { map: null })));
     this.water = new ParticlePool(scene, new THREE.SphereGeometry(1, 8, 6), toonMaterial('#7fd0f7', { map: null }));
     const flake = new THREE.OctahedronGeometry(1, 0);
     this.glitter = ['#ff7ac8', '#fff27a', '#7af0ff', '#ffffff', '#c58bff'].map(
@@ -526,7 +530,7 @@ export class Effects {
   armorHit(x: number, z: number, dirX: number, dirZ: number, amount: number): void {
     const n = Math.min(8, 1 + Math.round(amount / 5));
     for (let i = 0; i < n; i++) {
-      const pool = this.buttons[i % this.buttons.length]!;
+      const pool = this.patches[i % this.patches.length]!;
       this.burst(pool, x, 0.8, z, dirX, dirZ, 1, 3.5, 0.06, 0.8, 12);
     }
   }
@@ -606,9 +610,9 @@ export class Effects {
     this.burst(this.cotton, x, 0.6, z, 0, 0, 4, 1.5, 0.05, 0.35, 0);
   }
 
-  /** Item finished: fluff for healing, buttons for armor, swirling up around the plush. */
+  /** Item finished: fluff for healing, patches for armor, swirling up around the plush. */
   itemUsed(x: number, z: number, armor: boolean): void {
-    if (armor) for (const pool of this.buttons) this.burst(pool, x, 0.5, z, 0, 0, 3, 1.5, 0.06, 0.7, -2);
+    if (armor) for (const pool of this.patches) this.burst(pool, x, 0.5, z, 0, 0, 3, 1.5, 0.06, 0.7, -2);
     else this.burst(this.cotton, x, 0.4, z, 0, 0, 10, 1.5, 0.07, 0.8, -3);
   }
 
@@ -639,6 +643,7 @@ export class Effects {
   update(dt: number): void {
     this.cotton.update(dt);
     for (const pool of this.buttons) pool.update(dt);
+    for (const pool of this.patches) pool.update(dt);
     this.water.update(dt);
     for (const pool of this.glitter) pool.update(dt);
     for (const pool of this.glass) pool.update(dt);

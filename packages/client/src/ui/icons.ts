@@ -11,7 +11,8 @@ const paths: Record<string, string> = {
   // stats
   // a stitched plush heart: stuffing (health)
   stuffing: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
-  buttons: `<circle cx="12" cy="12" r="8.5" fill="#ffd23f" stroke="${INK}"/><circle cx="12" cy="12" r="5.6" stroke="#e0a800" stroke-width="1.2"/><circle cx="9.6" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="9.6" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.6" cy="14.4" r="1.2" fill="${INK}" stroke="none"/><circle cx="14.4" cy="14.4" r="1.2" fill="${INK}" stroke="none"/>`,
+  // a fabric patch with a running stitch round it: armor
+  patches: `<rect x="4" y="4" width="16" height="16" rx="2" fill="#ffd23f" transform="rotate(-6 12 12)"/><rect x="7" y="7" width="10" height="10" stroke="#b07a00" stroke-width="1.3" stroke-dasharray="2 1.6" transform="rotate(-6 12 12)"/>`,
   // weapons (side views, barrel to the right)
   cork_popper: `<rect x="3" y="9" width="14" height="5" rx="2.5" fill="#2bb3a6"/><rect x="13" y="8.5" width="2.5" height="6" fill="#f2a03d"/><path d="M6 14v4.5h3.5V14" fill="#2bb3a6"/><rect x="17.5" y="9.5" width="4" height="4" rx="1.5" fill="#d9a066"/>`,
   foam_dart_smg: `<rect x="3" y="8" width="14" height="6" rx="1.5" fill="#f2873d"/><path d="M8 14v6h3v-6" fill="#3d7ff2"/><rect x="17" y="9.5" width="4.5" height="3" rx="1.5" fill="#3d7ff2"/>`,
@@ -19,8 +20,10 @@ const paths: Record<string, string> = {
   // items
   cotton_puff: `<circle cx="9" cy="13" r="4.5" fill="#fdfbf7"/><circle cx="15" cy="12" r="4" fill="#fdfbf7"/><circle cx="12" cy="8.5" r="3.6" fill="#fdfbf7"/>`,
   sewing_kit: `<ellipse cx="12" cy="15" rx="8" ry="4.5" fill="#e2577c"/><rect x="11" y="5" width="5" height="8" rx="1.5" fill="#4a7fd6"/><path d="M5 5l8 8" stroke-width="1.6"/>`,
-  button_pack: `<circle cx="9" cy="14" r="5" fill="#e2574c"/><circle cx="15" cy="10" r="5" fill="#f7c331"/><circle cx="14" cy="9" r=".9" fill="${INK}" stroke="none"/><circle cx="16" cy="11" r=".9" fill="${INK}" stroke="none"/>`,
-  button_pile: `<rect x="6" y="7" width="12" height="14" rx="3" fill="#e8f7ff"/><rect x="5.5" y="3.5" width="13" height="4" rx="1.5" fill="#e2433f"/><circle cx="10" cy="16.5" r="2" fill="#3d7ff2" stroke="none"/><circle cx="14.5" cy="15" r="2" fill="#f7c331" stroke="none"/><circle cx="11.5" cy="11.5" r="2" fill="#e2574c" stroke="none"/>`,
+  // two fabric patches, stitched round
+  patch_pack: `<rect x="3" y="9" width="11" height="11" rx="1.5" fill="#3d7ff2"/><rect x="10" y="4" width="11" height="11" rx="1.5" fill="#f7c331"/><rect x="12.5" y="6.5" width="6" height="6" stroke-width="1.1" stroke-dasharray="1.6 1.4"/>`,
+  // a stack of patches tied with a ribbon
+  patch_pile: `<rect x="4" y="15" width="16" height="4.5" rx="1.2" fill="#5bd16a"/><rect x="4" y="10" width="16" height="4.5" rx="1.2" fill="#e2574c"/><rect x="4" y="5" width="16" height="4.5" rx="1.2" fill="#3d7ff2"/><rect x="10.5" y="4" width="3" height="16.5" fill="#e2433f"/>`,
   // world
   // stuffing drained of its color: you're out in the Rinse
   drained: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#b9b9c2"/>`,
@@ -88,6 +91,8 @@ const paths: Record<string, string> = {
   gallery: `<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ffd36a"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ff9cbf"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#7be07b"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#6bc6ff"/>`,
   // a clothes hanger: the Wardrobe
   hanger: `<path d="M12 8.5V7.2a2.2 2.2 0 1 0-2.2-2.2"/><path d="M12 8.5 3.5 15.5a1.2 1.2 0 0 0 .8 2h15.4a1.2 1.2 0 0 0 .8-2Z" fill="#fff"/>`,
+  // a sewing button with four holes: Buttons (Knoflíky), the currency
+  button: `<circle cx="12" cy="12" r="8.5" fill="#ffb347"/><circle cx="12" cy="12" r="5.6" stroke-width="1.4"/><g fill="${INK}" stroke="none"><circle cx="10.2" cy="10.2" r="1.1"/><circle cx="13.8" cy="10.2" r="1.1"/><circle cx="10.2" cy="13.8" r="1.1"/><circle cx="13.8" cy="13.8" r="1.1"/></g>`,
   // a little sack with a drawstring: the part stash
   stash: `<path d="M8 8h8l3 5.5a6 6 0 0 1-5.4 7.5h-3.2A6 6 0 0 1 5 13.5Z" fill="#d9a066"/><path d="M8 8l-1-3.5h10L16 8"/><path d="M9.5 8.5h5"/>`,
 };

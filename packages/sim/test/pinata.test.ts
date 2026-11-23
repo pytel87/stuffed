@@ -43,6 +43,8 @@ describe('the piñata', () => {
       const { weapons, items, parts } = config.pinata.loot;
       expect(loot, map.id).toHaveLength(weapons + items + parts);
       for (const l of loot) if (l.content.type === 'weapon') expect(l.content.weapon.rarity).toBeGreaterThanOrEqual(2);
+      // And whoever broke it pockets its Buttons.
+      expect(g.you.pocket, map.id).toBe(config.pinata.buttons);
     }
   });
 

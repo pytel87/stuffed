@@ -82,20 +82,20 @@ describe('the Rinse', () => {
     expect(zoneDamagePerSecond(z, (z.startTick + z.endTick) / 2)).toBeCloseTo((Z.damagePerSecond.start + Z.damagePerSecond.end) / 2, 9);
   });
 
-  it('damages soggy plushies once per second, ignoring buttons', () => {
+  it('damages soggy plushies once per second, ignoring patches', () => {
     const { world, state } = game();
     const [a, b] = state.players as [Player, Player];
     state.zone.start = { center: { x: 20, y: 40 }, radius: 5 };
     state.zone.end = { center: { x: 20, y: 40 }, radius: 5 };
     a.pos = { x: 20, y: 40 };
     b.pos = { x: 60, y: 40 };
-    b.buttons = 50;
+    b.patches = 50;
     run(world, state, T * 3, () => input());
     expect(a.soggy).toBe(false);
     expect(b.soggy).toBe(true);
     expect(a.stuffing).toBe(100);
     expect(b.stuffing).toBe(100 - 3 * Z.damagePerSecond.start);
-    expect(b.buttons).toBe(50);
+    expect(b.patches).toBe(50);
   });
 
   it('makes soggy plushies 20% slower', () => {

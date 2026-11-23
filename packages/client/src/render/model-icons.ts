@@ -75,8 +75,8 @@ export function renderModelIcons(deliver: (pictures: Map<string, string>) => voi
   }
   // Items from a little above.
   for (const kind of Object.keys(config.items) as ItemKind[]) {
-    // Items share a minimum frame, so they keep their sizes relative to each other (the Button
-    // Pack's buttons look as big as the Button Pile's).
+    // Items share a minimum frame, so they keep their sizes relative to each other (the Patch
+    // Pack's patches look as big as the Patch Bundle's).
     shoot(kind, buildItem(kind), new THREE.Euler(0.5, -0.5, 0, 'YXZ'), 0.36);
   }
   // Each kind of chest (by loot level), for the open prompt.

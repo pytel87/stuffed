@@ -2,8 +2,8 @@ import { config, secondsToTicks } from '../config.ts';
 import type { EntityId, GameState, KnockoutCause, Player, Vec2 } from '../types.ts';
 
 /**
- * Buttons (armor) absorb damage first; the rest comes out of stuffing. `ignoreArmor` skips
- * the buttons (the Rinse). A plush at 0 stuffing is Unstitched (eliminated).
+ * Patches (armor) absorb damage first; the rest comes out of stuffing. `ignoreArmor` skips
+ * the patches (the Rinse). A plush at 0 stuffing is Unstitched (eliminated).
  */
 export function applyDamage(
   state: GameState,
@@ -14,8 +14,8 @@ export function applyDamage(
 ): void {
   // The victory lap: nobody can be hurt any more.
   if (!target.alive || amount <= 0 || state.victoryUntil !== null) return;
-  const armorDamage = ignoreArmor ? 0 : Math.min(target.buttons, amount);
-  target.buttons -= armorDamage;
+  const armorDamage = ignoreArmor ? 0 : Math.min(target.patches, amount);
+  target.patches -= armorDamage;
   const damage = amount - armorDamage;
   const removed = armorDamage + Math.min(damage, Math.max(0, target.stuffing));
   target.stuffing -= damage;

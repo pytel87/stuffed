@@ -9,7 +9,7 @@ export const SOUNDS = [
   'cork_pop', 'dart_shot', 'soaker_shot',
   'hit_stuffing', 'hit_stuffing_2', 'hit_stuffing_3', 'hit_armor', 'hit_armor_2', 'hit_armor_3', 'hit_confirm', 'ko_confirm', 'impact', 'impact_2', 'splash', 'knockout',
   'chest_rattle', 'chest_open', 'chest_open_low', 'chest_open_high', 'chest_open_food', 'pickup_weapon', 'heal', 'heal_small', 'heal_big', 'juice_done', 'armor_up',
-  'use_puff', 'use_sewing', 'use_buttons', 'use_juice', 'use_bag', 'use_cardboard', 'reload', 'swap',
+  'use_puff', 'use_sewing', 'use_juice', 'use_bag', 'use_cardboard', 'reload', 'swap',
   'part_head', 'part_body', 'part_legs', 'part_tail', 'part_accessory',
   'grab_buttons', 'grab_stuffing', 'grab_sewing', 'grab_juice', 'grab_cardboard',
   'jump_springy', 'jump_springy_2', 'jump_springy_3', 'jump_heavy', 'jump_heavy_2', 'jump_heavy_3',
@@ -79,7 +79,7 @@ const LEVEL: Partial<Record<SoundName, number>> = {
   parrot_squawk: -22, current_whoosh: -24, shark_warning: -21, gull_cry: -31, sea_waves: -31, waterfall_rush: -28,
   hit_confirm: -26, ko_confirm: -21,
   // Using an item: under the fight while it lasts, then a clear finish.
-  use_puff: -26, use_sewing: -26, use_buttons: -26, use_juice: -26, use_bag: -26, use_cardboard: -26,
+  use_puff: -26, use_sewing: -26, use_juice: -26, use_bag: -26, use_cardboard: -26,
   heal_small: -24, heal: -22, heal_big: -19, juice_done: -22,
   // Each weapon has one shot sound of its own (so you can tell what's firing), evened out like the rest.
   cork_pop: -20, dart_shot: -20, soaker_shot: -20, band_twang: -20, marble_shot: -20, pillow_swing: -20, glitter_throw: -20, bubble_blow: -20,

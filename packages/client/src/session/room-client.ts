@@ -2,7 +2,7 @@
 // current NetworkMatch with snapshots. Reconnects by itself; a per-room token gets your seat back.
 import PartySocket from 'partysocket';
 import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from '@stuffed/sim/net';
-import type { BotLevel, Input, Part } from '@stuffed/sim';
+import type { BotLevel, ButtonAward, Input, Part } from '@stuffed/sim';
 import { NetworkMatch } from './network-match.ts';
 import type { InputSource } from './session.ts';
 
@@ -55,6 +55,8 @@ export class RoomClient {
   onMatch: (match: NetworkMatch) => void = () => {};
   /** After a match: the parts that went into your collection. */
   onKept: (parts: Part[]) => void = () => {};
+  /** This match's Buttons, and the balance after them. */
+  onButtons: (award: ButtonAward, balance: number) => void = () => {};
   /** The host took everyone back to the lobby after a match. */
   onBackToLobby: () => void = () => {};
   private readonly socket: PartySocket;
@@ -122,6 +124,7 @@ export class RoomClient {
     this.onLobby = () => {};
     this.onMatch = () => {};
     this.onKept = () => {};
+    this.onButtons = () => {};
     this.onBackToLobby = () => {};
     this.socket.close();
   }
@@ -153,6 +156,9 @@ export class RoomClient {
         break;
       case 'kept':
         this.onKept(msg.parts);
+        break;
+      case 'buttons':
+        this.onButtons(msg.award, msg.balance);
         break;
       case 'pong':
         break;

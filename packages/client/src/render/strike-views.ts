@@ -131,7 +131,8 @@ export function hazardTexture(): THREE.CanvasTexture {
 export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots: THREE.Mesh[]; glow: THREE.Mesh } {
   const root = new THREE.Group();
   // Round: a dark drum base and a yellow plate, the hazard stripes on the plate's top face.
-  const base = toonMesh(new THREE.CylinderGeometry(0.56, 0.6, 0.42, 40), '#2b2730', { outline: false });
+  // Smooth plastic like the rest of it (felt on near-black read as ragged dark scratches).
+  const base = toonMesh(new THREE.CylinderGeometry(0.56, 0.6, 0.42, 40), '#2b2730', { outline: false, material: makePlastic(toonMaterial('#2b2730', { map: null })) });
   base.position.y = 0.21;
   root.add(base);
   const yellow = makePlastic(toonMaterial('#f7c331', { map: null }));
@@ -143,8 +144,10 @@ export function buildStrikeButton(): { root: THREE.Group; cap: THREE.Mesh; dots:
   root.add(plate);
   // One even outline round the base and plate together.
   const hull = new THREE.Group();
-  for (const [r0, r1, h, y] of [[0.56, 0.6, 0.42, 0.21], [0.64, 0.64, 0.1, 0.47]] as const) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, 40), outlineMaterial(OUTLINE_COLOR));
+  // (The base's without a bottom: closed, its outline pushed out below the drum, down to the
+  // desk or floor it stands on, and flickered against the boards in ragged dark streaks.)
+  for (const [r0, r1, h, y, open] of [[0.56, 0.6, 0.42, 0.21, true], [0.64, 0.64, 0.1, 0.47, false]] as const) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, 40, 1, open), outlineMaterial(OUTLINE_COLOR));
     m.position.y = y;
     hull.add(m);
   }

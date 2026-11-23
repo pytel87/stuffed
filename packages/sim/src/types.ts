@@ -16,7 +16,7 @@ export type Rarity = 0 | 1 | 2 | 3 | 4;
 export type WeaponKind =
   | 'cork_popper' | 'foam_dart_smg' | 'super_soaker'
   | 'rubber_band_rifle' | 'marble_launcher' | 'pillow_hammer' | 'glitter_bomb' | 'bubble_wand';
-export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'button_pack' | 'big_stuffing_bag' | 'juice_box' | 'button_pile' | 'cardboard_wall';
+export type ItemKind = 'cotton_puff' | 'sewing_kit' | 'patch_pack' | 'big_stuffing_bag' | 'juice_box' | 'patch_pile' | 'cardboard_wall';
 
 /** Held-button bitfield carried in Input.buttons. */
 export const Btn = {
@@ -159,7 +159,10 @@ export interface Player {
   /** Distance to the aimed-at point (from the last input). */
   aimDistance: number;
   stuffing: number;
-  buttons: number;
+  /** Armor: sewn-on patches that soak up damage before the stuffing. */
+  patches: number;
+  /** Buttons (the currency) found this match, from chests and piñatas: banked when it ends for them. */
+  pocket: number;
   alive: boolean;
   eliminatedTick: Tick | null;
   /** Final rank: 1 for the winner, N for the first one out of N. */
@@ -168,7 +171,7 @@ export interface Player {
   eliminatedBy: EntityId | null;
   /** Plushies this one knocked out. */
   knockouts: number;
-  /** Damage this plush dealt to others (stuffing and buttons). */
+  /** Damage this plush dealt to others (stuffing and patches). */
   damageDealt: number;
   weapons: [WeaponInstance | null, WeaponInstance | null];
   activeSlot: 0 | 1;
@@ -298,6 +301,8 @@ export type GameEvent =
   /** `from`: where the damage came from (back along the shot, a burst's middle, the swinger), for a direction hint. */
   | { type: 'hit'; targetId: EntityId; sourceId: EntityId | null; damage: number; armorDamage: number; from?: Vec2 }
   | { type: 'chestOpened'; chestId: EntityId; playerId: EntityId }
+  /** Buttons (the currency) went into a plush's pocket, from `pos` (a chest, a piñata). */
+  | { type: 'buttonsFound'; playerId: EntityId; amount: number; pos: Vec2 }
   | { type: 'itemUsed'; playerId: EntityId; item: ItemKind }
   | { type: 'pickup'; playerId: EntityId; lootId: EntityId; what: WeaponKind | ItemKind | 'part' }
   /**

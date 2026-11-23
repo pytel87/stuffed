@@ -11,7 +11,7 @@ export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft
 export { segmentBoxT, circleBoxPush } from './collision/geometry.ts';
 export { StaticBoxHash } from './collision/spatial-hash.ts';
 export { NEUTRAL_INPUT, sanitizeInput } from './input.ts';
-export { ANIMAL_RARITY, ANIMALS, COMMON_ANIMALS, PART_SLOTS, pickAnimal, DEFAULT_PARTS, SET_SIZE, carriedParts, completeSets, fullSet, looseOf, missingPieces, rollPart, wornSet } from './parts.ts';
+export { ANIMAL_RARITY, ANIMALS, COMMON_ANIMALS, HOME_MAP, PART_SLOTS, pickAnimal, DEFAULT_PARTS, SET_SIZE, carriedParts, completeSets, fullSet, looseOf, missingPieces, rollPart, wornSet } from './parts.ts';
 export { applyDamage } from './systems/damage.ts';
 export { chargeAmount, makeWeapon, muzzlePosition, weaponDamage, reloadTicks } from './systems/weapons.ts';
 export { sweepCircle } from './systems/projectiles.ts';
@@ -30,3 +30,4 @@ export { BotController, BOT, BOT_LEVELS, type BotLevel } from './bots/brain.ts';
 export * as rng from './rng.ts';
 export { CATAPULT_CUP, CATAPULT_SIZE, catapultReady, inLookout, rampSurface, SEESAW, slopeAt } from './systems/rides.ts';
 export { galleryTargets } from './systems/minigames.ts';
+export { awardOf, BUTTONS, matchButtons, setOffer, type ButtonAward, type ButtonLine, type ButtonReason, type SetOffer } from './economy.ts';

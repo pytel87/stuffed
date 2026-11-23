@@ -1,4 +1,4 @@
-import type { Part } from '@stuffed/sim';
+import type { ButtonAward, ButtonReason, Part } from '@stuffed/sim';
 import { icon, partIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
 
@@ -18,6 +18,17 @@ export interface EndView {
   waitingForHost?: boolean;
 }
 
+/** How each line of a match's Buttons reads, and its picture. */
+const BUTTON_REASON: Record<ButtonReason, [label: string, icon: string]> = {
+  match: ['Match', 'play'],
+  found: ['Found', 'chest'],
+  knockouts: ['Knockouts', 'knockout'],
+  top5: ['Top 5', 'trophy'],
+  top3: ['Top 3', 'trophy'],
+  win: ['Win', 'crown'],
+  dailyWin: ["Today's first win", 'sparkle'],
+};
+
 /** The result card: placement, a few stats, Again (Enter), Spectate and Menu. */
 export class EndScreen {
   private readonly el: HTMLElement;
@@ -26,6 +37,8 @@ export class EndScreen {
   private readonly placement: HTMLElement;
   private readonly stats: HTMLElement;
   private readonly kept: HTMLElement;
+  private readonly earned: HTMLElement;
+  private readonly breakdown: HTMLElement;
   private readonly again: HTMLButtonElement;
   private readonly spectate: HTMLButtonElement;
 
@@ -56,6 +69,7 @@ export class EndScreen {
            <p class="sub"></p>
            <div class="stats"></div>
            <div class="kept" hidden></div>
+           <div class="earned" hidden></div>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
              <button type="button" class="big end-spectate"><span>${tr('Watch')}</span></button>
@@ -70,6 +84,34 @@ export class EndScreen {
     this.placement = this.el.querySelector('.place')!;
     this.stats = this.el.querySelector('.stats')!;
     this.kept = this.el.querySelector('.kept')!;
+    this.earned = this.el.querySelector('.earned')!;
+    root.insertAdjacentHTML(
+      'beforeend',
+      `<div class="overlay earned-breakdown" hidden role="dialog" aria-modal="true" aria-labelledby="breakdown-title">
+         <div class="card">
+           <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
+           <h2 id="breakdown-title">${icon('button', 'icon large')}<span>${tr('Buttons')}</span></h2>
+           <ul class="breakdown-rows"></ul>
+           <div class="breakdown-total"><span>${tr('Total')}</span><b></b></div>
+         </div>
+       </div>`,
+    );
+    this.breakdown = root.querySelector<HTMLElement>('.earned-breakdown')!;
+    this.breakdown.querySelector('.close')!.addEventListener('click', () => this.hideBreakdown());
+    this.breakdown.addEventListener('click', (e) => {
+      if (e.target === this.breakdown) this.hideBreakdown();
+    });
+    // Escape (or Enter) closes it, before Enter could start the next match.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (this.breakdown.hidden || (e.key !== 'Escape' && e.key !== 'Enter')) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        this.hideBreakdown();
+      },
+      true,
+    );
     this.again = this.el.querySelector('.end-again')!;
     this.spectate = this.el.querySelector('.end-spectate')!;
     this.again.addEventListener('click', onPlayAgain);
@@ -107,6 +149,7 @@ export class EndScreen {
 
   hide(): void {
     this.el.hidden = true;
+    this.breakdown.hidden = true;
   }
 
   /** Shows the card again as it was (back from spectating). */
@@ -120,6 +163,36 @@ export class EndScreen {
   }
 
   private keptShown = false;
+
+  /** The Buttons this match earned (null: a new match, clear them). */
+  setButtons(award: ButtonAward | null): void {
+    this.earned.hidden = !award || award.total <= 0;
+    if (!award || award.total <= 0) return void (this.earned.innerHTML = '');
+    // Just the total; tapping it opens a little card of what it was for.
+    this.earned.innerHTML = `<button type="button" class="earned-total" aria-haspopup="dialog">${icon('button')}<b>+${award.total}</b></button>`;
+    const total = this.earned.querySelector<HTMLButtonElement>('.earned-total')!;
+    total.addEventListener('click', (e) => {
+      if (e.detail > 0) total.blur();
+      this.showBreakdown(award);
+    });
+  }
+
+  /** The Buttons breakdown: a card over the results, a row per reason and the total. */
+  private showBreakdown(award: ButtonAward): void {
+    const rows = award.lines
+      .map((l, i) => {
+        const [label, pic] = BUTTON_REASON[l.reason];
+        return `<li style="--i:${i}">${icon(pic)}<span>${tr(label)}</span><b>+${l.amount}</b></li>`;
+      })
+      .join('');
+    this.breakdown.querySelector('.breakdown-rows')!.innerHTML = rows;
+    this.breakdown.querySelector('.breakdown-total b')!.textContent = `+${award.total}`;
+    this.breakdown.hidden = false;
+  }
+
+  private hideBreakdown(): void {
+    this.breakdown.hidden = true;
+  }
 
   /** The parts that went into your collection this match (null: a new match, clear them). */
   setKept(parts: Part[] | null): void {

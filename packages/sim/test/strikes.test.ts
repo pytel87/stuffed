@@ -56,7 +56,7 @@ describe('the air strike button', () => {
     drop.pos = { ...g.far.pos };
     run(g.world, g.state, secondsToTicks(config.strike.warning + config.strike.gap * config.strike.count) + 2, () => input());
     expect(g.state.strikes).toHaveLength(0);
-    expect(g.a.stuffing + g.a.buttons).toBeLessThan(100);
+    expect(g.a.stuffing + g.a.patches).toBeLessThan(100);
     expect(g.state.tick).toBeLessThan(g.a.soakedUntil);
     expect(g.far.stuffing).toBe(100);
     // Soaked: slower (once the knockback has settled).

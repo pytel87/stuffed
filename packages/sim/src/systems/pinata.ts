@@ -50,8 +50,13 @@ export function hitPinata(world: World, state: GameState, amount: number, byId: 
     spawnLoot(world, state, spots[k++]!, { type: 'item', item: { kind: item, count: config.items[item].chestCount } }, p.z);
   }
   for (let i = 0; i < P.loot.parts; i++) {
-    const part = rollPart(state.rng, state.players.find((q) => q.id === byId), config.parts.holoChanceRich);
+    const part = rollPart(state.rng, state.players.find((q) => q.id === byId), config.parts.holoChanceRich, state.mapId);
     spawnLoot(world, state, spots[k++]!, { type: 'part', part }, p.z);
   }
   state.events.push({ type: 'pinataBurst', pos: { ...p.pos }, byId });
+  const breaker = state.players.find((q) => q.id === byId && q.alive);
+  if (breaker) {
+    breaker.pocket += P.buttons;
+    state.events.push({ type: 'buttonsFound', playerId: breaker.id, amount: P.buttons, pos: { ...p.pos } });
+  }
 }

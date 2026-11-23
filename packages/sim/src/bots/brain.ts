@@ -194,7 +194,7 @@ export class BotController {
         aggression: 0,
         burstUntil: 0,
         burstPauseUntil: 0,
-        lastHealth: bot.stuffing + bot.buttons,
+        lastHealth: bot.stuffing + bot.patches,
         lastHurtTick: -1e9,
         dropAt: -1,
         path: null,
@@ -229,7 +229,7 @@ export class BotController {
     if (bot.drop) return this.toss(world, state, bot, m, input);
     let wantJump = false;
     let goal: Vec2 | null = null;
-    const health = bot.stuffing + bot.buttons;
+    const health = bot.stuffing + bot.patches;
     if (health < m.lastHealth) m.lastHurtTick = state.tick;
     m.lastHealth = health;
 
@@ -523,7 +523,7 @@ export class BotController {
 
   private tryHeal(bot: Player, input: Input): boolean {
     if (bot.action?.kind === 'useItem') return true;
-    const needs = bot.stuffing < BOT.healBelow || bot.buttons < 40;
+    const needs = bot.stuffing < BOT.healBelow || bot.patches < 40;
     if (!needs) return false;
     const slot = bot.items.findIndex((s) => s !== null && canUseItem(bot, s.kind));
     if (slot === -1) return false;

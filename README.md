@@ -269,7 +269,7 @@ and off again when a mouse moves, so a laptop with a touchscreen works both ways
 
 ### The screen
 
-- The bar at the bottom is your stuffing. Buttons show as a yellow coat along its top, and they
+- The bar at the bottom is your stuffing. Patches (armor) show as a yellow coat along its top, and they
   soak hits first. On touch screens a pill in the top left shows both as numbers instead.
 - Your bag's parts sit in the bottom left (under the pill on touch screens). The players-left
   count is at the top. There's no Rinse countdown: the world past its shiny edge turns grey.
@@ -339,9 +339,9 @@ URL, for example
 | Item | What it does |
 | --- | --- |
 | Cotton Puff / Sewing Kit / Big Stuffing Bag | +15 / +50 / full stuffing (all up to full) |
-| Button Pack | +25 buttons |
+| Patch Pack | +25 patches |
 | Juice Box | +5 stuffing per second for 10 s, and a little faster |
-| Button Pile | +50 buttons (4 s; the big armor) |
+| Patch Bundle | +50 patches (4 s; the big armor) |
 | Cardboard Wall | a wall in front of you for 20 s, until it's shot down |
 
 Add `?seed=123` to replay the same spawns and cosmetics (the debug overlay shows the current

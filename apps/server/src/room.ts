@@ -2,7 +2,7 @@
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
 import type { BotLevel, MapData } from '@stuffed/sim';
-import { BACKYARD, BOT_LEVELS, BotController, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, NEUTRAL_INPUT, step } from '@stuffed/sim';
+import { BACKYARD, BOT_LEVELS, BotController, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, matchButtons, NEUTRAL_INPUT, step } from '@stuffed/sim';
 import type { Animal, EntityId, MissingPart, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -16,7 +16,7 @@ import {
   type SnapshotMemory,
 } from '@stuffed/sim/net';
 import { Server, type Connection, type WSMessage } from 'partyserver';
-import { addParts, loadProfile, profileIdForToken, type Look } from './profiles.ts';
+import { addParts, awardButtons, loadProfile, profileIdForToken, type Look } from './profiles.ts';
 
 const TICK_MS = 1000 / config.tickRate;
 /** Never run more than this many ticks to catch up after a stall. */
@@ -65,6 +65,12 @@ interface Match {
   dropped: Map<EntityId, Part[]>;
   /** Seats whose kept parts were already rolled and saved this match. */
   kept: Set<number>;
+  /** Names this match in the Buttons ledger (so a player's Buttons for it are given once). */
+  id: string;
+  /** Seats already given their Buttons this match. */
+  awarded: Set<number>;
+  /** Team mode: Buttons wait for the end (a knocked-out player's team can still win). */
+  teams: boolean;
 }
 
 interface ConnState {
@@ -257,6 +263,9 @@ export class Room extends Server<Env> {
       endedAtTick: null,
       dropped: new Map(),
       kept: new Set(),
+      id: crypto.randomUUID(),
+      awarded: new Set(),
+      teams: this.teams,
     };
     this.phase = 'playing';
     this.sent.clear();
@@ -346,6 +355,7 @@ export class Room extends Server<Env> {
       if (e.type !== 'eliminated') continue;
       const seat = this.seats.find((s) => m.plushOf.get(s.seat) === e.playerId);
       if (seat) void this.saveKeeps(m, seat);
+      if (seat && !m.teams) void this.awardMatch(m, seat);
     }
     // Every real player is out: no point watching the bots finish, end it so the host can go again.
     const humans = [...m.plushOf.values()].map((id) => m.state.players.find((p) => p.id === id));
@@ -358,7 +368,10 @@ export class Room extends Server<Env> {
     if (ended) {
       this.phase = 'ended';
       this.broadcastLobby();
-      for (const seat of this.seats) void this.saveKeeps(m, seat);
+      for (const seat of this.seats) {
+        void this.saveKeeps(m, seat);
+        void this.awardMatch(m, seat);
+      }
     }
     if (m.state.tick % SNAPSHOT_EVERY === 0 || ended) this.sendSnapshots(m);
   }
@@ -388,6 +401,24 @@ export class Room extends Server<Env> {
     }
     const conn = seat.connId ? this.getConnection<ConnState>(seat.connId) : undefined;
     if (conn) this.send(conn, { t: 'kept', parts: kept });
+  }
+
+  /** A player's result is final: their Buttons for the match, saved and sent; once per player. */
+  private async awardMatch(m: Match, seat: Seat): Promise<void> {
+    const id = m.plushOf.get(seat.seat);
+    const plush = m.state.players.find((p) => p.id === id);
+    if (!seat.profileId || !plush || m.awarded.has(seat.seat)) return;
+    m.awarded.add(seat.seat);
+    const won = m.state.winnerId === plush.id || (m.state.winnerTeam !== null && plush.team === m.state.winnerTeam);
+    let result;
+    try {
+      result = await awardButtons(this.env.DB, seat.profileId, matchButtons({ placement: plush.placement, knockouts: plush.knockouts, won, found: plush.pocket }), `match:${m.id}:${seat.seat}`, false);
+    } catch (err) {
+      console.error('awarding Buttons failed', err);
+      return;
+    }
+    const conn = seat.connId ? this.getConnection<ConnState>(seat.connId) : undefined;
+    if (conn) this.send(conn, { t: 'buttons', award: result.award, balance: result.balance });
   }
 
   private sendSnapshots(m: Match): void {

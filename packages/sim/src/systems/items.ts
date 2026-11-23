@@ -12,7 +12,7 @@ export function canUseItem(player: Player, kind: ItemKind): boolean {
   if (item.effect === 'wall') return player.z < 0.3;
   if (item.effect) return true;
   const heals = item.stuffing > 0 && player.stuffing < item.stuffingCap;
-  const armors = item.buttons > 0 && player.buttons < config.player.maxButtons;
+  const armors = item.patches > 0 && player.patches < config.player.maxPatches;
   return heals || armors;
 }
 
@@ -56,7 +56,7 @@ function applyItem(state: GameState, player: Player, kind: ItemKind, input: Inpu
   if (item.stuffing > 0 && player.stuffing < item.stuffingCap) {
     player.stuffing = Math.min(item.stuffingCap, player.stuffing + item.stuffing);
   }
-  if (item.buttons > 0) player.buttons = Math.min(config.player.maxButtons, player.buttons + item.buttons);
+  if (item.patches > 0) player.patches = Math.min(config.player.maxPatches, player.patches + item.patches);
   if (item.effect === 'juice') player.juiceUntil = state.tick + secondsToTicks(config.itemEffects.juice.seconds);
   if (item.effect === 'wall') placeWall(state, player);
 }

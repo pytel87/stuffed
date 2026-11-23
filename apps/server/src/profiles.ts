@@ -1,8 +1,8 @@
 // Player profiles in D1: one per device (a random token kept in the browser; only its hash is
 // stored), plus a recovery code that adds another device to the same profile. A profile owns
 // parts (its collection) and picks the look it starts every match in from them.
-import { ANIMALS, COMMON_ANIMALS, PART_SLOTS } from '@stuffed/sim';
-import type { Animal, Part, PartSlot, Rarity } from '@stuffed/sim';
+import { ANIMALS, awardOf, BUTTONS, COMMON_ANIMALS, PART_SLOTS, setOffer } from '@stuffed/sim';
+import type { Animal, ButtonAward, ButtonLine, Part, PartSlot, Rarity } from '@stuffed/sim';
 import type { Look, OwnedEntry, Profile } from '@stuffed/sim/net';
 
 export type { Look, OwnedEntry, Profile };
@@ -13,6 +13,10 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS owned_parts (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
   // Holographic parts, kept apart (the owned_parts key has no room for them, and this needs no migration).
   'CREATE TABLE IF NOT EXISTS owned_holo (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
+  // Buttons: every one earned or spent is a row (the balance is their sum). `ref` names what it was
+  // for, once: the same match or purchase can't be counted twice.
+  'CREATE TABLE IF NOT EXISTS buttons (id INTEGER PRIMARY KEY AUTOINCREMENT, profile_id TEXT NOT NULL, delta INTEGER NOT NULL, reason TEXT NOT NULL, ref TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS buttons_profile ON buttons (profile_id, created_at)',
 ];
 
 let schemaReady: Promise<void> | null = null;
@@ -130,12 +134,13 @@ export async function loadProfile(db: D1Database, id: string): Promise<Profile |
   await ensureSchema(db);
   const row = await db.prepare('SELECT id, recovery, look FROM profiles WHERE id = ?').bind(id).first<{ id: string; recovery: string; look: string }>();
   if (!row) return null;
-  const [plain, holo] = await db.batch<OwnedEntry>([
+  const [plain, holo, balance] = await db.batch<Record<string, unknown>>([
     db.prepare('SELECT slot, animal, rarity, count FROM owned_parts WHERE profile_id = ? ORDER BY slot, animal, rarity').bind(id),
     db.prepare('SELECT slot, animal, rarity, count FROM owned_holo WHERE profile_id = ? ORDER BY slot, animal, rarity').bind(id),
+    db.prepare('SELECT COALESCE(SUM(delta), 0) AS buttons FROM buttons WHERE profile_id = ?').bind(id),
   ]);
-  const parts = [...plain!.results, ...holo!.results.map((p) => ({ ...p, holo: true }))];
-  return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts };
+  const parts = [...(plain!.results as unknown as OwnedEntry[]), ...(holo!.results as unknown as OwnedEntry[]).map((p) => ({ ...p, holo: true }))];
+  return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts, buttons: Number(balance!.results[0]?.buttons ?? 0) };
 }
 
 /** Adds this device to the profile with that recovery code; returns a token for it. */
@@ -177,4 +182,90 @@ function addPartStatements(db: D1Database, id: string, parts: readonly Part[], n
       )
       .bind(id, p.slot, p.animal, p.rarity, now),
   );
+}
+
+// ---------- Buttons ----------
+
+/** The start of today (UTC), for the daily bonus and the solo cap. */
+function dayStart(now: number): number {
+  return now - (now % 86_400_000);
+}
+
+/**
+ * Puts a match's Buttons on the profile, once per `ref` (the match, and the player in it). Adds the
+ * day's first-win bonus. Solo matches (reported by the browser) earn nothing if reported too soon
+ * after the previous one, and stop at a daily ceiling (see BUTTONS). Returns what was actually
+ * given, and the new balance.
+ */
+export async function awardButtons(db: D1Database, id: string, lines: readonly ButtonLine[], ref: string, solo: boolean): Promise<{ award: ButtonAward; balance: number }> {
+  await ensureSchema(db);
+  const now = Date.now();
+  const today = dayStart(now);
+  const day = await db
+    .prepare(
+      // (Today's totals, and the last solo award: maybe from just before midnight.)
+      "SELECT COALESCE(SUM(CASE WHEN reason LIKE 'solo:%' AND created_at >= ?1 THEN delta ELSE 0 END), 0) AS solo, " +
+        "COALESCE(SUM(CASE WHEN reason LIKE '%:dailyWin' AND created_at >= ?1 THEN 1 ELSE 0 END), 0) AS daily, " +
+        "COALESCE(MAX(CASE WHEN reason LIKE 'solo:%' THEN created_at END), 0) AS lastSolo FROM buttons WHERE profile_id = ?2 AND created_at >= ?3",
+    )
+    .bind(today, id, today - BUTTONS.soloMinGapMs)
+    .first<{ solo: number; daily: number; lastSolo: number }>();
+  let given = [...lines];
+  if (given.some((l) => l.reason === 'win') && !day?.daily) given.push({ reason: 'dailyWin', amount: BUTTONS.dailyWin });
+  if (solo) {
+    // Too soon after the last one: nothing. Otherwise what's left under today's ceiling, line by line.
+    let left = now - (day?.lastSolo ?? 0) < BUTTONS.soloMinGapMs ? 0 : Math.max(0, BUTTONS.soloDailyCeiling - (day?.solo ?? 0));
+    given = given.map((l) => {
+      const amount = Math.min(l.amount, left);
+      left -= amount;
+      return { ...l, amount };
+    });
+  }
+  const kind = solo ? 'solo' : 'match';
+  const toGive = awardOf(given).lines;
+  // Only what actually went in (a match reported again adds nothing, and says so).
+  const results = toGive.length
+    ? await db.batch(
+        toGive.map((l) =>
+          db.prepare('INSERT OR IGNORE INTO buttons (profile_id, delta, reason, ref, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, l.amount, `${kind}:${l.reason}`, `${ref}:${l.reason}`, now),
+        ),
+      )
+    : [];
+  const award = awardOf(toGive.filter((_, i) => (results[i]?.meta.changes ?? 0) > 0));
+  const balance = await db.prepare('SELECT COALESCE(SUM(delta), 0) AS b FROM buttons WHERE profile_id = ?').bind(id).first<{ b: number }>();
+  return { award, balance: balance?.b ?? 0 };
+}
+
+export type BuyResult = { profile: Profile } | { error: 'locked' | 'nothing_missing' | 'too_few_buttons' | 'no_profile' };
+
+/**
+ * Buys the parts missing from one animal's set (or holo set) with Buttons. All at once or not at
+ * all: the charge only goes through if the balance covers it, and the parts only come with the
+ * charge. `requestId` makes a repeated request (a double tap, a retry) count once.
+ */
+export async function buySet(db: D1Database, id: string, animal: Animal, holo: boolean, requestId: string): Promise<BuyResult> {
+  const profile = await loadProfile(db, id);
+  if (!profile) return { error: 'no_profile' };
+  const ref = `shop:${id}:${requestId}`;
+  const offer = setOffer(profile.parts, animal, holo);
+  if (offer.locked) return { error: 'locked' };
+  if (offer.missing.length === 0) return { profile };
+  const now = Date.now();
+  const charged = 'EXISTS (SELECT 1 FROM buttons WHERE ref = ?)';
+  await db.batch([
+    db
+      .prepare(
+        'INSERT OR IGNORE INTO buttons (profile_id, delta, reason, ref, created_at) ' +
+          'SELECT ?, ?, ?, ?, ? WHERE (SELECT COALESCE(SUM(delta), 0) FROM buttons WHERE profile_id = ?) >= ?',
+      )
+      .bind(id, -offer.price, `shop:${holo ? 'holo' : 'set'}:${animal}`, ref, now, id, offer.price),
+    ...offer.missing.map((slot) =>
+      db
+        .prepare(`INSERT OR IGNORE INTO ${holo ? 'owned_holo' : 'owned_parts'} (profile_id, slot, animal, rarity, count, first_at) SELECT ?, ?, ?, 0, 1, ? WHERE ${charged}`)
+        .bind(id, slot, animal, now, ref),
+    ),
+  ]);
+  const paid = await db.prepare('SELECT 1 AS ok FROM buttons WHERE ref = ?').bind(ref).first();
+  if (!paid) return { error: 'too_few_buttons' };
+  return { profile: (await loadProfile(db, id))! };
 }

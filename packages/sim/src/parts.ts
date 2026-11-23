@@ -23,11 +23,41 @@ export const ANIMAL_RARITY: Record<Animal, Rarity> = {
   unicorn: 4, dragon: 4, phoenix: 4, yeti: 4, mermaid: 4,
 };
 
-const ANIMAL_WEIGHTS = Object.fromEntries(ANIMALS.map((a) => [a, config.parts.animalWeights[ANIMAL_RARITY[a]]])) as Record<Animal, number>;
+/**
+ * Each animal's home map: its parts turn up there far more often (see config.parts.homeBoost), and
+ * a legendary one only there. Eight animals to a map.
+ */
+export const HOME_MAP: Record<Animal, string> = {
+  // The garden: the farm and garden animals, and the unicorn among the flowers.
+  frog: 'backyard', bunny: 'backyard', chicken: 'backyard', hedgehog: 'backyard', bee: 'backyard', pig: 'backyard', sheep: 'backyard', unicorn: 'backyard',
+  // The kid's room: the toy-box favorites, and the mouse in the walls.
+  bear: 'bedroom', cat: 'bedroom', panda: 'bedroom', koala: 'bedroom', dino: 'bedroom', elephant: 'bedroom', mouse: 'bedroom', dragon: 'bedroom',
+  // The snowy park, with its zoo animals.
+  penguin: 'park', owl: 'park', raccoon: 'park', fox: 'park', sloth: 'park', giraffe: 'park', lion: 'park', yeti: 'park',
+  // Pirate Cove: the sea folk, and the phoenix from its volcano.
+  shark: 'cove', turtle: 'cove', otter: 'cove', octopus: 'cove', axolotl: 'cove', flamingo: 'cove', mermaid: 'cove', phoenix: 'cove',
+};
 
-/** A random animal, rarer ones less often. */
-export function pickAnimal(rng: RngState): Animal {
-  return pickWeighted(rng, ANIMAL_WEIGHTS);
+const baseWeight = (a: Animal) => config.parts.animalWeights[ANIMAL_RARITY[a]]!;
+const ANIMAL_WEIGHTS = Object.fromEntries(ANIMALS.map((a) => [a, baseWeight(a)])) as Record<Animal, number>;
+const weightsOn = new Map<string, Record<Animal, number>>();
+
+/** How likely each animal is on `mapId`: its home animals boosted, other maps' legendaries never. */
+function weightsFor(mapId: string | undefined): Record<Animal, number> {
+  if (!mapId || !Object.values(HOME_MAP).includes(mapId)) return ANIMAL_WEIGHTS;
+  let w = weightsOn.get(mapId);
+  if (!w) {
+    w = Object.fromEntries(
+      ANIMALS.map((a) => [a, HOME_MAP[a] === mapId ? baseWeight(a) * config.parts.homeBoost : ANIMAL_RARITY[a] === 4 ? 0 : baseWeight(a)]),
+    ) as Record<Animal, number>;
+    weightsOn.set(mapId, w);
+  }
+  return w;
+}
+
+/** A random animal, rarer ones less often; on a map, its home animals more often. */
+export function pickAnimal(rng: RngState, mapId?: string): Animal {
+  return pickWeighted(rng, weightsFor(mapId));
 }
 
 /** The common animals (a new profile's first look comes from these). */
@@ -89,8 +119,8 @@ type Finder = Pick<Player, 'holoAnimals' | 'missingParts' | 'parts' | 'stash'>;
  * set they have four of (one they don't carry yet), and now and then holographic, once they own
  * that animal's whole set.
  */
-export function rollPart(rng: RngState, finder: Finder | null | undefined, holoChance: number): Part {
-  const part: Part = { slot: pick(rng, PART_SLOTS), animal: pickAnimal(rng), rarity: 0 };
+export function rollPart(rng: RngState, finder: Finder | null | undefined, holoChance: number, mapId?: string): Part {
+  const part: Part = { slot: pick(rng, PART_SLOTS), animal: pickAnimal(rng, mapId), rarity: 0 };
   // (Every roll made for every part, lucky or not, so the match's dice don't depend on who opened it.)
   const lucky = nextFloat(rng);
   const which = nextFloat(rng);
