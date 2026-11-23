@@ -56,7 +56,8 @@ export type RoomPhase = 'lobby' | 'playing' | 'ended';
 
 export type ServerMessage =
   | { t: 'welcome'; code: string; seat: number | null }
-  | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number; teams?: boolean }
+  /** `public`: a matchmade room (no host; it starts by itself, at `startsAt` ms since 1970 at the latest). */
+  | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number; teams?: boolean; public?: boolean; startsAt?: number | null }
   /** A match started; `you` is your plush, or null when you only watch. */
   | { t: 'start'; mapId: string; you: EntityId | null }
   /** The match as you can see it (see CompactSnapshot below). */

@@ -1,5 +1,5 @@
 import { icon } from './icons.ts';
-import { tr } from '../i18n.ts';
+import { LANG, switchLang, tr } from '../i18n.ts';
 
 export interface OptionsActions {
   toggleSound: () => boolean;
@@ -18,6 +18,7 @@ export class Options {
   private readonly sheet: HTMLElement;
   private readonly sound: HTMLButtonElement;
   private readonly leave: HTMLButtonElement;
+  private readonly lang: HTMLButtonElement;
   private readonly confirm: HTMLElement;
 
   constructor(private readonly actions: OptionsActions) {
@@ -30,6 +31,7 @@ export class Options {
          <button type="button" class="round opt-music" aria-label="${tr('Music')}"></button>
          ${canFullscreen ? `<button type="button" class="round opt-full" aria-label="${tr('Fullscreen')}">${icon('fullscreen')}</button>` : ''}
          <button type="button" class="round opt-help" aria-label="${tr('Controls')}">${icon('help')}</button>
+         <button type="button" class="round opt-lang" aria-label="${tr('Language')}: ${LANG === 'cs' ? 'čeština' : 'English'}">${LANG === 'cs' ? 'CZ' : 'EN'}</button>
          <button type="button" class="round opt-leave" aria-label="${tr('Leave')}">${icon('home')}</button>
        </div>
        <div class="overlay leave-confirm" hidden role="dialog" aria-modal="true" aria-labelledby="leave-question">
@@ -72,6 +74,9 @@ export class Options {
           .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
           .catch(() => {});
     });
+    // The other language (the page reloads in it): from the menus only, never mid-match.
+    this.lang = this.sheet.querySelector<HTMLButtonElement>('.opt-lang')!;
+    this.lang.addEventListener('click', () => switchLang(LANG === 'cs' ? 'en' : 'cs'));
     this.sheet.querySelector('.opt-help')!.addEventListener('click', () => {
       this.sheet.hidden = true;
       actions.help();
@@ -101,6 +106,12 @@ export class Options {
   /** Leave is offered only during a match or in a room. */
   setCanLeave(can: boolean): void {
     this.leave.hidden = !can;
+  }
+
+  /** The language switch reloads the page: only offered when that loses nothing (not in a match). */
+  setCanSwitchLang(can: boolean): void {
+    if (this.lang.hidden === !can) return;
+    this.lang.hidden = !can;
   }
 
   private renderSound(): void {

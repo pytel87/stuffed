@@ -32,6 +32,10 @@ export class LobbyScreen {
   /** Team mode: all of us against the bots (on by default; families play together). */
   private wantedTeams = true;
   private readonly teamToggle: HTMLButtonElement;
+  /** A public room: the invite (its code isn't for sharing). */
+  private readonly inviteSection: HTMLElement;
+  /** Ticks the public room's countdown while the lobby shows. */
+  private countdown: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     root: HTMLElement,
@@ -88,6 +92,7 @@ export class LobbyScreen {
     bindBotLevel(q<HTMLButtonElement>('.bot-level'));
     bindMapPicker(q('.map-picker'));
     this.matchSection = q('.lobby-match');
+    this.inviteSection = q('.lobby-you');
     this.botPicks = [...this.el.querySelectorAll<HTMLButtonElement>('.bot-pick')];
     this.start = q('.lobby-start');
     this.status = q('.status');
@@ -169,14 +174,25 @@ export class LobbyScreen {
   show(): void {
     this.el.hidden = false;
     this.render();
+    // A public room's "starting in" counts down by itself.
+    this.countdown ??= setInterval(() => {
+      if (!this.el.hidden && this.client.isPublic) this.render();
+    }, 500);
   }
 
   hide(): void {
     this.el.hidden = true;
+    this.stopCountdown();
   }
 
   remove(): void {
+    this.stopCountdown();
     this.el.remove();
+  }
+
+  private stopCountdown(): void {
+    if (this.countdown) clearInterval(this.countdown);
+    this.countdown = null;
   }
 
   render(): void {
@@ -197,6 +213,16 @@ export class LobbyScreen {
     // The host's choices: teams (by the players), the map and Start.
     this.teamToggle.hidden = !c.isHost;
     this.start.hidden = !c.isHost;
+    // A public room: nobody to invite and no host; it says when it starts instead.
+    this.inviteSection.hidden = c.isPublic;
+    this.el.classList.toggle('public', c.isPublic);
+    if (c.isPublic) {
+      const startsAt = lobby?.startsAt ?? null;
+      const left = startsAt === null ? null : Math.max(0, Math.ceil((startsAt - Date.now()) / 1000));
+      this.status.textContent =
+        c.status !== 'open' ? '…' : left === null ? tr('Looking for players…') : left > 0 ? tr('Starting in {s} s').replace('{s}', String(left)) : tr('Starting…');
+      return;
+    }
     this.status.textContent = c.status !== 'open' ? '…' : c.error === 'full' ? tr('Full') : c.isHost ? '' : tr('Waiting for host…');
   }
 

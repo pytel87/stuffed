@@ -4,6 +4,7 @@
 import type { Animal, ButtonAward, Part } from '@stuffed/sim';
 import type { Look, Profile } from '@stuffed/sim/net';
 import { serverHost } from './room-client.ts';
+import { reportError } from './report.ts';
 
 const TOKEN_KEY = 'stuffed.profile';
 
@@ -60,9 +61,11 @@ export class ProfileStore {
       if (this.token) {
         const res = await this.call('GET', '/api/profile');
         if (res.ok) return this.set(((await res.json()) as { profile: Profile }).profile);
-        if (res.status !== 401) return;
+        if (res.status !== 401) return reportError('profile', `GET /api/profile ${res.status}`);
       }
-      await this.adopt(await this.call('POST', '/api/profile'));
+      const made = await this.call('POST', '/api/profile');
+      if (!made.ok) reportError('profile', `POST /api/profile ${made.status}`);
+      await this.adopt(made);
     } catch (err) {
       console.warn('No profile (offline?)', err);
     }
@@ -73,7 +76,10 @@ export class ProfileStore {
     const code = this.transferCode;
     if (!code) return false;
     const res = await this.call('POST', '/api/profile/claim', { code });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      reportError('transfer', `claim ${res.status}`);
+      return false;
+    }
     const { token, prefs } = (await res.json()) as { token: string; prefs: Record<string, string> };
     try {
       for (const [key, value] of Object.entries(prefs)) if (key.startsWith('stuffed.') && key !== TOKEN_KEY) localStorage.setItem(key, value);
@@ -107,7 +113,10 @@ export class ProfileStore {
     if (!this.profile) return { kept: [], award: null };
     try {
       const res = await this.call('POST', '/api/profile/solo', result);
-      if (!res.ok) return { kept: [], award: null };
+      if (!res.ok) {
+        reportError('solo', `POST /api/profile/solo ${res.status}`);
+        return { kept: [], award: null };
+      }
       const { kept, award, profile } = (await res.json()) as { kept: Part[]; award: ButtonAward; profile: Profile };
       this.set(profile);
       return { kept, award };
@@ -131,7 +140,10 @@ export class ProfileStore {
     try {
       const res = await this.call('POST', '/api/shop/buy', { animal, holo, requestId: crypto.randomUUID() });
       if (res.status === 402) return 'too_few';
-      if (!res.ok) return 'failed';
+      if (!res.ok) {
+        reportError('shop', `POST /api/shop/buy ${res.status}`);
+        return 'failed';
+      }
       this.set(((await res.json()) as { profile: Profile }).profile);
       return 'ok';
     } catch {

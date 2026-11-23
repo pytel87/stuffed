@@ -14,6 +14,7 @@ export class Help {
          <div class="card">
            <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <div class="help-body"></div>
+           <p class="legal"><a href="${tr('/privacy.html')}" target="_blank" rel="noopener">${tr('Privacy')}</a> · <a href="${tr('/terms.html')}" target="_blank" rel="noopener">${tr('Terms')}</a> · <a href="mailto:hello@pluffs.cz">hello@pluffs.cz</a></p>
          </div>
        </div>`,
     );

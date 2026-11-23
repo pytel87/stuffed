@@ -8,6 +8,7 @@
     "dev": "wrangler d1 migrations apply stuffed --local && wrangler dev --port 1999",
     "deploy": "wrangler d1 migrations apply stuffed --remote && wrangler deploy --assets ../../packages/client/dist --var ALLOWED_ORIGINS:https://pluffs.cz,https://www.pluffs.cz,https://stuffed-rooms.partyhub-vs.workers.dev",
     "typecheck": "tsc -p tsconfig.json",
+    "errors": "wrangler d1 execute stuffed --remote --command \"SELECT kind, message, COUNT(*) AS times, datetime(MAX(at) / 1000, 'unixepoch') AS last, MAX(build) AS build FROM errors WHERE at > (strftime('%s', 'now') - 86400) * 1000 GROUP BY kind, message ORDER BY times DESC LIMIT 40\"",
     "cf-typegen": "wrangler types --strict-vars=false",
     "dev:lan": "wrangler d1 migrations apply stuffed --local && wrangler dev --port 1999 --ip 0.0.0.0"
   },

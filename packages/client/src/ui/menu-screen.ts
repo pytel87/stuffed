@@ -7,6 +7,9 @@ import { tr } from '../i18n.ts';
 
 export interface MenuActions {
   solo: (name: string) => void;
+  /** "Play online": a public match with whoever else is looking (see the server's matchmaker). */
+  online: (name: string) => void;
+  /** A private room, to invite friends to with its code. */
   create: (name: string) => void;
   join: (name: string, code: string) => void;
   wardrobe: () => void;
@@ -14,7 +17,8 @@ export interface MenuActions {
   mapChanged?: (map: MapData) => void;
 }
 
-/** Title menu: your name, Solo, Room (create), and a code field to join. */
+/** Title menu: your name, Solo, Online (a public match), and a code field to join a friend's room
+ *  (or + to make one). */
 export class MenuScreen {
   private readonly el: HTMLElement;
   private readonly name: HTMLInputElement;
@@ -35,13 +39,14 @@ export class MenuScreen {
            </div>
            <div class="row">
              <button type="button" class="big primary menu-solo"><span>${tr('Solo')}</span></button>
-             <button type="button" class="big menu-create"><span>${tr('Multi')}</span></button>
+             <button type="button" class="big menu-online"><span>${tr('Online')}</span></button>
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>
            <form class="row menu-join">
              <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="${tr('CODE')}" autocomplete="off" spellcheck="false" aria-label="${tr('Room code')}"></label>
              <button type="submit" class="round primary" aria-label="${tr('Join')}">${icon('arrow')}</button>
+             <button type="button" class="round menu-create" aria-label="${tr('New room for friends')}">${icon('plus')}</button>
            </form>
            <p class="error" role="alert"></p>
          </div>
@@ -56,6 +61,7 @@ export class MenuScreen {
 
     const name = () => this.name.value.trim().slice(0, 16) || tr('Plush');
     this.el.querySelector('.menu-solo')!.addEventListener('click', () => actions.solo(name()));
+    this.el.querySelector('.menu-online')!.addEventListener('click', () => actions.online(name()));
     bindBotLevel(this.el.querySelector('.bot-level')!);
     bindMapChoice(this.el.querySelector('.map-choice')!, (map) => actions.mapChanged?.(map));
     this.el.querySelector('.menu-create')!.addEventListener('click', () => actions.create(name()));

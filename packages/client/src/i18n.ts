@@ -1,17 +1,38 @@
-// The few words the game shows, in Czech (the default) or English (?lang=en, remembered).
-// Strings are looked up by their English text, so the code still reads in English.
+// The few words the game shows, in Czech or English: the one picked in the options (remembered;
+// ?lang= also sets it), else the browser's (Czech for Czech and Slovak browsers, English for the
+// rest). Strings are looked up by their English text, so the code still reads in English.
 
-type Lang = 'cs' | 'en';
+export type Lang = 'cs' | 'en';
+
+const LANG_KEY = 'stuffed.lang';
+
+/** The browser's language: Czech for Czech and Slovak (Slovak kids read Czech), else English. */
+function browserLang(): Lang {
+  const langs = typeof navigator === 'undefined' ? [] : (navigator.languages?.length ? navigator.languages : [navigator.language]);
+  return langs.some((l) => /^(cs|sk)\b/i.test(l ?? '')) ? 'cs' : 'en';
+}
 
 function pickLang(): Lang {
   const param = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('lang');
   try {
-    if (param === 'cs' || param === 'en') localStorage.setItem('stuffed.lang', param);
-    const saved = param ?? localStorage.getItem('stuffed.lang');
-    return saved === 'en' ? 'en' : 'cs';
+    if (param === 'cs' || param === 'en') localStorage.setItem(LANG_KEY, param);
+    const saved = param ?? localStorage.getItem(LANG_KEY);
+    return saved === 'cs' || saved === 'en' ? saved : browserLang();
   } catch {
-    return param === 'en' ? 'en' : 'cs';
+    return param === 'cs' || param === 'en' ? param : browserLang();
   }
+}
+
+/** Switches to `lang` for good (the page reloads to show it). */
+export function switchLang(lang: Lang): void {
+  try {
+    localStorage.setItem(LANG_KEY, lang);
+  } catch {
+    // not remembered: this time only, by the address
+  }
+  const url = new URL(location.href);
+  url.searchParams.set('lang', lang);
+  location.replace(url.toString());
 }
 
 export const LANG: Lang = pickLang();
@@ -125,6 +146,17 @@ const CS: Record<string, string> = {
   'Holo set': 'Holo set',
   'Buy?': 'Koupit?',
   Total: 'Celkem',
+  Language: 'Jazyk',
+  Online: 'Online',
+  'New room for friends': 'Nová místnost pro kamarády',
+  'Looking for players…': 'Hledáme hráče…',
+  'Starting in {s} s': 'Začínáme za {s} s',
+  'Starting…': 'Začínáme…',
+  "Couldn't find a match.": 'Nepodařilo se najít hru.',
+  Privacy: 'Soukromí',
+  Terms: 'Podmínky',
+  '/privacy.html': '/soukromi.html',
+  '/terms.html': '/podminky.html',
   Reload: 'Načíst',
   'A new version of the game is ready': 'Je tu nová verze hry',
   'A new version is out: reload to play online': 'Vyšla nová verze: načti ji a hraj online',

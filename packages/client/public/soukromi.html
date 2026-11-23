@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Soukromí – Pluffs</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<style>
+:root { --ink: #2a1f2d; --cream: #fffaf3; --pink: #e0457b; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: #5e9e50; font: 400 17px/1.55 ui-rounded, 'SF Pro Rounded', Nunito, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--ink); }
+main { max-width: 46rem; margin: 1.5rem auto 3rem; padding: 1.6rem 1.6rem 2rem; background: var(--cream); border: 4px solid var(--ink); border-radius: 1.6rem; box-shadow: 0 8px 0 var(--ink); outline: 2px dashed var(--pink); outline-offset: -14px; }
+h1 { margin: 0.2rem 0 0.2rem; font-size: 2rem; font-weight: 900; color: var(--pink); }
+h2 { margin: 1.6rem 0 0.4rem; font-size: 1.2rem; font-weight: 900; }
+p, li { margin: 0.4rem 0; }
+ul { padding-left: 1.3rem; }
+a { color: var(--pink); font-weight: 700; }
+.meta { opacity: 0.7; font-size: 0.95rem; }
+.todo { background: #ffe08a; border-radius: 0.3rem; padding: 0 0.25rem; font-weight: 700; }
+nav { margin-bottom: 0.6rem; font-weight: 700; }
+@media (max-width: 480px) { main { padding: 1.2rem 1.1rem 1.6rem; } h1 { font-size: 1.6rem; } }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Pluffs</a></nav>
+<h1>Soukromí</h1>
+<p class="meta">Platné od 23. 11. 2026 · <a href="/privacy.html">English</a></p>
+<p>Pluffs je hra pro děti, a tak o hráčích ukládáme jen to, bez čeho hra nefunguje. Nemáme účty, e-maily, reklamy ani sledovací nástroje třetích stran a sami nepoužíváme cookies.</p>
+
+<h2>Kdo za hru odpovídá</h2>
+<p>Správcem údajů je Ing. Vladimír Skoupý, IČO 01227386. S otázkami, žádostí o výpis nebo smazání údajů piš na <a href="mailto:hello@pluffs.cz">hello@pluffs.cz</a>.</p>
+
+<h2>Co je uložené v tvém zařízení</h2>
+<ul>
+<li><b>Klíč k profilu</b>: náhodný tajný kód, podle kterého tě hra pozná.</li>
+<li><b>Nastavení</b>: přezdívka, vybraná mapa, zvuk a hudba, jazyk a které tipy už jsi viděl.</li>
+</ul>
+<p>Je to v úložišti prohlížeče (localStorage) a smažeš to vymazáním dat stránky pluffs.cz.</p>
+
+<h2>Co je uložené na našem serveru</h2>
+<ul>
+<li><b>Profil</b>: náhodný identifikátor, kód pro obnovení (pro hraní na jiném zařízení), tvůj vzhled a sbírka částí (které části máš, kolikrát a odkdy).</li>
+<li><b>Knoflíky</b>: záznam o tom, kolik jsi jich kdy získal a za co je utratil (zápasy, nákupy setů).</li>
+<li><b>Otisky klíčů</b>: z klíče ve tvém zařízení ukládáme jen jeho otisk (hash), ne klíč samotný.</li>
+<li><b>Jednorázové kódy pro přesun</b> na novou adresu hry: platí 5 minut, pak se mažou.</li>
+<li><b>Hlášení chyb</b>: když hra spadne nebo jí server odmítne požadavek, pošle nám, co selhalo, verzi hry, stránku a typ prohlížeče. Nic o tobě. Mažeme je po 30 dnech.</li>
+</ul>
+
+<h2>Co neukládáme</h2>
+<ul>
+<li><b>Přezdívku</b> vidí jen ostatní hráči ve stejné online místnosti, dokud hrajete; neukládáme ji. Používej přezdívku, ne skutečné jméno.</li>
+<li><b>IP adresu</b> nezaznamenáváme. Poskytovatel hostingu ji krátce zpracovává, aby hru doručil a ochránil ji před zahlcením.</li>
+</ul>
+
+<h2>Proč a jak dlouho</h2>
+<p>Údaje potřebujeme, aby hra fungovala: aby sis udržel sbírku a knoflíky, mohl hrát na více zařízeních a abychom mohli opravovat chyby (oprávněný zájem a poskytování služby). Profil uchováváme, dokud hru používáš nebo dokud nepožádáš o smazání; hlášení chyb 30 dní.</p>
+
+<h2>Kdo údaje zpracovává za nás</h2>
+<p>Hra běží na službách <b>Cloudflare, Inc.</b> (servery, databáze, doručování), která údaje zpracovává jen pro nás a podle smluvních záruk pro přenos dat mimo EU.</p>
+
+<h2>Tvoje práva</h2>
+<p>Můžeš požádat o výpis svých údajů, jejich opravu nebo smazání a vznést námitku. Napiš na <a href="mailto:hello@pluffs.cz">hello@pluffs.cz</a> a přidej svůj <b>kód pro obnovení</b> (najdeš ho v Šatníku pod klíčkem), abychom věděli, o který profil jde. Stížnost můžeš podat také u <a href="https://uoou.gov.cz">Úřadu pro ochranu osobních údajů</a>.</p>
+
+<h2>Pro rodiče</h2>
+<p>Hra nežádá žádné osobní údaje a neobsahuje reklamy ani nákupy za skutečné peníze. Pokud se to změní, upravíme tuto stránku dřív, než to začne platit.</p>
+
+</main>
+</body>
+</html>

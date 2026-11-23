@@ -3,6 +3,7 @@
 // profile and settings, and the new one swaps it for a token of its own (see ProfileStore.load).
 // Until the variable is set (and in local development without it) nothing moves.
 import { serverHost } from './room-client.ts';
+import { reportError } from './report.ts';
 
 const CANONICAL = ((import.meta.env.VITE_CANONICAL_ORIGIN as string | undefined) ?? '').replace(/\/$/, '');
 const TOKEN_KEY = 'stuffed.profile';
@@ -43,7 +44,10 @@ export async function leaveForNewAddress(): Promise<boolean> {
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({ prefs: localPrefs() }),
       });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        reportError('transfer', `start ${res.status}`);
+        return false;
+      }
       target.searchParams.set('transfer', ((await res.json()) as { code: string }).code);
     } catch {
       return false;

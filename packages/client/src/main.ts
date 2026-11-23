@@ -12,7 +12,8 @@ import { renderModelIcons } from './render/model-icons.ts';
 import { LocalSession } from './session/local-session.ts';
 import { ProfileStore } from './session/profile.ts';
 import { leaveForNewAddress } from './session/hand-over.ts';
-import { createRoom, RoomClient } from './session/room-client.ts';
+import { installErrorReports, reportError } from './session/report.ts';
+import { createRoom, findPublicRoom, RoomClient } from './session/room-client.ts';
 import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
 import { EndScreen, type EndView } from './ui/end-screen.ts';
@@ -37,7 +38,11 @@ import { Tips } from './ui/tips.ts';
 import { UpdateBanner } from './ui/update-banner.ts';
 import { tr } from './i18n.ts';
 
+// Crashes on players' devices get reported (see report.ts), from the very start.
+installErrorReports();
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
+// The graphics card gave up (a phone short of memory, a driver reset): worth knowing about.
+canvas.addEventListener('webglcontextlost', () => reportError('webgl', 'context lost'));
 const hudEl = document.querySelector<HTMLElement>('#hud')!;
 const spectateEl = document.querySelector<HTMLElement>('#spectating')!;
 /** "Jump to drop" while riding the Toss blimp. */
@@ -107,6 +112,11 @@ const menu = new MenuScreen(document.body, playerName(), {
     mode = 'solo';
     menu.hide();
     beginMatch(newSolo());
+  },
+  online: (name) => {
+    saveName(name);
+    menu.setBusy(true);
+    playOnline();
   },
   create: (name) => {
     saveName(name);
@@ -260,8 +270,10 @@ window.addEventListener('keydown', (e) => {
   // A focused button (Play again / Spectate / Start) handles its own Enter.
   if (e.code !== 'Enter' || active instanceof HTMLButtonElement || mode === 'menu') return;
   uiClick();
-  if (lobbyScreen?.visible) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel(), savedMap().id);
-  else if (phase !== 'playing') playAgain();
+  if (lobbyScreen?.visible) {
+    // (A public room starts by itself.)
+    if (!room?.isPublic) room?.start(lobbyScreen.bots, lobbyScreen.teams, savedBotLevel(), savedMap().id);
+  } else if (phase !== 'playing') playAgain();
 });
 
 /** The bots-only match behind the menu and lobby: no HUD, no result cards, loops forever. */
@@ -316,7 +328,32 @@ function showMenu(): void {
   void updates.check();
 }
 
+/** "Play online": into the public room that's filling up (from the menu, or again after a match). */
+function playOnline(): void {
+  findPublicRoom()
+    .then((code) => joinRoom(code, true))
+    .catch((err: unknown) => {
+      showMenu();
+      menu.showError(`${tr("Couldn't find a match.")} ${err instanceof Error ? err.message : ''}`);
+    });
+}
+
+/** Out of the current room (without going back to the menu). */
+function leaveRoom(): void {
+  room?.close();
+  room = null;
+  lobbyScreen?.remove();
+  lobbyScreen = null;
+}
+
 function playAgain(): void {
+  // A public match is played once: again means the next one, with whoever is looking now.
+  if (room?.isPublic) {
+    leaveRoom();
+    endScreen.hide();
+    playOnline();
+    return;
+  }
   if (room) {
     if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel(), savedMap().id);
     return;
@@ -326,10 +363,11 @@ function playAgain(): void {
 }
 
 /** Online: connect to a room, show its lobby, and switch to each match the host starts. */
-function joinRoom(code: string): void {
+function joinRoom(code: string, isPublic = false): void {
   mode = 'online';
   menu.hide();
-  history.replaceState(null, '', `?room=${code}`);
+  // (A friend's room can be shared by its link; a public one is just for now.)
+  history.replaceState(null, '', isPublic ? location.pathname : `?room=${code}`);
   // Bots play in the background until the host starts.
   if (!isBackdrop(session)) beginMatch(newBackdrop());
   hudEl.classList.add('idle');
@@ -547,6 +585,8 @@ function frame(now: number): void {
 /** Moves between playing, knocked out, spectating and the end of the match. */
 function updatePhase(state: GameState): void {
   if (!session) return;
+  // The language switch reloads the page: not while you're playing a match.
+  options.setCanSwitchLang(isBackdrop(session) || phase === 'over' || phase === 'out');
   const total = state.players.length;
   if (isBackdrop(session)) {
     if (!isAlive(state, followId)) followId = nextAlive(state, { x: 40, y: 40 });
@@ -568,7 +608,7 @@ function updatePhase(state: GameState): void {
         placement: `${total}`,
         stats: [],
         canSpectate: false,
-        waitingForHost: !!room && !room.isHost,
+        waitingForHost: !!room && !room.isPublic && !room.isHost,
       });
     }
     return;
@@ -602,7 +642,7 @@ function updatePhase(state: GameState): void {
   if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
     reportSolo(carriedParts(me), true, me);
-    endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
     return;
@@ -625,7 +665,7 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     spectateEl.hidden = true;
     // (Out, but your team won: the win sound played when it was decided.)
-    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
     return;

@@ -8,6 +8,7 @@ import { addParts, awardButtons, buySet, claimTransfer, createProfile, startTran
 import type { Room } from './room.ts';
 
 export { Room } from './room.ts';
+export { Matchmaker } from './matchmaker.ts';
 
 /**
  * Where new rooms live. A Durable Object is placed near whoever first contacts it and never
@@ -50,6 +51,33 @@ async function underLimit(req: Request, limit: RateLimit): Promise<boolean> {
 
 const tooMany = () => Response.json({ error: 'too_many' }, { status: 429 });
 
+/** How long error reports are kept. */
+const ERRORS_KEPT_MS = 30 * 86_400_000;
+
+/**
+ * Keeps one error report (from a player's device, or the server's own), trimmed to size, and
+ * writes it to the Worker's logs too. Old ones go as new ones come.
+ */
+async function keepError(env: Env, e: { kind: string; message: string; detail?: unknown; build?: unknown; page?: unknown; agent?: string }): Promise<void> {
+  const cut = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : '');
+  const row = { kind: cut(e.kind, 30) || 'error', message: cut(e.message, 300) || '?', detail: cut(e.detail, 2000), build: cut(e.build, 40), page: cut(e.page, 200), agent: cut(e.agent, 200) };
+  console.error('reported error', row);
+  const now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO errors (at, kind, message, detail, build, page, agent) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(now, row.kind, row.message, row.detail, row.build, row.page, row.agent),
+    env.DB.prepare('DELETE FROM errors WHERE at < ?').bind(now - ERRORS_KEPT_MS),
+  ]);
+}
+
+/** POST /public: the code of a public room to join (see matchmaker.ts). */
+async function publicRoom(env: Env): Promise<Response> {
+  try {
+    return Response.json({ code: await env.Matchmaker.get(env.Matchmaker.idFromName('global')).find() });
+  } catch {
+    return Response.json({ error: 'no_free_code' }, { status: 503 });
+  }
+}
+
 /** POST /create: picks a free room code and claims it. */
 async function createRoom(env: Env): Promise<Response> {
   for (let attempt = 0; attempt < 12; attempt++) {
@@ -68,7 +96,8 @@ const MAX_CARRIED = 8;
  * POST /api/profile → new profile and its token · GET /api/profile → yours ·
  * PUT /api/profile/look {look} · POST /api/profile/recover {code} → a token for this device ·
  * POST /api/profile/transfer {prefs} → a one-time code to take this profile to the game's new
- * address · POST /api/profile/claim {code} → a token for it there, and the settings ·
+ * address · POST /api/profile/claim {code} → a token for it there, and the settings · POST
+ * /api/report {kind, message, detail, build, page} → an error from a player's device, kept ·
  * POST /api/profile/solo {parts, won, placement, knockouts, found, matchId} → the parts carried home
  * from a solo match, saved, and its Buttons (guarded: the browser reports these, see BUTTONS) · POST /api/shop/buy
  * {animal, holo, requestId} → the parts missing from that set, for Buttons.
@@ -86,6 +115,11 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
 
   // (Creating things and reporting results, limited per address; reading isn't.)
   if (req.method !== 'GET' && !(await underLimit(req, path === '/api/profile' ? env.LIMIT_PROFILES : env.LIMIT_WRITES))) return tooMany();
+  if (path === '/api/report' && req.method === 'POST') {
+    const b = await body();
+    await keepError(env, { kind: String(b.kind ?? ''), message: String(b.message ?? ''), detail: b.detail, build: b.build, page: b.page, agent: req.headers.get('user-agent') ?? '' });
+    return json({ ok: true });
+  }
   if (path === '/api/profile' && req.method === 'POST') return json(await createProfile(env.DB));
   if (path === '/api/profile/claim' && req.method === 'POST') {
     const found = await claimTransfer(env.DB, String((await body()).code ?? ''));
@@ -160,12 +194,23 @@ export default {
     }
     if (url.pathname.startsWith('/api/')) {
       if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
-      return cors(req, env, await profileApi(req, env, url.pathname));
+      try {
+        return cors(req, env, await profileApi(req, env, url.pathname));
+      } catch (err) {
+        // Kept like the players' reports, so `pnpm errors` shows the server's failures too.
+        await keepError(env, { kind: 'server', message: `${req.method} ${url.pathname}: ${err instanceof Error ? err.message : String(err)}`, detail: err instanceof Error ? (err.stack ?? '') : '' }).catch(() => {});
+        return cors(req, env, Response.json({ error: 'server' }, { status: 500 }));
+      }
     }
     if (url.pathname === '/create' && req.method === 'POST') {
       if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
       if (!(await underLimit(req, env.LIMIT_ROOMS))) return cors(req, env, tooMany());
       return cors(req, env, await createRoom(env));
+    }
+    if (url.pathname === '/public' && req.method === 'POST') {
+      if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
+      if (!(await underLimit(req, env.LIMIT_ROOMS))) return cors(req, env, tooMany());
+      return cors(req, env, await publicRoom(env));
     }
     if (url.pathname === '/health') return new Response('ok');
 

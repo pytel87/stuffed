@@ -12,9 +12,16 @@
   ],
   "preview_urls": false,
   "durable_objects": {
-    "bindings": [{ "name": "Room", "class_name": "Room" }]
+    // Room: one per room code. Matchmaker: one for everyone, the public room that's filling up.
+    "bindings": [
+      { "name": "Room", "class_name": "Room" },
+      { "name": "Matchmaker", "class_name": "Matchmaker" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["Matchmaker"] }
+  ],
   // Profiles, collections and Buttons. Create the database once with `npx wrangler d1 create stuffed`
   // and put its id here; `wrangler dev` uses a local copy. Its tables: migrations/ (see package.json).
   "d1_databases": [{ "binding": "DB", "database_name": "stuffed", "database_id": "32102c22-614a-4bec-9bc0-27fc4ec345da", "migrations_dir": "migrations" }],

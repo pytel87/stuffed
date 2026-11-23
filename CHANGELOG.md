@@ -2,6 +2,32 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Play online (2026-11-23)
+
+- The game starts in the browser's language (Czech for Czech and Slovak browsers, English for
+  everyone else), and a CZ/EN button in the ⚙ options switches it (from the menus, not mid-match:
+  the page reloads in the other language). The choice is remembered.
+- **Online** on the title menu: straight into a public match with whoever else is looking. It
+  starts as soon as 8 players are in (or the room is full), or 30 seconds after the first one came,
+  with bots filling the rest and a map picked at random; the waiting card counts down. After the
+  match, Again finds the next one. No host, no invite code.
+- Friends' rooms are still there: + next to the code field makes one (the old Multi), and the
+  code or the link joins it.
+- The server: a Matchmaker Durable Object hands out the public room that's filling up; a room
+  tells it when it starts, and the next player gets a fresh one.
+
+## Knowing when it breaks (2026-11-23)
+
+- Privacy and terms pages in Czech and English (pluffs.cz/soukromi.html, /podminky.html,
+  /privacy.html, /terms.html), linked with the contact hello@pluffs.cz at the foot of the Controls
+  card. They describe exactly what's stored on the device and the server, for how long, and how to
+  have it deleted (with the recovery code).
+- Crashes on players' devices (and failed calls to the game server: loading a profile, a solo
+  result, a purchase, the move to pluffs.cz, a lost graphics context) are reported to the server:
+  what failed, the build, the page and the browser, nothing about the player. A few per visit,
+  each kind once. The server's own failures are kept the same way. Kept 30 days.
+- `pnpm errors` lists the last day's reports, grouped, most frequent first.
+
 ## Pluffs (2026-11-23)
 
 - Fixed: returning players' profiles didn't load (no Wardrobe, no Buttons) since the API was locked

@@ -27,6 +27,15 @@ export async function createRoom(): Promise<string> {
   return code;
 }
 
+/** Asks the server for a public room to join ("Play online"; see the server's matchmaker). */
+export async function findPublicRoom(): Promise<string> {
+  const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
+  const res = await fetch(`${protocol}//${serverHost()}/public`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Could not find a match (${res.status})`);
+  const { code } = (await res.json()) as { code: string };
+  return code;
+}
+
 /**
  * Identifies your seat in a room across reconnects and reloads. Per tab (sessionStorage), so two
  * tabs in one browser are two players.
@@ -94,6 +103,11 @@ export class RoomClient {
       if (this.lagMs > 0) setTimeout(() => this.receive(msg), this.lagMs / 2);
       else this.receive(msg);
     });
+  }
+
+  /** A matchmade room: no host, it starts by itself. */
+  get isPublic(): boolean {
+    return this.lobby?.public === true;
   }
 
   get isHost(): boolean {

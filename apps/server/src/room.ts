@@ -32,6 +32,10 @@ const INPUT_TIMEOUT_TICKS = 15;
 /** Seconds after a match ends before the loop stops (final snapshots, effects). */
 const LINGER_SECONDS = 3;
 const DEFAULT_BOTS = 15;
+/** A public room starts as soon as this many players are in, */
+const PUBLIC_START_PLAYERS = 8;
+/** or this long after the first one came. */
+const PUBLIC_WAIT_MS = 30_000;
 const NAME_MAX = 16;
 
 interface Seat {
@@ -82,6 +86,11 @@ export class Room extends Server<Env> {
   static override options = { hibernate: false };
 
   private claimed = false;
+  /** Matchmade ("Play online"): no host; it starts by itself (see checkPublicStart). */
+  private isPublic = false;
+  /** A public room's start, at the latest (ms since 1970), once someone is waiting. */
+  private startsAt: number | null = null;
+  private startTimer: ReturnType<typeof setTimeout> | null = null;
   private phase: RoomPhase = 'lobby';
   private seats: Seat[] = [];
   private bots = DEFAULT_BOTS;
@@ -102,6 +111,13 @@ export class Room extends Server<Env> {
   async claim(): Promise<boolean> {
     if (this.claimed || this.seats.length > 0) return false;
     this.claimed = true;
+    return true;
+  }
+
+  /** Called by the Matchmaker: this room becomes a public one (false if the code is in use). */
+  async claimPublic(): Promise<boolean> {
+    if (!(await this.claim())) return false;
+    this.isPublic = true;
     return true;
   }
 
@@ -144,6 +160,9 @@ export class Room extends Server<Env> {
     this.sent.delete(conn.id);
     const seat = this.seats.find((s) => s.connId === conn.id);
     if (seat) seat.connId = null;
+    // A public room's waiting list is whoever is there (a seat left is someone else's).
+    if (seat && this.isPublic && this.phase === 'lobby') this.seats = this.seats.filter((s) => s !== seat);
+    this.checkPublicStart();
     this.broadcastLobby();
     if (![...this.getConnections()].some((c) => c.id !== conn.id)) this.stopLoop();
   }
@@ -164,8 +183,9 @@ export class Room extends Server<Env> {
     if (seat) {
       seat.connId = conn.id;
       seat.name = name;
-    } else if (this.seats.length < MAX_PLAYERS) {
-      seat = { seat: this.seats.length, token, name, connId: conn.id, profileId: null, look: null, holoAnimals: [], missingParts: [], profileToken: null };
+    } else if (this.seats.length < MAX_PLAYERS && !(this.isPublic && this.phase !== 'lobby')) {
+      // (Numbered past the highest: a public room's seats come and go.)
+      seat = { seat: Math.max(-1, ...this.seats.map((s) => s.seat)) + 1, token, name, connId: conn.id, profileId: null, look: null, holoAnimals: [], missingParts: [], profileToken: null };
       this.seats.push(seat);
     }
     if (seat && typeof msg.profile === 'string') {
@@ -175,6 +195,7 @@ export class Room extends Server<Env> {
     conn.setState({ seat: seat?.seat ?? null });
     this.sent.delete(conn.id);
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });
+    this.checkPublicStart();
     this.broadcastLobby();
     // Joining a match in progress: watch it (or rejoin your plush if you were in it).
     if (this.match && this.phase !== 'lobby') {
@@ -212,16 +233,55 @@ export class Room extends Server<Env> {
 
   private lobbyMessage(): ServerMessage {
     const host = this.host();
-    const seats: LobbySeat[] = this.seats.map((s) => ({ seat: s.seat, name: s.name, connected: s.connId !== null, host: s === host }));
-    return { t: 'lobby', phase: this.phase, seats, bots: this.bots, teams: this.teams };
+    const seats: LobbySeat[] = this.seats.map((s) => ({ seat: s.seat, name: s.name, connected: s.connId !== null, host: !this.isPublic && s === host }));
+    return { t: 'lobby', phase: this.phase, seats, bots: this.bots, teams: this.teams, ...(this.isPublic ? { public: true, startsAt: this.startsAt } : {}) };
   }
 
   private broadcastLobby(): void {
     this.broadcast(JSON.stringify(this.lobbyMessage()));
   }
 
+  /**
+   * A public room in its lobby: starts once enough players are in (or it's full), or when the wait
+   * runs out; the wait begins with the first player and is called off if everyone leaves.
+   */
+  private checkPublicStart(force = false): void {
+    if (!this.isPublic || this.phase !== 'lobby') return;
+    const humans = this.seats.filter((s) => s.connId !== null);
+    if (humans.length === 0) {
+      this.startsAt = null;
+      if (this.startTimer) clearTimeout(this.startTimer);
+      this.startTimer = null;
+      return;
+    }
+    if (force || humans.length >= PUBLIC_START_PLAYERS || this.seats.length >= MAX_PLAYERS) return this.startPublic(humans);
+    if (this.startsAt === null) {
+      this.startsAt = Date.now() + PUBLIC_WAIT_MS;
+      this.startTimer = setTimeout(() => {
+        this.startTimer = null;
+        this.checkPublicStart(true);
+      }, PUBLIC_WAIT_MS);
+    }
+  }
+
+  /** A public match: everyone in, bots for the rest, a map picked at random. */
+  private startPublic(humans: Seat[]): void {
+    if (this.startTimer) clearTimeout(this.startTimer);
+    this.startTimer = null;
+    this.startsAt = null;
+    // No more players for this room: the Matchmaker opens another one.
+    void this.env.Matchmaker.get(this.env.Matchmaker.idFromName('global')).closed(this.name).catch(() => {});
+    this.bots = MAX_PLAYERS - humans.length;
+    this.teams = false;
+    this.level = 'normal';
+    this.map = PLAYABLE_MAPS[Math.floor(Math.random() * PLAYABLE_MAPS.length)]!;
+    this.startMatch(humans);
+  }
+
   /** The host, after a match: everyone goes back to the lobby (same room, same seats). */
   private backToLobby(conn: Connection<ConnState>): void {
+    // (A public room has no host and no second match: everyone goes back to matchmaking.)
+    if (this.isPublic) return this.send(conn, { t: 'error', code: 'not_host' });
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase !== 'ended') return;
@@ -232,6 +292,7 @@ export class Room extends Server<Env> {
   }
 
   private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean, level: unknown, mapId: unknown): void {
+    if (this.isPublic) return this.send(conn, { t: 'error', code: 'not_host' });
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase === 'playing') return;

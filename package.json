@@ -12,6 +12,7 @@
     "dev:lan": "pnpm --parallel --filter @stuffed/client --filter @stuffed/server dev:lan",
     "dev:solo": "pnpm --filter @stuffed/client dev",
     "deploy": "VITE_CANONICAL_ORIGIN=https://pluffs.cz pnpm build && pnpm --filter @stuffed/server run deploy",
+    "errors": "pnpm --filter @stuffed/server run errors",
     "music": "node tools/generate-music.mjs",
     "textures": "node tools/generate-textures.mjs"
   },
