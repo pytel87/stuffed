@@ -2,7 +2,7 @@
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
 import type { BotLevel, MapData } from '@stuffed/sim';
-import { BACKYARD, BOT_LEVELS, BotController, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, matchButtons, NEUTRAL_INPUT, step } from '@stuffed/sim';
+import { addPlayer, BACKYARD, BOT_LEVELS, BotController, removePlayer, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, matchButtons, NEUTRAL_INPUT, step } from '@stuffed/sim';
 import type { Animal, EntityId, MissingPart, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -75,6 +75,8 @@ interface Match {
   awarded: Set<number>;
   /** Team mode: Buttons wait for the end (a knocked-out player's team can still win). */
   teams: boolean;
+  /** The lobby's warm-up: play around while friends join (nobody hurt, nothing kept or earned). */
+  warmup: boolean;
 }
 
 interface ConnState {
@@ -130,6 +132,8 @@ export class Room extends Server<Env> {
   async claimPublic(): Promise<boolean> {
     if (!(await this.claim())) return false;
     this.isPublic = true;
+    // The map it'll be played on, picked now: the warm-up shows it while everyone waits.
+    this.map = PLAYABLE_MAPS[Math.floor(Math.random() * PLAYABLE_MAPS.length)]!;
     return true;
   }
 
@@ -161,6 +165,8 @@ export class Room extends Server<Env> {
       }
       case 'lobby':
         return this.backToLobby(conn);
+      case 'map':
+        return this.mapRequest(conn, msg.mapId);
       case 'ping':
         return this.send(conn, { t: 'pong', c: Number(msg.c) || 0, s: Date.now() });
       default:
@@ -172,6 +178,8 @@ export class Room extends Server<Env> {
     this.sent.delete(conn.id);
     const seat = this.seats.find((s) => s.connId === conn.id);
     if (seat) seat.connId = null;
+    // Gone from the warm-up (back in if they come back).
+    if (seat) this.leaveWarmup(seat);
     // A public room's waiting list is whoever is there (a seat left is someone else's).
     if (seat && this.isPublic && this.phase === 'lobby') this.seats = this.seats.filter((s) => s !== seat);
     this.checkPublicStart();
@@ -209,9 +217,11 @@ export class Room extends Server<Env> {
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });
     this.checkPublicStart();
     if (seat && this.solo && this.phase === 'lobby' && !this.match) void this.startSolo(seat);
+    // In the lobby: into the warm-up (started by the first one in).
+    else if (seat && !this.solo && this.phase === 'lobby') void this.joinWarmup(seat);
     this.broadcastLobby();
     // Joining a match in progress: watch it (or rejoin your plush if you were in it).
-    if (this.match && this.phase !== 'lobby') {
+    if (this.match && this.phase !== 'lobby' && !this.match.warmup) {
       this.send(conn, { t: 'start', mapId: this.match.state.mapId, you: seat ? (this.match.plushOf.get(seat.seat) ?? null) : null });
       this.sendSnapshot(conn, this.match);
     }
@@ -301,7 +311,7 @@ export class Room extends Server<Env> {
     this.bots = MAX_PLAYERS - humans.length;
     this.teams = false;
     this.level = 'normal';
-    this.map = PLAYABLE_MAPS[Math.floor(Math.random() * PLAYABLE_MAPS.length)]!;
+    // (On the map picked when the room opened: the one they warmed up on.)
     this.startMatch(humans);
   }
 
@@ -316,6 +326,92 @@ export class Room extends Server<Env> {
     this.match = null;
     this.stopLoop();
     this.broadcastLobby();
+    this.startWarmup();
+  }
+
+  // ---------- the warm-up ----------
+
+  /**
+   * The lobby's warm-up on the room's map: everyone in it can run around, jump, shoot (harmlessly)
+   * and try the toys while the others join; the real match replaces it. Sent like a match, marked.
+   */
+  private startWarmup(): void {
+    if (this.solo || this.phase !== 'lobby') return;
+    const humans = this.seats.filter((s) => s.connId !== null);
+    if (humans.length === 0) {
+      this.match = null;
+      return this.stopLoop();
+    }
+    const seed = (Math.random() * 2 ** 32) >>> 0;
+    const state = createGame({ seed, map: this.map, roster: humans.map((s) => this.warmupEntry(s)), peaceful: true });
+    this.match = {
+      world: createWorld(this.map),
+      state,
+      bots: new BotController(seed, 'normal'),
+      plushOf: new Map(humans.map((s, i) => [s.seat, state.players[i]!.id])),
+      queued: new Map(),
+      last: new Map(),
+      lastInputTick: new Map(),
+      events: [],
+      endedAtTick: null,
+      dropped: new Map(),
+      kept: new Set(),
+      id: crypto.randomUUID(),
+      awarded: new Set(),
+      teams: false,
+      warmup: true,
+    };
+    this.sent.clear();
+    for (const conn of this.getConnections<ConnState>()) this.sendWarmupStart(conn);
+    this.startLoop();
+  }
+
+  private warmupEntry(s: Seat) {
+    return { name: s.name, isBot: false, ...(s.look ? { parts: s.look } : {}) };
+  }
+
+  private sendWarmupStart(conn: Connection<ConnState>): void {
+    const m = this.match;
+    if (!m?.warmup) return;
+    const seat = conn.state?.seat;
+    this.send(conn, { t: 'start', mapId: m.state.mapId, you: seat === null || seat === undefined ? null : (m.plushOf.get(seat) ?? null), warmup: true });
+    this.sendSnapshot(conn, m);
+  }
+
+  /** Someone came into the lobby: into the warm-up, in their look (or it starts, if they're first). */
+  private async joinWarmup(seat: Seat): Promise<void> {
+    if (seat.profileToken) await this.attachProfile(seat, seat.profileToken);
+    if (this.phase !== 'lobby' || seat.connId === null) return;
+    const m = this.match;
+    if (!m?.warmup) return this.startWarmup();
+    if (!m.plushOf.has(seat.seat)) {
+      const plush = addPlayer(m.state, this.map, this.warmupEntry(seat));
+      if (plush) m.plushOf.set(seat.seat, plush.id);
+    }
+    const conn = this.getConnection<ConnState>(seat.connId);
+    if (conn) this.sendWarmupStart(conn);
+    this.startLoop();
+  }
+
+  /** Someone left: their plush leaves the warm-up. */
+  private leaveWarmup(seat: Seat): void {
+    const m = this.match;
+    if (!m?.warmup) return;
+    const id = m.plushOf.get(seat.seat);
+    if (id === undefined) return;
+    removePlayer(m.state, id);
+    m.plushOf.delete(seat.seat);
+    m.queued.delete(id);
+  }
+
+  /** The host picked a map in the lobby: the warm-up moves there. */
+  private mapRequest(conn: Connection<ConnState>, mapId: unknown): void {
+    const seat = conn.state?.seat;
+    if (this.isPublic || this.solo || this.phase !== 'lobby' || seat === null || seat === undefined || this.host()?.seat !== seat) return;
+    const map = PLAYABLE_MAPS.find((m) => m.id === mapId);
+    if (!map || map === this.map) return;
+    this.map = map;
+    this.startWarmup();
   }
 
   private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean, level: unknown, mapId: unknown): void {
@@ -354,6 +450,7 @@ export class Room extends Server<Env> {
       id: crypto.randomUUID(),
       awarded: new Set(),
       teams: this.teams,
+      warmup: false,
     };
     this.phase = 'playing';
     this.sent.clear();
@@ -370,7 +467,7 @@ export class Room extends Server<Env> {
   private input(conn: Connection<ConnState>, input: Input): void {
     const m = this.match;
     const seat = conn.state?.seat;
-    if (!m || this.phase !== 'playing' || seat === null || seat === undefined || typeof input !== 'object' || input === null) return;
+    if (!m || (this.phase !== 'playing' && !m.warmup) || seat === null || seat === undefined || typeof input !== 'object' || input === null) return;
     const id = m.plushOf.get(seat);
     if (id === undefined) return;
     let q = m.queued.get(id);
@@ -413,21 +510,16 @@ export class Room extends Server<Env> {
       return;
     }
 
-    const inputs = m.bots.inputs(m.world, m.state);
-    for (const id of m.plushOf.values()) {
-      const next = m.queued.get(id)?.shift();
-      if (next) {
-        m.last.set(id, next);
-        m.lastInputTick.set(id, m.state.tick);
-        inputs.set(id, next);
-      } else {
-        // A late input: keep holding what was held, but don't repeat one-shot actions. Inputs gone
-        // for a while (tab in the background, dropped connection): stand still.
-        const last = m.last.get(id);
-        const stale = m.state.tick - (m.lastInputTick.get(id) ?? -Infinity) > INPUT_TIMEOUT_TICKS;
-        inputs.set(id, last && !stale ? { ...last, weaponSlot: -1, cycleWeapon: false, useItemSlot: -1, dropSlot: -1, wearBagSlot: -1 } : { ...NEUTRAL_INPUT, aimX: last?.aimX ?? 0, aimY: last?.aimY ?? 0 });
-      }
+    // The warm-up: just play (nothing ends, nothing's kept or earned).
+    if (m.warmup) {
+      step(m.world, m.state, this.collectInputs(m, new Map()));
+      m.events.push(...m.state.events);
+      if (m.state.tick % SNAPSHOT_EVERY === 0) this.sendSnapshots(m);
+      return;
     }
+
+    const inputs = m.bots.inputs(m.world, m.state);
+    this.collectInputs(m, inputs);
     step(m.world, m.state, inputs);
     m.events.push(...m.state.events);
     for (const e of m.state.events) if (e.type === 'partsDropped') m.dropped.set(e.playerId, e.kept);
@@ -462,6 +554,25 @@ export class Room extends Server<Env> {
       }
     }
     if (m.state.tick % SNAPSHOT_EVERY === 0 || ended) this.sendSnapshots(m);
+  }
+
+  /** Each player's input for this tick (queued, or the last held a little longer), into `inputs`. */
+  private collectInputs(m: Match, inputs: Map<EntityId, Input>): Map<EntityId, Input> {
+    for (const id of m.plushOf.values()) {
+      const next = m.queued.get(id)?.shift();
+      if (next) {
+        m.last.set(id, next);
+        m.lastInputTick.set(id, m.state.tick);
+        inputs.set(id, next);
+      } else {
+        // A late input: keep holding what was held, but don't repeat one-shot actions. Inputs gone
+        // for a while (tab in the background, dropped connection): stand still.
+        const last = m.last.get(id);
+        const stale = m.state.tick - (m.lastInputTick.get(id) ?? -Infinity) > INPUT_TIMEOUT_TICKS;
+        inputs.set(id, last && !stale ? { ...last, weaponSlot: -1, cycleWeapon: false, useItemSlot: -1, dropSlot: -1, wearBagSlot: -1 } : { ...NEUTRAL_INPUT, aimX: last?.aimX ?? 0, aimY: last?.aimY ?? 0 });
+      }
+    }
+    return inputs;
   }
 
   /**
@@ -519,8 +630,9 @@ export class Room extends Server<Env> {
     const seat = conn.state?.seat;
     const you = seat === null || seat === undefined ? undefined : m.plushOf.get(seat);
     const viewer = you === undefined ? undefined : m.state.players.find((p) => p.id === you);
+    // (In the warm-up everyone sees everyone: it's about seeing who's here.)
     const players =
-      viewer?.alive && m.state.status === 'playing'
+      viewer?.alive && m.state.status === 'playing' && !m.warmup
         ? m.state.players.filter((p) => p.id === viewer.id || !p.alive || canSee(m.world, m.state, viewer, p))
         : m.state.players;
     let memory = this.sent.get(conn.id);

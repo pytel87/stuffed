@@ -4,6 +4,8 @@ import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
 import { ANIMALS } from '@stuffed/sim';
 import type { Animal } from '@stuffed/sim';
+import { accountFor, accountProfiles, deleteAccount, linkProfile, unlinkProfile, useProfile } from './accounts.ts';
+import { verifyGoogleToken } from './google.ts';
 import { buySet, claimTransfer, createProfile, startTransfer, loadProfile, parseLook, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
 import type { Room } from './room.ts';
 
@@ -109,7 +111,11 @@ async function createRoom(env: Env): Promise<Response> {
  * POST /api/profile/transfer {prefs} → a one-time code to take this profile to the game's new
  * address · POST /api/profile/claim {code} → a token for it there, and the settings · POST
  * /api/report {kind, message, detail, build, page} → an error from a player's device, kept ·
- * POST /api/shop/buy {animal, holo, requestId} → the parts missing from that set, for Buttons.
+ * POST /api/shop/buy {animal, holo, requestId} → the parts missing from that set, for Buttons ·
+ * accounts, each with {credential} (Google's ID token): POST /api/account/signin → the account's
+ * profiles · /api/account/link → this device's profile joins it · /api/account/use {profileId} →
+ * a token for one of them here · /api/account/delete → the account and its profiles, gone ·
+ * POST /api/profile/unlink → this profile leaves its account.
  */
 async function profileApi(req: Request, env: Env, path: string): Promise<Response> {
   const json = (body: unknown, status = 200) => Response.json(body, { status });
@@ -140,8 +146,41 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
   }
 
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+
+  // Accounts (Sign in with Google): each call carries Google's ID token, checked here.
+  if (path.startsWith('/api/account/') && req.method === 'POST') {
+    if (!env.GOOGLE_CLIENT_ID) return json({ error: 'accounts_off' }, 503);
+    const b = await body();
+    const who = await verifyGoogleToken(String(b.credential ?? ''), env.GOOGLE_CLIENT_ID);
+    if (!who) return json({ error: 'bad_credential' }, 401);
+    const account = await accountFor(env.DB, who);
+    const current = await profileIdForToken(env.DB, token);
+    if (path === '/api/account/signin') {
+      // The account's profiles, and whether this device's is one of them.
+      return json({ account: { email: account.email }, profiles: await accountProfiles(env.DB, account.id), current });
+    }
+    if (path === '/api/account/link') {
+      if (!current) return json({ error: 'no_profile' }, 401);
+      if ((await linkProfile(env.DB, current, account.id)) === 'elsewhere') return json({ error: 'linked_elsewhere' }, 409);
+      return json({ profile: await loadProfile(env.DB, current) });
+    }
+    if (path === '/api/account/use') {
+      const used = await useProfile(env.DB, account.id, String(b.profileId ?? ''));
+      return used ? json(used) : json({ error: 'not_yours' }, 403);
+    }
+    if (path === '/api/account/delete') {
+      await deleteAccount(env.DB, account.id);
+      return json({ ok: true });
+    }
+    return json({ error: 'not_found' }, 404);
+  }
+
   const id = await profileIdForToken(env.DB, token);
   if (!id) return json({ error: 'no_profile' }, 401);
+  if (path === '/api/profile/unlink' && req.method === 'POST') {
+    await unlinkProfile(env.DB, id);
+    return json({ profile: await loadProfile(env.DB, id) });
+  }
 
   if (path === '/api/profile' && req.method === 'GET') return json({ profile: await loadProfile(env.DB, id) });
   if (path === '/api/profile/transfer' && req.method === 'POST') {

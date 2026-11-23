@@ -85,12 +85,12 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
   updateMiniGames(world, state);
   updateWanderers(world, state);
   updateLava(world, state);
-  updateZone(state);
+  if (!state.peaceful) updateZone(state);
   // Knocked-out plushies burst and drop whatever they still hold.
   for (const player of state.players) {
     if (!player.alive && hasDrops(player)) dropEverything(world, state, player);
   }
-  checkWinner(state);
+  if (!state.peaceful) checkWinner(state);
   // The victory lap is over: the match ends.
   if (state.victoryUntil !== null && state.tick >= state.victoryUntil) state.status = 'ended';
   return state;

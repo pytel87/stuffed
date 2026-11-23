@@ -13,6 +13,8 @@ export interface MenuActions {
   create: (name: string) => void;
   join: (name: string, code: string) => void;
   wardrobe: () => void;
+  /** The Profil card: the account (Google), the recovery code. */
+  profile: () => void;
   /** A different map picked (the backdrop switches to it). */
   mapChanged?: (map: MapData) => void;
 }
@@ -36,6 +38,7 @@ export class MenuScreen {
            <div class="row">
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="${tr('Your name')}"></label>
              <button type="button" class="round menu-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>
+             <button type="button" class="round menu-profile" aria-label="${tr('Profile')}" hidden>${icon('person')}</button>
            </div>
            <div class="row">
              <button type="button" class="big primary menu-solo"><span>${tr('Solo')}</span></button>
@@ -43,6 +46,7 @@ export class MenuScreen {
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>
+           <hr class="stitch">
            <form class="row menu-join">
              <label class="field code">${icon('enter')}<input id="menu-code" maxlength="4" placeholder="${tr('CODE')}" autocomplete="off" spellcheck="false" aria-label="${tr('Room code')}"></label>
              <button type="submit" class="round primary" aria-label="${tr('Join')}">${icon('arrow')}</button>
@@ -66,6 +70,7 @@ export class MenuScreen {
     bindMapChoice(this.el.querySelector('.map-choice')!, (map) => actions.mapChanged?.(map));
     this.el.querySelector('.menu-create')!.addEventListener('click', () => actions.create(name()));
     this.el.querySelector('.menu-wardrobe')!.addEventListener('click', () => actions.wardrobe());
+    this.el.querySelector('.menu-profile')!.addEventListener('click', () => actions.profile());
     this.el.querySelector('.menu-join')!.addEventListener('submit', (e) => {
       e.preventDefault();
       const code = parseRoomCode(this.code.value);
@@ -89,9 +94,15 @@ export class MenuScreen {
     this.showError('');
   }
 
-  /** The Wardrobe needs a profile (a reachable server). */
+  /** The Wardrobe and the Profil card need a profile (a reachable server). */
   setWardrobe(available: boolean): void {
     this.el.querySelector<HTMLElement>('.menu-wardrobe')!.hidden = !available;
+    this.el.querySelector<HTMLElement>('.menu-profile')!.hidden = !available;
+  }
+
+  /** Signed in (the profile is linked to an account): the Profil button shows a tick. */
+  setSignedIn(signedIn: boolean): void {
+    this.el.querySelector('.menu-profile')!.classList.toggle('signed-in', signedIn);
   }
 
   /** Your Buttons (null: no profile, hidden). */

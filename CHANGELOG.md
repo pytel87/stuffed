@@ -2,6 +2,33 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Warm-up in the lobby (2026-11-23)
+
+- While a room fills up (friends' rooms and public ones), everyone in it is already on the map:
+  run around, jump, shoot and try the toys while the others join, with names over the plushies.
+  Nobody gets hurt (shots just push), there are no chests and no Rinse, and it never ends; the
+  real match replaces it (with the blimp drop), and after it the warm-up comes back. The lobby
+  card docks to the left meanwhile. The host's map pick moves the warm-up there; a public room
+  warms up on the map it'll be played on.
+- The game: a peaceful mode (no damage, chests, piñata, Rinse or winner) and players joining and
+  leaving a game under way. Typing in a field (your name) no longer walks your plush.
+- The title menu's friends' row (code to join, + to make a room) is set apart by a stitched seam.
+
+## Accounts (2026-11-23)
+
+- A Profil button on the title menu (next to the Wardrobe; a green tick once signed in) opens the
+  Profil card: the profile's head, Sign in with Google, and below it, without a Google account, the
+  recovery code and the field to enter one. (They were in the Wardrobe's key view, hard to find.)
+- Players (or a parent for them) can link a profile to a Google account ("Pokračovat s Googlem"), so the collection is safe and comes back on any device: signing in there lists the
+  account's profiles (siblings each have one) to play here, or adds this one too. A linked profile
+  shows its account, with Unlink and Delete account (which removes all its profiles; it asks to
+  sign in again first). The recovery code still works without an account.
+- The server checks Google's ID token itself (its signature against Google's keys, that it's for
+  this game, not expired); migration 0004 adds the accounts table. The privacy pages say what an
+  account stores (the e-mail and Google's ID for it) and that Google handles the sign-in.
+- Switched on by the Google client ID (GOOGLE_CLIENT_ID on the server, and in the page); until it's
+  set, nothing shows.
+
 ## Solo on the server (2026-11-23)
 
 - The desktop Controls card says what each key does in a few words (it was keys and pictures only),

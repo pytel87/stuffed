@@ -140,6 +140,12 @@ export class GameRenderer {
   /** Day to sunset over the match, as the Rinse closes in. */
   private readonly daylight = new Daylight(this.sky, this.sun);
   private readonly plushes = new Map<EntityId, PlushView>();
+
+  /** Where a plush is drawn (its feet), if it's drawn at all: for labels over it (see NameTags). */
+  plushAt(id: EntityId): THREE.Vector3 | null {
+    const view = this.plushes.get(id);
+    return view && view.root.visible ? view.root.position : null;
+  }
   private readonly projectiles = new ProjectileViews(this.scene);
   private readonly effects = new Effects(this.scene);
   private readonly chests = new ChestViews(this.scene);

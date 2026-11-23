@@ -514,6 +514,11 @@ export interface GameState {
    * and loot, nobody can be hurt), then the match ends. Null until then.
    */
   victoryUntil: Tick | null;
+  /**
+   * A warm-up (a room's lobby, while friends join): nobody gets hurt, no chests, no Rinse, it never
+   * ends, and players come and go (see addPlayer).
+   */
+  peaceful?: boolean;
   /** Arrays stay sorted by id so iteration order is deterministic. */
   players: Player[];
   projectiles: Projectile[];

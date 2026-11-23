@@ -90,7 +90,8 @@ export class LobbyScreen {
     this.players = q('.lobby-players');
     this.list = q('.chips');
     bindBotLevel(q<HTMLButtonElement>('.bot-level'));
-    bindMapPicker(q('.map-picker'));
+    // The warm-up moves to the map the host picks.
+    bindMapPicker(q('.map-picker'), (map) => this.client.setMap(map.id));
     this.matchSection = q('.lobby-match');
     this.inviteSection = q('.lobby-you');
     this.botPicks = [...this.el.querySelectorAll<HTMLButtonElement>('.bot-pick')];
@@ -195,9 +196,18 @@ export class LobbyScreen {
     this.countdown = null;
   }
 
+  /** The host's saved map, told to the room once (the warm-up starts on the room's default). */
+  private mapSent = false;
+
   render(): void {
     const c = this.client;
     const lobby = c.lobby;
+    if (c.isHost && !c.isPublic && !this.mapSent && c.status === 'open') {
+      this.mapSent = true;
+      c.setMap(savedMap().id);
+    }
+    // During the warm-up the card docks to the side, so everyone can play around behind it.
+    this.el.classList.toggle('compact', c.inWarmup);
     this.code.textContent = c.code;
     const humans = lobby?.seats.filter((s) => s.connected).length ?? 0;
     this.setBots(this.wantedBots, humans);

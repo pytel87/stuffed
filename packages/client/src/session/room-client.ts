@@ -114,6 +114,14 @@ export class RoomClient {
     });
   }
 
+  /** The match is the lobby's warm-up (play around while friends join; nobody gets hurt). */
+  inWarmup = false;
+
+  /** Host, in the lobby: the warm-up moves to this map (and the match is played there). */
+  setMap(mapId: string): void {
+    this.send({ t: 'map', mapId });
+  }
+
   /** A solo match played on the server: no lobby, one match. */
   get isSolo(): boolean {
     return this.lobby?.solo === true;
@@ -164,14 +172,16 @@ export class RoomClient {
         break;
       case 'lobby':
         this.lobby = msg;
-        // The host took everyone back to the lobby: the match is over for good.
-        if (msg.phase === 'lobby' && this.match) {
+        // The host took everyone back to the lobby: the match is over for good. (Not the warm-up,
+        // which is the lobby's own.)
+        if (msg.phase === 'lobby' && this.match && !this.inWarmup) {
           this.match = null;
           this.onBackToLobby();
         }
         this.onLobby();
         break;
       case 'start':
+        this.inWarmup = msg.warmup === true;
         this.match = new NetworkMatch(msg.you, this.input, (i: Input) => this.send({ t: 'input', i }), msg.mapId);
         this.onMatch(this.match);
         break;

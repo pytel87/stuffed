@@ -27,12 +27,12 @@ export function normalizeCode(input: string): string | null {
   return `${chars.slice(0, 4)}-${chars.slice(4)}`;
 }
 
-function randomToken(): string {
+export function randomToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function hashToken(token: string): Promise<string> {
+export async function hashToken(token: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -94,7 +94,10 @@ export async function profileIdForToken(db: D1Database, token: string): Promise<
 }
 
 export async function loadProfile(db: D1Database, id: string): Promise<Profile | null> {
-  const row = await db.prepare('SELECT id, recovery, look FROM profiles WHERE id = ?').bind(id).first<{ id: string; recovery: string; look: string }>();
+  const row = await db
+    .prepare('SELECT p.id, p.recovery, p.look, a.email FROM profiles p LEFT JOIN accounts a ON a.id = p.account_id WHERE p.id = ?')
+    .bind(id)
+    .first<{ id: string; recovery: string; look: string; email: string | null }>();
   if (!row) return null;
   const [plain, holo, balance] = await db.batch<Record<string, unknown>>([
     db.prepare('SELECT slot, animal, rarity, count FROM owned_parts WHERE profile_id = ? ORDER BY slot, animal, rarity').bind(id),
@@ -102,7 +105,14 @@ export async function loadProfile(db: D1Database, id: string): Promise<Profile |
     db.prepare('SELECT COALESCE(SUM(delta), 0) AS buttons FROM buttons WHERE profile_id = ?').bind(id),
   ]);
   const parts = [...(plain!.results as unknown as OwnedEntry[]), ...(holo!.results as unknown as OwnedEntry[]).map((p) => ({ ...p, holo: true }))];
-  return { id: row.id, recovery: row.recovery, look: JSON.parse(row.look) as Look, parts, buttons: Number(balance!.results[0]?.buttons ?? 0) };
+  return {
+    id: row.id,
+    recovery: row.recovery,
+    look: JSON.parse(row.look) as Look,
+    parts,
+    buttons: Number(balance!.results[0]?.buttons ?? 0),
+    account: row.email === null ? null : { email: row.email },
+  };
 }
 
 /** How long a transfer code lasts: the hop from the old address to the new one takes seconds. */

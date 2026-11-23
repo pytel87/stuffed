@@ -11,8 +11,7 @@ import { mapName } from './map-choice.ts';
 
 /**
  * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
- * part from all you own for it), see it on a turning plush, and the recovery code that puts
- * this profile on another device (or a field to enter one). The gallery shows every animal;
+ * part from all you own for it), and see it on a turning plush. The gallery shows every animal;
  * tapping an owned part there (or a complete set) puts it on.
  */
 export class Wardrobe {
@@ -21,8 +20,6 @@ export class Wardrobe {
   private readonly picker: HTMLElement;
   /** The slot whose parts the picker shows. */
   private selected: PartSlot = 'head';
-  private readonly code: HTMLElement;
-  private readonly restoreInput: HTMLInputElement;
   private readonly message: HTMLElement;
   private readonly preview: Preview;
   /** The look being edited (saved after each change). */
@@ -43,7 +40,6 @@ export class Wardrobe {
          <div class="card">
            <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <button type="button" class="round gallery-toggle" aria-label="${tr('Gallery')}">${icon('gallery')}</button>
-           <button type="button" class="round code-toggle" aria-label="${tr('Recovery code')}">${icon('code')}</button>
            <div class="gallery-balance" hidden title="${tr('Buttons')}">${icon('button')}<b></b></div>
            <div class="gallery" hidden></div>
            <div class="wardrobe-body">
@@ -53,26 +49,11 @@ export class Wardrobe {
              </div>
              <div class="wardrobe-picker"></div>
            </div>
-           <div class="wardrobe-code" hidden>
-             <h2>${icon('code', 'icon large')}</h2>
-             <p class="code-hint">${tr('Your code for another device:')}</p>
-             <div class="row code-row">
-               <b class="code-box code"></b>
-               <button type="button" class="round code-copy" aria-label="${tr('Copy code')}">${icon('copy')}</button>
-             </div>
-             <p class="code-hint">${tr('Got a code from another device?')}</p>
-             <form class="row restore">
-               <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="${tr('Recovery code')}"></label>
-               <button type="submit" class="round primary" aria-label="${tr('Use code')}">${icon('arrow')}</button>
-             </form>
-           </div>
            <p class="error" role="alert"></p>
          </div>
        </div>`,
     );
     this.el = document.querySelector<HTMLElement>('.wardrobe')!;
-    this.code = this.el.querySelector('.code')!;
-    this.restoreInput = this.el.querySelector('.restore input')!;
     this.message = this.el.querySelector('.error')!;
     this.preview = new Preview(this.el.querySelector('.wardrobe-preview')!);
     this.gallery = this.el.querySelector('.gallery')!;
@@ -88,21 +69,6 @@ export class Wardrobe {
     this.galleryToggle.addEventListener('click', (e) => {
       if (e.detail > 0) this.galleryToggle.blur();
       this.showGallery(this.gallery.hidden === true);
-    });
-    // The recovery code (to open this profile on another device): its own view, in place of the
-    // dressing up, until the key (now a hanger) is tapped again.
-    const codeToggle = this.el.querySelector<HTMLButtonElement>('.code-toggle')!;
-    codeToggle.addEventListener('click', (e) => {
-      if (e.detail > 0) codeToggle.blur();
-      this.showCode(this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden === true);
-    });
-    const copy = this.el.querySelector<HTMLButtonElement>('.code-copy')!;
-    copy.addEventListener('click', (e) => {
-      if (e.detail > 0) copy.blur();
-      void navigator.clipboard?.writeText(this.code.textContent ?? '').then(() => {
-        copy.innerHTML = icon('check');
-        setTimeout(() => (copy.innerHTML = icon('copy')), 1200);
-      });
     });
     this.tabs = Object.fromEntries(
       PART_SLOTS.map((slot) => {
@@ -136,11 +102,6 @@ export class Wardrobe {
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) this.hide();
     });
-    this.restoreInput.addEventListener('input', () => (this.restoreInput.value = this.restoreInput.value.toUpperCase()));
-    this.el.querySelector('.restore')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      void this.restore();
-    });
   }
 
   get visible(): boolean {
@@ -153,7 +114,6 @@ export class Wardrobe {
     this.look = structuredClone(profile.look);
     // Its own close button takes the corner where the options gear sits.
     document.body.classList.add('wardrobe-open');
-    this.code.textContent = profile.recovery;
     this.message.textContent = '';
     this.render();
     this.showGallery(false);
@@ -161,27 +121,13 @@ export class Wardrobe {
     this.preview.start();
   }
 
-  /** Switches between dressing up and the recovery code view. */
-  private showCode(on: boolean): void {
-    this.el.querySelector<HTMLElement>('.wardrobe-code')!.hidden = !on;
-    this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
-    this.galleryToggle.hidden = on;
-    const toggle = this.el.querySelector<HTMLElement>('.code-toggle')!;
-    toggle.innerHTML = icon(on ? 'hanger' : 'code');
-    this.el.querySelector('.card')!.classList.toggle('showing-code', on);
-    toggle.setAttribute('aria-label', tr(on ? 'Wardrobe' : 'Recovery code'));
-    this.message.textContent = '';
-  }
-
   /** Switches between dressing up and the gallery of all the animals. */
   private showGallery(on: boolean): void {
     this.gallery.hidden = !on;
     this.el.querySelector<HTMLElement>('.gallery-balance')!.hidden = !on;
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
-    this.showCode(false);
     this.galleryToggle.hidden = false;
     this.el.querySelector<HTMLElement>('.wardrobe-body')!.hidden = on;
-    this.el.querySelector<HTMLElement>('.code-toggle')!.hidden = on;
     this.galleryToggle.innerHTML = icon(on ? 'hanger' : 'gallery');
     this.galleryToggle.setAttribute('aria-label', tr(on ? 'Wardrobe' : 'Gallery'));
     this.el.querySelector('.card')!.classList.toggle('showing-gallery', on);
@@ -362,17 +308,6 @@ export class Wardrobe {
       )
       .join('');
     this.preview.setLook(look);
-  }
-
-  private async restore(): Promise<void> {
-    this.message.textContent = '';
-    const ok = await this.store.recover(this.restoreInput.value);
-    if (!ok) {
-      this.message.textContent = '?';
-      return;
-    }
-    this.restoreInput.value = '';
-    this.show();
   }
 }
 

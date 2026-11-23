@@ -43,6 +43,8 @@ export type ClientMessage =
   | { t: 'look' }
   /** Host, after a match: everyone back to this room's lobby (to change the map, bots...). */
   | { t: 'lobby' }
+  /** Host, in the lobby: the map picked (the warm-up moves there). */
+  | { t: 'map'; mapId: string }
   | { t: 'ping'; c: number };
 
 export interface LobbySeat {
@@ -62,7 +64,8 @@ export type ServerMessage =
    */
   | { t: 'lobby'; phase: RoomPhase; seats: LobbySeat[]; bots: number; teams?: boolean; public?: boolean; startsAt?: number | null; solo?: boolean }
   /** A match started; `you` is your plush, or null when you only watch. */
-  | { t: 'start'; mapId: string; you: EntityId | null }
+  /** `warmup`: the lobby's warm-up (play around, nobody gets hurt) until the real match starts. */
+  | { t: 'start'; mapId: string; you: EntityId | null; warmup?: boolean }
   /** The match as you can see it (see CompactSnapshot below). */
   | CompactSnapshot
   | { t: 'pong'; c: number; s: number }
@@ -89,6 +92,18 @@ export interface Profile {
   look: Look;
   parts: OwnedEntry[];
   /** Buttons (Knoflíky) to spend in the shop. */
+  buttons: number;
+  /** The account it's linked to (a parent's Google sign-in), if any. */
+  account?: { email: string } | null;
+}
+
+/** One of an account's profiles, as offered when signing in on a device: enough to tell them apart. */
+export interface ProfileSummary {
+  id: string;
+  look: Look;
+  /** Distinct parts and complete sets collected, and Buttons. */
+  parts: number;
+  sets: number;
   buttons: number;
 }
 

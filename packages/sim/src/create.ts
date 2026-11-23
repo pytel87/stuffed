@@ -15,9 +15,11 @@ export interface CreateGameOptions {
   zoneTimeScale?: number;
   /** Start everyone on the Toss blimp instead of at spawn points. */
   toss?: boolean;
+  /** A warm-up: no hurting, no chests or piñata, no Rinse, never over (see GameState.peaceful). */
+  peaceful?: boolean;
 }
 
-export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withToss = false }: CreateGameOptions): GameState {
+export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withToss = false, peaceful = false }: CreateGameOptions): GameState {
   if (roster.length > map.spawns.length) {
     throw new Error(`Map ${map.id} has ${map.spawns.length} spawns for ${roster.length} players`);
   }
@@ -25,59 +27,9 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
   const spawns = shuffle(rng, map.spawns.slice());
   let nextId = 1;
 
-  const players = roster.map((entry, i): Player => {
-    const spawn = spawns[i]!;
-    const toCenter = { x: map.width / 2 - spawn.x, y: map.height / 2 - spawn.y };
-    const len = Math.hypot(toCenter.x, toCenter.y) || 1;
-    return {
-      id: nextId++,
-      name: entry.name,
-      isBot: entry.isBot,
-      team: entry.team ?? 0,
-      pos: { x: spawn.x, y: spawn.y },
-      vel: { x: 0, y: 0 },
-      z: 0,
-      vz: 0,
-      knockback: { x: 0, y: 0 },
-      radius: config.player.radius,
-      aim: { x: toCenter.x / len, y: toCenter.y / len },
-      aimDistance: 0,
-      stuffing: config.player.maxStuffing,
-      patches: 0,
-      pocket: 0,
-      alive: true,
-      eliminatedTick: null,
-      placement: null,
-      eliminatedBy: null,
-      knockouts: 0,
-      damageDealt: 0,
-      weapons: startingWeapons(entry.loadout ?? config.player.startingLoadout),
-      activeSlot: 0,
-      items: [null, null, null],
-      action: null,
-      inBush: false,
-      soggy: false,
-      building: -1,
-      revealedUntilTick: 0,
-      chargeStartTick: null,
-      bubbledUntil: 0,
-      glitteredUntil: 0,
-      soakedUntil: 0,
-      ride: null,
-      rideAgainTick: 0,
-      juiceUntil: 0,
-      drop: null,
-      umbrella: false,
-      parts: rollParts(rng, entry.parts, map.id),
-      stash: [],
-      holoAnimals: (entry.holoAnimals ?? []).filter((a) => ANIMALS.includes(a)),
-      missingParts: (entry.missingParts ?? []).filter((m) => ANIMALS.includes(m.animal) && PART_SLOTS.includes(m.slot)),
-      lastInputSeq: -1,
-      heldButtons: 0,
-    };
-  });
+  const players = roster.map((entry, i): Player => makePlayer(nextId++, entry, spawns[i]!, map, rng));
 
-  const chests = map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, z: pos.roof ? roofUnder(map, pos) : 0, opened: false, loot: pos.loot ?? 'medium' }));
+  const chests = peaceful ? [] : map.chestSpawns.map((pos) => ({ id: nextId++, pos: { x: pos.x, y: pos.y }, z: pos.roof ? roofUnder(map, pos) : 0, opened: false, loot: pos.loot ?? 'medium' }));
 
   const toss = withToss ? planToss(map, rng) : null;
   if (toss) {
@@ -133,12 +85,87 @@ export function createGame({ seed, map, roster, zoneTimeScale = 1, toss: withTos
           byId: null,
         }
       : null,
-    pinata: map.pinata
+    pinata: map.pinata && !peaceful
       ? { pos: { x: map.pinata.x, y: map.pinata.y }, z: map.pinata.z, kind: map.pinata.kind, hp: config.pinata.hp, broken: false, hitTick: -1 }
       : null,
     zone: initialZone(map, rng, zoneTimeScale),
     events: [],
     mapId: map.id,
+    ...(peaceful ? { peaceful: true } : {}),
+  };
+}
+
+/**
+ * Someone joins a warm-up under way: a new plush at a free spawn point (the one furthest from
+ * everyone), or null if the map has no room. Returns its id.
+ */
+export function addPlayer(state: GameState, map: MapData, entry: RosterEntry): Player | null {
+  if (state.players.length >= map.spawns.length) return null;
+  let best: Vec2 | null = null;
+  let bestD = -1;
+  for (const s of map.spawns) {
+    const d = Math.min(Infinity, ...state.players.map((p) => Math.hypot(p.pos.x - s.x, p.pos.y - s.y)));
+    if (d > bestD) (best = s), (bestD = d);
+  }
+  const player = makePlayer(state.nextId++, entry, best!, map, state.rng);
+  state.players.push(player);
+  return player;
+}
+
+/** Someone leaves a warm-up: their plush goes (and anything they had in flight stays harmless). */
+export function removePlayer(state: GameState, id: number): void {
+  state.players = state.players.filter((p) => p.id !== id);
+}
+
+/** A new plush for `entry`, standing at `spawn` facing the map's middle. */
+function makePlayer(id: number, entry: RosterEntry, spawn: Vec2, map: MapData, rng: RngState): Player {
+  const toCenter = { x: map.width / 2 - spawn.x, y: map.height / 2 - spawn.y };
+  const len = Math.hypot(toCenter.x, toCenter.y) || 1;
+  return {
+    id,
+    name: entry.name,
+    isBot: entry.isBot,
+    team: entry.team ?? 0,
+    pos: { x: spawn.x, y: spawn.y },
+    vel: { x: 0, y: 0 },
+    z: 0,
+    vz: 0,
+    knockback: { x: 0, y: 0 },
+    radius: config.player.radius,
+    aim: { x: toCenter.x / len, y: toCenter.y / len },
+    aimDistance: 0,
+    stuffing: config.player.maxStuffing,
+    patches: 0,
+    pocket: 0,
+    alive: true,
+    eliminatedTick: null,
+    placement: null,
+    eliminatedBy: null,
+    knockouts: 0,
+    damageDealt: 0,
+    weapons: startingWeapons(entry.loadout ?? config.player.startingLoadout),
+    activeSlot: 0,
+    items: [null, null, null],
+    action: null,
+    inBush: false,
+    soggy: false,
+    building: -1,
+    revealedUntilTick: 0,
+    chargeStartTick: null,
+    bubbledUntil: 0,
+    glitteredUntil: 0,
+    soakedUntil: 0,
+    ride: null,
+    rideAgainTick: 0,
+    juiceUntil: 0,
+    drop: null,
+    umbrella: false,
+    parts: rollParts(rng, entry.parts, map.id),
+    stash: [],
+    holoAnimals: (entry.holoAnimals ?? []).filter((a) => ANIMALS.includes(a)),
+    missingParts: (entry.missingParts ?? []).filter((m) => ANIMALS.includes(m.animal) && PART_SLOTS.includes(m.slot)),
+    lastInputSeq: -1,
+    heldButtons: 0,
   };
 }
 

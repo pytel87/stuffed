@@ -14,6 +14,11 @@ export function applyDamage(
 ): void {
   // The victory lap: nobody can be hurt any more.
   if (!target.alive || amount <= 0 || state.victoryUntil !== null) return;
+  // A warm-up: the hit lands (its puff, its push) but takes nothing.
+  if (state.peaceful) {
+    state.events.push({ type: 'hit', targetId: target.id, sourceId, damage: 0, armorDamage: 0, ...(from ? { from } : {}) });
+    return;
+  }
   const armorDamage = ignoreArmor ? 0 : Math.min(target.patches, amount);
   target.patches -= armorDamage;
   const damage = amount - armorDamage;

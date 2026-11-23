@@ -2,7 +2,7 @@
 // localStorage. Holds the collection and the look you start matches in. Everything here is
 // optional: without a server (offline solo play) the game works, just without keeping parts.
 import type { Animal } from '@stuffed/sim';
-import type { Look, Profile } from '@stuffed/sim/net';
+import type { Look, Profile, ProfileSummary } from '@stuffed/sim/net';
 import { serverHost } from './room-client.ts';
 import { reportError } from './report.ts';
 
@@ -97,6 +97,65 @@ export class ProfileStore {
     const res = await this.call('PUT', '/api/profile/look', { look });
     if (!res.ok) return false;
     this.set(((await res.json()) as { profile: Profile }).profile);
+    return true;
+  }
+
+  // ---------- accounts (Sign in with Google; `credential` is Google's ID token) ----------
+
+  /** The account's profiles, and whether this device's is one of them. Null if it didn't work. */
+  async accountSignin(credential: string): Promise<{ email: string; profiles: ProfileSummary[]; current: string | null } | null> {
+    const res = await this.call('POST', '/api/account/signin', { credential });
+    if (!res.ok) {
+      reportError('account', `signin ${res.status}`);
+      return null;
+    }
+    const { account, profiles, current } = (await res.json()) as { account: { email: string }; profiles: ProfileSummary[]; current: string | null };
+    return { email: account.email, profiles, current };
+  }
+
+  /** This device's profile joins the account. 'elsewhere': it's another account's already. */
+  async accountLink(credential: string): Promise<'ok' | 'elsewhere' | 'failed'> {
+    const res = await this.call('POST', '/api/account/link', { credential });
+    if (res.status === 409) return 'elsewhere';
+    if (!res.ok) {
+      reportError('account', `link ${res.status}`);
+      return 'failed';
+    }
+    this.set(((await res.json()) as { profile: Profile }).profile);
+    return 'ok';
+  }
+
+  /** Plays one of the account's profiles on this device from now on. */
+  async accountUse(credential: string, profileId: string): Promise<boolean> {
+    const res = await this.call('POST', '/api/account/use', { credential, profileId });
+    if (!res.ok) {
+      reportError('account', `use ${res.status}`);
+      return false;
+    }
+    await this.adopt(res);
+    return true;
+  }
+
+  /** This profile leaves its account. */
+  async accountUnlink(): Promise<boolean> {
+    const res = await this.call('POST', '/api/profile/unlink');
+    if (!res.ok) return false;
+    this.set(((await res.json()) as { profile: Profile }).profile);
+    return true;
+  }
+
+  /** Deletes the account and all its profiles; this device starts afresh if its profile was one. */
+  async accountDelete(credential: string): Promise<boolean> {
+    const res = await this.call('POST', '/api/account/delete', { credential });
+    if (!res.ok) {
+      reportError('account', `delete ${res.status}`);
+      return false;
+    }
+    if (this.profile?.account) {
+      this.token = null;
+      this.profile = null;
+      await this.load();
+    }
     return true;
   }
 

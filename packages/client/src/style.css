@@ -515,7 +515,8 @@ button {
 
 /* help */
 .help .close,
-.wardrobe .close {
+.wardrobe .close,
+.profile .close {
   position: absolute;
   top: -1rem;
   right: -1rem;
@@ -529,21 +530,6 @@ button {
   top: -1rem;
   left: -1rem;
   z-index: 1;
-}
-
-/* The recovery code button, bottom-left (the code row opens under the plush). */
-.wardrobe .code-toggle {
-  position: absolute;
-  bottom: -1rem;
-  left: -1rem;
-  z-index: 1;
-}
-
-/* On the code screen it's the way back to the Wardrobe (the hanger): top-left, where the gallery
-   button sits otherwise. */
-.wardrobe .card.showing-code .code-toggle {
-  top: -1rem;
-  bottom: auto;
 }
 
 /* The gallery: every animal's full set; owned parts lit, missing ones faded. */
@@ -833,7 +819,7 @@ button {
 /* Spaced like the main menu: the same width inside the card, the same gap between rows, the same
    field height. A fixed width (not a share of the card, which sizes to its content: that made the
    card as wide as the explanation on one line). */
-.wardrobe-code {
+.profile-body {
   display: grid;
   justify-items: center;
   gap: var(--gap-rows);
@@ -842,9 +828,13 @@ button {
   margin: 0 auto;
 }
 
-.wardrobe-code h2 {
-  margin: 0;
+.profile-head {
   line-height: 0;
+}
+
+.profile-head .icon.large {
+  width: 4rem;
+  height: 4rem;
 }
 
 /* Lined up with the start of the box or field under it (the rows are as wide as the card's middle). */
@@ -860,7 +850,7 @@ button {
 /* Your code, big, in a ticket-like box; the copy button outside it, mirroring the code entry
    row below (a box and a round button, the same widths). */
 .code-row,
-.wardrobe-code .restore {
+.profile-body .restore {
   width: 100%;
 }
 
@@ -880,12 +870,12 @@ button {
   user-select: all;
 }
 
-.wardrobe-code .restore .field {
+.profile-body .restore .field {
   flex: 1;
 }
 
 /* Centered like the code in the box above (the padding makes up for the icon on its left). */
-.wardrobe-code .restore input {
+.profile-body .restore input {
   width: 100%;
   font-family: var(--mono);
   letter-spacing: 0.08em;
@@ -893,7 +883,6 @@ button {
   padding-right: 2.1rem;
 }
 
-.wardrobe .code-toggle:focus:not(:focus-visible),
 .wardrobe .gallery-toggle:focus:not(:focus-visible) {
   outline: none;
 }
@@ -2997,7 +2986,8 @@ body.touch-mode .gear {
 /* In the Wardrobe the message sits on the card's bottom edge, a pill (like the balance on its top
    edge), instead of taking a row: the card (the gallery especially) kept jumping taller and back
    as it came and went. */
-.wardrobe .card .error {
+.wardrobe .card .error,
+.profile .card .error {
   position: absolute;
   left: 50%;
   bottom: -1.25rem;
@@ -3108,4 +3098,183 @@ body.touch-mode .gear {
 
 .practice-note[hidden] {
   display: none;
+}
+
+/* The parent's account, at the top of the Wardrobe's key view. */
+.account {
+  display: grid;
+  justify-items: center;
+  /* The same space between its rows, and from its last row to the dashed line, as between the
+     card's own rows. */
+  gap: var(--gap-rows);
+  padding-bottom: var(--gap-rows);
+  border-bottom: 2px dashed rgba(42, 31, 45, 0.25);
+}
+
+.account > * {
+  margin: 0;
+}
+
+.account[hidden] {
+  display: none;
+}
+
+.account .code-hint {
+  max-width: 19rem;
+  text-align: center;
+}
+
+.account .code-hint .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: -0.2rem;
+  color: #3aa35b;
+}
+
+/* Google's button (40px tall): the slot keeps its height while it loads, nothing jumps. */
+.google-slot {
+  display: flex;
+  justify-content: center;
+  height: 40px;
+}
+
+/* Unlink and Delete account: smaller than the card's main buttons, each on one line. */
+.account-row {
+  justify-content: center;
+}
+
+.account-row .big {
+  flex: none;
+  min-height: 0;
+  height: auto;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.account-delete {
+  color: #c0392b;
+}
+
+.account-profiles {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* One of the account's profiles: its head and how far its collection has got. */
+.account-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.9rem 0.4rem 0.5rem;
+  border-radius: 1rem;
+  border: 3px solid var(--ink);
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 700 0.9rem/1.2 var(--font);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-profile .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: -0.2rem;
+}
+
+.account-profile .icon.large {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+}
+
+/* The Profil card: "without Google" is the smaller way, under the account. */
+.without-google {
+  margin-top: 0.2rem;
+}
+
+/* The Profil button, signed in: a small green tick on its corner. */
+.menu-profile {
+  position: relative;
+}
+
+.menu-profile.signed-in::after {
+  content: '';
+  position: absolute;
+  right: -0.15rem;
+  top: -0.15rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  background: #3aa35b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 75% no-repeat;
+}
+
+/* A stitched seam across a card, like the one round its edge: on the title menu it sets the
+   friends' room row (code to join, + to make one) apart from playing. */
+.stitch {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 2px dashed var(--pink);
+}
+
+/* ---------- the lobby's warm-up ---------- */
+
+/* The lobby card docks to the left, smaller, one column, and the warm-up plays all around it (the
+   rest of the screen takes clicks and touches: aim, shoot, walk). */
+.overlay.lobby.compact {
+  place-items: center start;
+  background: none;
+  pointer-events: none;
+  animation: none;
+}
+
+.overlay.lobby.compact .card {
+  pointer-events: auto;
+  width: 19rem;
+  grid-template-columns: 1fr;
+  zoom: 0.85;
+}
+
+/* (One column even on short screens, where the lobby is otherwise two.) */
+.overlay.lobby.compact .card > .lobby-side {
+  grid-column: 1 !important;
+  grid-row: auto !important;
+}
+
+@media (max-height: 520px) {
+  .overlay.lobby.compact .card {
+    zoom: 0.62;
+  }
+}
+
+/* Nothing to count in a warm-up: no players left, no Buttons. */
+body.warmup .zone {
+  display: none;
+}
+
+/* A plush's name over its head in the warm-up: white with an ink edge, yours pink. */
+.name-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.name-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 900 0.95rem/1 var(--font);
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.name-tag.me {
+  color: #ffd1e1;
 }

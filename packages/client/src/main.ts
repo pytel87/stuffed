@@ -31,11 +31,13 @@ import { installTooltips } from './ui/tooltips.ts';
 import { MenuScreen } from './ui/menu-screen.ts';
 import { Options } from './ui/options.ts';
 import { Wardrobe } from './ui/wardrobe.ts';
+import { ProfileCard } from './ui/profile-card.ts';
 import { ZoneHud } from './ui/zone-hud.ts';
 import { ZoneNames } from './ui/zone-names.ts';
 import { Toast } from './ui/toast.ts';
 import { Tips } from './ui/tips.ts';
 import { UpdateBanner } from './ui/update-banner.ts';
+import { NameTags } from './ui/name-tags.ts';
 import { tr } from './i18n.ts';
 
 // Crashes on players' devices get reported (see report.ts), from the very start.
@@ -83,6 +85,8 @@ let room: RoomClient | null = null;
 let lobbyScreen: LobbyScreen | null = null;
 // ?quality=high keeps full resolution even if the frame rate drops.
 const renderer = new GameRenderer(canvas, newSolo().map, params.get('quality') === 'high');
+/** Names over the plushies in a lobby's warm-up (who has joined). */
+const nameTags = new NameTags(document.querySelector<HTMLElement>('#floaters')!);
 // Pictures of the weapon, item and chest models for the HUD (before anything draws an icon).
 // Weapons, items and chests now; the skin parts a few at a time once the menu is up.
 renderModelIcons(setModelPictures);
@@ -136,8 +140,16 @@ const menu = new MenuScreen(document.body, playerName(), {
   wardrobe: () => openWardrobe(menu, () => {
     if (mode === 'menu') menu.show();
   }),
+  profile: () => {
+    menu.hide();
+    profileCard.onClosed = () => {
+      if (mode === 'menu') menu.show();
+    };
+    profileCard.show();
+  },
 });
 const wardrobe = new Wardrobe(profiles);
+const profileCard = new ProfileCard(profiles);
 /** A newer game deployed while this page is open: offers a reload between matches. */
 const updates = new UpdateBanner(document.body);
 
@@ -149,6 +161,7 @@ function openWardrobe(from: { hide(): void }, back: () => void): void {
 }
 profiles.onChange = () => {
   menu.setWardrobe(!!profiles.profile);
+  menu.setSignedIn(!!profiles.profile?.account);
   menu.setButtons(profiles.profile?.buttons ?? null);
   endScreen.setWardrobe(!!profiles.profile);
   lobbyScreen?.setWardrobe(!!profiles.profile);
@@ -204,7 +217,7 @@ const options = new Options({
   help: () => help.show(),
   leave: showMenu,
   // Online between matches (lobby, results, watching), leaving gives up your seat in the room.
-  leaveQuestion: () => tr(room && !room.isSolo && phase !== 'playing' ? 'Leave Multi?' : 'Leave the match?'),
+  leaveQuestion: () => tr(room && !room.isSolo && (phase !== 'playing' || room.inWarmup) ? 'Leave Multi?' : 'Leave the match?'),
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
 tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
@@ -314,6 +327,7 @@ function beginMatch(next: GameSession): void {
 
 /** Back to the title menu: leave any room, watch bots in the background. */
 function showMenu(): void {
+  document.body.classList.remove('warmup');
   room?.close();
   room = null;
   lobbyScreen?.remove();
@@ -355,6 +369,7 @@ function playOnline(): void {
 
 /** Out of the current room (without going back to the menu). */
 function leaveRoom(): void {
+  document.body.classList.remove('warmup');
   room?.close();
   room = null;
   lobbyScreen?.remove();
@@ -425,11 +440,20 @@ function joinRoom(code: string, kind: 'friends' | 'public' | 'solo' = 'friends')
     if (room.error === 'version') updates.markOutdated(true);
     if (room.isSolo) return endScreen.refreshLobby();
     // (Not over the Wardrobe: the lobby comes back when it closes.)
-    if (room.lobby?.phase === 'lobby' && !room.match && !wardrobe.visible) lobbyScreen.show();
+    if (room.lobby?.phase === 'lobby' && (!room.match || room.inWarmup) && !wardrobe.visible) lobbyScreen.show();
     else lobbyScreen.render();
     endScreen.refreshLobby();
   };
-  room.onMatch = (match) => beginMatch(match);
+  room.onMatch = (match) => {
+    beginMatch(match);
+    // The warm-up: play around with the lobby docked to the side; the real match hides it.
+    document.body.classList.toggle('warmup', !!room?.inWarmup);
+    if (room?.inWarmup) {
+      hudEl.classList.remove('idle');
+      endScreen.hide();
+      if (!wardrobe.visible) lobbyScreen?.show();
+    } else lobbyScreen?.hide();
+  };
   // The host took everyone back to the lobby: bots play in the background again until the next start.
   room.onBackToLobby = () => {
     endScreen.hide();
@@ -555,6 +579,7 @@ function frame(now: number): void {
     time: now / 1000,
   });
   numbers.update(dt, renderer.camera, canvas.clientWidth, canvas.clientHeight);
+  nameTags.update(!!room?.inWarmup && !isBackdrop(session), f.curr, session.localPlayerId, renderer, renderer.camera, canvas.clientWidth, canvas.clientHeight);
   // Jump to drop: off the blimp, or to let go of a zip line.
   const onZip = !!me?.ride && session.map.rides?.[me.ride.index]?.kind === 'zip';
   tossHint.hidden = (me?.drop !== 'riding' && !onZip) || isBackdrop(session);

@@ -32,6 +32,8 @@ export class KeyboardMouseInput implements InputSource {
 
   constructor(target: HTMLElement) {
     window.addEventListener('keydown', (e) => {
+      // Typing in a field (your name in the lobby, a code) doesn't walk your plush.
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === 'Space') e.preventDefault(); // no page scroll
       if (e.repeat) return;
       this.keys.add(e.code);
