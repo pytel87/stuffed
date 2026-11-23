@@ -70,6 +70,7 @@ export class EndScreen {
            <div class="stats"></div>
            <div class="kept" hidden></div>
            <div class="earned" hidden></div>
+           <p class="practice-note" hidden>${tr('Offline practice: this match doesn\'t count toward your collection')}</p>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
              <button type="button" class="big end-spectate"><span>${tr('Watch')}</span></button>
@@ -163,6 +164,11 @@ export class EndScreen {
   }
 
   private keptShown = false;
+
+  /** An offline practice match: nothing it found is kept, and the card says so. */
+  setPractice(on: boolean): void {
+    this.el.querySelector<HTMLElement>('.practice-note')!.hidden = !on;
+  }
 
   /** The Buttons this match earned (null: a new match, clear them). */
   setButtons(award: ButtonAward | null): void {

@@ -2,6 +2,28 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Solo on the server (2026-11-23)
+
+- The desktop Controls card says what each key does in a few words (it was keys and pictures only),
+  and lists the ones it was missing: the mouse wheel and G (drop the weapon).
+- The aim stick on touch screens now matches the Controls card: a pink knob, a dashed ring where
+  shooting starts, and gold while it shoots.
+- The touch controls card shows a little phone screen: the left thumb walks, the right one aims
+  (dragged further out, past a dashed ring, it shoots: the knob flashes gold), Jump and Grab by
+  the right edge, the items along the top; the sticks move by themselves. Beside it, a short line
+  each: the left thumb walks, the right one aims (further to shoot), Jump, Grab (hold for a
+  chest), the bag (keep a part for later), and the items (tap to use, hold to drop).
+- Solo matches are now played on the game server, like online ones (one player and 15 bots, started
+  at once, no lobby), so what they earn (parts, Buttons) can't be made up; the browser no longer
+  reports solo results (that endpoint is gone). They feel the same: the same prediction as online.
+- Offline, or if the server can't, Sólo still plays a practice match right on the device; its card
+  says it doesn't count toward the collection. Test runs (?seed, ?loadout, ?animal) are practice too.
+- The guards on browser-reported solo Buttons (a minute between matches, 2000 a day) are gone with it.
+- Buttons rebalanced toward fighting and surviving: chests give fewer (low 1-2, medium 2-3, food
+  1-2, high 3-5; a piñata 10), a knockout gives 10 (was 5) and pops up as "+10" where they went
+  down, and the HUD's counter shows what the match has earned so far, knockouts included. Sets cost
+  twice as much: 40, 80, 160 or 400 a part by rarity (a full set 200, 400, 800 or 2000; holo ×3).
+
 ## Play online (2026-11-23)
 
 - The game starts in the browser's language (Czech for Czech and Slovak browsers, English for
@@ -18,9 +40,9 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Knowing when it breaks (2026-11-23)
 
-- Privacy and terms pages in Czech and English (pluffs.cz/soukromi.html, /podminky.html,
-  /privacy.html, /terms.html), linked with the contact hello@pluffs.cz at the foot of the Controls
-  card. They describe exactly what's stored on the device and the server, for how long, and how to
+- Privacy and terms pages in Czech and English (pluffs.cz/soukromi, /podminky, /privacy, /terms),
+  as small buttons on the Controls card's bottom edge (⚙ → ?), with Kontakt (an e-mail to
+  hello@pluffs.cz). They describe exactly what's stored on the device and the server, for how long, and how to
   have it deleted (with the recovery code).
 - Crashes on players' devices (and failed calls to the game server: loading a profile, a solo
   result, a purchase, the move to pluffs.cz, a lost graphics context) are reported to the server:

@@ -2,9 +2,9 @@
 // the profile API (/api/profile...).
 import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
-import { ANIMALS, matchButtons } from '@stuffed/sim';
+import { ANIMALS } from '@stuffed/sim';
 import type { Animal } from '@stuffed/sim';
-import { addParts, awardButtons, buySet, claimTransfer, createProfile, startTransfer, loadProfile, parseLook, parseParts, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
+import { buySet, claimTransfer, createProfile, startTransfer, loadProfile, parseLook, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
 import type { Room } from './room.ts';
 
 export { Room } from './room.ts';
@@ -69,6 +69,19 @@ async function keepError(env: Env, e: { kind: string; message: string; detail?: 
   ]);
 }
 
+/**
+ * POST /solo {level, mapId}: a room for one player against bots, which starts as soon as they're in.
+ * Solo matches are played here, like online ones, so what they earn can't be made up.
+ */
+async function soloRoom(env: Env, level: unknown, mapId: unknown): Promise<Response> {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const code = generateRoomCode(Math.random);
+    const stub = await getServerByName<Env, Room>(env.Room, code, { locationHint: ROOM_LOCATION });
+    if (await stub.claimSolo(String(level ?? ''), String(mapId ?? ''))) return Response.json({ code });
+  }
+  return Response.json({ error: 'no_free_code' }, { status: 503 });
+}
+
 /** POST /public: the code of a public room to join (see matchmaker.ts). */
 async function publicRoom(env: Env): Promise<Response> {
   try {
@@ -88,8 +101,6 @@ async function createRoom(env: Env): Promise<Response> {
   return Response.json({ error: 'no_free_code' }, { status: 503 });
 }
 
-/** The most parts one plush can carry home: five worn plus the stash. */
-const MAX_CARRIED = 8;
 
 /**
  * Profiles (all JSON; the device's token goes in `authorization: Bearer ...`):
@@ -98,9 +109,7 @@ const MAX_CARRIED = 8;
  * POST /api/profile/transfer {prefs} → a one-time code to take this profile to the game's new
  * address · POST /api/profile/claim {code} → a token for it there, and the settings · POST
  * /api/report {kind, message, detail, build, page} → an error from a player's device, kept ·
- * POST /api/profile/solo {parts, won, placement, knockouts, found, matchId} → the parts carried home
- * from a solo match, saved, and its Buttons (guarded: the browser reports these, see BUTTONS) · POST /api/shop/buy
- * {animal, holo, requestId} → the parts missing from that set, for Buttons.
+ * POST /api/shop/buy {animal, holo, requestId} → the parts missing from that set, for Buttons.
  */
 async function profileApi(req: Request, env: Env, path: string): Promise<Response> {
   const json = (body: unknown, status = 200) => Response.json(body, { status });
@@ -152,19 +161,8 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
     const profile = look && (await setLook(env.DB, id, look));
     return profile ? json({ profile }) : json({ error: 'not_owned' }, 400);
   }
-  if (path === '/api/profile/solo' && req.method === 'POST') {
-    const b = await body();
-    const parts = parseParts(b.parts, MAX_CARRIED);
-    if (!parts) return json({ error: 'bad_parts' }, 400);
-    await addParts(env.DB, id, parts);
-    const placement = Number.isInteger(b.placement) && (b.placement as number) >= 1 ? (b.placement as number) : null;
-    const knockouts = Number.isInteger(b.knockouts) ? (b.knockouts as number) : 0;
-    const matchId = typeof b.matchId === 'string' && /^[\w-]{6,64}$/.test(b.matchId) ? b.matchId : crypto.randomUUID();
-    const won = b.won === true;
-    const found = Number.isInteger(b.found) ? (b.found as number) : 0;
-    const { award } = await awardButtons(env.DB, id, matchButtons({ placement: won ? 1 : placement, knockouts, won, found }), `solo:${id}:${matchId}`, true);
-    return json({ kept: parts, award, profile: await loadProfile(env.DB, id) });
-  }
+  // Solo results used to be reported by the browser; solo matches are played here now (/solo).
+  if (path === '/api/profile/solo') return json({ error: 'gone' }, 410);
   if (path === '/api/shop/buy' && req.method === 'POST') {
     const b = await body();
     const animal = b.animal as Animal;
@@ -206,6 +204,17 @@ export default {
       if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
       if (!(await underLimit(req, env.LIMIT_ROOMS))) return cors(req, env, tooMany());
       return cors(req, env, await createRoom(env));
+    }
+    if (url.pathname === '/solo' && req.method === 'POST') {
+      if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
+      if (!(await underLimit(req, env.LIMIT_ROOMS))) return cors(req, env, tooMany());
+      let b: Record<string, unknown> = {};
+      try {
+        b = ((await req.json()) as Record<string, unknown>) ?? {};
+      } catch {
+        // defaults
+      }
+      return cors(req, env, await soloRoom(env, b.level, b.mapId));
     }
     if (url.pathname === '/public' && req.method === 'POST') {
       if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });

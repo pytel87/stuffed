@@ -1,5 +1,5 @@
 import './style.css';
-import { ANIMALS, BACKYARD, Btn, PART_SLOTS, canSee, carriedParts, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
+import { ANIMALS, BACKYARD, Btn, BUTTONS, PART_SLOTS, canSee, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { Animal, EntityId, GameState, KnockoutCause, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -13,7 +13,7 @@ import { LocalSession } from './session/local-session.ts';
 import { ProfileStore } from './session/profile.ts';
 import { leaveForNewAddress } from './session/hand-over.ts';
 import { installErrorReports, reportError } from './session/report.ts';
-import { createRoom, findPublicRoom, RoomClient } from './session/room-client.ts';
+import { createRoom, createSoloRoom, findPublicRoom, RoomClient } from './session/room-client.ts';
 import type { GameSession } from './session/session.ts';
 import { DebugOverlay } from './ui/debug-overlay.ts';
 import { EndScreen, type EndView } from './ui/end-screen.ts';
@@ -57,6 +57,8 @@ const params = new URLSearchParams(location.search);
 const loadout = loadoutFromUrl();
 // ?animal=mermaid starts a solo match dressed head to tail as that animal (for trying new ones).
 const testAnimal = ANIMALS.find((a) => a === params.get('animal'));
+/** Test runs (?seed, ?loadout, ?animal) play solo right here, offline: nothing they find is kept. */
+const localTest = params.has('seed') || params.has('loadout') || !!testAnimal;
 // ?zonescale=0.1 runs the Rinse 10x faster for testing.
 const zoneTimeScale = Number(params.get('zonescale')) || 1;
 // ?seed=123 replays the same spawns and cosmetics, handy for reproducing bugs (first match only).
@@ -104,14 +106,13 @@ const endScreen = new EndScreen(
       if (phase === 'over' || phase === 'out') endScreen.reopen();
     }),
   () => room?.toLobby(),
-  () => !!room?.isHost && room.lobby?.phase === 'ended',
+  () => !!room?.isHost && !room.isSolo && room.lobby?.phase === 'ended',
 );
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
     saveName(name);
-    mode = 'solo';
-    menu.hide();
-    beginMatch(newSolo());
+    menu.setBusy(true);
+    playSolo();
   },
   online: (name) => {
     saveName(name);
@@ -203,7 +204,7 @@ const options = new Options({
   help: () => help.show(),
   leave: showMenu,
   // Online between matches (lobby, results, watching), leaving gives up your seat in the room.
-  leaveQuestion: () => tr(room && phase !== 'playing' ? 'Leave Multi?' : 'Leave the match?'),
+  leaveQuestion: () => tr(room && !room.isSolo && phase !== 'playing' ? 'Leave Multi?' : 'Leave the match?'),
 });
 document.querySelector<HTMLElement>('.rotate')!.innerHTML = icon('rotate', 'icon large');
 tossHint.innerHTML = `${icon('jump', 'icon large')}<kbd>${tr('Space')}</kbd>`;
@@ -226,9 +227,6 @@ let followId: EntityId = -1;
 let celebrated = false;
 let knockedOutBy = '';
 /** Solo: the match result went to the server already (which parts you keep). */
-let soloReported = false;
-/** Names this solo match to the server (its Buttons are given once). */
-let soloMatchId = crypto.randomUUID();
 
 let last = performance.now();
 const aimOffset = { x: 0, y: 0 };
@@ -296,14 +294,14 @@ function beginMatch(next: GameSession): void {
   endScreen.hide();
   lobbyScreen?.hide();
   knockedOutBy = '';
-  soloReported = false;
   celebrated = false;
   hitDirection.clear();
   zoneNames.reset();
   toast.reset();
   endScreen.setKept(null);
   endScreen.setButtons(null);
-  soloMatchId = crypto.randomUUID();
+  // An offline practice match: its card says nothing it found is kept.
+  endScreen.setPractice(mode === 'solo' && !isBackdrop(next));
   me = undefined;
   hudEl.classList.remove('out');
   const watching = next.localPlayerId === -1;
@@ -328,10 +326,27 @@ function showMenu(): void {
   void updates.check();
 }
 
+/**
+ * Solo: played on the server (a room for you and bots, started at once), so what it earns counts.
+ * Offline (or the server can't), an offline practice match here instead: it counts for nothing.
+ */
+function playSolo(): void {
+  createSoloRoom(savedBotLevel(), savedMap().id)
+    .then((code) => joinRoom(code, 'solo'))
+    .catch(() => practiceSolo());
+}
+
+/** A solo match played here, offline: the same game, but nothing found is kept. */
+function practiceSolo(): void {
+  mode = 'solo';
+  menu.hide();
+  beginMatch(newSolo());
+}
+
 /** "Play online": into the public room that's filling up (from the menu, or again after a match). */
 function playOnline(): void {
   findPublicRoom()
-    .then((code) => joinRoom(code, true))
+    .then((code) => joinRoom(code, 'public'))
     .catch((err: unknown) => {
       showMenu();
       menu.showError(`${tr("Couldn't find a match.")} ${err instanceof Error ? err.message : ''}`);
@@ -347,27 +362,31 @@ function leaveRoom(): void {
 }
 
 function playAgain(): void {
-  // A public match is played once: again means the next one, with whoever is looking now.
-  if (room?.isPublic) {
+  // A public or solo match is played once: again means a new one.
+  if (room?.isPublic || room?.isSolo) {
+    const solo = room.isSolo;
     leaveRoom();
     endScreen.hide();
-    playOnline();
+    if (solo) playSolo();
+    else playOnline();
     return;
   }
   if (room) {
     if (room.isHost) room.start(lobbyScreen?.bots ?? 7, lobbyScreen?.teams ?? true, savedBotLevel(), savedMap().id);
     return;
   }
+  // Offline practice: try for a real solo again (back online?), except in test runs (?seed, ?animal…).
   seed = (seed * 1664525 + 1013904223) >>> 0;
-  beginMatch(newSolo());
+  if (localTest) beginMatch(newSolo());
+  else playSolo();
 }
 
 /** Online: connect to a room, show its lobby, and switch to each match the host starts. */
-function joinRoom(code: string, isPublic = false): void {
+function joinRoom(code: string, kind: 'friends' | 'public' | 'solo' = 'friends'): void {
   mode = 'online';
   menu.hide();
-  // (A friend's room can be shared by its link; a public one is just for now.)
-  history.replaceState(null, '', isPublic ? location.pathname : `?room=${code}`);
+  // (A friend's room can be shared by its link; a public or solo one is just for now.)
+  history.replaceState(null, '', kind === 'friends' ? `?room=${code}` : location.pathname);
   // Bots play in the background until the host starts.
   if (!isBackdrop(session)) beginMatch(newBackdrop());
   hudEl.classList.add('idle');
@@ -398,11 +417,13 @@ function joinRoom(code: string, isPublic = false): void {
     },
   );
   lobbyScreen.setWardrobe(!!profiles.profile);
-  lobbyScreen.show();
+  // (A solo match has no lobby: it starts as soon as you're in.)
+  if (kind !== 'solo') lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;
     // Turned away for being an older version than the server's: reloading is the only way in.
     if (room.error === 'version') updates.markOutdated(true);
+    if (room.isSolo) return endScreen.refreshLobby();
     // (Not over the Wardrobe: the lobby comes back when it closes.)
     if (room.lobby?.phase === 'lobby' && !room.match && !wardrobe.visible) lobbyScreen.show();
     else lobbyScreen.render();
@@ -501,6 +522,12 @@ function frame(now: number): void {
       if (e.damage > 0) numbers.add(target.pos.x, target.pos.y, String(Math.round(e.damage)), 'stuffing');
     }
     if (e.type === 'buttonsFound' && e.playerId === localId) numbers.add(e.pos.x, e.pos.y, '', 'buttons', `${icon('button')}<b>+${e.amount}</b>`);
+    // Your knockout: its Buttons pop up where they went down (counted at the end, up to the cap).
+    if (e.type === 'eliminated' && e.byId === localId && e.playerId !== localId) {
+      const out = state.players.find((p) => p.id === e.playerId);
+      const mine = state.players.find((p) => p.id === localId);
+      if (out && (mine?.knockouts ?? 0) <= BUTTONS.maxKnockouts) numbers.add(out.pos.x, out.pos.y, '', 'buttons', `${icon('button')}<b>+${BUTTONS.knockout}</b>`);
+    }
     if (e.type === 'eliminated' && e.playerId === session.localPlayerId) knockedOutBy = describeKiller(session, state, e.byId, e.cause);
     // Hit by someone else: point toward where it came from.
     if (e.type === 'hit' && e.targetId === session.localPlayerId && e.from && e.sourceId !== session.localPlayerId) hitDirection.add(e.from);
@@ -510,12 +537,6 @@ function frame(now: number): void {
     const mate = !!mine && mine.team !== 0 && shooterTeam === mine.team;
     if (e.type === 'shot' && mine?.alive && !mine.drop && !mate && e.playerId !== mine.id && Math.hypot(e.pos.x - mine.pos.x, e.pos.y - mine.pos.y) <= SHOT_HINT_RANGE) {
       hitDirection.addShot(e.pos, e.playerId);
-    }
-    // Solo: knocked out, the match is over for you: the parts you kept (already rolled by the game,
-    // in the same tick's partsDropped, if you carried any) go to your collection, with its Buttons.
-    if (e.type === 'eliminated' && e.playerId === session.localPlayerId) {
-      const dropped = events.find((d) => d.type === 'partsDropped' && d.playerId === e.playerId);
-      reportSolo(dropped?.type === 'partsDropped' ? dropped.kept : [], false, state.players.find((p) => p.id === e.playerId));
     }
   }
 
@@ -641,7 +662,6 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
-    reportSolo(carriedParts(me), true, me);
     endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
@@ -767,21 +787,6 @@ function aimByTouch(state: GameState, me: Player): void {
   aimOffset.y = stick ? dir.y * distance : 0;
 }
 
-/**
- * Solo matches run in the browser, so the parts you carried home go to the server from here.
- * Online, the room does this.
- */
-function reportSolo(parts: Part[], won: boolean, plush: Player | undefined): void {
-  if (mode !== 'solo' || soloReported) return;
-  soloReported = true;
-  const result = { parts, won, placement: plush?.placement ?? null, knockouts: plush?.knockouts ?? 0, found: plush?.pocket ?? 0, matchId: soloMatchId };
-  void profiles.soloResult(result).then(({ kept, award }) => {
-    if (kept.length > 0) endScreen.setKept(kept);
-    endScreen.setButtons(award);
-    tips.collection(profiles.profile?.parts ?? []);
-  });
-}
-
 function isAlive(state: GameState, id: EntityId): boolean {
   return state.players.some((p) => p.id === id && p.alive);
 }
@@ -867,9 +872,11 @@ if (roomCode) {
       showMenu();
       menu.showError(`${tr("Couldn't reach the game server.")} ${err instanceof Error ? err.message : ''}`);
     });
-} else if (params.has('solo') || params.has('seed') || params.has('loadout') || testAnimal) {
+} else if (localTest) {
   mode = 'solo';
   beginMatch(newSolo());
+} else if (params.has('solo')) {
+  playSolo();
 } else {
   showMenu();
 }

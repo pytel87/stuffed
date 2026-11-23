@@ -1,7 +1,7 @@
 // This device's profile on the game server: created on first visit, remembered by a token in
 // localStorage. Holds the collection and the look you start matches in. Everything here is
 // optional: without a server (offline solo play) the game works, just without keeping parts.
-import type { Animal, ButtonAward, Part } from '@stuffed/sim';
+import type { Animal } from '@stuffed/sim';
 import type { Look, Profile } from '@stuffed/sim/net';
 import { serverHost } from './room-client.ts';
 import { reportError } from './report.ts';
@@ -106,23 +106,6 @@ export class ProfileStore {
     if (!res.ok) return false;
     await this.adopt(res);
     return true;
-  }
-
-  /** A solo match ended for you: the parts you carried home, and the match's Buttons. */
-  async soloResult(result: { parts: Part[]; won: boolean; placement: number | null; knockouts: number; found: number; matchId: string }): Promise<{ kept: Part[]; award: ButtonAward | null }> {
-    if (!this.profile) return { kept: [], award: null };
-    try {
-      const res = await this.call('POST', '/api/profile/solo', result);
-      if (!res.ok) {
-        reportError('solo', `POST /api/profile/solo ${res.status}`);
-        return { kept: [], award: null };
-      }
-      const { kept, award, profile } = (await res.json()) as { kept: Part[]; award: ButtonAward; profile: Profile };
-      this.set(profile);
-      return { kept, award };
-    } catch {
-      return { kept: [], award: null };
-    }
   }
 
   /** An online match's Buttons came in: the new balance. */

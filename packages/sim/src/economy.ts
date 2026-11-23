@@ -7,10 +7,10 @@ import type { Animal, Part, PartSlot } from './types.ts';
 export const BUTTONS = {
   /** For playing a match at all (so nobody goes home with nothing). */
   match: 5,
-  /** The most a match's found Buttons (chests, piñatas) can count for, reported by a browser. */
+  /** The most a match's found Buttons (chests, piñatas) can count for. */
   maxFound: 400,
   /** Each knockout, up to `maxKnockouts` of them. */
-  knockout: 5,
+  knockout: 10,
   maxKnockouts: 10,
   /** Finishing in the top five / top three (not stacked with each other or a win). */
   top5: 10,
@@ -18,15 +18,8 @@ export const BUTTONS = {
   win: 40,
   /** The first win of each day (UTC), on top. */
   dailyWin: 50,
-  /**
-   * Solo matches are played in the browser and reported by it, so two guards against scripts (not
-   * players): one reported sooner than this after the previous one earns nothing (no real match is
-   * that short), and no more than `soloDailyCeiling` a day from them (far more than anyone plays).
-   */
-  soloMinGapMs: 60_000,
-  soloDailyCeiling: 2000,
   /** What one missing part of a set costs, by the animal's rarity (1 common … 4 legendary). */
-  partPrice: [0, 20, 40, 80, 200] as const,
+  partPrice: [0, 40, 80, 160, 400] as const,
   /** A holo part costs this many times its plain one. */
   holoFactor: 3,
 } as const;

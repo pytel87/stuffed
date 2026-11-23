@@ -1,4 +1,4 @@
-import { isOutside, zoneDamagePerSecond } from '@stuffed/sim';
+import { BUTTONS, isOutside, zoneDamagePerSecond } from '@stuffed/sim';
 import type { GameState, Player, Vec2 } from '@stuffed/sim';
 import { icon } from './icons.ts';
 import { tr } from '../i18n.ts';
@@ -11,7 +11,7 @@ export class ZoneHud {
   private lastLeft = -1;
   private readonly soggy: HTMLElement;
   private readonly arrow: HTMLElement;
-  /** Buttons found this match (shown once there are some). */
+  /** Buttons earned so far this match: found, and for knockouts (shown once there are some). */
   private readonly pocket: HTMLElement;
   private lastPocket = -1;
 
@@ -38,7 +38,8 @@ export class ZoneHud {
       this.left.textContent = String(left);
     }
 
-    const pocket = me?.pocket ?? 0;
+    // What the match has earned you so far: what you found, and your knockouts (as the end will count them).
+    const pocket = (me?.pocket ?? 0) + Math.min(BUTTONS.maxKnockouts, me?.knockouts ?? 0) * BUTTONS.knockout;
     if (pocket !== this.lastPocket) {
       const more = pocket > this.lastPocket && this.lastPocket >= 0;
       this.lastPocket = pocket;

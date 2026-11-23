@@ -88,6 +88,8 @@ export class Room extends Server<Env> {
   private claimed = false;
   /** Matchmade ("Play online"): no host; it starts by itself (see checkPublicStart). */
   private isPublic = false;
+  /** Solo, played here so its parts and Buttons count: one player and bots, at once (see startSolo). */
+  private solo: { level: BotLevel; map: MapData } | null = null;
   /** A public room's start, at the latest (ms since 1970), once someone is waiting. */
   private startsAt: number | null = null;
   private startTimer: ReturnType<typeof setTimeout> | null = null;
@@ -111,6 +113,16 @@ export class Room extends Server<Env> {
   async claim(): Promise<boolean> {
     if (this.claimed || this.seats.length > 0) return false;
     this.claimed = true;
+    return true;
+  }
+
+  /** Called by the Worker for a solo match: this room becomes one (false if the code is in use). */
+  async claimSolo(level: string, mapId: string): Promise<boolean> {
+    if (!(await this.claim())) return false;
+    this.solo = {
+      level: (BOT_LEVELS as readonly string[]).includes(level) ? (level as BotLevel) : 'normal',
+      map: PLAYABLE_MAPS.find((m) => m.id === mapId) ?? BACKYARD,
+    };
     return true;
   }
 
@@ -183,7 +195,7 @@ export class Room extends Server<Env> {
     if (seat) {
       seat.connId = conn.id;
       seat.name = name;
-    } else if (this.seats.length < MAX_PLAYERS && !(this.isPublic && this.phase !== 'lobby')) {
+    } else if (this.seats.length < (this.solo ? 1 : MAX_PLAYERS) && !(this.isPublic && this.phase !== 'lobby')) {
       // (Numbered past the highest: a public room's seats come and go.)
       seat = { seat: Math.max(-1, ...this.seats.map((s) => s.seat)) + 1, token, name, connId: conn.id, profileId: null, look: null, holoAnimals: [], missingParts: [], profileToken: null };
       this.seats.push(seat);
@@ -196,6 +208,7 @@ export class Room extends Server<Env> {
     this.sent.delete(conn.id);
     this.send(conn, { t: 'welcome', code: this.name, seat: seat?.seat ?? null });
     this.checkPublicStart();
+    if (seat && this.solo && this.phase === 'lobby' && !this.match) void this.startSolo(seat);
     this.broadcastLobby();
     // Joining a match in progress: watch it (or rejoin your plush if you were in it).
     if (this.match && this.phase !== 'lobby') {
@@ -234,7 +247,7 @@ export class Room extends Server<Env> {
   private lobbyMessage(): ServerMessage {
     const host = this.host();
     const seats: LobbySeat[] = this.seats.map((s) => ({ seat: s.seat, name: s.name, connected: s.connId !== null, host: !this.isPublic && s === host }));
-    return { t: 'lobby', phase: this.phase, seats, bots: this.bots, teams: this.teams, ...(this.isPublic ? { public: true, startsAt: this.startsAt } : {}) };
+    return { t: 'lobby', phase: this.phase, seats, bots: this.bots, teams: this.teams, ...(this.isPublic ? { public: true, startsAt: this.startsAt } : {}), ...(this.solo ? { solo: true } : {}) };
   }
 
   private broadcastLobby(): void {
@@ -264,6 +277,20 @@ export class Room extends Server<Env> {
     }
   }
 
+  /**
+   * A solo match starts as soon as its player is in, once their profile is looked up (they start in
+   * their look, with their sets' luck). One match: Again asks for a new solo room.
+   */
+  private async startSolo(seat: Seat): Promise<void> {
+    if (seat.profileToken) await this.attachProfile(seat, seat.profileToken);
+    if (!this.solo || this.match || seat.connId === null) return;
+    this.bots = MAX_PLAYERS - 1;
+    this.teams = false;
+    this.level = this.solo.level;
+    this.map = this.solo.map;
+    this.startMatch([seat]);
+  }
+
   /** A public match: everyone in, bots for the rest, a map picked at random. */
   private startPublic(humans: Seat[]): void {
     if (this.startTimer) clearTimeout(this.startTimer);
@@ -280,8 +307,8 @@ export class Room extends Server<Env> {
 
   /** The host, after a match: everyone goes back to the lobby (same room, same seats). */
   private backToLobby(conn: Connection<ConnState>): void {
-    // (A public room has no host and no second match: everyone goes back to matchmaking.)
-    if (this.isPublic) return this.send(conn, { t: 'error', code: 'not_host' });
+    // (A public or solo room has no second match: everyone goes back to matchmaking, or a new solo.)
+    if (this.isPublic || this.solo) return this.send(conn, { t: 'error', code: 'not_host' });
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase !== 'ended') return;
@@ -292,7 +319,7 @@ export class Room extends Server<Env> {
   }
 
   private startRequest(conn: Connection<ConnState>, bots: number, teams: boolean, level: unknown, mapId: unknown): void {
-    if (this.isPublic) return this.send(conn, { t: 'error', code: 'not_host' });
+    if (this.isPublic || this.solo) return this.send(conn, { t: 'error', code: 'not_host' });
     const seat = conn.state?.seat;
     if (seat === null || seat === undefined || this.host()?.seat !== seat) return this.send(conn, { t: 'error', code: 'not_host' });
     if (this.phase === 'playing') return;
@@ -473,7 +500,7 @@ export class Room extends Server<Env> {
     const won = m.state.winnerId === plush.id || (m.state.winnerTeam !== null && plush.team === m.state.winnerTeam);
     let result;
     try {
-      result = await awardButtons(this.env.DB, seat.profileId, matchButtons({ placement: plush.placement, knockouts: plush.knockouts, won, found: plush.pocket }), `match:${m.id}:${seat.seat}`, false);
+      result = await awardButtons(this.env.DB, seat.profileId, matchButtons({ placement: plush.placement, knockouts: plush.knockouts, won, found: plush.pocket }), `match:${m.id}:${seat.seat}`);
     } catch (err) {
       console.error('awarding Buttons failed', err);
       return;

@@ -49,17 +49,6 @@ function isPartOf(slot: unknown, animal: unknown, rarity: unknown): boolean {
   );
 }
 
-/** A list of parts from a request, or null if anything in it is off. */
-export function parseParts(value: unknown, max: number): Part[] | null {
-  if (!Array.isArray(value) || value.length > max) return null;
-  const parts: Part[] = [];
-  for (const p of value as Record<string, unknown>[]) {
-    if (!p || !isPartOf(p.slot, p.animal, p.rarity) || (p.holo !== undefined && typeof p.holo !== 'boolean')) return null;
-    parts.push({ slot: p.slot as PartSlot, animal: p.animal as Animal, rarity: p.rarity as Rarity, ...(p.holo === true ? { holo: true } : {}) });
-  }
-  return parts;
-}
-
 /** A full look from a request, or null. */
 export function parseLook(value: unknown): Look | null {
   if (!value || typeof value !== 'object') return null;
@@ -195,41 +184,24 @@ function dayStart(now: number): number {
 }
 
 /**
- * Puts a match's Buttons on the profile, once per `ref` (the match, and the player in it). Adds the
- * day's first-win bonus. Solo matches (reported by the browser) earn nothing if reported too soon
- * after the previous one, and stop at a daily ceiling (see BUTTONS). Returns what was actually
- * given, and the new balance.
+ * Puts a match's Buttons on the profile, once per `ref` (the match, and the player in it), with the
+ * day's first-win bonus. Matches are all played on the server, so the lines are its own count.
+ * Returns what was actually given, and the new balance.
  */
-export async function awardButtons(db: D1Database, id: string, lines: readonly ButtonLine[], ref: string, solo: boolean): Promise<{ award: ButtonAward; balance: number }> {
+export async function awardButtons(db: D1Database, id: string, lines: readonly ButtonLine[], ref: string): Promise<{ award: ButtonAward; balance: number }> {
   const now = Date.now();
-  const today = dayStart(now);
   const day = await db
-    .prepare(
-      // (Today's totals, and the last solo award: maybe from just before midnight.)
-      "SELECT COALESCE(SUM(CASE WHEN reason LIKE 'solo:%' AND created_at >= ?1 THEN delta ELSE 0 END), 0) AS solo, " +
-        "COALESCE(SUM(CASE WHEN reason LIKE '%:dailyWin' AND created_at >= ?1 THEN 1 ELSE 0 END), 0) AS daily, " +
-        "COALESCE(MAX(CASE WHEN reason LIKE 'solo:%' THEN created_at END), 0) AS lastSolo FROM buttons WHERE profile_id = ?2 AND created_at >= ?3",
-    )
-    .bind(today, id, today - BUTTONS.soloMinGapMs)
-    .first<{ solo: number; daily: number; lastSolo: number }>();
-  let given = [...lines];
+    .prepare("SELECT COUNT(*) AS daily FROM buttons WHERE profile_id = ? AND created_at >= ? AND reason LIKE '%:dailyWin'")
+    .bind(id, dayStart(now))
+    .first<{ daily: number }>();
+  const given = [...lines];
   if (given.some((l) => l.reason === 'win') && !day?.daily) given.push({ reason: 'dailyWin', amount: BUTTONS.dailyWin });
-  if (solo) {
-    // Too soon after the last one: nothing. Otherwise what's left under today's ceiling, line by line.
-    let left = now - (day?.lastSolo ?? 0) < BUTTONS.soloMinGapMs ? 0 : Math.max(0, BUTTONS.soloDailyCeiling - (day?.solo ?? 0));
-    given = given.map((l) => {
-      const amount = Math.min(l.amount, left);
-      left -= amount;
-      return { ...l, amount };
-    });
-  }
-  const kind = solo ? 'solo' : 'match';
   const toGive = awardOf(given).lines;
-  // Only what actually went in (a match reported again adds nothing, and says so).
+  // Only what actually went in (a match counted again adds nothing, and says so).
   const results = toGive.length
     ? await db.batch(
         toGive.map((l) =>
-          db.prepare('INSERT OR IGNORE INTO buttons (profile_id, delta, reason, ref, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, l.amount, `${kind}:${l.reason}`, `${ref}:${l.reason}`, now),
+          db.prepare('INSERT OR IGNORE INTO buttons (profile_id, delta, reason, ref, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, l.amount, `match:${l.reason}`, `${ref}:${l.reason}`, now),
         ),
       )
     : [];

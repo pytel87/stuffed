@@ -30,12 +30,12 @@
     // sockets; empty = any (local dev). The deploy script sets the live one (see package.json).
     "ALLOWED_ORIGINS": ""
   },
-  // Per-address limits on what a script could hammer: new profiles, new rooms, and results and
-  // purchases (the solo results and the shop). Generous: a whole class or family shares one
+  // Per-address limits on what a script could hammer: new profiles, new rooms (solo matches too),
+  // and purchases. Generous: a whole class or family shares one
   // address. Periods can only be 10 or 60 seconds.
   "ratelimits": [
     { "name": "LIMIT_PROFILES", "namespace_id": "1001", "simple": { "limit": 40, "period": 60 } },
-    { "name": "LIMIT_ROOMS", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+    { "name": "LIMIT_ROOMS", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
     { "name": "LIMIT_WRITES", "namespace_id": "1003", "simple": { "limit": 150, "period": 60 } }
   ],
   "observability": { "enabled": true }

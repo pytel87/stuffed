@@ -56,7 +56,7 @@ export class TouchControls {
     });
     right.addEventListener('pointerdown', (e) => {
       if (this.look) this.endStick(this.look);
-      this.look = this.startStick(e, right);
+      this.look = this.startStick(e, right, true);
       this.apply();
     });
     window.addEventListener('pointermove', (e) => {
@@ -150,10 +150,17 @@ export class TouchControls {
     button.addEventListener('lostpointercapture', release);
   }
 
-  private startStick(e: PointerEvent, zone: HTMLElement): Stick {
+  /** `aim`: the right stick, pink, with a dashed ring where shooting starts (as the Controls card shows). */
+  private startStick(e: PointerEvent, zone: HTMLElement, aim = false): Stick {
     e.preventDefault();
     const base = document.createElement('div');
-    base.className = 'stick';
+    base.className = aim ? 'stick aim' : 'stick';
+    if (aim) {
+      const ring = document.createElement('div');
+      ring.className = 'stick-fire-ring';
+      ring.style.setProperty('--fire-at', String(FIRE_AT));
+      base.appendChild(ring);
+    }
     const knob = document.createElement('div');
     knob.className = 'stick-knob';
     base.appendChild(knob);
@@ -173,6 +180,8 @@ export class TouchControls {
     }
     stick.value = { x: dx / STICK_RADIUS, y: dy / STICK_RADIUS };
     stick.knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    // Past the ring the aim stick shoots: its knob turns gold.
+    if (stick === this.look) stick.base.classList.toggle('firing', Math.hypot(dx, dy) / STICK_RADIUS > FIRE_AT);
   }
 
   private endStick(stick: Stick): null {

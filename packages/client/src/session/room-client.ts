@@ -27,6 +27,15 @@ export async function createRoom(): Promise<string> {
   return code;
 }
 
+/** Asks the server for a solo match (played there, so what it earns counts): its room's code. */
+export async function createSoloRoom(level: string, mapId: string): Promise<string> {
+  const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
+  const res = await fetch(`${protocol}//${serverHost()}/solo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ level, mapId }) });
+  if (!res.ok) throw new Error(`Could not start a solo match (${res.status})`);
+  const { code } = (await res.json()) as { code: string };
+  return code;
+}
+
 /** Asks the server for a public room to join ("Play online"; see the server's matchmaker). */
 export async function findPublicRoom(): Promise<string> {
   const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
@@ -103,6 +112,11 @@ export class RoomClient {
       if (this.lagMs > 0) setTimeout(() => this.receive(msg), this.lagMs / 2);
       else this.receive(msg);
     });
+  }
+
+  /** A solo match played on the server: no lobby, one match. */
+  get isSolo(): boolean {
+    return this.lobby?.solo === true;
   }
 
   /** A matchmade room: no host, it starts by itself. */

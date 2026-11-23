@@ -345,7 +345,7 @@ export const config = {
 
   chest: {
     /** Buttons (the currency) a chest puts in its opener's pocket: [fewest, most], by its loot. */
-    buttons: { low: [1, 3], medium: [2, 5], food: [1, 3], high: [8, 12] } as Record<LootLevel, [number, number]>,
+    buttons: { low: [1, 2], medium: [2, 3], food: [1, 2], high: [3, 5] } as Record<LootLevel, [number, number]>,
     /** Chests are solid; plushies bump into them, can stand on them, and they stop low shots. */
     radius: 0.6,
     height: 0.75,
@@ -535,7 +535,7 @@ export const config = {
   /** The map's piñata (see systems/pinata.ts). */
   pinata: {
     /** Buttons (the currency) for whoever breaks it. */
-    buttons: 15,
+    buttons: 10,
     /** Damage it takes before it breaks (about nine Cork Popper shots). */
     hp: 160,
     /** Its size: shots and plushies bump into it within this of its middle. */

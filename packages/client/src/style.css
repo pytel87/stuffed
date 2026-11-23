@@ -971,23 +971,45 @@ button {
 
 .help-grid {
   display: grid;
-  grid-template-columns: auto auto;
-  gap: 0.6rem 1.2rem;
+  grid-template-columns: auto auto auto;
+  gap: 0.55rem 0.9rem;
   align-items: center;
   justify-content: center;
 }
 
-.help-grid > span:nth-child(odd) {
+/* Keys | what it's about | what it does. */
+.help-grid > .keys {
   justify-self: end;
   display: flex;
+  align-items: center;
   gap: 0.2rem;
 }
 
-.help-grid > span:nth-child(even) {
-  justify-self: start;
+.help-grid > .pics {
+  justify-self: center;
   display: flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.help-grid > .what {
+  justify-self: start;
+  text-align: left;
+  white-space: nowrap;
+  font: 700 0.9rem/1.2 var(--font);
+  color: var(--ink);
+}
+
+/* The desk Controls card: as wide as its three columns. */
+.help .card {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.help-grid .or {
+  margin: 0 0.15rem;
+  font: 800 0.9rem/1 var(--font);
+  opacity: 0.6;
 }
 
 /* The real models' pictures (weapon, chest, part, items): bigger than the line icons, as they
@@ -1005,26 +1027,210 @@ button {
 
 .help-touch {
   display: none;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: auto 1fr;
+  gap: 1rem 1.2rem;
   align-items: center;
 }
 
-.help-touch .pad {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-}
-
-.help-touch .stick {
+/* A little landscape phone screen: the left half walks, the right half aims (pulled further out, it
+   shoots), Jump and Grab where they really are, the items along the top. The sticks move by
+   themselves, showing what each thumb does. */
+.demo-screen {
   position: relative;
-  transform: none;
-  margin: 0;
-  background: var(--paper);
+  width: 15rem;
+  height: 8.4rem;
+  /* Drawn at this size, shown 1.4× (its parts all scale with it). */
+  zoom: 1.4;
+  border: 4px solid var(--ink);
+  border-radius: 1.1rem;
+  background: linear-gradient(#a6d98a, #8cc96b);
+  overflow: hidden;
 }
 
-.help-touch .stick-knob.aim {
+.demo-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 0.9rem;
+}
+
+.demo-left {
+  left: 0;
+  border-right: 2px dashed rgba(42, 31, 45, 0.35);
+}
+
+.demo-right {
+  right: 0;
+  place-items: end start;
+  padding-left: 0.7rem;
+}
+
+.demo-stick {
+  position: relative;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  border: 3px solid rgba(42, 31, 45, 0.55);
+  background: rgba(255, 250, 243, 0.45);
+}
+
+/* Past this the aim stick fires. */
+.demo-ring {
+  position: absolute;
+  inset: 0.55rem;
+  border-radius: 50%;
+  border: 2px dashed rgba(42, 31, 45, 0.4);
+}
+
+.demo-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: -0.8rem 0 0 -0.8rem;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+}
+
+.demo-knob.move {
+  background: var(--cream);
+  animation: demo-walk 3.2s ease-in-out infinite;
+}
+
+.demo-knob.aim {
   background: var(--pink);
+  animation: demo-aim 3.2s ease-in-out infinite;
+}
+
+@keyframes demo-walk {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(0, -1rem); }
+  45% { transform: translate(1rem, 0); }
+  70% { transform: translate(0, 1rem); }
+  85% { transform: translate(-1rem, 0); }
+}
+
+/* A short drag aims; a long one (past the dashed ring) shoots: it flashes gold out there. */
+@keyframes demo-aim {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(0.45rem, -0.4rem); background: var(--pink); }
+  45% { transform: translate(0.95rem, -0.85rem); background: var(--gold); box-shadow: 0 0 0 4px rgba(247, 195, 49, 0.45); }
+  65% { transform: translate(0.95rem, -0.85rem); background: var(--gold); box-shadow: 0 0 0 4px rgba(247, 195, 49, 0.45); }
+  80% { transform: translate(0, 0); background: var(--pink); box-shadow: none; }
+}
+
+.demo-btn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  background: var(--cream);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+.demo-btn .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* Jump and Grab by the right edge (on the real screen too, out of the aim thumb's way). */
+.demo-jump {
+  right: 0.45rem;
+  bottom: 2.75rem;
+}
+
+.demo-grab {
+  right: 0.45rem;
+  bottom: 0.45rem;
+}
+
+/* The bag: left of Grab, as when a part is in reach (sack-colored, like the real one). */
+.demo-stash {
+  right: 2.65rem;
+  bottom: 0.45rem;
+  background: #ffe2b8;
+}
+
+.demo-items {
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+.demo-slot {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  border: 2px solid var(--ink);
+  background: var(--cream);
+}
+
+.demo-slot .icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.demo-notes {
+  display: grid;
+  gap: 0.55rem;
+  max-width: 15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 700 0.85rem/1.25 var(--font);
+  color: var(--ink);
+  text-align: left;
+}
+
+.demo-notes li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.demo-notes b {
+  font-weight: 900;
+}
+
+.demo-notes .icon {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.demo-dot {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+}
+
+.demo-dot.move {
+  background: var(--cream);
+}
+
+.demo-dot.aim {
+  background: var(--pink);
+}
+
+/* The Controls card on a touch screen: as wide as the screen and its notes side by side. */
+body.touch-mode .help .card {
+  width: fit-content;
+  max-width: 100%;
 }
 
 body.touch-mode .help-grid {
@@ -1897,9 +2103,26 @@ body.touch-mode #game {
   border: 3px solid var(--ink);
 }
 
-.touch-right ~ .stick .stick-knob,
-.stick:last-child .stick-knob {
-  background: var(--cream);
+/* The aim stick: a pink knob, a dashed ring where shooting starts, gold while shooting (the same
+   as on the Controls card's little screen). */
+.stick.aim .stick-knob {
+  background: var(--pink);
+}
+
+.stick.aim.firing .stick-knob {
+  background: var(--gold);
+  box-shadow: 0 0 0 5px rgba(247, 195, 49, 0.45);
+}
+
+.stick-fire-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--fire-at) * 100%);
+  height: calc(var(--fire-at) * 100%);
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.75);
 }
 
 .touch-btn {
@@ -2839,17 +3062,32 @@ body.touch-mode .gear {
   cursor: pointer;
 }
 
-/* The privacy and terms links (and the contact), small at the foot of the Controls card. */
-.legal {
-  margin: 0;
-  text-align: center;
-  font: 700 0.8rem/1.3 var(--font);
-  color: var(--ink);
-  opacity: 0.75;
+/* Privacy and Terms: two small pills sitting on the Controls card's bottom edge. */
+.edge-links {
+  position: absolute;
+  left: 50%;
+  bottom: -1rem;
+  translate: -50% 0;
+  z-index: 1;
+  display: flex;
+  gap: 0.5rem;
 }
 
-.legal a {
-  color: inherit;
+.edge-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--cream);
+  box-shadow: 0 3px 0 var(--ink);
+  font: 800 0.8rem/1 var(--font);
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.edge-pill:active {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--ink);
 }
 
 /* The language switch in the options: the language's short name, in place of an icon. */
@@ -2857,4 +3095,17 @@ body.touch-mode .gear {
   font: 900 1rem/1 var(--font);
   color: var(--ink);
   letter-spacing: 0.02em;
+}
+
+/* Offline practice: a quiet line on the results card (nothing was kept). */
+.practice-note {
+  margin: 0;
+  text-align: center;
+  font: 700 0.85rem/1.3 var(--font);
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+.practice-note[hidden] {
+  display: none;
 }
