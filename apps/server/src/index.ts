@@ -32,6 +32,18 @@ function cors(req: Request, env: Env, res: Response): Response {
   return res;
 }
 
+/**
+ * Whether this address is still under `limit` (see wrangler.jsonc's ratelimits). Without an
+ * address (local tools), always.
+ */
+async function underLimit(req: Request, limit: RateLimit): Promise<boolean> {
+  const key = req.headers.get('cf-connecting-ip');
+  if (!key) return true;
+  return (await limit.limit({ key })).success;
+}
+
+const tooMany = () => Response.json({ error: 'too_many' }, { status: 429 });
+
 /** POST /create: picks a free room code and claims it. */
 async function createRoom(env: Env): Promise<Response> {
   for (let attempt = 0; attempt < 12; attempt++) {
@@ -64,6 +76,8 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
     }
   };
 
+  // (Creating things and reporting results, limited per address; reading isn't.)
+  if (req.method !== 'GET' && !(await underLimit(req, path === '/api/profile' ? env.LIMIT_PROFILES : env.LIMIT_WRITES))) return tooMany();
   if (path === '/api/profile' && req.method === 'POST') return json(await createProfile(env.DB));
   if (path === '/api/profile/recover' && req.method === 'POST') {
     const found = await recoverProfile(env.DB, String((await body()).code ?? ''));
@@ -126,6 +140,7 @@ export default {
     }
     if (url.pathname === '/create' && req.method === 'POST') {
       if (!originAllowed(req, env)) return new Response('forbidden origin', { status: 403 });
+      if (!(await underLimit(req, env.LIMIT_ROOMS))) return cors(req, env, tooMany());
       return cors(req, env, await createRoom(env));
     }
     if (url.pathname === '/health') return new Response('ok');

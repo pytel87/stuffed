@@ -2791,3 +2791,50 @@ body.touch-mode .gear {
   text-align: center;
   pointer-events: none;
 }
+
+/* A newer game is out: a cream pill at the top of the screen, over the menus, with Reload. */
+.update-banner {
+  position: fixed;
+  top: calc(var(--safe-t) + var(--edge));
+  left: 50%;
+  translate: -50% 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2 * var(--edge));
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--cream);
+  box-shadow: 0 4px 0 var(--ink);
+  font: 800 0.95rem/1.2 var(--font);
+  color: var(--ink);
+  animation: pop 300ms ease-out;
+}
+
+.update-banner[hidden] {
+  display: none;
+}
+
+.update-banner .icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+}
+
+/* Needed to play online: pink, so it isn't missed. */
+.update-banner.required {
+  border-color: var(--pink-deep);
+}
+
+.update-reload {
+  flex: none;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--pink);
+  color: #fff;
+  font: 900 0.9rem/1 var(--font);
+  cursor: pointer;
+}

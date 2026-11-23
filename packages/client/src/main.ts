@@ -33,6 +33,7 @@ import { ZoneHud } from './ui/zone-hud.ts';
 import { ZoneNames } from './ui/zone-names.ts';
 import { Toast } from './ui/toast.ts';
 import { Tips } from './ui/tips.ts';
+import { UpdateBanner } from './ui/update-banner.ts';
 import { tr } from './i18n.ts';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -125,6 +126,8 @@ const menu = new MenuScreen(document.body, playerName(), {
   }),
 });
 const wardrobe = new Wardrobe(profiles);
+/** A newer game deployed while this page is open: offers a reload between matches. */
+const updates = new UpdateBanner(document.body);
 
 /** One card at a time: the card the Wardrobe opens from steps aside until it closes. */
 function openWardrobe(from: { hide(): void }, back: () => void): void {
@@ -265,6 +268,7 @@ function isBackdrop(s: GameSession | null): boolean {
 /** Shows a new match: solo, online, or the bots-only backdrop. */
 function beginMatch(next: GameSession): void {
   session = next;
+  updates.setPlaying(!isBackdrop(next));
   renderer.setMap(next.map);
   world = createWorld(next.map);
   hudEl.classList.toggle('idle', isBackdrop(next));
@@ -305,6 +309,7 @@ function showMenu(): void {
   beginMatch(newBackdrop());
   help.hide();
   menu.show();
+  void updates.check();
 }
 
 function playAgain(): void {
@@ -354,6 +359,8 @@ function joinRoom(code: string): void {
   lobbyScreen.show();
   room.onLobby = () => {
     if (!room || !lobbyScreen) return;
+    // Turned away for being an older version than the server's: reloading is the only way in.
+    if (room.error === 'version') updates.markOutdated(true);
     // (Not over the Wardrobe: the lobby comes back when it closes.)
     if (room.lobby?.phase === 'lobby' && !room.match && !wardrobe.visible) lobbyScreen.show();
     else lobbyScreen.render();
@@ -592,6 +599,8 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     reportSolo(carriedParts(me), true, me);
     endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    updates.setPlaying(false);
+    void updates.check();
     return;
   }
 
@@ -603,6 +612,8 @@ function updatePhase(state: GameState): void {
     const mate = nextAlive(state, me.pos, me.team);
     followId = me.team !== 0 && state.players.find((p) => p.id === mate)?.team === me.team ? mate : me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
     endScreen.show(resultView(state, me, 'lose', tr('Unstitched!'), knockedOutBy, state.status === 'playing'));
+    updates.setPlaying(false);
+    void updates.check();
     return;
   }
 
@@ -611,6 +622,8 @@ function updatePhase(state: GameState): void {
     spectateEl.hidden = true;
     // (Out, but your team won: the win sound played when it was decided.)
     endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isHost });
+    updates.setPlaying(false);
+    void updates.check();
     return;
   }
 

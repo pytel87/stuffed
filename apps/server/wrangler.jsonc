@@ -9,12 +9,21 @@
     "bindings": [{ "name": "Room", "class_name": "Room" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
-  // Profiles and part collections. Create the database once with `npx wrangler d1 create stuffed`
-  // and put its id here; `wrangler dev` uses a local copy. Tables are created on first use.
-  "d1_databases": [{ "binding": "DB", "database_name": "stuffed", "database_id": "32102c22-614a-4bec-9bc0-27fc4ec345da" }],
+  // Profiles, collections and Buttons. Create the database once with `npx wrangler d1 create stuffed`
+  // and put its id here; `wrangler dev` uses a local copy. Its tables: migrations/ (see package.json).
+  "d1_databases": [{ "binding": "DB", "database_name": "stuffed", "database_id": "32102c22-614a-4bec-9bc0-27fc4ec345da", "migrations_dir": "migrations" }],
   "vars": {
-    // Comma-separated origins allowed to open game sockets; empty = any (local dev).
+    // Comma-separated origins (besides the game's own pages) allowed to call the API and open game
+    // sockets; empty = any (local dev). The deploy script sets the live one (see package.json).
     "ALLOWED_ORIGINS": ""
   },
+  // Per-address limits on what a script could hammer: new profiles, new rooms, and results and
+  // purchases (the solo results and the shop). Generous: a whole class or family shares one
+  // address. Periods can only be 10 or 60 seconds.
+  "ratelimits": [
+    { "name": "LIMIT_PROFILES", "namespace_id": "1001", "simple": { "limit": 40, "period": 60 } },
+    { "name": "LIMIT_ROOMS", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+    { "name": "LIMIT_WRITES", "namespace_id": "1003", "simple": { "limit": 150, "period": 60 } }
+  ],
   "observability": { "enabled": true }
 }

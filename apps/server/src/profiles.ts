@@ -7,31 +7,7 @@ import type { Look, OwnedEntry, Profile } from '@stuffed/sim/net';
 
 export type { Look, OwnedEntry, Profile };
 
-const SCHEMA = [
-  'CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, recovery TEXT NOT NULL UNIQUE, look TEXT NOT NULL, created_at INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS tokens (token_hash TEXT PRIMARY KEY, profile_id TEXT NOT NULL, created_at INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS owned_parts (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
-  // Holographic parts, kept apart (the owned_parts key has no room for them, and this needs no migration).
-  'CREATE TABLE IF NOT EXISTS owned_holo (profile_id TEXT NOT NULL, slot TEXT NOT NULL, animal TEXT NOT NULL, rarity INTEGER NOT NULL, count INTEGER NOT NULL, first_at INTEGER NOT NULL, PRIMARY KEY (profile_id, slot, animal, rarity))',
-  // Buttons: every one earned or spent is a row (the balance is their sum). `ref` names what it was
-  // for, once: the same match or purchase can't be counted twice.
-  'CREATE TABLE IF NOT EXISTS buttons (id INTEGER PRIMARY KEY AUTOINCREMENT, profile_id TEXT NOT NULL, delta INTEGER NOT NULL, reason TEXT NOT NULL, ref TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL)',
-  'CREATE INDEX IF NOT EXISTS buttons_profile ON buttons (profile_id, created_at)',
-];
-
-let schemaReady: Promise<void> | null = null;
-
-/** Creates the tables on first use (cheap no-ops after that), so there's no migration step. */
-function ensureSchema(db: D1Database): Promise<void> {
-  schemaReady ??= db.batch(SCHEMA.map((sql) => db.prepare(sql))).then(
-    () => undefined,
-    (err: unknown) => {
-      schemaReady = null;
-      throw err;
-    },
-  );
-  return schemaReady;
-}
+// The tables are made by the numbered files in migrations/ (applied before the server starts).
 
 // ---------- codes and tokens ----------
 
@@ -100,7 +76,6 @@ export function parseLook(value: unknown): Look | null {
 
 /** A new profile: a random look of common animals, which is also its first five parts. */
 export async function createProfile(db: D1Database): Promise<{ token: string; profile: Profile }> {
-  await ensureSchema(db);
   const id = crypto.randomUUID();
   const now = Date.now();
   const look = {} as Look;
@@ -125,13 +100,11 @@ export async function createProfile(db: D1Database): Promise<{ token: string; pr
 
 export async function profileIdForToken(db: D1Database, token: string): Promise<string | null> {
   if (!token) return null;
-  await ensureSchema(db);
   const row = await db.prepare('SELECT profile_id FROM tokens WHERE token_hash = ?').bind(await hashToken(token)).first<{ profile_id: string }>();
   return row?.profile_id ?? null;
 }
 
 export async function loadProfile(db: D1Database, id: string): Promise<Profile | null> {
-  await ensureSchema(db);
   const row = await db.prepare('SELECT id, recovery, look FROM profiles WHERE id = ?').bind(id).first<{ id: string; recovery: string; look: string }>();
   if (!row) return null;
   const [plain, holo, balance] = await db.batch<Record<string, unknown>>([
@@ -147,7 +120,6 @@ export async function loadProfile(db: D1Database, id: string): Promise<Profile |
 export async function recoverProfile(db: D1Database, code: string): Promise<{ token: string; profile: Profile } | null> {
   const clean = normalizeCode(code);
   if (!clean) return null;
-  await ensureSchema(db);
   const row = await db.prepare('SELECT id FROM profiles WHERE recovery = ?').bind(clean).first<{ id: string }>();
   if (!row) return null;
   const token = randomToken();
@@ -169,7 +141,6 @@ export async function setLook(db: D1Database, id: string, look: Look): Promise<P
 /** Puts kept parts into the collection (a part kept again counts up). */
 export async function addParts(db: D1Database, id: string, parts: readonly Part[]): Promise<void> {
   if (parts.length === 0) return;
-  await ensureSchema(db);
   await db.batch(addPartStatements(db, id, parts, Date.now()));
 }
 
@@ -198,7 +169,6 @@ function dayStart(now: number): number {
  * given, and the new balance.
  */
 export async function awardButtons(db: D1Database, id: string, lines: readonly ButtonLine[], ref: string, solo: boolean): Promise<{ award: ButtonAward; balance: number }> {
-  await ensureSchema(db);
   const now = Date.now();
   const today = dayStart(now);
   const day = await db

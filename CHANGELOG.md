@@ -2,6 +2,18 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Getting ready for players (2026-11-23)
+
+- A page left open while a newer game is deployed now says so: "Je tu nová verze hry" with a
+  Načíst button, in the menus, the lobby and on the results card (never mid-match). Online, an
+  outdated page is told to reload instead of just failing to join. Each build writes its id to
+  version.json for this.
+- Only the game's own pages (and listed origins) may call the API or open game sockets.
+- Per-address limits on new profiles, new rooms, solo results and purchases (generous: a class or
+  a family shares one address).
+- The database's tables now come from numbered migrations (apps/server/migrations), applied before
+  every deploy and every local server start, instead of being created on first use.
+
 ## Buttons and home maps (2026-11-23)
 
 - Buttons (Knoflíky), a currency you earn in matches: every chest drops a few into your pocket
