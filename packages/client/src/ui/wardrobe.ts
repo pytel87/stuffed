@@ -9,6 +9,7 @@ import { icon, partIcon, RARITY_COLORS, starIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
 import { mapName } from './map-choice.ts';
 import { flashMessage } from './flash.ts';
+import { whileBusy } from './busy.ts';
 
 /**
  * The Wardrobe: pick the look you start matches in from the parts you own (tap a slot, then a
@@ -253,9 +254,8 @@ export class Wardrobe {
       }, 3000);
       return;
     }
-    button.disabled = true;
     const animal = button.dataset.animal as Animal;
-    const result = await this.store.buySet(animal, button.dataset.holo === '1');
+    const result = await whileBusy(button, this.store.buySet(animal, button.dataset.holo === '1'));
     if (result === 'too_few') this.flashError(tr('Not enough Buttons yet: play matches to earn them'));
     else if (result === 'failed') this.flashError(tr("Couldn't reach the game server."));
     const scroll = this.gallery.scrollTop;

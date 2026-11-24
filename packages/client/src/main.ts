@@ -184,17 +184,17 @@ const endScreen = new EndScreen(
 const menu = new MenuScreen(document.body, playerName(), {
   solo: (name) => {
     saveName(name);
-    menu.setBusy(true);
+    menu.setBusy(true, '.menu-solo');
     playSolo();
   },
   online: (name) => {
     saveName(name);
-    menu.setBusy(true);
+    menu.setBusy(true, '.menu-online');
     playOnline();
   },
   create: (name) => {
     saveName(name);
-    menu.setBusy(true);
+    menu.setBusy(true, '.menu-create');
     createRoom()
       .then((code) => joinRoom(code))
       .catch((err: unknown) => menu.showError(`${tr("Couldn't reach the game server.")} ${err instanceof Error ? err.message : ''}`));

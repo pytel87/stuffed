@@ -6,6 +6,7 @@ import type { Profile, ProfileSummary } from '@stuffed/sim/net';
 import type { ProfileStore } from '../session/profile.ts';
 import { icon, partIcon } from './icons.ts';
 import { escapeHtml } from './escape.ts';
+import { whileBusy } from './busy.ts';
 import { LANG, tr } from '../i18n.ts';
 
 /** The game's Google OAuth client ID (public; the server checks tokens against the same one). */
@@ -99,7 +100,7 @@ export class AccountPanel {
   private async signedIn(credential: string): Promise<void> {
     this.credential = credential;
     if (this.intent === 'delete') return this.confirmDelete();
-    const found = await this.store.accountSignin(credential);
+    const found = await whileBusy(this.area, this.store.accountSignin(credential));
     if (!found) return this.say(tr("Couldn't sign in. Try again."));
     const mine = found.current !== null && found.profiles.some((p) => p.id === found.current);
     if (mine) return this.render();
@@ -128,6 +129,12 @@ export class AccountPanel {
   }
 
   /** A profile at a glance: its head, where it is, and how far its collection has got. */
+  /** What dims while the server answers: on the Profil card the whole top (the account's rows sit
+   *  in it, see .profile-top), else the account part itself. */
+  private get area(): HTMLElement {
+    return this.el.closest<HTMLElement>('.profile-top') ?? this.el;
+  }
+
   private card(p: ProfileSummary, where: string): string {
     return `<div class="account-profile">
       ${partIcon('head', p.look.head.animal, 'icon large')}
@@ -136,7 +143,7 @@ export class AccountPanel {
   }
 
   private async link(): Promise<void> {
-    const result = await this.store.accountLink(this.credential);
+    const result = await whileBusy(this.area, this.store.accountLink(this.credential));
     if (result === 'elsewhere') this.say(tr('This profile belongs to another account.'));
     if (result === 'taken') return void this.signedIn(this.credential);
     else if (result === 'failed') this.say(tr("Couldn't sign in. Try again."));
@@ -147,19 +154,19 @@ export class AccountPanel {
     const target = e.target as HTMLElement;
     const use = target.closest<HTMLElement>('.account-use');
     if (use) {
-      if (await this.store.accountUse(this.credential, use.dataset.id!)) this.onSwitched();
+      if (await whileBusy(this.area, this.store.accountUse(this.credential, use.dataset.id!))) this.onSwitched();
       else this.say(tr("Couldn't sign in. Try again."));
       return;
     }
     if (target.closest('.account-merge')) {
-      if (await this.store.accountMerge(this.credential)) {
+      if (await whileBusy(this.area, this.store.accountMerge(this.credential))) {
         this.say(tr('Merged!'));
         this.onSwitched();
       } else this.say(tr("Couldn't sign in. Try again."));
       return;
     }
     if (target.closest('.account-unlink')) {
-      await this.store.accountUnlink();
+      await whileBusy(this.area, this.store.accountUnlink());
       // (The whole card again: unlinked, its code shows, and works, once more.)
       return this.onSwitched();
     }
@@ -177,7 +184,7 @@ export class AccountPanel {
   }
 
   private async confirmDelete(): Promise<void> {
-    if (await this.store.accountDelete(this.credential)) {
+    if (await whileBusy(this.area, this.store.accountDelete(this.credential))) {
       this.say(tr('The account is deleted.'));
       this.onSwitched();
     } else {

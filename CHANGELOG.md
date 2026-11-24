@@ -2,6 +2,21 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## No green strip on iPads (2026-11-24)
+
+- The game fills the whole window on iPads: it was sized to Safari's "100% of the screen's height",
+  which could come out a little short (after turning it, by the home bar), and the page's green
+  showed in a strip along the bottom. It's now pinned to the window's edges, and resizes when
+  Safari's visible area changes.
+
+## Waiting shows (2026-11-24)
+
+- Whatever waits on the server says so: the button pressed shows a small turning ring in place of
+  its label (a code from another device, buying a set, Online, Sólo, a new room), and signing in,
+  linking, merging, switching, unlinking or deleting the account dims the Profil card's top under
+  one. Nothing in it can be pressed twice meanwhile. Only after a moment, so quick answers don't
+  flash it. Google's button shows the ring too while it loads.
+
 ## Smoother on older phones and tablets (2026-11-24)
 
 - When frames run slow, the game now gives up the sun's shadows before pixels: first it redraws

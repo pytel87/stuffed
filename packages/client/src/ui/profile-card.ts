@@ -6,6 +6,7 @@ import { AccountPanel } from './account.ts';
 import { icon, partIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
 import { flashMessage } from './flash.ts';
+import { whileBusy } from './busy.ts';
 
 export class ProfileCard {
   private readonly el: HTMLElement;
@@ -104,7 +105,8 @@ export class ProfileCard {
 
 
   private async restore(): Promise<void> {
-    const result = await this.store.recover(this.restoreInput.value);
+    const go = this.el.querySelector<HTMLElement>('.restore button[type="submit"]')!;
+    const result = await whileBusy(go, this.store.recover(this.restoreInput.value));
     if (result === 'linked') return this.flash(tr('That profile is linked to Google: sign in with Google.'));
     if (result !== 'ok') return this.flash(tr("That code doesn't match any profile."));
     this.restoreInput.value = '';

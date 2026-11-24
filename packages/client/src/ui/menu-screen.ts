@@ -117,8 +117,13 @@ export class MenuScreen {
     el.querySelector('b')!.textContent = String(balance ?? 0);
   }
 
-  setBusy(busy: boolean): void {
-    for (const b of this.buttons) b.disabled = busy;
+  /** Waiting on the server after a press: every button off, the one pressed (`which`) turning. */
+  setBusy(busy: boolean, which?: string): void {
+    for (const b of this.buttons) {
+      b.disabled = busy;
+      b.classList.remove('busy');
+    }
+    if (busy && which) this.el.querySelector(which)?.classList.add('busy');
   }
 
   /** A pill on the card's bottom edge for a few seconds ('' clears it). */

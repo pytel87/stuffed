@@ -268,6 +268,8 @@ export class GameRenderer {
     this.warmUp();
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    // (Safari changes the visible area without always firing that: its bars, the home bar.)
+    window.visualViewport?.addEventListener('resize', () => this.resize());
   }
 
   /**
