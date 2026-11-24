@@ -329,8 +329,8 @@
       "style": "realistic subtle foley sound effect, clean, no music, no voice"
     },
     "rinse_rising": {
-      "prompt": "soapy water starting to flood in: rushing water with lots of bubbles, a warning swell",
-      "seconds": 2.5
+      "prompt": "a small bright toy alarm bell, like a wind-up alarm clock, ringing briskly for a moment then stopping: friendly, clearly 'it starts now', no water",
+      "seconds": 2
     },
     "win": {
       "prompt": "short cheerful toy victory fanfare with kazoo and xylophone",

@@ -2,6 +2,18 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A quieter Rinse, tidier cards (2026-11-25)
+
+- The Rinse starting to rise rings a little toy alarm bell, no longer a loud rush of water (which
+  was never evened out with the other sounds and came out about three times louder than any of
+  them); the bell is at the level of the game's other signals.
+- The Controls card on touch screens: every note's words start in line (the icons beside them are
+  different widths), clear of the card's close button, and the card opens over the room's card,
+  not under it.
+- The gallery fits a narrow screen: its card is no wider than the screen, so its corner buttons
+  (the hanger, ×) aren't cut off, and the cards scroll from below them, not under them.
+- The phone in the "turn your phone" hint is in the middle of the screen (it sat low).
+
 ## Put Pluffs on the home screen (2026-11-24)
 
 - On a phone or tablet in the browser, a full-screen button in the title menu's top left corner

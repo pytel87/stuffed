@@ -578,7 +578,12 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 
 /* The gallery: every animal's full set; owned parts lit, missing ones faded. */
 .wardrobe .card.showing-gallery {
-  width: min(46rem, 100%);
+  /* Its padding counted in (it came out wider than a phone's screen), and room left either side
+     for the corner buttons that stick out past it. */
+  box-sizing: border-box;
+  width: min(46rem, 100% - 1.8rem);
+  /* (The cards scroll from below the corner buttons, not under them.) */
+  padding-top: calc(var(--card-pad) + 0.9rem);
 }
 
 /* Cards scrolling past its top and bottom fade out instead of being cut off flat (the padding keeps
@@ -734,7 +739,9 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 /* Opened from the lobby or results card too: above them. */
-.overlay.wardrobe {
+.overlay.wardrobe,
+.overlay.help {
+  /* (Over the room's card, opened from the ⚙ while it's up.) */
   z-index: 12;
 }
 
@@ -1403,10 +1410,19 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   text-align: left;
 }
 
+/* An icon column of one width, so every note's words start in line (the dots, the jump arrow and an
+   item's picture are all different widths). */
 .demo-notes li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
   align-items: center;
-  gap: 0.4rem;
+  column-gap: 0.45rem;
+}
+
+.demo-notes li > :first-child {
+  justify-self: center;
+  max-width: 1.6rem;
+  object-fit: contain;
 }
 
 .demo-notes b {
@@ -1447,6 +1463,11 @@ body.touch-mode .help-grid {
 
 body.touch-mode .help-touch {
   display: grid;
+}
+
+/* (Clear of the card's close button, which sits over its top right corner.) */
+body.touch-mode .help .demo-notes {
+  padding-right: 1.4rem;
 }
 
 /* ---------- options ---------- */
@@ -2546,11 +2567,8 @@ body.touch-mode .gear {
 @media (orientation: portrait) and (max-width: 820px) {
   body.touch-mode .rotate {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    /* (The whole screen, under Safari's bottom bar too: the page's own background showed there.) */
-    height: max(100%, 100lvh);
+    /* (The visible screen, so the phone sits in its middle; the page under it is dark too.) */
+    inset: 0;
     z-index: 50;
     display: grid;
     place-items: center;

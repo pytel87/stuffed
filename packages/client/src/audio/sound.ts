@@ -77,6 +77,8 @@ const LEVEL: Partial<Record<SoundName, number>> = {
   armor_up: -22, dig_scrape: -23, swap: -23, splash: -25,
   // Pirate Cove: the parrot and the current over the fight, the sea and gulls well under it.
   parrot_squawk: -22, current_whoosh: -24, shark_warning: -21, gull_cry: -31, sea_waves: -31, waterfall_rush: -28,
+  // The Rinse starting to rise: a toy alarm bell, a signal like the ship's bell, a little under it.
+  rinse_rising: -22,
   hit_confirm: -26, ko_confirm: -21,
   // Using an item: under the fight while it lasts, then a clear finish.
   use_puff: -26, use_sewing: -26, use_juice: -26, use_bag: -26, use_cardboard: -26,
