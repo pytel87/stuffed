@@ -1,6 +1,6 @@
 export * from './types.ts';
 export { config, DT, secondsToTicks } from './config.ts';
-export { addPlayer, createGame, removePlayer, type CreateGameOptions } from './create.ts';
+export { addPlayer, createGame, redress, removePlayer, type CreateGameOptions } from './create.ts';
 export { predictPlayer, step } from './step.ts';
 export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee, coveredBy } from './systems/visibility.ts';

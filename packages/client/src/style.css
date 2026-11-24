@@ -13,6 +13,10 @@
   /* And between a card's edge and what's in it, the same on every side and every card. */
   --card-pad: 1.5rem;
   --ink: #2a1f2d;
+  /* Patches (they soak hits first): their own colour, apart from the Buttons' orange-gold. */
+  --patch: #5fc4f0;
+  --patch-light: #a9e2fb;
+  --patch-dark: #1f7fae;
   --cream: #fffaf3;
   --paper: #f3e9dc;
   --pink: #e0457b;
@@ -1575,7 +1579,8 @@ body.wardrobe-open .sheet {
   flex: none;
 }
 
-/* One bar: stuffing fills it; patches coat the top of it in yellow (they soak hits first). */
+/* One bar in two halves, like the phones' pill: stuffing fills the left half in white, patches
+   (they soak hits first) the right half in their blue, an ink line between. */
 .vitals .track {
   position: relative;
   /* A fixed length (the bag slots sit after it and no longer squeeze it). */
@@ -1588,23 +1593,33 @@ body.wardrobe-open .sheet {
   overflow: hidden;
 }
 
+.vitals .track::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: calc(50% - 1.5px);
+  width: 3px;
+  background: var(--ink);
+}
+
 .vitals .fill {
   position: absolute;
-  left: 0;
+  inset-block: 0;
   transition: width 140ms ease-out;
 }
 
 .vitals .stuffing {
-  inset-block: 0;
+  left: 0;
+  width: calc(var(--hp, 100%) / 2);
   background: #fdfbf7;
   box-shadow: inset 0 -0.2rem 0 rgba(42, 31, 45, 0.12);
 }
 
 .vitals .patches {
-  top: 0;
-  height: 45%;
-  background: #ffd23f;
-  border-bottom: 2px solid var(--ink);
+  left: 50%;
+  width: calc(var(--coat, 0%) / 2);
+  background: var(--patch);
+  box-shadow: inset 0 -0.2rem 0 rgba(42, 31, 45, 0.12);
 }
 
 .vitals.low .stuffing {
@@ -1626,7 +1641,7 @@ body.wardrobe-open .sheet {
   display: flex;
   align-items: center;
   gap: 0.15rem;
-  color: #ffe27a;
+  color: var(--patch-light);
 }
 
 /* No patches: still shown (the count, 0), faded. */
@@ -2178,9 +2193,9 @@ body.touch-mode .prompt .icon.tap {
   will-change: transform, opacity;
 }
 
-/* Damage to patches: the yellow of the patches bar. */
+/* Damage to patches: the patches' colour. */
 .floater.armor {
-  color: #ffd23f;
+  color: var(--patch);
 }
 
 /* Buttons (the currency) found: their button and "+N" in its orange. */
@@ -2436,8 +2451,9 @@ body.touch-mode .loadout {
   transform: none;
 }
 
-/* On touch the pill is the bar, like the desktop's: stuffing fills it from the left in white (red,
-   and glowing, from 30), patches coat its top half in yellow. It reads at a glance mid-fight. */
+/* On touch the pill is two bars side by side: stuffing fills the left half in white (red, and
+   glowing, from 30), patches the right half in their colour. Nothing lies over the numbers, and each
+   reads at a glance mid-fight. */
 body.touch-mode .vitals {
   order: 1;
   flex: none;
@@ -2446,11 +2462,21 @@ body.touch-mode .vitals {
   --hp: 100%;
   --coat: 0%;
   --hp-color: #fdfbf7;
-  background:
-    linear-gradient(#ffd23f calc(100% - 2px), var(--ink) calc(100% - 2px)) left top / var(--coat) 45% no-repeat,
-    linear-gradient(var(--hp-color), var(--hp-color)) left / var(--hp) 100% no-repeat,
-    rgba(30, 20, 40, 0.5);
+  background: rgba(30, 20, 40, 0.5);
+}
+
+body.touch-mode .vitals .health,
+body.touch-mode .vitals .coat {
+  align-self: stretch;
   transition: background-size 140ms ease-out;
+}
+
+body.touch-mode .vitals .health {
+  background: linear-gradient(var(--hp-color), var(--hp-color)) left / var(--hp) 100% no-repeat;
+}
+
+body.touch-mode .vitals .coat {
+  background: linear-gradient(var(--patch), var(--patch)) left / var(--coat) 100% no-repeat;
 }
 
 body.touch-mode .vitals.low {
@@ -2482,17 +2508,16 @@ body.touch-mode .vitals {
   left: auto;
   right: auto;
   bottom: auto;
-  /* Two equal halves, the divider in the middle: in each, its icon and number together, centred
-     (the heart and health on the left, the patch and their count on the right). A fixed width, so
-     nothing moves as the numbers change. */
+  /* Two equal halves, each a bar of its own, the divider between them: in each, its icon and number
+     together, centred. A fixed width, so nothing moves as the numbers change. */
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-items: center;
+  align-items: stretch;
   box-sizing: border-box;
   width: 11.5rem;
   height: auto;
   min-height: var(--row);
-  padding: 0.25rem 0.6rem;
+  padding: 0;
   border-radius: 999px;
   border: 3px solid var(--ink);
   /* (Clips the fill to the pill's round ends.) */
@@ -2506,7 +2531,7 @@ body.touch-mode .vitals .health {
   justify-self: stretch;
   justify-content: center;
   gap: 0.35rem;
-  padding-right: 0.45rem;
+  padding: 0 0.45rem 0 0.6rem;
 }
 
 body.touch-mode .vitals .health > .icon,
@@ -2515,15 +2540,21 @@ body.touch-mode .vitals .coat .icon {
   height: 1.5rem;
 }
 
-/* The divider between them (dark: it may lie on the white fill or the dark rest). */
+/* (The patch in the lighter shade: on its own bar, in the same colour, it was lost.) */
+body.touch-mode .vitals .coat .icon rect:first-child {
+  fill: var(--patch-light);
+}
+
+/* The divider between the bars: an ink line like the pill's own edge. */
 body.touch-mode .vitals .coat {
   justify-self: stretch;
   width: auto;
   height: auto;
   justify-content: center;
   gap: 0.35rem;
-  padding-left: 0.45rem;
-  border-left: 2px solid rgba(42, 31, 45, 0.35);
+  padding: 0 0.6rem 0 0.45rem;
+  border-left: 3px solid var(--ink);
+  color: #fff;
 }
 
 /* Under the pill, as far below it as the item slots are apart. */

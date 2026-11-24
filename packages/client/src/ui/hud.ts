@@ -18,9 +18,7 @@ const OVERHEAD_HEIGHT = 2.4;
  */
 export class Hud {
   private readonly vitals: HTMLElement;
-  private readonly stuffingFill: HTMLElement;
   private readonly stuffingNum: HTMLElement;
-  private readonly patchesFill: HTMLElement;
   private readonly patchesNum: HTMLElement;
   private readonly weapons: { root: HTMLElement; art: HTMLElement; ammo: HTMLElement }[];
   private readonly items: { root: HTMLElement; art: HTMLElement; count: HTMLElement }[];
@@ -70,9 +68,7 @@ export class Hud {
     );
     const q = <T extends HTMLElement = HTMLElement>(sel: string, from: ParentNode = root) => from.querySelector<T>(sel)!;
     this.vitals = q('.vitals');
-    this.stuffingFill = q('.vitals .stuffing');
     this.stuffingNum = q('.vitals .num');
-    this.patchesFill = q('.vitals .patches');
     this.patchesNum = q('.vitals .coat span');
     this.prompt = q('.prompt');
     this.promptArt = q('.prompt .art');
@@ -125,17 +121,11 @@ export class Hud {
     if (!me) return;
     const stuffing = Math.ceil(me.stuffing);
     const patches = Math.ceil(me.patches);
-    this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => {
-      this.stuffingFill.style.width = v;
-      // (Phones fill the pill itself: see body.touch-mode .vitals.)
-      this.vitals.style.setProperty('--hp', v);
-    });
+    // (How full each is, for the style sheet: the bar's two halves, and the phones' pill.)
+    this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => this.vitals.style.setProperty('--hp', v));
     this.set('sN', String(stuffing), (v) => (this.stuffingNum.textContent = v));
     this.set('sLow', String(stuffing <= 30), (v) => this.vitals.classList.toggle('low', v === 'true'));
-    this.set('bW', `${(patches / config.player.maxPatches) * 100}%`, (v) => {
-      this.patchesFill.style.width = v;
-      this.vitals.style.setProperty('--coat', v);
-    });
+    this.set('bW', `${(patches / config.player.maxPatches) * 100}%`, (v) => this.vitals.style.setProperty('--coat', v));
     this.set('bN', String(patches), (v) => {
       this.patchesNum.textContent = v;
       // (Always there, so you know where they'd show; dimmed with none.)

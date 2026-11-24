@@ -12,7 +12,8 @@ const paths: Record<string, string> = {
   // a stitched plush heart: stuffing (health)
   stuffing: `<path d="M12 20.5 4.3 12.8a4.6 4.6 0 0 1 6.5-6.5l1.2 1.2 1.2-1.2a4.6 4.6 0 0 1 6.5 6.5Z" fill="#ff5a6e"/>`,
   // a fabric patch with a running stitch round it: armor
-  patches: `<rect x="4" y="4" width="16" height="16" rx="2" fill="#ffd23f" transform="rotate(-6 12 12)"/><rect x="7" y="7" width="10" height="10" stroke="#b07a00" stroke-width="1.3" stroke-dasharray="2 1.6" transform="rotate(-6 12 12)"/>`,
+  // (Its colours: --patch and --patch-dark in style.css, so a change is one place there.)
+  patches: `<rect x="4" y="4" width="16" height="16" rx="2" fill="var(--patch)" transform="rotate(-6 12 12)"/><rect x="7" y="7" width="10" height="10" stroke="var(--patch-dark)" stroke-width="1.3" stroke-dasharray="2 1.6" transform="rotate(-6 12 12)"/>`,
   // weapons (side views, barrel to the right)
   cork_popper: `<rect x="3" y="9" width="14" height="5" rx="2.5" fill="#2bb3a6"/><rect x="13" y="8.5" width="2.5" height="6" fill="#f2a03d"/><path d="M6 14v4.5h3.5V14" fill="#2bb3a6"/><rect x="17.5" y="9.5" width="4" height="4" rx="1.5" fill="#d9a066"/>`,
   foam_dart_smg: `<rect x="3" y="8" width="14" height="6" rx="1.5" fill="#f2873d"/><path d="M8 14v6h3v-6" fill="#3d7ff2"/><rect x="17" y="9.5" width="4.5" height="3" rx="1.5" fill="#3d7ff2"/>`,

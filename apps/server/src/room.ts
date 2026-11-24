@@ -2,7 +2,7 @@
 // during a match, runs the authoritative simulation at 30 Hz: it applies each player's inputs,
 // lets bots fill the remaining places, and sends every player a snapshot of what they can see.
 import type { BotLevel, MapData } from '@stuffed/sim';
-import { addPlayer, BACKYARD, BOT_LEVELS, BotController, removePlayer, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, matchButtons, NEUTRAL_INPUT, step } from '@stuffed/sim';
+import { addPlayer, redress, BACKYARD, BOT_LEVELS, BotController, removePlayer, PLAYABLE_MAPS, canSee, carriedParts, completeSets, config, missingPieces, createGame, createWorld, matchButtons, NEUTRAL_INPUT, step } from '@stuffed/sim';
 import type { Animal, EntityId, MissingPart, GameEvent, GameState, Input, Part, World } from '@stuffed/sim';
 import {
   encodeSnapshot,
@@ -160,7 +160,7 @@ export class Room extends Server<Env> {
         return this.rename(conn, msg.name);
       case 'look': {
         const seat = this.seats.find((s) => s.connId === conn.id);
-        if (seat?.profileToken) void this.attachProfile(seat, seat.profileToken);
+        if (seat?.profileToken) void this.attachProfile(seat, seat.profileToken).then(() => this.redressInWarmup(seat));
         return;
       }
       case 'lobby':
@@ -404,6 +404,15 @@ export class Room extends Server<Env> {
     const conn = this.getConnection<ConnState>(seat.connId);
     if (conn) this.sendWarmupStart(conn);
     this.startLoop();
+  }
+
+  /** Changed clothes in the Wardrobe while waiting: their plush in the warm-up wears it at once. */
+  private redressInWarmup(seat: Seat): void {
+    const m = this.match;
+    const id = m?.warmup ? m.plushOf.get(seat.seat) : undefined;
+    const plush = id === undefined ? undefined : m!.state.players.find((p) => p.id === id);
+    if (!plush || !seat.look) return;
+    redress(m!.state, plush, { name: seat.name, isBot: false, parts: seat.look, holoAnimals: seat.holoAnimals, missingParts: seat.missingParts });
   }
 
   /** Someone left: their plush leaves the warm-up. */

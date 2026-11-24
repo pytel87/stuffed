@@ -2,6 +2,19 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## New clothes in the warm-up (2026-11-25)
+
+- Changing clothes in the Wardrobe while waiting in a room shows at once: your plush in the warm-up
+  wears the new look (everyone sees it), not only from the next match.
+
+## Patches in blue, two bars on phones (2026-11-25)
+
+- Patches have a colour of their own, a denim blue: their icon, their bar (desktop and phones) and
+  the numbers when they're hit. In yellow they were easily taken for Buttons (orange-gold).
+- The health bar is two halves, on desktop and phones alike: health fills the left one (white,
+  red from 30), patches the right one, an ink line between. The patches no longer lie over the
+  health in a strip of their own (on phones with a line through the heart and the numbers).
+
 ## A quieter Rinse, tidier cards (2026-11-25)
 
 - The Rinse starting to rise rings a little toy alarm bell, no longer a loud rush of water (which

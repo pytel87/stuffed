@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addPlayer, applyDamage, BACKYARD, Btn, COVE, createGame, createWorld, removePlayer } from '../src/index.ts';
+import { addPlayer, applyDamage, BACKYARD, Btn, COVE, createGame, createWorld, redress, removePlayer } from '../src/index.ts';
 import { spawnPrize } from '../src/systems/minigames.ts';
 import { decodeSnapshot, emptySnapshotParts, encodeSnapshot, type CompactSnapshot } from '../src/net/protocol.ts';
 import { input, run } from './helpers.ts';
@@ -37,6 +37,17 @@ describe('a warm-up (a room lobby)', () => {
     const json = encodeSnapshot(state, state.players, state.players[0]!.id, [], {});
     const shown = decodeSnapshot(JSON.parse(json) as CompactSnapshot, emptySnapshotParts())!.state;
     expect(shown.zone.current.radius).toBeCloseTo(radius, 1);
+  });
+
+  it('a plush changes clothes in place (the Wardrobe while waiting)', () => {
+    const state = warmup(1);
+    const p = state.players[0]!;
+    const pos = { ...p.pos };
+    redress(state, p, { name: p.name, isBot: false, parts: { head: { animal: 'unicorn', rarity: 4, holo: true }, body: 'bear' }, holoAnimals: ['unicorn'] });
+    expect(p.parts.head).toEqual({ animal: 'unicorn', rarity: 4, found: false, holo: true });
+    expect(p.parts.body.animal).toBe('bear');
+    expect(p.holoAnimals).toEqual(['unicorn']);
+    expect(p.pos).toEqual(pos);
   });
 
   it('everyone gathers at the meeting spot; a newcomer pops in beside them, not on anyone', () => {

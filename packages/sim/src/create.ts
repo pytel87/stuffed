@@ -168,6 +168,16 @@ function makePlayer(id: number, entry: RosterEntry, spawn: Vec2, map: MapData, r
   };
 }
 
+/**
+ * Puts a new look on a plush already in the game (a room's warm-up: someone changed clothes in the
+ * Wardrobe): its parts, and the sets that make its holo parts and the parts it's still missing.
+ */
+export function redress(state: GameState, player: Player, entry: RosterEntry): void {
+  player.parts = rollParts(state.rng, entry.parts, state.mapId);
+  player.holoAnimals = (entry.holoAnimals ?? []).filter((a) => ANIMALS.includes(a));
+  player.missingParts = (entry.missingParts ?? []).filter((m) => ANIMALS.includes(m.animal) && PART_SLOTS.includes(m.slot));
+}
+
 function startingWeapons(loadout: readonly WeaponSpec[]): [WeaponInstance | null, WeaponInstance | null] {
   const [a, b] = loadout;
   return [a ? makeWeapon(a.kind, a.rarity) : null, b ? makeWeapon(b.kind, b.rarity) : null];
