@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A quieter sea and music (2026-11-24)
+
+- Pirate Cove's water is gentler: the sea all round about half as loud, the waterfall, a current
+  taking you and the pirate ship's bow wave a third quieter.
+- The music is quieter on every map (and behind the menu), by about a third: there under the game,
+  not over it.
+
 ## The Profil card like the menu (2026-11-24)
 
 - The line between the Google account and the device code on the Profil card is the menu's pink

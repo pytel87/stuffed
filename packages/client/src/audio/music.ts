@@ -8,7 +8,7 @@ import { seamless, type Sound } from './sound.ts';
 export type Mood = 'menu' | 'match' | 'off';
 
 const KEY = 'stuffed.music';
-const VOLUME = 0.32;
+const VOLUME = 0.2;
 
 /** C major, as frequencies: note n semitones above middle C. */
 const note = (n: number) => 261.63 * 2 ** (n / 12);

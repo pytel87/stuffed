@@ -127,9 +127,10 @@ export class GameAudio {
     this.lastFrame = now;
     if (map?.theme !== 'island') return;
     const at = this.sound.listener;
-    const want = new Map<SoundName, number>([['sea_waves', 0.8]]);
+    // (Quiet, under everything: the sea there all match long, the waterfall loudest beside it.)
+    const want = new Map<SoundName, number>([['sea_waves', 0.45]]);
     const fall = map.decor?.find((d) => d.kind === 'waterfall');
-    if (fall) want.set('waterfall_rush', Math.max(0, 1 - Math.hypot(at.x - fall.x, at.y - fall.y) / 22) ** 1.5);
+    if (fall) want.set('waterfall_rush', 0.6 * Math.max(0, 1 - Math.hypot(at.x - fall.x, at.y - fall.y) / 22) ** 1.5);
     for (const [name, volume] of want) {
       const playing = this.ambience.get(name);
       if (playing) playing.set(volume);
@@ -158,7 +159,7 @@ export class GameAudio {
     // Caught by a current: a whoosh of water as it takes you.
     const me = byId.get(localId);
     const carried = !!me?.alive && !!this.world?.map.currents && wading(this.world, me) && currentAt(this.world.map.currents, me.pos) !== null;
-    if (carried && !this.inCurrent && me) s.play('current_whoosh', { at: me.pos, volume: 0.9 });
+    if (carried && !this.inCurrent && me) s.play('current_whoosh', { at: me.pos, volume: 0.6 });
     this.inCurrent = carried;
     // A shark coming for you in the water: dun-dun (once each time one closes in).
     const sharks = this.map?.wanderers ?? [];
@@ -215,7 +216,7 @@ export class GameAudio {
           break;
         case 'trainBump':
           // The toy train toots; the pirate ship's bow wave splashes over you.
-          if (this.map?.track?.style === 'ship') s.play('splash', { at: e.pos, volume: 0.9 });
+          if (this.map?.track?.style === 'ship') s.play('splash', { at: e.pos, volume: 0.6 });
           else s.play('train_toot', { at: e.pos, volume: 0.8 });
           s.play('pillow_bonk', { at: e.pos, volume: 0.6 });
           break;
