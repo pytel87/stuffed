@@ -30,6 +30,14 @@ export class DebugOverlay {
     this.el.classList.add('stats');
   }
 
+  hideStats(): void {
+    if (!this.statsOnly) return;
+    this.visible = false;
+    this.statsOnly = false;
+    this.el.hidden = true;
+    this.el.classList.remove('stats');
+  }
+
   /** Call once per rendered frame. */
   update(dt: number, lines: Record<string, string | number>): void {
     this.frames++;

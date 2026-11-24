@@ -17,7 +17,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   strip along the bottom.
 - Opened from the home screen on an iPad, the game reaches the bottom edge: iOS drew it from under
   the see-through status bar but left it as short as if the bar were still there, so a strip that
-  tall stayed uncovered at the bottom. The game and the veil now reach down over it.
+  tall stayed uncovered at the bottom. The game and the veil now reach down over it. (Told by
+  Apple's own flag or the standard display mode, whichever says so; ?stats shows which it is,
+  with the page's and the screen's size.)
+- Five quick taps on the menu's PLUFFS logo turn that panel on or off, remembered on the device
+  (for the app on the home screen, whose address can't be changed).
 - ?stats opens a small panel with the frame rate, the frame's time, how much of it is the game's
   own work, the draws, and the shadows and sharpness in use (F1's panel, without its see-through
   roofs and hitboxes), for checking a phone or tablet.

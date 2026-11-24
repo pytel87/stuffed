@@ -2266,6 +2266,13 @@ body.touch-mode #toss-hint {
   }
 }
 
+/* (The same when only Apple's own flag says so: see main.ts.) */
+.home-screen-app #game,
+.home-screen-app #scene-fade {
+  bottom: auto;
+  height: calc(100% + env(safe-area-inset-top, 0px));
+}
+
 /* ?stats on a phone or tablet: top middle, clear of the health pill and the weapons. */
 #debug.stats {
   left: 50%;

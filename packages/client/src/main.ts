@@ -160,7 +160,23 @@ const nameTags = new NameTags(document.querySelector<HTMLElement>('#floaters')!)
 // Weapons, items and chests now; the skin parts a few at a time once the menu is up.
 renderModelIcons(setModelPictures);
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
-if (params.has('stats')) debug.showStats();
+// The stats panel: ?stats, or (where the address can't be changed, as in the app on the home screen)
+// tapping the menu's PLUFFS logo five times quickly, remembered on this device until tapped again.
+const STATS_KEY = 'stuffed.stats';
+const statsWanted = (() => {
+  try {
+    return localStorage.getItem(STATS_KEY) === '1';
+  } catch {
+    return false;
+  }
+})();
+if (params.has('stats') || statsWanted) debug.showStats();
+/** Opened from the home screen, as an app of its own (Apple's own flag, or the standard media query). */
+const homeScreenApp =
+  (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+  matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+// (For the style sheet: see .home-screen-app.)
+document.documentElement.classList.toggle('home-screen-app', homeScreenApp);
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
@@ -218,6 +234,24 @@ const menu = new MenuScreen(document.body, playerName(), {
     profileCard.show();
   },
 });
+// Five quick taps on the menu's logo: the stats panel on or off (see STATS_KEY).
+{
+  let taps: number[] = [];
+  document.querySelector('.menu .logo')?.addEventListener('click', () => {
+    const now = performance.now();
+    taps = [...taps.filter((t) => now - t < 2000), now];
+    if (taps.length < 5) return;
+    taps = [];
+    const on = !debug.statsOnly;
+    if (on) debug.showStats();
+    else debug.hideStats();
+    try {
+      localStorage.setItem(STATS_KEY, on ? '1' : '0');
+    } catch {
+      // not remembered; fine
+    }
+  });
+}
 const wardrobe = new Wardrobe(profiles);
 const profileCard = new ProfileCard(profiles);
 /** A newer game deployed while this page is open: offers a reload between matches. */
@@ -699,6 +733,7 @@ function frame(now: number): void {
     cpu: `${(performance.now() - frameStart).toFixed(1)} ms of it the game's own work`,
     gpu: `${renderer.stats.calls} draws, ${(renderer.stats.triangles / 1000).toFixed(0)}k tris`,
     look: renderer.qualityLabel,
+    app: `${homeScreenApp ? 'home screen' : 'browser'}, ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}`,
     plush: state.players.length,
   } : {
     seed,
