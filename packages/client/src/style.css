@@ -3434,7 +3434,12 @@ body.touch-mode .gear {
   position: relative;
 }
 
-.menu-profile.signed-in::after {
+.profile-head {
+  position: relative;
+}
+
+.menu-profile.signed-in::after,
+.profile-head.signed-in::after {
   content: '';
   position: absolute;
   right: -0.15rem;
@@ -3444,6 +3449,14 @@ body.touch-mode .gear {
   border-radius: 50%;
   border: 2.5px solid var(--ink);
   background: #3aa35b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 75% no-repeat;
+}
+
+/* (On the head: a little bigger, at its top right.) */
+.profile-head.signed-in::after {
+  right: 0;
+  top: 0;
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 /* A stitched seam across a card, like the one round its edge: on the title menu it sets the

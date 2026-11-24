@@ -2,6 +2,11 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## The tick on the head (2026-11-24)
+
+- Linked to Google, the Profil card shows the green tick on your head (as the menu's cloud button
+  does), not before "Propojeno s", where it pushed that line out of line with the email.
+
 ## Turn your phone (2026-11-24)
 
 - The "turn your phone" hint (a touch screen held upright) shows one phone turning sideways, holding

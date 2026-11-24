@@ -82,6 +82,8 @@ export class ProfileCard {
     const linked = !!profile.account;
     this.el.querySelector<HTMLElement>('.without-google')!.hidden = linked;
     this.el.querySelector<HTMLElement>('.code-row')!.hidden = linked;
+    // (The green tick on the head, like the menu's Profil button.)
+    this.head.classList.toggle('signed-in', linked);
     flashMessage(this.message, '');
     this.account.render();
     this.el.hidden = false;

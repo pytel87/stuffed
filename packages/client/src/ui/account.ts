@@ -65,7 +65,7 @@ export class AccountPanel {
     this.intent = 'signin';
     if (account) {
       this.el.innerHTML = `
-        <p class="code-hint">${icon('check')} ${tr('Linked to')} <b>${escapeHtml(account.email)}</b></p>
+        <p class="code-hint">${tr('Linked to')} <b>${escapeHtml(account.email)}</b></p>
         <div class="row account-row">
           <button type="button" class="big account-unlink"><span>${tr('Unlink')}</span></button>
           <button type="button" class="big account-delete"><span>${tr('Delete account')}</span></button>
