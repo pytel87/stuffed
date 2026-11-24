@@ -34,13 +34,12 @@ export class InstallHint {
            <p class="install-lead">${tr('Put Pluffs on your home screen and open it from there:')}</p>
            <ol>
              ${apple
-               ? `<li>${tr('Tap Share')} ${icon('share')} <small>${tr('(at the top in Safari on an iPad, at the bottom on an iPhone)')}</small></li>
+               ? `<li>${tr('Tap Share')} ${icon('share')}</li>
              <li>${tr('Choose “Add to Home Screen”')}</li>`
                : `<li>${tr('Open the browser’s menu')} <b>⋮</b></li>
              <li>${tr('Choose “Install app” or “Add to Home screen”')}</li>`}
              <li>${tr('Open Pluffs from your home screen')}</li>
            </ol>
-           ${'share' in navigator ? `<button type="button" class="big primary install-share">${icon('share')}<span>${tr('Share')}</span></button>` : ''}
          </div>
        </div>`,
     );
@@ -60,11 +59,6 @@ export class InstallHint {
     this.steps.querySelector('.close')!.addEventListener('click', () => (this.steps.hidden = true));
     this.steps.addEventListener('click', (e) => {
       if (e.target === this.steps) this.steps.hidden = true;
-    });
-    // The system's share sheet, opened for them (on an iPhone or iPad it may offer Add to Home
-    // Screen right there; if not, it's in Safari's own Share).
-    this.steps.querySelector('.install-share')?.addEventListener('click', () => {
-      void navigator.share({ title: 'Pluffs', url: location.origin }).catch(() => {});
     });
   }
 

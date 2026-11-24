@@ -133,8 +133,6 @@ const CS: Record<string, string> = {
   'Only holo': 'Jen holo',
   'Put Pluffs on your home screen and open it from there:': 'Přidej si Pluffs na plochu a hraj odtamtud přes celou obrazovku:',
   'Tap Share': 'Klepni na Sdílet',
-  Share: 'Sdílet',
-  '(at the top in Safari on an iPad, at the bottom on an iPhone)': '(v Safari na iPadu nahoře, na iPhonu dole)',
   'Choose “Add to Home Screen”': 'Vyber „Přidat na plochu“',
   'Open Pluffs from your home screen': 'Otevři Pluffs z plochy',
   'Open the browser’s menu': 'Otevři nabídku prohlížeče',

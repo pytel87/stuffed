@@ -8,7 +8,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   (like the gear in the right one). On Android it asks the system to install Pluffs (it then opens
   full screen from the home screen), or else just goes full screen; iPhones and iPads can't be
   asked, so it shows the steps in a card like the others (Sdílet, Přidat na plochu, open it from
-  there), with a Sdílet button that opens the share sheet right away. It isn't there in the app on
+  there; a page can't open Safari's own Share, the one with Přidat na plochu). It isn't there in the app on
   the home screen, on a computer, or while the page is full screen.
 
 ## The iPad app's bottom strip, gone (2026-11-24)
