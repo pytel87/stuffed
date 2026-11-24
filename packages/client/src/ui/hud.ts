@@ -47,8 +47,9 @@ export class Hud {
       'beforeend',
       `<div class="vitals">
          <span class="health">${icon('stuffing')}<b class="num"></b></span>
-         <div class="track"><div class="fill stuffing"></div><div class="fill patches"></div></div>
          <b class="coat">${icon('patches')}<span></span></b>
+         <div class="track coat-track"><div class="fill patches"></div></div>
+         <div class="track health-track"><div class="fill stuffing"></div></div>
        </div>
        <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
        <div class="loadout">

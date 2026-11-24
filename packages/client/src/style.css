@@ -1579,8 +1579,8 @@ body.wardrobe-open .sheet {
   flex: none;
 }
 
-/* One bar in two halves, like the phones' pill: stuffing fills the left half in white, patches
-   (they soak hits first) the right half in their blue, an ink line between. */
+/* Health: a long bar, white (red from 30). Patches (they soak hits first): a bar of their own in
+   their blue, over it. (One bar in two halves read as half health with no patches.) */
 .vitals .track {
   position: relative;
   /* A fixed length (the bag slots sit after it and no longer squeeze it). */
@@ -1593,33 +1593,86 @@ body.wardrobe-open .sheet {
   overflow: hidden;
 }
 
-.vitals .track::after {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  left: calc(50% - 1.5px);
-  width: 3px;
-  background: var(--ink);
+/* On desktop the two bars stand one over the other, every row alike: its icon on the left, the bar,
+   its number on the right; patches on top (a thinner bar), health below. (Phones: the pill, see
+   body.touch-mode .vitals.) */
+body:not(.touch-mode) .vitals {
+  /* (Icons and numbers in columns of their own width: the bars stay put as "100" turns to "60";
+     the two icons one over the other, on one centre line.) */
+  grid-template-columns: 1fr 1.8rem auto 2.8rem 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.3rem;
+  height: auto;
+}
+
+/* (Their icons and numbers take places of their own in the rows.) */
+body:not(.touch-mode) .vitals .health,
+body:not(.touch-mode) .vitals .coat {
+  display: contents;
+}
+
+body:not(.touch-mode) .vitals .coat > .icon {
+  grid-area: 1 / 2;
+  justify-self: center;
+}
+
+body:not(.touch-mode) .vitals .coat-track {
+  grid-area: 1 / 3;
+}
+
+body:not(.touch-mode) .vitals .coat > span {
+  grid-area: 1 / 4;
+}
+
+body:not(.touch-mode) .vitals .health > .icon {
+  grid-area: 2 / 2;
+  justify-self: center;
+  /* (The heart sits low in its picture: up by as much, level with its bar.) */
+  translate: 0 -0.1rem;
+}
+
+body:not(.touch-mode) .vitals .health-track {
+  grid-area: 2 / 3;
+}
+
+body:not(.touch-mode) .vitals .health > .num {
+  grid-area: 2 / 4;
+}
+
+.vitals .track.coat-track {
+  height: 0.9rem;
+  border-width: 2.5px;
+}
+
+body:not(.touch-mode) .vitals .coat > .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* No patches: their row faded (the box itself is gone from the layout, so each piece). */
+body:not(.touch-mode) .vitals .coat.none > * {
+  opacity: 0.55;
 }
 
 .vitals .fill {
   position: absolute;
   inset-block: 0;
+  left: 0;
   transition: width 140ms ease-out;
 }
 
 .vitals .stuffing {
-  left: 0;
-  width: calc(var(--hp, 100%) / 2);
+  width: var(--hp, 100%);
   background: #fdfbf7;
   box-shadow: inset 0 -0.2rem 0 rgba(42, 31, 45, 0.12);
 }
 
 .vitals .patches {
-  left: 50%;
-  width: calc(var(--coat, 0%) / 2);
+  width: var(--coat, 0%);
   background: var(--patch);
-  box-shadow: inset 0 -0.2rem 0 rgba(42, 31, 45, 0.12);
+  box-shadow: inset 0 -0.15rem 0 rgba(42, 31, 45, 0.15);
 }
 
 .vitals.low .stuffing {
@@ -1640,7 +1693,7 @@ body.wardrobe-open .sheet {
 .vitals .coat {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.4rem;
   color: var(--patch-light);
 }
 

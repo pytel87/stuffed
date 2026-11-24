@@ -11,9 +11,12 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 - Patches have a colour of their own, a denim blue: their icon, their bar (desktop and phones) and
   the numbers when they're hit. In yellow they were easily taken for Buttons (orange-gold).
-- The health bar is two halves, on desktop and phones alike: health fills the left one (white,
-  red from 30), patches the right one, an ink line between. The patches no longer lie over the
-  health in a strip of their own (on phones with a line through the heart and the numbers).
+- Health and patches are two bars. On desktop they stand one over the other, every row alike (its
+  icon on the left, the bar, its number on the right, in columns that don't move as the numbers
+  change), patches on top in a thinner bar; on phones the pill is two halves (health left,
+  patches right, an ink line between). Patches no longer lie over the health in a strip of their
+  own (on phones with a line through the heart and the numbers), and with none, the health bar no
+  longer looks half empty.
 
 ## A quieter Rinse, tidier cards (2026-11-25)
 
