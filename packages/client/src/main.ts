@@ -178,19 +178,7 @@ const homeScreenApp =
   matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 // (For the style sheet: see .home-screen-app.)
 document.documentElement.classList.toggle('home-screen-app', homeScreenApp);
-/**
- * How much shorter than the screen iOS leaves the page in the home-screen app (it draws it from under
- * the status bar but not that much taller: 32 px on an iPad): the game reaches down by as much.
- * (At most a status bar's worth: a window in Split View is short for good reason.)
- */
-function measureAppGap(): void {
-  const landscape = innerWidth > innerHeight;
-  const full = landscape ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
-  const gap = homeScreenApp ? Math.min(60, Math.max(0, full - innerHeight)) : 0;
-  document.documentElement.style.setProperty('--app-gap', `${gap}px`);
-}
-measureAppGap();
-addEventListener('resize', measureAppGap);
+
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
@@ -749,7 +737,7 @@ function frame(now: number): void {
     cpu: `${(performance.now() - frameStart).toFixed(1)} ms of it the game's own work`,
     gpu: `${renderer.stats.calls} draws, ${(renderer.stats.triangles / 1000).toFixed(0)}k tris`,
     look: renderer.qualityLabel,
-    app: `${homeScreenApp ? 'home screen' : 'browser'}, ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}, gap ${getComputedStyle(document.documentElement).getPropertyValue('--app-gap') || '0px'}`,
+    app: `${homeScreenApp ? 'home screen' : 'browser'}, ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}`,
     plush: state.players.length,
   } : {
     seed,
