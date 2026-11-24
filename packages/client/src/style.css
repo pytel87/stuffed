@@ -273,7 +273,8 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 
 /* Cards that open over another one (a question, the Buttons breakdown): a tint of their own on top. */
 .overlay.leave-confirm,
-.overlay.earned-breakdown {
+.overlay.earned-breakdown,
+.overlay.install-steps {
   background: radial-gradient(circle at 50% 40%, rgba(27, 16, 48, 0.15), rgba(27, 16, 48, 0.55));
   animation: fade 220ms ease-out;
 }
@@ -2257,20 +2258,12 @@ body.touch-mode #toss-hint {
 
 /* Opened from the home screen (an app of its own), iOS draws the page from the very top, under the
    see-through status bar, but leaves it as short as if the bar were still there: a strip that tall
-   stayed uncovered along the bottom. The game and the veil reach down over it. */
-@media (display-mode: standalone), (display-mode: fullscreen) {
-  #game,
-  #scene-fade {
-    bottom: auto;
-    height: calc(100% + env(safe-area-inset-top, 0px));
-  }
-}
-
-/* (The same when only Apple's own flag says so: see main.ts.) */
+   stayed uncovered along the bottom. The game and the veil reach down over it (--app-gap, measured
+   in main.ts: the screen's height less the page's). */
 .home-screen-app #game,
 .home-screen-app #scene-fade {
   bottom: auto;
-  height: calc(100% + env(safe-area-inset-top, 0px));
+  height: calc(100% + var(--app-gap, 0px));
 }
 
 /* ?stats on a phone or tablet: top middle, clear of the health pill and the weapons. */
@@ -2668,6 +2661,97 @@ button.primary.busy::after {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* On the title menu on a phone or tablet in the browser: full screen (install-hint.ts), in the top
+   left corner, like the options gear in the right one. */
+.fs-button {
+  position: fixed;
+  top: calc(var(--safe-t) + var(--edge));
+  left: calc(var(--safe-l) + var(--edge));
+  z-index: 20;
+  width: 3.2rem;
+  height: 3.2rem;
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+body.touch-mode .fs-button {
+  top: calc(var(--safe-t) + var(--edge) + (var(--row, 3.4rem) - 3.2rem) / 2);
+}
+
+.fs-button .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+/* The steps: a small card over the menu, like the Buttons' breakdown over the results. */
+.overlay.install-steps {
+  z-index: 30;
+}
+
+.install-steps .card {
+  width: min(21rem, 100%);
+}
+
+.install-steps .close {
+  position: absolute;
+  top: -1rem;
+  right: -1rem;
+}
+
+.install-steps h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  font: 900 1.4rem/1 var(--font);
+  color: var(--ink);
+}
+
+.install-steps h2 .icon {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.install-steps .install-lead {
+  margin: 0;
+  font: 700 0.95rem/1.35 var(--font);
+  color: #6b5d73;
+}
+
+/* The steps read left to right. */
+.install-steps ol {
+  margin: 0;
+  padding-left: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+  font: 700 1rem/1.35 var(--font);
+}
+
+.install-steps li .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  vertical-align: -0.2rem;
+}
+
+.install-steps small {
+  display: block;
+  font: 700 0.85rem/1.3 var(--font);
+  color: #6b5d73;
+}
+
+.install-steps .install-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.install-steps .install-share .icon {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 /* ---------- motion ---------- */

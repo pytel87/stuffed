@@ -2,6 +2,23 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Put Pluffs on the home screen (2026-11-24)
+
+- On a phone or tablet in the browser, a full-screen button in the title menu's top left corner
+  (like the gear in the right one). On Android it asks the system to install Pluffs (it then opens
+  full screen from the home screen), or else just goes full screen; iPhones and iPads can't be
+  asked, so it shows the steps in a card like the others (Sdílet, Přidat na plochu, open it from
+  there), with a Sdílet button that opens the share sheet right away. It isn't there in the app on
+  the home screen, on a computer, or while the page is full screen.
+
+## The iPad app's bottom strip, measured (2026-11-24)
+
+- The home-screen app on an iPad covers its bottom strip for real: the gap is now measured (the
+  screen's height less the page's, 32 px on an iPad held sideways) rather than taken from the
+  status bar's size, which iOS reported as 0 there. ?stats shows it.
+- The pulled-back camera (the Toss, a lookout) no longer counts against the shadows: it sees half
+  the map for a little while, and an iPad dropped its shadows over the blimp ride.
+
 ## Shadows come back (2026-11-24)
 
 - The game no longer gives up shadows for a busy moment: it judges the typical frame over about

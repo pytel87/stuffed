@@ -920,7 +920,9 @@ export class GameRenderer {
     if (this.shadowTier === 1) this.renderer.shadowMap.needsUpdate = (this.frameCount & 1) === 0;
     this.frameCount++;
     this.renderer.render(this.scene, this.camera);
-    this.adaptQuality(opts.dt);
+    // (Not while the camera is pulled back, the Toss or a lookout: it sees half the map then, for a
+    // little while only, and an iPad dropped its shadows for good over it.)
+    if (this.rig.zoomedOut < 1.3) this.adaptQuality(opts.dt);
   }
 }
 
