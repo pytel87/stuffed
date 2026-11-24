@@ -33,6 +33,7 @@ class ParticlePool {
   spawn(pos: THREE.Vector3, vel: THREE.Vector3, size: number, life: number, gravity: number, yaw?: number): void {
     const mesh = this.free.pop() ?? this.create();
     mesh.visible = true;
+    mesh.matrixWorldAutoUpdate = true;
     mesh.position.copy(pos);
     mesh.scale.setScalar(size);
     if (this.flat) mesh.rotation.set(0, yaw ?? Math.random() * Math.PI * 2, 0);
@@ -46,6 +47,8 @@ class ParticlePool {
       p.life -= dt;
       if (p.life <= 0) {
         p.mesh.visible = false;
+        // (A spare one waiting in the pool: not worked out every frame.)
+        p.mesh.matrixWorldAutoUpdate = false;
         this.free.push(p.mesh);
         this.active.splice(i, 1);
         continue;

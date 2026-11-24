@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Smoother on older phones and tablets (2026-11-24)
+
+- When frames run slow, the game now gives up the sun's shadows before pixels: first it redraws
+  them every other frame, then turns them off (the soft blob under each plush stays), and only then
+  draws fewer pixels. Shadows draw much of the scene a second time; fewer pixels barely helped. The
+  shadow steps last for the visit; the sharpness comes back with each new scene as before.
+- The map's thousands of still pieces are placed once, not worked out again every frame, and the
+  effects' spare particles waiting in their pools are skipped too (only what moves is updated).
+
 ## Health at a glance on phones (2026-11-24)
 
 - On touch screens the health pill is a bar itself, like the desktop's: filled from the left in

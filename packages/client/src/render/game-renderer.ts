@@ -224,6 +224,9 @@ export class GameRenderer {
   private readonly fullPixelRatio: number;
   private readonly frameTimes: number[] = [];
   private qualityCooldown = QUALITY_COOLDOWN;
+  /** 0: shadows every frame; 1: every other frame; 2: none (see adaptQuality). */
+  private shadowTier: 0 | 1 | 2 = 0;
+  private frameCount = 0;
   /** Height of the surface the local plush stands over (for aiming). */
   private localGround = 0;
   /** Where the followed plush was last drawn, and the surface under it (for the camera). */
@@ -308,9 +311,13 @@ export class GameRenderer {
       for (const value of Object.values(m)) if (value instanceof THREE.Texture) value.dispose();
       m.dispose();
     }
-    this.mapLayer.add(buildMapView(map));
+    const view = buildMapView(map);
     const obstacles = buildObstacles(map);
-    this.mapLayer.add(obstacles.root);
+    this.mapLayer.add(view, obstacles.root);
+    // The map stands still: its thousands of pieces are placed once, not again every frame (only
+    // what animates itself, foam and glows, still is).
+    freezeStill(view);
+    freezeStill(obstacles.root);
     this.goals = new GoalViews(this.mapLayer, map);
     this.train = new TrainView(this.mapLayer, map);
     this.bushes = obstacles.bushes;
@@ -570,9 +577,16 @@ export class GameRenderer {
     this.sun.shadow.camera.updateProjectionMatrix();
   }
 
+  /**
+   * Frames too slow, step by step: the sun's shadows redrawn every other frame, then no shadows,
+   * then fewer pixels (down to 1x). Shadows first: they draw everything a second time, and on a
+   * phone's GPU it's the drawing, not the pixels, that costs (fewer pixels barely helped there).
+   * The shadow steps stay for the visit (the device won't get faster); the pixels come back with
+   * each new scene (see reset).
+   */
   private adaptQuality(dt: number): void {
     // (Longer than a frame can be: the still backdrop's camera jump, not a slow frame.)
-    if (this.fixedQuality || dt <= 0 || dt > 0.1 || this.pixelRatio <= 1) return;
+    if (this.fixedQuality || dt <= 0 || dt > 0.1 || (this.shadowTier === 2 && this.pixelRatio <= 1)) return;
     // The first moments of a scene (building it, compiling shaders) aren't counted.
     if (this.qualityCooldown > 0) {
       this.qualityCooldown -= dt;
@@ -583,9 +597,22 @@ export class GameRenderer {
     if (this.frameTimes.length < QUALITY_SAMPLES) return;
     const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
     if (avg <= SLOW_FRAME) return;
-    this.pixelRatio = Math.max(1, this.pixelRatio - QUALITY_STEP);
-    this.renderer.setPixelRatio(this.pixelRatio);
-    this.resize();
+    if (this.shadowTier === 0) {
+      this.shadowTier = 1;
+      this.renderer.shadowMap.autoUpdate = false;
+    } else if (this.shadowTier === 1) {
+      this.shadowTier = 2;
+      this.renderer.shadowMap.enabled = false;
+      // (Every material is set up again without them, once.)
+      this.scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material;
+        if (m) for (const one of Array.isArray(m) ? m : [m]) one.needsUpdate = true;
+      });
+    } else {
+      this.pixelRatio = Math.max(1, this.pixelRatio - QUALITY_STEP);
+      this.renderer.setPixelRatio(this.pixelRatio);
+      this.resize();
+    }
     this.frameTimes.length = 0;
     this.qualityCooldown = QUALITY_COOLDOWN;
   }
@@ -845,9 +872,32 @@ export class GameRenderer {
     this.sun.target.position.copy(this.shadowTarget);
     this.sun.position.copy(this.shadowTarget).addScaledVector(this.daylight.sunOffset, this.shadowReach);
 
+    // (Shadows redrawn every other frame, once frames ran slow: see adaptQuality.)
+    if (this.shadowTier === 1) this.renderer.shadowMap.needsUpdate = (this.frameCount & 1) === 0;
+    this.frameCount++;
     this.renderer.render(this.scene, this.camera);
     this.adaptQuality(opts.dt);
   }
+}
+
+/**
+ * Works out where everything under `root` is once, and from then on leaves alone every part with
+ * nothing that moves inside it (a part moves if it changes itself as it's drawn, onBeforeRender).
+ * Placing the whole map every frame was most of a frame's work on a phone.
+ */
+function freezeStill(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
+  const plain = THREE.Object3D.prototype.onBeforeRender;
+  const moves = (o: THREE.Object3D): boolean => {
+    let any = o.onBeforeRender !== plain;
+    for (const c of o.children) if (moves(c)) any = true;
+    if (!any) {
+      o.matrixAutoUpdate = false;
+      o.matrixWorldAutoUpdate = false;
+    }
+    return any;
+  };
+  moves(root);
 }
 
 function lerp2(a: Vec2, b: Vec2, t: number): Vec2 {
