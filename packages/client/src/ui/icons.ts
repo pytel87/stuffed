@@ -169,6 +169,15 @@ const HEAD_FRONT: Partial<Record<Animal, string>> = {
 };
 
 /** A skin part as a slot shape in its animal's colors. */
+/** The rarity colours, common to legendary (as on the parts' strips and the gallery's stars). */
+export const RARITY_COLORS = ['#39ff7a', '#29c8ff', '#d070ff', '#ffd23a'] as const;
+
+/** A star outlined in ink (rarity, the gallery and the Wardrobe's filters): `fill` a colour or a
+ *  url(#…) to a gradient given in `defs`. */
+export function starIcon(fill: string, className = 'star', defs = ''): string {
+  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">${defs}<path d="M12 1.8L15.2 8.4 22.5 9.4 17.1 14.5 18.5 21.7 12 18.2 5.5 21.7 6.9 14.5 1.5 9.4 8.8 8.4Z" fill="${fill}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+
 export function partIcon(slot: PartSlot, animal: Animal, className = 'icon', holo = false): string {
   const picture = modelPictures.get(`part:${slot}:${animal}`);
   // Holographic: the same picture (as the part looks in play) with a little rainbow star in its

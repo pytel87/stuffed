@@ -5,7 +5,7 @@ import type { Look, OwnedEntry } from '@stuffed/sim/net';
 import { PlushView } from '../render/plush-view.ts';
 import type { ProfileStore } from '../session/profile.ts';
 import { renderPlushPictures } from '../render/model-icons.ts';
-import { icon, partIcon } from './icons.ts';
+import { icon, partIcon, RARITY_COLORS, starIcon } from './icons.ts';
 import { tr } from '../i18n.ts';
 import { mapName } from './map-choice.ts';
 import { flashMessage } from './flash.ts';
@@ -15,12 +15,26 @@ import { flashMessage } from './flash.ts';
  * part from all you own for it), and see it on a turning plush. The gallery shows every animal;
  * tapping an owned part there (or a complete set) puts it on.
  */
+/** The rarities, common to legendary (the filter's stars; see ANIMAL_RARITY). */
+const TIERS = [1, 2, 3, 4] as const;
+const TIER_NAMES = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const;
+/** A filter's star: a rarity's in its colour (the gallery's star), the holo one in a rainbow. */
+const star = (fill: string, defs = '') => starIcon(fill, 'filter-star', defs);
+const HOLO_STAR = star(
+  'url(#holo-star-fill)',
+  '<defs><linearGradient id="holo-star-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7eb6"/><stop offset=".3" stop-color="#ffd36e"/><stop offset=".5" stop-color="#8affb0"/><stop offset=".7" stop-color="#6ee7ff"/><stop offset="1" stop-color="#b48cff"/></linearGradient></defs>',
+);
+
 export class Wardrobe {
   private readonly el: HTMLElement;
   private readonly tabs: Record<PartSlot, HTMLButtonElement>;
   private readonly picker: HTMLElement;
   /** The slot whose parts the picker shows. */
   private selected: PartSlot = 'head';
+  /** The part list's filters (once it's long enough to scroll): one rarity, or only holo parts. */
+  private tierFilter: number | null = null;
+  private holoOnly = false;
+  private readonly filters: HTMLElement;
   private readonly message: HTMLElement;
   private readonly preview: Preview;
   /** The look being edited (saved after each change). */
@@ -48,7 +62,13 @@ export class Wardrobe {
              <div class="wardrobe-slots">
                ${PART_SLOTS.map((slot) => `<button type="button" class="wardrobe-slot" data-slot="${slot}" aria-label="${tr(slot)}"></button>`).join('')}
              </div>
-             <div class="wardrobe-picker"></div>
+             <div class="wardrobe-choose">
+               <div class="wardrobe-filters" hidden>
+                 ${TIERS.map((t) => `<button type="button" class="filter-tier tier-${t}" data-tier="${t}" aria-pressed="false" aria-label="${tr(TIER_NAMES[t - 1]!)}">${star(RARITY_COLORS[t - 1]!)}</button>`).join('')}
+                 <button type="button" class="filter-holo" aria-pressed="false" aria-label="${tr('Only holo')}">${HOLO_STAR}</button>
+               </div>
+               <div class="wardrobe-picker"></div>
+             </div>
            </div>
            <p class="error" role="alert"></p>
          </div>
@@ -82,6 +102,17 @@ export class Wardrobe {
       }),
     ) as Wardrobe['tabs'];
     this.picker = this.el.querySelector('.wardrobe-picker')!;
+    this.filters = this.el.querySelector('.wardrobe-filters')!;
+    this.picker.addEventListener('scroll', () => this.updatePickerEdges(), { passive: true });
+    // Tap a rarity to see only it (again to see all); the sparkle, only holo parts. They combine.
+    this.filters.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (!b || b.disabled) return;
+      if (e.detail > 0) b.blur();
+      if (b.classList.contains('filter-holo')) this.holoOnly = !this.holoOnly;
+      else this.tierFilter = this.tierFilter === Number(b.dataset.tier) ? null : Number(b.dataset.tier);
+      this.render();
+    });
     this.picker.addEventListener('click', (e) => {
       const pick = (e.target as HTMLElement).closest<HTMLElement>('[data-animal]');
       if (pick) this.wear({ [this.selected]: { animal: pick.dataset.animal as Animal, holo: pick.dataset.holo === '1' } });
@@ -170,7 +201,7 @@ export class Wardrobe {
       const complete = count === PART_SLOTS.length;
       return `<div class="gallery-card tier-${tier}${count > 0 ? ' owned' : ''}${complete ? ' complete' : ''}${complete && holoCount === PART_SLOTS.length ? ' holo-complete' : ''}" data-animal="${animal}">
         ${picture ? `<img src="${picture}" alt="" draggable="false">` : ''}
-        <b class="gallery-tier">${'★'.repeat(tier)}</b>
+        <b class="gallery-tier" aria-label="${'★'.repeat(tier)}">${starIcon(RARITY_COLORS[tier - 1]!).repeat(tier)}</b>
         ${this.homeBadge(animal)}
         <b class="gallery-count">${count}/${PART_SLOTS.length}</b>
         ${complete ? `<b class="gallery-holo" title="${tr('Holo')}">${holoCount === PART_SLOTS.length ? '✦ ' : ''}${holoCount}/${PART_SLOTS.length}</b>` : ''}
@@ -275,6 +306,12 @@ export class Wardrobe {
     });
   }
 
+  /** Fades the part list's top or bottom only where there's more to scroll to. */
+  private updatePickerEdges(): void {
+    const p = this.picker;
+    p.dataset.more = [p.scrollTop > 2 ? 'up' : '', p.scrollTop + p.clientHeight < p.scrollHeight - 2 ? 'down' : ''].filter(Boolean).join(' ');
+  }
+
   private render(): void {
     const look = this.look;
     if (!look) return;
@@ -292,13 +329,33 @@ export class Wardrobe {
     const rows = short ? 3 : 4;
     // Sized for the slot with the most parts, so the card keeps its width when switching slots.
     const most = Math.max(...PART_SLOTS.map((sl) => this.owned(sl).length));
-    this.picker.style.setProperty('--cols', String(Math.min(short ? 6 : 5, Math.max(1, Math.ceil(most / rows)))));
+    const cols = Math.min(short ? 6 : 5, Math.max(1, Math.ceil(most / rows)));
+    // (On the list and its filters both: each filter over a column.)
+    this.filters.parentElement!.style.setProperty('--cols', String(cols));
+    // The filters, once the longest list scrolls (a few parts need none).
+    const filtering = most > rows * cols;
+    if (!filtering) (this.tierFilter = null), (this.holoOnly = false);
+    this.filters.hidden = !filtering;
+    this.filters.parentElement!.classList.toggle('filtering', filtering);
+    const fits = (p: OwnedEntry, tier: number | null, holo: boolean) => (tier === null || ANIMAL_RARITY[p.animal] === tier) && (!holo || !!p.holo);
+    for (const b of this.filters.querySelectorAll<HTMLButtonElement>('.filter-tier')) {
+      const tier = Number(b.dataset.tier);
+      b.setAttribute('aria-pressed', String(this.tierFilter === tier));
+      // (None of that rarity here, with the holo filter as it is: nothing to show.)
+      b.disabled = !owned.some((p) => fits(p, tier, this.holoOnly));
+    }
+    const holo = this.filters.querySelector<HTMLButtonElement>('.filter-holo')!;
+    holo.setAttribute('aria-pressed', String(this.holoOnly));
+    holo.hidden = !PART_SLOTS.some((sl) => this.owned(sl).some((p) => p.holo));
+    holo.disabled = !owned.some((p) => fits(p, this.tierFilter, true));
     this.picker.innerHTML = owned
+      .filter((p) => fits(p, this.tierFilter, this.holoOnly))
       .map(
         (p) =>
           `<button type="button" class="pick tier-${ANIMAL_RARITY[p.animal]}${p.holo ? ' holo' : ''}${p.animal === look[slot].animal && !!p.holo === !!look[slot].holo ? ' worn' : ''}" data-animal="${p.animal}" data-holo="${p.holo ? 1 : 0}" aria-label="${tr(p.animal)}${p.holo ? ` (${tr('Holo')})` : ''}">${partIcon(slot, p.animal, 'icon', !!p.holo)}</button>`,
       )
       .join('');
+    this.updatePickerEdges();
     this.preview.setLook(look);
   }
 }

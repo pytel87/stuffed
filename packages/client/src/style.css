@@ -617,26 +617,15 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   position: absolute;
   top: 0.3rem;
   left: 0.45rem;
-  font: 900 0.95rem/1 var(--font);
-  letter-spacing: -0.05em;
-  -webkit-text-stroke: 1.5px var(--ink);
-  paint-order: stroke fill;
+  display: flex;
+  gap: 0.05rem;
+  line-height: 0;
 }
 
-.tier-1 .gallery-tier {
-  color: #39ff7a;
-}
-
-.tier-2 .gallery-tier {
-  color: #29c8ff;
-}
-
-.tier-3 .gallery-tier {
-  color: #d070ff;
-}
-
-.tier-4 .gallery-tier {
-  color: #ffd23a;
+/* (The same star as the Wardrobe's filters, icons.ts.) */
+.gallery-tier .star {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 /* A finished set: a rainbow ring shining round the card (its tint stays the animal's rarity). */
@@ -779,15 +768,104 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   border-color: var(--picked-border);
 }
 
+/* The part list with its filters over it (they take their room from the list, so the card
+   doesn't grow). */
+.wardrobe-choose {
+  display: grid;
+  gap: var(--gap-buttons);
+  align-content: start;
+  /* The filters are as big as the slot buttons beside them (see .wardrobe-slot), one over each
+     column of parts (--cols is set to fit them). */
+  --chip: 2.7rem;
+  --col: 2.9rem;
+  --filter-room: 0rem;
+}
+
+/* Filtering (a long list): the filters on top, the list under them down to the bottom of the slot
+   buttons beside it, however short or long it is (it doesn't set the card's height). */
+.wardrobe-choose.filtering {
+  --filter-room: calc(var(--chip) + var(--gap-buttons));
+  position: relative;
+  align-self: stretch;
+}
+
+.wardrobe-choose.filtering .wardrobe-picker {
+  position: absolute;
+  top: var(--filter-room);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: none;
+}
+
+/* Rarity (a star in its colour, like the strip on each part) and holo: tap one, again to clear. */
+.wardrobe-filters {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), var(--col));
+  gap: var(--gap-buttons);
+  justify-items: center;
+}
+
+.wardrobe-filters[hidden],
+.wardrobe-filters button[hidden] {
+  display: none;
+}
+
+.wardrobe-filters button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--chip);
+  height: var(--chip);
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* One star shape for all of them (the gallery's, icons.ts), as big as the slot buttons' icons. */
+.wardrobe-filters .filter-star {
+  width: calc(var(--chip) * 0.7);
+  height: calc(var(--chip) * 0.7);
+}
+
+
+
+
+
+.wardrobe-filters button[aria-pressed='true'] {
+  background: var(--picked-bg);
+  border-color: var(--picked-border);
+}
+
+.wardrobe-filters button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* Every part you own for the selected slot; tap one to wear it. */
 .wardrobe-picker {
   display: grid;
-  grid-template-columns: repeat(var(--cols, 1), 2.9rem);
+  grid-template-columns: repeat(var(--cols, 1), var(--col));
   /* Start, not center: centered rows that overflow would be cut off above the scroll. */
   align-content: start;
   gap: var(--gap-buttons);
   max-height: 15rem;
   overflow-y: auto;
+  /* Fading out only at an edge with more beyond (data-more, like the gallery). */
+  --fade-top: #000;
+  --fade-bottom: #000;
+  -webkit-mask-image: linear-gradient(to bottom, var(--fade-top), #000 1.2rem, #000 calc(100% - 1.2rem), var(--fade-bottom));
+  mask-image: linear-gradient(to bottom, var(--fade-top), #000 1.2rem, #000 calc(100% - 1.2rem), var(--fade-bottom));
+}
+
+.wardrobe-picker[data-more~='up'] {
+  --fade-top: transparent;
+}
+
+.wardrobe-picker[data-more~='down'] {
+  --fade-bottom: transparent;
 }
 
 .wardrobe-picker .pick {
@@ -984,6 +1062,9 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
     width: 2.2rem;
     height: 2.2rem;
   }
+  .wardrobe-choose {
+    --chip: 2.2rem;
+  }
   .wardrobe-slot .icon {
     width: 1.4rem;
     height: 1.4rem;
@@ -1005,10 +1086,21 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
     grid-auto-flow: column;
     justify-content: center;
   }
+  .wardrobe-picker,
+  .wardrobe-filters {
+    justify-content: center;
+    grid-template-columns: repeat(auto-fill, var(--col));
+  }
   .wardrobe-picker {
     max-height: 9rem;
-    justify-content: center;
-    grid-template-columns: repeat(auto-fill, 2.9rem);
+  }
+  /* (Here the list is under everything, nothing beside it to match: back in the flow.) */
+  .wardrobe-choose.filtering {
+    align-self: start;
+  }
+  .wardrobe-choose.filtering .wardrobe-picker {
+    position: static;
+    max-height: calc(9rem + 3rem);
   }
 }
 
@@ -2580,12 +2672,17 @@ body.touch-mode .gear {
     width: var(--s);
     height: var(--s);
   }
+  .wardrobe-choose {
+    --chip: min(3.3rem, calc((100dvh - var(--safe-t) - var(--safe-b) - 7.2rem - 4 * var(--gap-buttons)) / 5));
+  }
   .wardrobe-slot .icon {
     width: calc(var(--s) * 0.62);
     height: calc(var(--s) * 0.62);
   }
+  .wardrobe-choose {
+    --col: 3.6rem;
+  }
   .wardrobe-picker {
-    grid-template-columns: repeat(var(--cols, 1), 3.6rem);
     max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 6.6rem);
   }
   .wardrobe-picker .pick .icon {

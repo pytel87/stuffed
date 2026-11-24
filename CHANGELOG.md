@@ -2,6 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Wardrobe filters (2026-11-24)
+
+- Once a part's list in the Wardrobe is long enough to scroll, filters sit over it, one over each
+  column, as big as the slot buttons: a star in each rarity's colour (common, uncommon, rare,
+  legendary: tap one to see only those, again to see all) and a rainbow star (only holo). They
+  combine; one with nothing to show is greyed out. The list runs down to the bottom of the slot
+  buttons beside it and fades out where there's more to scroll, like the gallery.
+- The gallery's rarity stars and the filters' are one star, drawn with an ink outline.
+
+## Quieter button clicks (2026-11-24)
+
+- The click of the menus' buttons (the cards, ⚙, the spectate bar) is about half as loud.
+- The title menu's tune is softer than the match music (0.12 against 0.2).
+- Pirate Cove's sea is quieter still (under half of before), and so are the splashes of wading:
+  yours a third quieter, others' about half (a crowd in the water made a constant splashing).
+
 ## A quieter sea and music (2026-11-24)
 
 - Pirate Cove's water is gentler: the sea all round about half as loud, the waterfall, a current

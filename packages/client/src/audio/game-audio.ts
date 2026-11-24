@@ -128,7 +128,7 @@ export class GameAudio {
     if (map?.theme !== 'island') return;
     const at = this.sound.listener;
     // (Quiet, under everything: the sea there all match long, the waterfall loudest beside it.)
-    const want = new Map<SoundName, number>([['sea_waves', 0.45]]);
+    const want = new Map<SoundName, number>([['sea_waves', 0.2]]);
     const fall = map.decor?.find((d) => d.kind === 'waterfall');
     if (fall) want.set('waterfall_rush', 0.6 * Math.max(0, 1 - Math.hypot(at.x - fall.x, at.y - fall.y) / 22) ** 1.5);
     for (const [name, volume] of want) {

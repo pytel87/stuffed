@@ -9,6 +9,8 @@ export type Mood = 'menu' | 'match' | 'off';
 
 const KEY = 'stuffed.music';
 const VOLUME = 0.2;
+/** The menu's tune, softer still: it plays on while you sit there choosing. */
+const MENU_VOLUME = 0.12;
 
 /** C major, as frequencies: note n semitones above middle C. */
 const note = (n: number) => 261.63 * 2 ** (n / 12);
@@ -105,7 +107,7 @@ export class Music {
     if (!out || !this.enabled || this.mood === 'off') return;
     this.gain = out.ctx.createGain();
     this.gain.gain.value = 0;
-    this.gain.gain.setTargetAtTime(VOLUME, out.ctx.currentTime, 0.6);
+    this.gain.gain.setTargetAtTime(this.mood === 'menu' ? MENU_VOLUME : VOLUME, out.ctx.currentTime, 0.6);
     this.gain.connect(out.master);
     const mood = this.mood;
     const variant = this.variant;

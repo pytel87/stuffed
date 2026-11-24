@@ -1,5 +1,5 @@
 import './style.css';
-import { ANIMALS, BACKYARD, Btn, BUTTONS, PART_SLOTS, canSee, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
+import { ANIMAL_RARITY, ANIMALS, BACKYARD, Btn, BUTTONS, PART_SLOTS, canSee, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
 import type { Animal, EntityId, GameState, KnockoutCause, MapData, Part, PartSlot, Player, Rarity, Vec2, WeaponKind, WeaponSpec } from '@stuffed/sim';
 import { GameAudio } from './audio/game-audio.ts';
@@ -262,7 +262,7 @@ const music = new Music(sound, import.meta.env.BASE_URL);
 /** The soft button click. */
 // Menu icon buttons name themselves on a long hover or press (installed before the click sound below).
 installTooltips();
-const uiClick = () => sound.play('click', { pitchSpread: 0, volume: 0.8 });
+const uiClick = () => sound.play('click', { pitchSpread: 0, volume: 0.45 });
 // Every button on the cards, the options and the spectate bar clicks (not the in-match HUD).
 document.addEventListener(
   'click',
@@ -273,7 +273,7 @@ document.addEventListener(
   true,
 );
 // Splashing through water: soft for your own steps, softer for others nearby.
-renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.15 : 0.07, pitchSpread: 0.3 });
+renderer.onWaterStep = (at, id) => sound.play('splash', { at, volume: id === session?.localPlayerId ? 0.1 : 0.04, pitchSpread: 0.3 });
 renderer.onStep = (at, id) => audio.step(at, id === session?.localPlayerId);
 const help = new Help();
 /** First-time tips (and the controls card on your first match). */
@@ -1000,7 +1000,8 @@ if (roomCode) {
   showMenu();
 }
 
-// Dev builds only: lets test scripts reach the running match (window.stuffed.session).
-if (import.meta.env.DEV) Object.assign(window, { stuffed: { renderer, get session() { return session; } } });
+// Dev builds only: lets test scripts reach the running match (window.stuffed.session), and the
+// profile with the animals (to preview, say, the Wardrobe with everything owned).
+if (import.meta.env.DEV) Object.assign(window, { stuffed: { renderer, profiles, ANIMALS, PART_SLOTS, ANIMAL_RARITY, get session() { return session; } } });
 
 requestAnimationFrame(frame);
