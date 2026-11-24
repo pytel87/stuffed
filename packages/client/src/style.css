@@ -3492,14 +3492,17 @@ body.touch-mode .fs-button {
   border-color: var(--pink-deep);
 }
 
+/* The same pill as Privacy, Terms and Contact (.edge-pill), in pink: it's the thing to press. */
 .update-reload {
   flex: none;
-  padding: 0.35rem 0.9rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
   border: 3px solid var(--ink);
   background: var(--pink);
+  box-shadow: 0 3px 0 var(--ink);
   color: #fff;
-  font: 900 0.9rem/1 var(--font);
+  font: 800 0.8rem/1 var(--font);
+  white-space: nowrap;
   cursor: pointer;
 }
 

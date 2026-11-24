@@ -13,6 +13,7 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - The gallery fits a narrow screen: its card is no wider than the screen, so its corner buttons
   (the hanger, ×) aren't cut off, and the cards scroll from below them, not under them.
 - The phone in the "turn your phone" hint is in the middle of the screen (it sat low).
+- The new version's Načíst button is the same pill as Soukromí, Podmínky and Kontakt (in pink).
 
 ## Put Pluffs on the home screen (2026-11-24)
 
