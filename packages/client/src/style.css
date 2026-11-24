@@ -330,9 +330,12 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   width: 100%;
 }
 
-/* Each half of the lobby (the invite and who's in; the match settings and Start): spaced like the card. */
+/* Each half of the lobby (the invite and who's in; the match settings and Start): spaced like the card.
+   (As wide as the card gives it, never its rows' full width: they shrink to fit instead.) */
 .lobby-side {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--gap-rows);
 }
 
@@ -359,6 +362,16 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 /* The difficulty on the right of the row, in line with the buttons on the right above. */
 .lobby .bot-row .bot-level {
   margin-left: auto;
+}
+
+/* Round as ever, but shrinking a little if the row is short of room (Safari on an iPhone held
+   sideways laid it out wider, and the difficulty stuck out past the card's edge). */
+.lobby .bot-row .round,
+.lobby .map-picker .round {
+  flex: 0 1 3.2rem;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .bot-pick {
@@ -1588,6 +1601,11 @@ body.wardrobe-open .sheet {
   color: #ffe27a;
 }
 
+/* No patches: still shown (the count, 0), faded. */
+.vitals .coat.none {
+  opacity: 0.55;
+}
+
 
 /* The button as big as the heart. */
 .vitals .coat .icon {
@@ -2382,12 +2400,33 @@ body.touch-mode .loadout {
   transform: none;
 }
 
-/* No bar on touch: the stuffing number (red and pulsing when low), buttons and the stash. */
+/* On touch the pill is the bar, like the desktop's: stuffing fills it from the left in white (red,
+   and glowing, from 30), patches coat its top half in yellow. It reads at a glance mid-fight. */
 body.touch-mode .vitals {
   order: 1;
   flex: none;
   width: auto;
   height: var(--row);
+  --hp: 100%;
+  --coat: 0%;
+  --hp-color: #fdfbf7;
+  background:
+    linear-gradient(#ffd23f calc(100% - 2px), var(--ink) calc(100% - 2px)) left top / var(--coat) 45% no-repeat,
+    linear-gradient(var(--hp-color), var(--hp-color)) left / var(--hp) 100% no-repeat,
+    rgba(30, 20, 40, 0.5);
+  transition: background-size 140ms ease-out;
+}
+
+body.touch-mode .vitals.low {
+  --hp-color: #ff6b62;
+  /* (Glowing brighter and back, not fading: it stays readable.) */
+  animation: low-glow 0.9s ease-in-out infinite;
+}
+
+@keyframes low-glow {
+  50% {
+    filter: brightness(1.35);
+  }
 }
 
 body.touch-mode .vitals .track {
@@ -2398,10 +2437,7 @@ body.touch-mode .vitals .num {
   min-width: 0;
 }
 
-body.touch-mode .vitals.low .num {
-  color: #ff8a80;
-  animation: pulse 0.9s ease-in-out infinite;
-}
+/* (The pill itself is red and pulsing: the number stays white on it.) */
 
 /* Phones: top left, a pill with health (and buttons); the bag's slots, as big as the item slots,
    in a row under it. Players left: the plain outlined count, beside the pill. */
@@ -2410,21 +2446,31 @@ body.touch-mode .vitals {
   left: auto;
   right: auto;
   bottom: auto;
-  display: flex;
+  /* Two equal halves, the divider in the middle: in each, its icon and number together, centred
+     (the heart and health on the left, the patch and their count on the right). A fixed width, so
+     nothing moves as the numbers change. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
   box-sizing: border-box;
+  width: 11.5rem;
   height: auto;
   min-height: var(--row);
-  padding: 0.25rem 0.8rem 0.25rem 0.55rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 999px;
-  background: rgba(30, 20, 40, 0.38);
   border: 3px solid var(--ink);
-  gap: 0.35rem;
+  /* (Clips the fill to the pill's round ends.) */
+  overflow: hidden;
+  gap: 0;
   /* On the top row, the same height as the item row. */
   align-self: flex-start;
 }
 
 body.touch-mode .vitals .health {
+  justify-self: stretch;
+  justify-content: center;
   gap: 0.35rem;
+  padding-right: 0.45rem;
 }
 
 body.touch-mode .vitals .health > .icon,
@@ -2433,11 +2479,15 @@ body.touch-mode .vitals .coat .icon {
   height: 1.5rem;
 }
 
-/* A divider between health and buttons, like the old timer | players pill. */
+/* The divider between them (dark: it may lie on the white fill or the dark rest). */
 body.touch-mode .vitals .coat {
-  margin-left: 0.15rem;
-  padding-left: 0.5rem;
-  border-left: 2px solid rgba(255, 255, 255, 0.35);
+  justify-self: stretch;
+  width: auto;
+  height: auto;
+  justify-content: center;
+  gap: 0.35rem;
+  padding-left: 0.45rem;
+  border-left: 2px solid rgba(42, 31, 45, 0.35);
 }
 
 /* Under the pill, as far below it as the item slots are apart. */

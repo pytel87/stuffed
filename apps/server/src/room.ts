@@ -379,6 +379,10 @@ export class Room extends Server<Env> {
     const m = this.match;
     if (!m?.warmup) return;
     const seat = conn.state?.seat;
+    // Its page starts this match afresh, knowing nothing of it: the next update carries everything
+    // again. (Updates it was sent before, joining while its profile was looked up, went nowhere; with
+    // them counted as known it never had the whole picture, and showed the menu's map, frozen.)
+    this.sent.delete(conn.id);
     this.send(conn, { t: 'start', mapId: m.state.mapId, you: seat === null || seat === undefined ? null : (m.plushOf.get(seat) ?? null), warmup: true });
     this.sendSnapshot(conn, m);
   }

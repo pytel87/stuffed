@@ -2,6 +2,24 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Health at a glance on phones (2026-11-24)
+
+- On touch screens the health pill is a bar itself, like the desktop's: filled from the left in
+  white as far as your stuffing reaches (red and glowing from 30), patches coating its top half,
+  so how much is left reads at a glance mid-fight (it was the number alone).
+- The patches count is always beside your health (faded at 0), not only once you have some. On
+  phones the pill has a fixed width, split down the middle: heart and health centred in the left
+  half, patch and count in the right.
+
+## Joining a room's warm-up (2026-11-24)
+
+- Friends joining a room got into its warm-up but saw only the menu's map, zoomed out and frozen,
+  and their plushies stood still for everyone else. While the server looked their profile up, the
+  warm-up's updates already went to them and counted as delivered; their page started afresh after
+  that and never got the whole picture. A page starting a warm-up now gets everything again.
+- The room card's rows (bots and their difficulty, maps) shrink a little to fit rather than running
+  past the card's edge (Safari on an iPhone held sideways laid them out wider).
+
 ## The tick on the head (2026-11-24)
 
 - Linked to Google, the Profil card shows the green tick on your head (as the menu's cloud button

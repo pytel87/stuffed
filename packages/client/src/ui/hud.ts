@@ -50,7 +50,7 @@ export class Hud {
       `<div class="vitals">
          <span class="health">${icon('stuffing')}<b class="num"></b></span>
          <div class="track"><div class="fill stuffing"></div><div class="fill patches"></div></div>
-         <b class="coat" hidden>${icon('patches')}<span></span></b>
+         <b class="coat">${icon('patches')}<span></span></b>
        </div>
        <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
        <div class="loadout">
@@ -125,13 +125,21 @@ export class Hud {
     if (!me) return;
     const stuffing = Math.ceil(me.stuffing);
     const patches = Math.ceil(me.patches);
-    this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => (this.stuffingFill.style.width = v));
+    this.set('sW', `${(stuffing / config.player.maxStuffing) * 100}%`, (v) => {
+      this.stuffingFill.style.width = v;
+      // (Phones fill the pill itself: see body.touch-mode .vitals.)
+      this.vitals.style.setProperty('--hp', v);
+    });
     this.set('sN', String(stuffing), (v) => (this.stuffingNum.textContent = v));
     this.set('sLow', String(stuffing <= 30), (v) => this.vitals.classList.toggle('low', v === 'true'));
-    this.set('bW', `${(patches / config.player.maxPatches) * 100}%`, (v) => (this.patchesFill.style.width = v));
+    this.set('bW', `${(patches / config.player.maxPatches) * 100}%`, (v) => {
+      this.patchesFill.style.width = v;
+      this.vitals.style.setProperty('--coat', v);
+    });
     this.set('bN', String(patches), (v) => {
       this.patchesNum.textContent = v;
-      this.patchesNum.parentElement!.hidden = v === '0';
+      // (Always there, so you know where they'd show; dimmed with none.)
+      this.patchesNum.parentElement!.classList.toggle('none', v === '0');
     });
 
     me.weapons.forEach((w, i) => {
