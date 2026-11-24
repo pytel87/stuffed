@@ -77,7 +77,7 @@ export class LobbyScreen {
            <p class="code-hint lobby-players"></p>
            <div class="row lobby-who">
              <ul class="chips"></ul>
-             <button type="button" class="round lobby-team" aria-label="${tr('Team up against the bots')}" aria-pressed="true"></button>
+             <button type="button" class="round lobby-team" aria-pressed="true"></button>
            </div>
            <p class="status"></p>
            <button type="button" class="big primary lobby-start"><span>${tr('Start')}</span></button>
@@ -111,6 +111,8 @@ export class LobbyScreen {
     const showTeams = () => {
       this.teamToggle.setAttribute('aria-pressed', String(this.wantedTeams));
       this.teamToggle.innerHTML = icon(this.wantedTeams ? 'team' : 'alone');
+      // (Its tooltip says which way the match will be played.)
+      this.teamToggle.setAttribute('aria-label', tr(this.wantedTeams ? 'All of you as a team against the bots' : 'Every plush for itself'));
     };
     showTeams();
     this.teamToggle.addEventListener('click', (e) => {

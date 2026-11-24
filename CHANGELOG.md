@@ -2,6 +2,11 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A clearer team switch (2026-11-24)
+
+- The room's team switch says which way the match will be played: "Všichni jako tým proti botům"
+  with teams on, "Každý sám za sebe" with them off (it always said "Hrát v týmu proti botům").
+
 ## Smoother cards (2026-11-24)
 
 - A room's card comes up once, whole and already docked to the side: it showed in the middle (or
