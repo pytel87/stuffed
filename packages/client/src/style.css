@@ -2255,6 +2255,17 @@ body.touch-mode #toss-hint {
   z-index: 30;
 }
 
+/* Opened from the home screen (an app of its own), iOS draws the page from the very top, under the
+   see-through status bar, but leaves it as short as if the bar were still there: a strip that tall
+   stayed uncovered along the bottom. The game and the veil reach down over it. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  #game,
+  #scene-fade {
+    bottom: auto;
+    height: calc(100% + env(safe-area-inset-top, 0px));
+  }
+}
+
 /* ?stats on a phone or tablet: top middle, clear of the health pill and the weapons. */
 #debug.stats {
   left: 50%;

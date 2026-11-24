@@ -2,11 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Shadows come back (2026-11-24)
+
+- The game no longer gives up shadows for a busy moment: it judges the typical frame over about
+  four seconds (not the average of the last one and a half), so a crowd or a burst of effects
+  doesn't count, only a device that really can't keep up. And it comes back: after a while of
+  smooth play it steps up again (sharpness first, then shadows every other frame, then every frame).
+  If a step up has to be taken back soon after, it stays where it is for the visit.
+
 ## A dark edge, and stats on tablets (2026-11-24)
 
 - The page round the game, and the colour Safari tints its bars and the strip by the home bar
   with, is the dark plum of the veil between scenes, not lawn green: iPads still showed a green
   strip along the bottom.
+- Opened from the home screen on an iPad, the game reaches the bottom edge: iOS drew it from under
+  the see-through status bar but left it as short as if the bar were still there, so a strip that
+  tall stayed uncovered at the bottom. The game and the veil now reach down over it.
 - ?stats opens a small panel with the frame rate, the frame's time, how much of it is the game's
   own work, the draws, and the shadows and sharpness in use (F1's panel, without its see-through
   roofs and hitboxes), for checking a phone or tablet.

@@ -115,13 +115,19 @@ function snapToTexels(target: THREE.Vector3, sun: THREE.DirectionalLight, from: 
   out.applyMatrix4(SUN_VIEW);
 }
 /**
- * Adaptive resolution: if frames average slower than this (seconds), render fewer pixels.
- * Retina screens start at 2x; each step drops 0.25 down to 1x. Every scene starts sharp again.
+ * Adaptive quality (see adaptQuality): a step down when the typical (median) frame over the last
+ * few seconds is slower than SLOW_FRAME, a step back up after a longer while of frames as quick as
+ * FAST_FRAME. Each step of sharpness is 0.25, down to 1x; every scene starts sharp again.
  */
 const SLOW_FRAME = 1 / 48;
+const FAST_FRAME = 1 / 57;
 const QUALITY_STEP = 0.25;
-const QUALITY_SAMPLES = 90;
+/** Frames judged for a step down (about 4 s at 60 fps) and for a step up (about 10 s). */
+const QUALITY_SAMPLES = 240;
+const RECOVER_SAMPLES = 600;
 const QUALITY_COOLDOWN = 2.5;
+/** Stepped back up and it had to drop again within this many seconds: it stays down (no flipping). */
+const RELAPSE_SECONDS = 30;
 
 export interface RenderOptions {
   localPlayerId: EntityId;
@@ -226,6 +232,11 @@ export class GameRenderer {
   private qualityCooldown = QUALITY_COOLDOWN;
   /** 0: shadows every frame; 1: every other frame; 2: none (see adaptQuality). */
   private shadowTier: 0 | 1 | 2 = 0;
+  /** Seconds of frames counted, and when quality last stepped up (for spotting a relapse). */
+  private qualityClock = 0;
+  private lastStepUp = -Infinity;
+  /** A step up had to be taken back: no more stepping up this visit. */
+  private settled = false;
   private frameCount = 0;
   /** Height of the surface the local plush stands over (for aiming). */
   private localGround = 0;
@@ -587,42 +598,67 @@ export class GameRenderer {
 
   /**
    * Frames too slow, step by step: the sun's shadows redrawn every other frame, then no shadows,
-   * then fewer pixels (down to 1x). Shadows first: they draw everything a second time, and on a
-   * phone's GPU it's the drawing, not the pixels, that costs (fewer pixels barely helped there).
-   * The shadow steps stay for the visit (the device won't get faster); the pixels come back with
-   * each new scene (see reset).
+   * then fewer pixels (down to 1x). Judged on the typical frame over a few seconds, so a busy
+   * moment (a crowd, a burst of effects) doesn't count, only a device that can't keep up. And it
+   * comes back: after a longer while of smooth frames, one step up at a time (pixels first, then
+   * shadows). If a step up has to be taken back soon after, it stays down for the visit.
    */
   private adaptQuality(dt: number): void {
     // (Longer than a frame can be: the still backdrop's camera jump, not a slow frame.)
-    if (this.fixedQuality || dt <= 0 || dt > 0.1 || (this.shadowTier === 2 && this.pixelRatio <= 1)) return;
+    if (this.fixedQuality || dt <= 0 || dt > 0.1) return;
+    this.qualityClock += dt;
     // The first moments of a scene (building it, compiling shaders) aren't counted.
     if (this.qualityCooldown > 0) {
       this.qualityCooldown -= dt;
       return;
     }
     this.frameTimes.push(dt);
-    if (this.frameTimes.length > QUALITY_SAMPLES) this.frameTimes.shift();
+    if (this.frameTimes.length > RECOVER_SAMPLES) this.frameTimes.shift();
     if (this.frameTimes.length < QUALITY_SAMPLES) return;
-    const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-    if (avg <= SLOW_FRAME) return;
-    if (this.shadowTier === 0) {
-      this.shadowTier = 1;
-      this.renderer.shadowMap.autoUpdate = false;
-    } else if (this.shadowTier === 1) {
-      this.shadowTier = 2;
-      this.renderer.shadowMap.enabled = false;
-      // (Every material is set up again without them, once.)
-      this.scene.traverse((o) => {
-        const m = (o as THREE.Mesh).material;
-        if (m) for (const one of Array.isArray(m) ? m : [m]) one.needsUpdate = true;
-      });
-    } else {
-      this.pixelRatio = Math.max(1, this.pixelRatio - QUALITY_STEP);
-      this.renderer.setPixelRatio(this.pixelRatio);
-      this.resize();
+    const recent = this.frameTimes.slice(-QUALITY_SAMPLES).sort((a, b) => a - b);
+    const typical = recent[recent.length >> 1]!;
+    const canDrop = this.shadowTier < 2 || this.pixelRatio > 1;
+    if (typical > SLOW_FRAME && canDrop) {
+      // Too soon after a step up: that step was too much for it, so no more coming back.
+      if (this.qualityClock - this.lastStepUp < RELAPSE_SECONDS) this.settled = true;
+      if (this.shadowTier < 2) this.setShadowTier((this.shadowTier + 1) as 1 | 2);
+      else this.setPixelRatio(Math.max(1, this.pixelRatio - QUALITY_STEP));
+      this.frameTimes.length = 0;
+      this.qualityCooldown = QUALITY_COOLDOWN;
+      return;
     }
+    // Smooth for a good while (most frames quick): one step back up.
+    const lowered = this.shadowTier > 0 || this.pixelRatio < this.fullPixelRatio;
+    if (!lowered || this.settled || this.frameTimes.length < RECOVER_SAMPLES) return;
+    const all = [...this.frameTimes].sort((a, b) => a - b);
+    if (all[Math.floor(all.length * 0.9)]! > FAST_FRAME) return;
+    if (this.pixelRatio < this.fullPixelRatio) this.setPixelRatio(Math.min(this.fullPixelRatio, this.pixelRatio + QUALITY_STEP));
+    else this.setShadowTier((this.shadowTier - 1) as 0 | 1);
+    this.lastStepUp = this.qualityClock;
     this.frameTimes.length = 0;
     this.qualityCooldown = QUALITY_COOLDOWN;
+  }
+
+  private setPixelRatio(ratio: number): void {
+    this.pixelRatio = ratio;
+    this.renderer.setPixelRatio(ratio);
+    this.resize();
+  }
+
+  /** 0: shadows every frame; 1: every other frame; 2: none. */
+  private setShadowTier(tier: 0 | 1 | 2): void {
+    const wasOn = this.shadowTier < 2;
+    this.shadowTier = tier;
+    this.renderer.shadowMap.autoUpdate = tier === 0;
+    this.renderer.shadowMap.needsUpdate = true;
+    const on = tier < 2;
+    if (on === wasOn) return;
+    this.renderer.shadowMap.enabled = on;
+    // (Every material is set up again with or without them, once.)
+    this.scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material;
+      if (m) for (const one of Array.isArray(m) ? m : [m]) one.needsUpdate = true;
+    });
   }
 
   /** Clears everything from the last match (the map stays) so a new match can start. */
