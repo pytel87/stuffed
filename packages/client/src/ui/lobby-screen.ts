@@ -46,7 +46,9 @@ export class LobbyScreen {
   ) {
     root.insertAdjacentHTML(
       'beforeend',
-      `<div class="overlay lobby" hidden>
+      // (Docked to the side from the start: every room warms up behind it, and switching once the
+      // warm-up arrived showed the card in the middle for a moment, then jumped it over.)
+      `<div class="overlay lobby compact" hidden>
          <div class="card">
            <button type="button" class="round lobby-leave" aria-label="${tr('Leave')}">${icon('door')}</button>
            <div class="lobby-side lobby-you">
@@ -158,8 +160,11 @@ export class LobbyScreen {
     this.wardrobe.hidden = !available;
   }
 
+  /** Asked to show (it does once the room has answered, see render). */
+  private wanted = false;
+
   get visible(): boolean {
-    return !this.el.hidden;
+    return this.wanted;
   }
 
   /** Bots the host picked for the next match. */
@@ -173,15 +178,16 @@ export class LobbyScreen {
   }
 
   show(): void {
-    this.el.hidden = false;
+    this.wanted = true;
     this.render();
     // A public room's "starting in" counts down by itself.
     this.countdown ??= setInterval(() => {
-      if (!this.el.hidden && this.client.isPublic) this.render();
+      if (this.wanted && this.client.isPublic) this.render();
     }, 500);
   }
 
   hide(): void {
+    this.wanted = false;
     this.el.hidden = true;
     this.stopCountdown();
   }
@@ -202,12 +208,13 @@ export class LobbyScreen {
   render(): void {
     const c = this.client;
     const lobby = c.lobby;
+    // Shown once the room has told us who's in and that we're one of them: before that it doesn't
+    // know you're the host, and it came up small, then grew as the bots, map and Start came in.
+    this.el.hidden = !this.wanted || !lobby?.seats.some((s) => s.seat === c.seat);
     if (c.isHost && !c.isPublic && !this.mapSent && c.status === 'open') {
       this.mapSent = true;
       c.setMap(savedMap().id);
     }
-    // During the warm-up the card docks to the side, so everyone can play around behind it.
-    this.el.classList.toggle('compact', c.inWarmup);
     this.code.textContent = c.code;
     const humans = lobby?.seats.filter((s) => s.connected).length ?? 0;
     this.setBots(this.wantedBots, humans);

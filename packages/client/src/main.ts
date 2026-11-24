@@ -238,9 +238,12 @@ profiles.onChange = () => {
 // A new look in the Wardrobe: an online room starts you in it from the next match.
 wardrobe.onLookChanged = () => room?.lookChanged();
 // On an old address, off to the game's own one first (taking the profile along); see hand-over.ts.
-void leaveForNewAddress().then((leaving) => {
-  if (!leaving) void profiles.load();
-});
+const profileLoaded = leaveForNewAddress().then((leaving) => (leaving ? undefined : profiles.load()));
+/**
+ * The first menu waits for your profile (or a moment and a half at most): shown before it, the
+ * card came up without the Wardrobe, Profil and Buttons, and they popped in after, resizing it.
+ */
+let firstMenu: Promise<unknown> | null = Promise.race([profileLoaded, new Promise((r) => setTimeout(r, 1500))]);
 const sound = new Sound(import.meta.env.BASE_URL);
 /**
  * A part is new to you if it's in neither your collection nor what you carry this match (worn or
@@ -375,7 +378,8 @@ function beginMatch(next: GameSession): void {
   audio.setMap(next.map);
   renderer.reset();
   endScreen.hide();
-  lobbyScreen?.hide();
+  // (Not for the room's warm-up: the lobby card stays up, not hidden and popped in again.)
+  if (!(room?.inWarmup && next === room.match)) lobbyScreen?.hide();
   knockedOutBy = '';
   celebrated = false;
   hitDirection.clear();
@@ -406,7 +410,10 @@ function showMenu(): void {
   mode = 'menu';
   beginMatch(newBackdrop());
   help.hide();
-  menu.show();
+  if (firstMenu) {
+    void firstMenu.then(() => mode === 'menu' && menu.show());
+    firstMenu = null;
+  } else menu.show();
   void updates.check();
 }
 

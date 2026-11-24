@@ -2,6 +2,18 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Smoother cards (2026-11-24)
+
+- A room's card comes up once, whole and already docked to the side: it showed in the middle (or
+  small, before the room said you're its host) and then jumped there, and it popped in a second
+  time as the warm-up started.
+- The title menu comes up with your Wardrobe, Profil and Buttons already on it (it waits for your
+  profile, a moment and a half at most); they used to pop in after it, resizing the card.
+- Going from one card to another (the menu to the Wardrobe or Profil, and back) no longer flashes
+  the scene bright in between: the dark tint behind the cards is one layer, there while any card
+  is.
+- Cards settle in with a short, gentle fade and grow, without the bounce.
+
 ## A still menu, a veil between scenes, dancing (2026-11-23)
 
 - The title menu's background is the chosen map, still, seen from well above its middle, not
