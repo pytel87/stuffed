@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A set's colour in the Wardrobe (2026-11-24)
+
+- Wearing a whole set, the Wardrobe's preview takes on a soft wash of the animal's rarity colour
+  (green, blue, purple, gold); a whole holo set, the gallery's slowly moving rainbow. A mixed
+  outfit stands on the plain green, as before.
+
 ## Wardrobe filters (2026-11-24)
 
 - Once a part's list in the Wardrobe is long enough to scroll, filters sit over it, one over each

@@ -739,6 +739,29 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   border: 3px solid var(--ink);
 }
 
+/* A whole set worn: a soft wash of its rarity colour (as on the parts and stars); a holo set, the
+   gallery's holo rainbow, slowly moving. */
+.wardrobe-preview[data-set='1'] {
+  background: radial-gradient(circle at 50% 70%, #e2ffe9, #9cf0b8);
+}
+
+.wardrobe-preview[data-set='2'] {
+  background: radial-gradient(circle at 50% 70%, #e0f7ff, #95dcf5);
+}
+
+.wardrobe-preview[data-set='3'] {
+  background: radial-gradient(circle at 50% 70%, #f6e6ff, #d3a8f2);
+}
+
+.wardrobe-preview[data-set='4'] {
+  background: radial-gradient(circle at 50% 70%, #fff6d6, #f6d877);
+}
+
+.wardrobe-preview[data-set='holo'] {
+  background: linear-gradient(135deg, #ffd1e6, #fff1c4, #d4ffe0, #cdf3ff, #e4d6ff, #ffd1e6, #fff1c4) 0 0 / 300% 300%;
+  animation: holo-bg 5s linear infinite;
+}
+
 .wardrobe-slots {
   display: grid;
   gap: var(--gap-buttons);

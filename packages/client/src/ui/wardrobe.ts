@@ -356,6 +356,11 @@ export class Wardrobe {
       )
       .join('');
     this.updatePickerEdges();
+    // A whole set worn: the preview in its animal's rarity colour, a holo one in a rainbow (a mixed
+    // outfit stands on the plain green).
+    const set = PART_SLOTS.every((sl) => look[sl].animal === look.head.animal) ? look.head.animal : null;
+    const canvas = this.el.querySelector<HTMLElement>('.wardrobe-preview')!;
+    canvas.dataset.set = set ? (PART_SLOTS.every((sl) => look[sl].holo) ? 'holo' : String(ANIMAL_RARITY[set])) : '';
     this.preview.setLook(look);
   }
 }
