@@ -2,6 +2,20 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Online on a random map again, chests under loot (2026-11-24)
+
+- A chest with a weapon or part lying on it can be opened: E picked up what lay there instead,
+  and with both weapon slots full it swapped weapons on the spot forever (yours dropping where the
+  new one lay). Nothing lands on a closed chest any more (a dropped weapon or part, a knocked-out
+  plush's loot): it lands just beside it. And with loot and a chest both in reach, E goes for the
+  nearer one, the chest on a tie; a weapon at your feet still comes first.
+- Starting the mower (or the Snowy Park's plow) is always heard by whoever pressed its switch:
+  standing at the far end of its run, it was out of earshot, so it started in silence. Its engine
+  now starts from it or its switch, whichever is nearer.
+- An Online match is played on a map picked at random when its room opens (as before), not on the
+  map of whoever opened it; the warm-up shows it while everyone waits. Friends' rooms still use the
+  host's map.
+
 ## A clearer team switch (2026-11-24)
 
 - The room's team switch says which way the match will be played: "Všichni jako tým proti botům"

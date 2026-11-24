@@ -311,9 +311,15 @@ export class GameAudio {
           }
           s.play(e.index >= 0 && state.wanderers[e.index] && state.wanderers[e.index]!.mode === 'moving' ? 'pillow_bonk' : 'vacuum_bump', { at: e.pos, volume: 0.8 });
           break;
-        case 'wandererStarted':
-          s.play(e.kind === 'plow' ? 'plow_horn' : 'mower_engine', { at: e.pos, volume: 1, pitchSpread: 0 });
+        case 'wandererStarted': {
+          // From the mower or its switch, whichever is nearer: started from the switch while it
+          // stood at the far end of its run, it was out of earshot of whoever pressed it.
+          const sw = this.map?.wanderers?.[e.index]?.switch;
+          const near = (at: Vec2) => Math.hypot(at.x - s.listener.x, at.y - s.listener.y);
+          const at = sw && near(sw) < near(e.pos) ? sw : e.pos;
+          s.play(e.kind === 'plow' ? 'plow_horn' : 'mower_engine', { at, volume: 1, pitchSpread: 0 });
           break;
+        }
         case 'joined': {
           // Someone came into the warm-up: a pop, and their animal's happy cry.
           s.play('cork_pop', { at: e.pos, volume: 0.8, pitchSpread: 0.1 });

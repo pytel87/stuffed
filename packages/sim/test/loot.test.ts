@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, Btn, circleBoxPush, config, makeWeapon, rng, secondsToTicks, TEST_MAP } from '../src/index.ts';
+import { applyDamage, Btn, circleBoxPush, config, makeWeapon, rng, secondsToTicks, spawnLoot, TEST_MAP } from '../src/index.ts';
 import type { GameState, MapData, Player } from '../src/index.ts';
 import { input, newGame, OPEN_MAP, run } from './helpers.ts';
 
@@ -51,6 +51,31 @@ describe('chests', () => {
     const { world, state, p } = solo();
     run(world, state, 5, () => holdE);
     run(world, state, 1, () => input({ buttons: Btn.Interact | Btn.Fire, aimX: -1 }));
+    expect(p.action).toBeNull();
+  });
+
+  it('never have loot dropped onto them: it lands just beside', () => {
+    const { world, state } = solo();
+    const c = state.chests[0]!;
+    const loot = spawnLoot(world, state, { x: 22.1, y: 40 }, { type: 'weapon', weapon: makeWeapon('foam_dart_smg', 3) });
+    expect(Math.hypot(loot.pos.x - c.pos.x, loot.pos.y - c.pos.y)).toBeCloseTo(config.chest.radius + config.loot.radius);
+    expect(loot.pos.x).toBeGreaterThan(c.pos.x);
+  });
+
+  it("can be opened with a weapon lying on them (E doesn't just swap weapons there forever)", () => {
+    const { world, state, p } = solo();
+    p.weapons = [makeWeapon('cork_popper', 0), makeWeapon('super_soaker', 1)];
+    state.loot.push({ id: 999, pos: { x: 22, y: 40 }, z: 0, rarity: 3, content: { type: 'weapon', weapon: makeWeapon('foam_dart_smg', 3) } });
+    run(world, state, OPEN_TICKS + 1, () => holdE);
+    expect(state.chests[0]!.opened).toBe(true);
+    expect(p.weapons.map((w) => w?.kind)).toEqual(['cork_popper', 'super_soaker']);
+  });
+
+  it('still let you pick up a weapon at your feet first', () => {
+    const { world, state, p } = solo();
+    state.loot.push({ id: 999, pos: { x: 20.4, y: 40 }, z: 0, rarity: 3, content: { type: 'weapon', weapon: makeWeapon('foam_dart_smg', 3) } });
+    run(world, state, 1, () => holdE);
+    expect(p.weapons.some((w) => w?.kind === 'foam_dart_smg')).toBe(true);
     expect(p.action).toBeNull();
   });
 

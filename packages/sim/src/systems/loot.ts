@@ -88,6 +88,9 @@ export function dropFromSlot(world: World, state: GameState, player: Player, slo
   state.events.push({ type: 'dropped', playerId: player.id, lootId: loot.id });
 }
 
+/** How much nearer loot must be than a chest to be picked up first (it's on the chest otherwise). */
+const CHEST_TIE = 0.5;
+
 /** `world`: for the map's zip lines and tubes (without it, they aren't offered). */
 export function findInteraction(state: GameState, player: Player, world?: World): Interaction {
   if (player.ride) return null;
@@ -115,9 +118,6 @@ export function findInteraction(state: GameState, player: Player, world?: World)
       bestD = d;
     }
   }
-  if (best?.content.type === 'part') return { kind: 'part', loot: best, part: best.content.part };
-  if (best) return { kind: 'weapon', loot: best };
-
   let chest: Chest | null = null;
   let chestD: number = config.chest.interactRange;
   for (const c of state.chests) {
@@ -127,6 +127,12 @@ export function findInteraction(state: GameState, player: Player, world?: World)
       chest = c;
       chestD = d;
     }
+  }
+  // Loot and a chest both in reach: the nearer one, the chest on a tie. Loot lying on a chest
+  // came first before, so a weapon dropped there made E swap weapons forever (yours dropping
+  // where the new one lay) and the chest couldn't be opened.
+  if (best && (!chest || bestD < chestD - CHEST_TIE)) {
+    return best.content.type === 'part' ? { kind: 'part', loot: best, part: best.content.part } : { kind: 'weapon', loot: best };
   }
   // A chest before the map's buttons, toys and rides: opening it is what you came for.
   if (chest) return { kind: 'chest', chest };
@@ -290,6 +296,10 @@ export function openChest(world: World, state: GameState, chest: Chest, opener: 
 export function spawnLoot(world: World, state: GameState, at: Vec2, content: LootContent, fromZ = 0): GroundLoot {
   const pos = { x: at.x, y: at.y };
   pushOutOfWalls(world, pos, config.loot.radius, groundHeight(world, state, pos, fromZ));
+  // Off closed chests too: they're solid, and loot lying on one stood in the way of opening it.
+  if (pushOffChests(state, pos, config.loot.radius, groundHeight(world, state, pos, fromZ))) {
+    pushOutOfWalls(world, pos, config.loot.radius, groundHeight(world, state, pos, fromZ));
+  }
   const z = groundHeight(world, state, pos, fromZ);
   const rarity =
     content.type === 'weapon' ? content.weapon.rarity : content.type === 'part' ? ANIMAL_RARITY[content.part.animal] : config.items[content.item.kind].rarity;
@@ -453,6 +463,22 @@ function pushOutOfWalls(world: World, pos: Vec2, r: number, z: number): void {
   const out = config.player.roamOutside;
   pos.x = Math.min(Math.max(pos.x, -out + r), world.map.width + out - r);
   pos.y = Math.min(Math.max(pos.y, -out + r), world.map.height + out - r);
+}
+
+/** Moves loot to just beside any closed chest it would lie in (on the same surface). True if moved. */
+function pushOffChests(state: GameState, pos: Vec2, r: number, z: number): boolean {
+  let moved = false;
+  for (const c of state.chests) {
+    if (c.opened || Math.abs(c.z - z) > config.chest.height) continue;
+    const reach = config.chest.radius + r;
+    const d = dist(pos, c.pos);
+    if (d >= reach) continue;
+    const out = unit(pos.x - c.pos.x, pos.y - c.pos.y);
+    pos.x = c.pos.x + out.x * reach;
+    pos.y = c.pos.y + out.y * reach;
+    moved = true;
+  }
+  return moved;
 }
 
 function dist(a: Vec2, b: Vec2): number {

@@ -132,7 +132,7 @@ export class Room extends Server<Env> {
   async claimPublic(): Promise<boolean> {
     if (!(await this.claim())) return false;
     this.isPublic = true;
-    // A map picked now, in case the first one in brings none; theirs wins (see hello).
+    // The map it'll be played on, picked at random now: the warm-up shows it while everyone waits.
     this.map = PLAYABLE_MAPS[Math.floor(Math.random() * PLAYABLE_MAPS.length)]!;
     return true;
   }
@@ -195,9 +195,9 @@ export class Room extends Server<Env> {
       return conn.close(4000, 'protocol version');
     }
     this.claimed = true;
-    // The first one into a new room (a friends' room's host, or whoever opens a public one): it's
-    // played on their map, and the warm-up starts there. Who joins later gets that map.
-    if (!this.solo && this.seats.length === 0 && !this.match && this.phase === 'lobby') {
+    // The first one into a new friends' room (its host): the warm-up starts on their map. (A public
+    // room keeps the map it picked at random.)
+    if (!this.isPublic && !this.solo && this.seats.length === 0 && !this.match && this.phase === 'lobby') {
       this.map = PLAYABLE_MAPS.find((m) => m.id === msg.mapId) ?? this.map;
     }
     const token = String(msg.token).slice(0, 64);
