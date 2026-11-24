@@ -84,7 +84,11 @@ export class AccountPanel {
       const id = await loadGis();
       id.initialize({ client_id: CLIENT_ID, callback: (r) => void this.signedIn(r.credential), auto_select: false });
       if (!slot.isConnected) return;
-      id.renderButton(slot, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: LANG });
+      // Filling its place beside the head (Google allows 200 to 400 pixels; the card's middle is
+      // 23rem less the head and the gap, less on a narrow phone, if it isn't on screen to measure).
+      const across = slot.clientWidth || Math.min(18 * 16, innerWidth - 11 * 16);
+      const width = Math.round(Math.min(400, Math.max(200, across)));
+      id.renderButton(slot, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: LANG, width });
     } catch {
       slot.textContent = tr("Couldn't reach Google.");
     }

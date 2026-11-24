@@ -24,7 +24,7 @@ export class ProfileCard {
          <div class="card">
            <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <div class="profile-body">
-             <div class="profile-head"></div>
+             <div class="profile-top"><div class="profile-head"></div></div>
              <p class="code-hint without-google">${tr('Without a Google account: your code for another device')}</p>
              <div class="row code-row">
                <b class="code-box code"></b>

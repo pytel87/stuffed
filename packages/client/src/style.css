@@ -852,8 +852,68 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   margin: 0 auto;
 }
 
+/* Whose profile it is: the head on the left, the account's words beside it, its buttons (or
+   Google's) across the card under them; the pink stitches below, like the menu's. */
+.profile-top {
+  justify-self: stretch;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: var(--gap-rows);
+  padding-bottom: var(--gap-rows);
+  border-bottom: 2px dashed var(--pink);
+}
+
+/* Even to the eye: past the buttons' shadows (4px) when they're last; words last, less the room
+   under their letters. */
+.profile-top:has(.account-row) {
+  padding-bottom: calc(var(--gap-rows) + 4px);
+}
+
+.profile-top:has(.google-slot) {
+  padding-bottom: calc(var(--gap-rows) - 0.2rem);
+}
+
 .profile-head {
   line-height: 0;
+}
+
+/* (Its rows join the top's grid: the words beside the head, the rest across.) */
+.profile-top .account {
+  display: contents;
+}
+
+.profile-top .account > * {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.profile-top .account > .account-row,
+.profile-top .account > .account-profiles,
+.profile-top .account > .google-slot {
+  justify-self: stretch;
+}
+
+.profile-top .account > .code-hint:first-child {
+  grid-column: 2;
+  justify-self: start;
+  max-width: none;
+  text-align: left;
+}
+
+/* Signing in (or confirming a delete): Google's button beside the head, the words under both. */
+.profile-top .account:has(> .google-slot) > .google-slot {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.profile-top .account:has(> .google-slot) > .code-hint:first-child {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: stretch;
+  /* (Lined up with the field labels further down.) */
+  margin-left: 0.3rem;
 }
 
 .profile-head .icon.large {
@@ -3123,16 +3183,6 @@ body.touch-mode .gear {
 }
 
 /* The parent's account, at the top of the Wardrobe's key view. */
-.account {
-  display: grid;
-  justify-items: center;
-  /* The same space between its rows, and from its last row to the dashed line, as between the
-     card's own rows. */
-  gap: var(--gap-rows);
-  padding-bottom: var(--gap-rows);
-  border-bottom: 2px dashed rgba(42, 31, 45, 0.25);
-}
-
 .account > * {
   margin: 0;
 }
@@ -3142,7 +3192,9 @@ body.touch-mode .gear {
 }
 
 .account .code-hint {
+  /* (Not the field labels' nudge and pull toward the row under them.) */
   max-width: 19rem;
+  margin: 0;
   text-align: center;
 }
 
@@ -3161,16 +3213,8 @@ body.touch-mode .gear {
 }
 
 /* Unlink and Delete account: smaller than the card's main buttons, each on one line. */
-.account-row {
-  justify-content: center;
-}
-
+/* Unlink and Delete: the usual big buttons, sharing the row like Online and Solo on the menu. */
 .account-row .big {
-  flex: none;
-  min-height: 0;
-  height: auto;
-  padding: 0.55rem 1.1rem;
-  font-size: 0.9rem;
   white-space: nowrap;
 }
 
@@ -3213,8 +3257,10 @@ body.touch-mode .gear {
 }
 
 /* The Profil card: "without Google" is the smaller way, under the account. */
+/* (Pulled up by the room above its letters, so it sits as far under the stitches as the row
+   above them does over them.) */
 .without-google {
-  margin-top: 0.2rem;
+  margin-top: -0.3rem;
 }
 
 /* The Profil button, signed in: a small green tick on its corner. */
@@ -3238,7 +3284,8 @@ body.touch-mode .gear {
    friends' room row (code to join, + to make one) apart from playing. */
 .stitch {
   width: 100%;
-  margin: 0;
+  /* As far from the buttons' shadows above (4px) as from the row below: even to the eye. */
+  margin: 4px 0 0;
   border: 0;
   border-top: 2px dashed var(--pink);
 }

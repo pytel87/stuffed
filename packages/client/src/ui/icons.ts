@@ -90,6 +90,8 @@ const paths: Record<string, string> = {
   // a 2x2 grid of little frames: the animal gallery
   gallery: `<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ffd36a"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#ff9cbf"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#7be07b"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#6bc6ff"/>`,
   // a clothes hanger: the Wardrobe
+  /** Saved online (the Profil card: sign in, your code for another device). */
+  cloud: `<path d="M7 18.5h10.2a4.1 4.1 0 0 0 .6-8.1 5.6 5.6 0 0 0-10.7-1.4A4.8 4.8 0 0 0 7 18.5Z" fill="#fff"/>`,
   hanger: `<path d="M12 8.5V7.2a2.2 2.2 0 1 0-2.2-2.2"/><path d="M12 8.5 3.5 15.5a1.2 1.2 0 0 0 .8 2h15.4a1.2 1.2 0 0 0 .8-2Z" fill="#fff"/>`,
   // a sewing button with four holes: Buttons (Knoflíky), the currency
   button: `<circle cx="12" cy="12" r="8.5" fill="#ffb347"/><circle cx="12" cy="12" r="5.6" stroke-width="1.4"/><g fill="${INK}" stroke="none"><circle cx="10.2" cy="10.2" r="1.1"/><circle cx="13.8" cy="10.2" r="1.1"/><circle cx="10.2" cy="13.8" r="1.1"/><circle cx="13.8" cy="13.8" r="1.1"/></g>`,

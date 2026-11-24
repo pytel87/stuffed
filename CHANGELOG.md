@@ -2,6 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## The Profil card like the menu (2026-11-24)
+
+- The line between the Google account and the device code on the Profil card is the menu's pink
+  stitching, across the whole card (it was a shorter grey line).
+- Its Odpojit and Smazat účet are the usual big buttons, sharing the row like Online and Solo (they
+  were small ones of their own).
+- Its top: your head on the left, the account's words beside it ("Propojeno s …", "Přihlas se
+  přes Google …"; they sat off-centre under the head), its buttons or Google's across under them.
+- The Profil button, which is about signing in and keeping your collection safe, is a cloud (it
+  was a person), the green tick for a linked account on its corner.
+- Not signed in, Google's button sits beside the head, as wide as its place, with the words about
+  it under both (it was a short button in the middle, under the words).
+- The pink stitched lines (menu, Profil) sit as far from what's above them as from what's below,
+  to the eye: the buttons' shadows count as part of a row, and words' empty room above and below
+  their letters doesn't.
+
 ## Online first on the menu (2026-11-24)
 
 - The title menu's play row: Online first, in pink, then a stitched line, then Solo with the map

@@ -39,7 +39,7 @@ export class MenuScreen {
            <div class="row">
              <label class="field">${icon('person')}<input id="menu-name" maxlength="16" autocomplete="nickname" spellcheck="false" aria-label="${tr('Your name')}"></label>
              <button type="button" class="round menu-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>
-             <button type="button" class="round menu-profile" aria-label="${tr('Profile')}" hidden>${icon('person')}</button>
+             <button type="button" class="round menu-profile" aria-label="${tr('Profile')}" hidden>${icon('cloud')}</button>
            </div>
            <hr class="stitch">
            <!-- Online on its own (its map and bots are the server's), stitched off from Solo and the
