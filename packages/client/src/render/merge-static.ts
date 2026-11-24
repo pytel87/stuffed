@@ -1,18 +1,32 @@
 // Fewer draw calls per plush: a part is built from many small meshes (eyes, glints, stitches,
 // outlines), each its own draw call, twice with shadows. This bakes the pieces that never move
 // on their own into one mesh per look (same material settings), leaving pivots that animate
-// (leg hips) as their own merged groups.
+// (leg hips) as their own merged groups. Pieces alike but for their colour share a mesh too, each
+// one's colour kept on its corners (vertex colours): a toy gun of a dozen colours is one draw.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 type Mat = THREE.MeshToonMaterial | THREE.MeshBasicMaterial;
+
+const plainCompile = THREE.Material.prototype.onBeforeCompile;
+
+/**
+ * Whether pieces in this material may share a mesh with others of another colour: plain felt or
+ * glossy plastic. (Not shaders that work with the colour themselves, holo and the like, nor ones
+ * colours are swapped on later, or that already have vertex colours.)
+ */
+function anyColour(m: Mat): boolean {
+  if (m.vertexColors || m.userData.keepColour) return false;
+  return m.onBeforeCompile === plainCompile || m.customProgramCacheKey() === 'plastic';
+}
 
 /** Pieces drawn the same way can share a mesh. */
 function lookKey(mesh: THREE.Mesh, m: THREE.Material): string | null {
   if (!(m instanceof THREE.MeshToonMaterial || m instanceof THREE.MeshBasicMaterial)) return null;
   return [
     m.type,
-    m.color.getHexString(),
+    anyColour(m) ? 'any' : m.color.getHexString(),
+    m instanceof THREE.MeshToonMaterial ? m.emissive.getHexString() : '-',
     m.map?.uuid ?? '-',
     m.side,
     m.transparent ? m.opacity : 1,
@@ -20,7 +34,8 @@ function lookKey(mesh: THREE.Mesh, m: THREE.Material): string | null {
     m.depthWrite,
     m.toneMapped,
     mesh.castShadow,
-    mesh.receiveShadow,
+    // (Not whether it takes shadows: the merged mesh does if any piece did. Bits too small to
+    // matter had it off, and split a toy gun into several meshes for nothing.)
     mesh.renderOrder,
     m.customProgramCacheKey(),
     // Stencil settings (outlines drawn only round a model): pieces that differ can't share a mesh.
@@ -71,10 +86,28 @@ function baked(geometry: THREE.BufferGeometry, matrix: THREE.Matrix4): THREE.Buf
   return out;
 }
 
+/** Gives every corner of `geometry` the colour `c` (in the renderer's working space, as materials keep it). */
+function paint(geometry: THREE.BufferGeometry, c: THREE.Color): void {
+  const n = geometry.getAttribute('position').count;
+  const a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) a.set([c.r, c.g, c.b], i * 3);
+  geometry.setAttribute('color', new THREE.BufferAttribute(a, 3));
+}
+
+/** The same material, white, taking its colours from the corners. (Its shader tweaks kept.) */
+function colourless(m: Mat): Mat {
+  const out = m.clone();
+  out.onBeforeCompile = m.onBeforeCompile;
+  out.customProgramCacheKey = m.customProgramCacheKey;
+  out.color.set(0xffffff);
+  out.vertexColors = true;
+  return out;
+}
+
 /** Merges the meshes under `container` (not under any of `pivots`) into one mesh per look. */
 function mergeUnder(container: THREE.Object3D, pivots: Set<THREE.Object3D>): void {
   const toLocal = new THREE.Matrix4().copy(container.matrixWorld).invert();
-  const groups = new Map<string, { first: THREE.Mesh; material: Mat; pieces: THREE.BufferGeometry[]; meshes: Set<THREE.Mesh> }>();
+  const groups = new Map<string, { first: THREE.Mesh; material: Mat; pieces: THREE.BufferGeometry[]; colours: THREE.Color[]; meshes: Set<THREE.Mesh> }>();
   const visit = (o: THREE.Object3D) => {
     for (const child of o.children) {
       if (pivots.has(child) || !child.visible) continue;
@@ -90,8 +123,9 @@ function mergeUnder(container: THREE.Object3D, pivots: Set<THREE.Object3D>): voi
           const matrix = new THREE.Matrix4().multiplyMatrices(toLocal, child.matrixWorld);
           pieces.forEach((piece, i) => {
             let g = groups.get(keys[i]!);
-            if (!g) groups.set(keys[i]!, (g = { first: child, material: piece.material, pieces: [], meshes: new Set() }));
+            if (!g) groups.set(keys[i]!, (g = { first: child, material: piece.material, pieces: [], colours: [], meshes: new Set() }));
             g.pieces.push(baked(piece.geometry, matrix));
+            g.colours.push(piece.material.color);
             g.meshes.add(child);
           });
         }
@@ -103,11 +137,14 @@ function mergeUnder(container: THREE.Object3D, pivots: Set<THREE.Object3D>): voi
   // Every look becomes one mesh (a look with one piece still costs just one draw call).
   const built: THREE.Mesh[] = [];
   for (const g of groups.values()) {
+    // Of several colours: each piece's on its corners, the shared material white (one colour: as is).
+    const mixed = g.colours.some((c) => !c.equals(g.colours[0]!));
+    if (mixed) g.pieces.forEach((piece, i) => paint(piece, g.colours[i]!));
     const geometry = mergeGeometries(g.pieces);
     if (!geometry) return; // Mismatched pieces (shouldn't happen): leave this part as it was.
-    const mesh = new THREE.Mesh(geometry, g.material);
+    const mesh = new THREE.Mesh(geometry, mixed ? colourless(g.material) : g.material);
     mesh.castShadow = g.first.castShadow;
-    mesh.receiveShadow = g.first.receiveShadow;
+    mesh.receiveShadow = [...g.meshes].some((m) => m.receiveShadow);
     mesh.renderOrder = g.first.renderOrder;
     if (g.first.name === 'outline') mesh.name = 'outline';
     built.push(mesh);

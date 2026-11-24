@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Lighter plushies (2026-11-24)
+
+- Each plush is drawn in about a quarter fewer pieces (about 37 instead of 48): the still pieces of
+  a part or a toy gun that differed only in colour are now one mesh, each piece's colour kept on
+  its corners. A crowd of 16 costs about 170 fewer draws a frame. Nothing looks different: every
+  animal's and every weapon's and item's picture comes out the same, pixel for pixel. (The map's
+  merged props and loot are lighter the same way.) Pieces that take only a little shadow no
+  longer stay separate for it.
+
 ## No green strip on iPads (2026-11-24)
 
 - The game fills the whole window on iPads: it was sized to Safari's "100% of the screen's height",
