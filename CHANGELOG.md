@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A dark edge, and stats on tablets (2026-11-24)
+
+- The page round the game, and the colour Safari tints its bars and the strip by the home bar
+  with, is the dark plum of the veil between scenes, not lawn green: iPads still showed a green
+  strip along the bottom.
+- ?stats opens a small panel with the frame rate, the frame's time, how much of it is the game's
+  own work, the draws, and the shadows and sharpness in use (F1's panel, without its see-through
+  roofs and hitboxes), for checking a phone or tablet.
+
 ## Lighter plushies (2026-11-24)
 
 - Each plush is drawn in about a quarter fewer pieces (about 37 instead of 48): the still pieces of

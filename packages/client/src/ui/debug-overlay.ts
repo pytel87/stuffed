@@ -1,6 +1,11 @@
-/** F1 toggles a text panel with FPS and sim info; hitboxes are drawn by the renderer. */
+/**
+ * F1 toggles a text panel with FPS and sim info; hitboxes are drawn by the renderer. ?stats opens
+ * just the panel (no hitboxes or see-through roofs), for a phone or tablet with no F1 key.
+ */
 export class DebugOverlay {
   visible = false;
+  /** Opened by ?stats: the frame rate and what it costs only, not the match's details. */
+  statsOnly = false;
   private frames = 0;
   private elapsed = 0;
   private fps = 0;
@@ -16,6 +21,13 @@ export class DebugOverlay {
       this.el.hidden = !this.visible;
       onToggle(this.visible);
     });
+  }
+
+  showStats(): void {
+    this.visible = true;
+    this.statsOnly = true;
+    this.el.hidden = false;
+    this.el.classList.add('stats');
   }
 
   /** Call once per rendered frame. */

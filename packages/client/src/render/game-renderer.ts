@@ -346,6 +346,12 @@ export class GameRenderer {
     this.camera.updateProjectionMatrix();
   }
 
+  /** Shadows and sharpness as they are now (for ?stats). */
+  get qualityLabel(): string {
+    const shadows = ['shadows', 'shadows every other frame', 'no shadows'][this.shadowTier];
+    return `${shadows}, x${this.renderer.getPixelRatio()}`;
+  }
+
   /** What the last frame cost the GPU: draw calls and triangles (for the F1 overlay). */
   /** Names of the compiled shader programs, newest last (to spot mid-match compiles). */
   get programNames(): string[] {

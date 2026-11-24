@@ -43,8 +43,10 @@ body {
   overflow: hidden;
   font-family: var(--font);
   color: var(--ink);
-  /* Lawn green: in-browser on iPhones in landscape, the strips beside the notch show only this. */
-  background: #5e9e50;
+  /* Dark plum, like the veil between scenes (and the theme colour Safari tints its bars and the
+     strip by the home bar with): wherever the page shows round the game, it's dark, not a bright
+     strip of lawn green (iPads showed one along the bottom). */
+  background: #1e1730;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -2251,6 +2253,14 @@ body.touch-mode #toss-hint {
   font: 11px/1.45 var(--mono);
   pointer-events: none;
   z-index: 30;
+}
+
+/* ?stats on a phone or tablet: top middle, clear of the health pill and the weapons. */
+#debug.stats {
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(var(--safe-t) + 4.6rem);
+  z-index: 60;
 }
 
 /* ---------- touch ---------- */

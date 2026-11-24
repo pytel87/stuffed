@@ -160,6 +160,7 @@ const nameTags = new NameTags(document.querySelector<HTMLElement>('#floaters')!)
 // Weapons, items and chests now; the skin parts a few at a time once the menu is up.
 renderModelIcons(setModelPictures);
 const debug = new DebugOverlay(document.querySelector<HTMLElement>('#debug')!, (on) => renderer.setDebug(on));
+if (params.has('stats')) debug.showStats();
 const hud = new Hud(hudEl, input);
 const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floaters')!);
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
@@ -693,7 +694,13 @@ function frame(now: number): void {
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   toast.update(dt);
   if (!isBackdrop(session)) tips.update(dt, state, me, world, events, document.body.classList.contains('touch-mode'));
-  debug.update(dt, {
+  debug.update(dt, debug.statsOnly ? {
+    frame: `${(dt * 1000).toFixed(1)} ms`,
+    cpu: `${(performance.now() - frameStart).toFixed(1)} ms of it the game's own work`,
+    gpu: `${renderer.stats.calls} draws, ${(renderer.stats.triangles / 1000).toFixed(0)}k tris`,
+    look: renderer.qualityLabel,
+    plush: state.players.length,
+  } : {
     seed,
     tick: state.tick,
     pos: me ? `${me.pos.x.toFixed(1)}, ${me.pos.y.toFixed(1)}` : '-',
