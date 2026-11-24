@@ -82,7 +82,8 @@ const paths: Record<string, string> = {
   'arrow-up': `<path d="M12 20V5M7 10l5-5 5 5"/>`,
   'arrow-down': `<path d="M12 4v15M7 14l5 5 5-5"/>`,
   // an upright phone, an arrow curving round, the phone lying sideways
-  rotate: `<rect x="2.5" y="2.5" width="7" height="11" rx="1.6" fill="#fff"/><path d="M5 11h2" stroke-width="1.5"/><rect x="9.5" y="14" width="12" height="7" rx="1.6" fill="#fff"/><path d="M19 16v3" stroke-width="1.5"/><path d="M13.5 4.5a6 6 0 0 1 5.5 6"/><path d="M17 9.5l2 2 2-2"/>`,
+  /** One phone, upright (the rotate hint turns it sideways, see .rotate in style.css). */
+  rotate: `<rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="#fff"/><path d="M10.8 5.2h2.4" stroke-width="1.5"/><path d="M11 18.6h2" stroke-width="1.5"/>`,
   key: `<rect x="3" y="5" width="18" height="14" rx="3" fill="#fff"/>`,
   mouse: `<rect x="6" y="3" width="12" height="18" rx="6" fill="#fff"/><path d="M12 3v6"/>`,
   // a house key: the recovery code

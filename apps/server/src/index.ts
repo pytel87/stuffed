@@ -4,7 +4,7 @@ import { generateRoomCode, parseRoomCode } from '@stuffed/sim/net';
 import { getServerByName, routePartykitRequest } from 'partyserver';
 import { ANIMALS } from '@stuffed/sim';
 import type { Animal } from '@stuffed/sim';
-import { accountFor, accountProfiles, deleteAccount, linkProfile, unlinkProfile, useProfile } from './accounts.ts';
+import { accountFor, accountProfiles, deleteAccount, linkProfile, mergeIntoAccount, unlinkProfile, useProfile } from './accounts.ts';
 import { verifyGoogleToken } from './google.ts';
 import { buySet, claimTransfer, createProfile, startTransfer, loadProfile, parseLook, profileIdForToken, recoverProfile, setLook } from './profiles.ts';
 import type { Room } from './room.ts';
@@ -113,8 +113,8 @@ async function createRoom(env: Env): Promise<Response> {
  * /api/report {kind, message, detail, build, page} → an error from a player's device, kept ·
  * POST /api/shop/buy {animal, holo, requestId} → the parts missing from that set, for Buttons ·
  * accounts, each with {credential} (Google's ID token): POST /api/account/signin → the account's
- * profiles · /api/account/link → this device's profile joins it · /api/account/use {profileId} →
- * a token for one of them here · /api/account/delete → the account and its profiles, gone ·
+ * profile (one per account) · /api/account/link → this device's profile becomes it, if it has none · /api/account/use {profileId} →
+ * a token for one of them here · /api/account/merge → this device's profile merged into the account's · /api/account/delete → the account and its profiles, gone ·
  * POST /api/profile/unlink → this profile leaves its account.
  */
 async function profileApi(req: Request, env: Env, path: string): Promise<Response> {
@@ -142,6 +142,7 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
   }
   if (path === '/api/profile/recover' && req.method === 'POST') {
     const found = await recoverProfile(env.DB, String((await body()).code ?? ''));
+    if (found === 'linked') return json({ error: 'linked' }, 403);
     return found ? json(found) : json({ error: 'unknown_code' }, 404);
   }
 
@@ -161,8 +162,15 @@ async function profileApi(req: Request, env: Env, path: string): Promise<Respons
     }
     if (path === '/api/account/link') {
       if (!current) return json({ error: 'no_profile' }, 401);
-      if ((await linkProfile(env.DB, current, account.id)) === 'elsewhere') return json({ error: 'linked_elsewhere' }, 409);
+      const linked = await linkProfile(env.DB, current, account.id);
+      if (linked === 'elsewhere') return json({ error: 'linked_elsewhere' }, 409);
+      if (linked === 'taken') return json({ error: 'account_has_profile' }, 409);
       return json({ profile: await loadProfile(env.DB, current) });
+    }
+    if (path === '/api/account/merge') {
+      if (!current) return json({ error: 'no_profile' }, 401);
+      const merged = await mergeIntoAccount(env.DB, account.id, current);
+      return merged ? json({ profile: merged }) : json({ error: 'nothing_to_merge' }, 409);
     }
     if (path === '/api/account/use') {
       const used = await useProfile(env.DB, account.id, String(b.profileId ?? ''));

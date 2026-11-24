@@ -25,12 +25,12 @@ export class ProfileCard {
            <button type="button" class="round close" aria-label="${tr('Close')}">${icon('close')}</button>
            <div class="profile-body">
              <div class="profile-top"><div class="profile-head"></div></div>
-             <p class="code-hint without-google">${tr('Without a Google account: your code for another device')}</p>
+             <p class="code-hint without-google">${tr('Your code for another device')}</p>
              <div class="row code-row">
                <b class="code-box code"></b>
                <button type="button" class="round code-copy" aria-label="${tr('Copy code')}">${icon('copy')}</button>
              </div>
-             <p class="code-hint">${tr('Got a code from another device?')}</p>
+             <p class="code-hint restore-hint">${tr('Code from another device')}</p>
              <form class="row restore">
                <label class="field">${icon('enter')}<input maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="${tr('Recovery code')}"></label>
                <button type="submit" class="round primary" aria-label="${tr('Use code')}">${icon('arrow')}</button>
@@ -78,6 +78,10 @@ export class ProfileCard {
     document.body.classList.add('wardrobe-open');
     this.head.innerHTML = partIcon('head', profile.look.head.animal, 'icon large');
     this.code.textContent = profile.recovery;
+    // Linked to Google: that's the way back to it (its code doesn't work then), so no code shown.
+    const linked = !!profile.account;
+    this.el.querySelector<HTMLElement>('.without-google')!.hidden = linked;
+    this.el.querySelector<HTMLElement>('.code-row')!.hidden = linked;
     flashMessage(this.message, '');
     this.account.render();
     this.el.hidden = false;
@@ -98,8 +102,9 @@ export class ProfileCard {
 
 
   private async restore(): Promise<void> {
-    const ok = await this.store.recover(this.restoreInput.value);
-    if (!ok) return this.flash(tr("That code doesn't match any profile."));
+    const result = await this.store.recover(this.restoreInput.value);
+    if (result === 'linked') return this.flash(tr('That profile is linked to Google: sign in with Google.'));
+    if (result !== 'ok') return this.flash(tr("That code doesn't match any profile."));
     this.restoreInput.value = '';
     this.show();
   }

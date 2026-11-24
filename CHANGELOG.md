@@ -2,6 +2,31 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Turn your phone (2026-11-24)
+
+- The "turn your phone" hint (a touch screen held upright) shows one phone turning sideways, holding
+  there, then fading and starting over (it was two phones, upright and sideways, rocking).
+- No bright green strip at the bottom under that hint on iPhones: under Safari's bottom bar the
+  page is dark too while it shows.
+
+## One profile per Google account, merging (2026-11-24)
+
+- A profile linked to Google comes back only by signing in with Google: its code stops working
+  ("Tenhle profil je propojený s Googlem, přihlas se přes Google."), and the Profil card no longer
+  shows it. Odpojit brings the code back.
+- While the merge question is up, the Profil card shows only it (the codes come back after), so it
+  fits a phone held sideways.
+- Shorter words on the Profil card: "Ulož si sbírku přes Google a budeš ji mít na každém
+  zařízení.", "Tvůj kód pro jiné zařízení", "Kód z jiného zařízení"; merging: "… už má profil.",
+  Přepnout or Spojit.
+- A Google account holds one profile ("Přidat i tento profil" is gone; the server refuses a second
+  one). Signing in on a device that played without it, when the account has its profile already,
+  offers to merge them: "… už má profil. Spojit ho s tím na tomhle zařízení?", both shown (head,
+  parts, sets, Buttons), then Přepnout (play only the account's; this device's stays as it is,
+  under its code: a sibling's, say) or Spojit. Neither: the card's close button. Merged, the parts and holo parts of both are in the
+  account's profile (counts adding up), its Buttons are both balances together, the account's look
+  stays, and every device that played the other one plays the account's from then on.
+
 ## A set's colour in the Wardrobe (2026-11-24)
 
 - Wearing a whole set, the Wardrobe's preview takes on a soft wash of the animal's rarity colour

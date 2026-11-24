@@ -1,7 +1,8 @@
-// The parent's account in the Wardrobe's key view: Sign in with Google links the profile to it, so
-// the collection is safe and comes back on any device (signing in there lists the account's
-// profiles: siblings each have one). Shown only when the game has a Google client ID.
-import type { ProfileSummary } from '@stuffed/sim/net';
+// The account part of the Profil card: Sign in with Google links the profile to it (one profile per
+// account), so the collection is safe and comes back on any device; a device that played without
+// it merges into it. Shown only when the game has a Google client ID.
+import { completeSets } from '@stuffed/sim';
+import type { Profile, ProfileSummary } from '@stuffed/sim/net';
 import type { ProfileStore } from '../session/profile.ts';
 import { icon, partIcon } from './icons.ts';
 import { escapeHtml } from './escape.ts';
@@ -103,39 +104,64 @@ export class AccountPanel {
     const mine = found.current !== null && found.profiles.some((p) => p.id === found.current);
     if (mine) return this.render();
     if (found.profiles.length === 0) return this.link();
-    // The account has profiles already: play one of them here, or add this one (a sibling's).
-    this.el.innerHTML = `
-      <p class="code-hint">${tr('Profiles of')} <b>${escapeHtml(found.email)}</b>:</p>
-      <div class="account-profiles">${found.profiles.map((p) => this.card(p)).join('')}</div>
-      <button type="button" class="big account-add"><span>${tr('Add this profile too')}</span></button>`;
+    this.offer(found.email, found.profiles[0]!);
   }
 
-  private card(p: ProfileSummary): string {
-    return `<button type="button" class="account-profile" data-id="${escapeHtml(p.id)}">
+  /**
+   * One profile per account, and this one already has another: merge this device's into it (both
+   * collections and Buttons in one), or only play the account's here (this device's stays as it is,
+   * under its code: a sibling's, say). Neither: the card's close button.
+   */
+  private offer(email: string, theirs: ProfileSummary): void {
+    const mine = this.store.profile;
+    this.el.innerHTML = `
+      <p class="code-hint">${tr('{email} already has a profile.').replace('{email}', `<b>${escapeHtml(email)}</b>`)}</p>
+      <div class="account-profiles">
+        ${this.card(theirs, tr('Google account'))}
+        ${mine ? this.card(summaryOf(mine), tr('This device')) : ''}
+      </div>
+      <p class="code-hint account-note">${tr('Merge: both collections in one. Switch: play the account’s, this one keeps its code.')}</p>
+      <div class="row account-row">
+        <button type="button" class="big account-use" data-id="${escapeHtml(theirs.id)}"><span>${tr('Switch')}</span></button>
+        <button type="button" class="big primary account-merge"><span>${tr('Merge')}</span></button>
+      </div>`;
+  }
+
+  /** A profile at a glance: its head, where it is, and how far its collection has got. */
+  private card(p: ProfileSummary, where: string): string {
+    return `<div class="account-profile">
       ${partIcon('head', p.look.head.animal, 'icon large')}
-      <span>${tr('Parts')} <b>${p.parts}</b> · ${tr('Sets')} <b>${p.sets}</b> · ${icon('button')}<b>${p.buttons}</b></span>
-    </button>`;
+      <span><small>${where}</small>${tr('Parts')} <b>${p.parts}</b> · ${tr('Sets')} <b>${p.sets}</b> · ${icon('button')}<b>${p.buttons}</b></span>
+    </div>`;
   }
 
   private async link(): Promise<void> {
     const result = await this.store.accountLink(this.credential);
     if (result === 'elsewhere') this.say(tr('This profile belongs to another account.'));
+    if (result === 'taken') return void this.signedIn(this.credential);
     else if (result === 'failed') this.say(tr("Couldn't sign in. Try again."));
     this.render();
   }
 
   private async clicked(e: Event): Promise<void> {
     const target = e.target as HTMLElement;
-    const pick = target.closest<HTMLElement>('.account-profile');
-    if (pick) {
-      if (await this.store.accountUse(this.credential, pick.dataset.id!)) this.onSwitched();
+    const use = target.closest<HTMLElement>('.account-use');
+    if (use) {
+      if (await this.store.accountUse(this.credential, use.dataset.id!)) this.onSwitched();
       else this.say(tr("Couldn't sign in. Try again."));
       return;
     }
-    if (target.closest('.account-add')) return this.link();
+    if (target.closest('.account-merge')) {
+      if (await this.store.accountMerge(this.credential)) {
+        this.say(tr('Merged!'));
+        this.onSwitched();
+      } else this.say(tr("Couldn't sign in. Try again."));
+      return;
+    }
     if (target.closest('.account-unlink')) {
       await this.store.accountUnlink();
-      return this.render();
+      // (The whole card again: unlinked, its code shows, and works, once more.)
+      return this.onSwitched();
     }
     if (target.closest('.account-delete')) {
       // Deleting needs the parent to sign in again, right now.
@@ -159,4 +185,10 @@ export class AccountPanel {
       this.render();
     }
   }
+}
+
+/** The same summary the server gives an account's profile (see accounts.ts summaryOf). */
+function summaryOf(p: Profile): ProfileSummary {
+  const plain = p.parts.filter((x) => !x.holo);
+  return { id: p.id, look: p.look, parts: new Set(plain.map((x) => `${x.slot}:${x.animal}`)).size, sets: completeSets(plain).length, buttons: p.buttons };
 }

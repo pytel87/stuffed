@@ -114,9 +114,9 @@ export class ProfileStore {
   }
 
   /** This device's profile joins the account. 'elsewhere': it's another account's already. */
-  async accountLink(credential: string): Promise<'ok' | 'elsewhere' | 'failed'> {
+  async accountLink(credential: string): Promise<'ok' | 'elsewhere' | 'taken' | 'failed'> {
     const res = await this.call('POST', '/api/account/link', { credential });
-    if (res.status === 409) return 'elsewhere';
+    if (res.status === 409) return ((await res.json().catch(() => ({}))) as { error?: string }).error === 'account_has_profile' ? 'taken' : 'elsewhere';
     if (!res.ok) {
       reportError('account', `link ${res.status}`);
       return 'failed';
@@ -133,6 +133,17 @@ export class ProfileStore {
       return false;
     }
     await this.adopt(res);
+    return true;
+  }
+
+  /** Merges this device's profile into the account's (parts and Buttons together); plays that one here. */
+  async accountMerge(credential: string): Promise<boolean> {
+    const res = await this.call('POST', '/api/account/merge', { credential });
+    if (!res.ok) {
+      reportError('account', `merge ${res.status}`);
+      return false;
+    }
+    this.set(((await res.json()) as { profile: Profile }).profile);
     return true;
   }
 
@@ -160,11 +171,13 @@ export class ProfileStore {
   }
 
   /** Switches this device to the profile with that recovery code. */
-  async recover(code: string): Promise<boolean> {
+  /** Plays the profile with this recovery code here. 'linked': it's a Google account's (sign in). */
+  async recover(code: string): Promise<'ok' | 'linked' | 'unknown'> {
     const res = await this.call('POST', '/api/profile/recover', { code });
-    if (!res.ok) return false;
+    if (res.status === 403) return 'linked';
+    if (!res.ok) return 'unknown';
     await this.adopt(res);
-    return true;
+    return 'ok';
   }
 
   /** An online match's Buttons came in: the new balance. */

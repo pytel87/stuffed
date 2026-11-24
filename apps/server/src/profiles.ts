@@ -148,11 +148,14 @@ export async function claimTransfer(db: D1Database, code: string): Promise<{ tok
 }
 
 /** Adds this device to the profile with that recovery code; returns a token for it. */
-export async function recoverProfile(db: D1Database, code: string): Promise<{ token: string; profile: Profile } | null> {
+export async function recoverProfile(db: D1Database, code: string): Promise<{ token: string; profile: Profile } | 'linked' | null> {
   const clean = normalizeCode(code);
   if (!clean) return null;
-  const row = await db.prepare('SELECT id FROM profiles WHERE recovery = ?').bind(clean).first<{ id: string }>();
+  const row = await db.prepare('SELECT id, account_id FROM profiles WHERE recovery = ?').bind(clean).first<{ id: string; account_id: string | null }>();
   if (!row) return null;
+  // A profile linked to a Google account comes back only by signing in (its code would be a way
+  // round that); unlinked, the code works again.
+  if (row.account_id) return 'linked';
   const token = randomToken();
   await db.prepare('INSERT INTO tokens (token_hash, profile_id, created_at) VALUES (?, ?, ?)').bind(await hashToken(token), row.id, Date.now()).run();
   return { token, profile: (await loadProfile(db, row.id))! };
