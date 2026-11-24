@@ -41,9 +41,13 @@ export class MenuScreen {
              <button type="button" class="round menu-wardrobe" aria-label="${tr('Wardrobe')}" hidden>${icon('hanger')}</button>
              <button type="button" class="round menu-profile" aria-label="${tr('Profile')}" hidden>${icon('person')}</button>
            </div>
+           <hr class="stitch">
+           <!-- Online on its own (its map and bots are the server's), stitched off from Solo and the
+                map and bots Solo is played with. -->
            <div class="row">
-             <button type="button" class="big primary menu-solo"><span>${tr('Solo')}</span></button>
-             <button type="button" class="big menu-online"><span>${tr('Online')}</span></button>
+             <button type="button" class="big primary menu-online"><span>${tr('Online')}</span></button>
+             <span class="stitch-v" aria-hidden="true"></span>
+             <button type="button" class="big menu-solo"><span>${tr('Solo')}</span></button>
              ${mapChoiceHtml()}
              ${botLevelHtml()}
            </div>

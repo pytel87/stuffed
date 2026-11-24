@@ -3243,6 +3243,14 @@ body.touch-mode .gear {
   border-top: 2px dashed var(--pink);
 }
 
+/* The same stitches, standing: between buttons in a row. */
+.stitch-v {
+  flex: none;
+  align-self: stretch;
+  margin: 0.3rem 0;
+  border-left: 2px dashed var(--pink);
+}
+
 /* ---------- the lobby's warm-up ---------- */
 
 /* The lobby card docks to the left, smaller, one column, and the warm-up plays all around it (the

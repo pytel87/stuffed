@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Online first on the menu (2026-11-24)
+
+- The title menu's play row: Online first, in pink, then a stitched line, then Solo with the map
+  and bot level it's played with (Online's are the server's, so they sat misleadingly beside it).
+  Stitched lines now part the card in three: you, playing, and rooms with friends.
+
 ## Online on a random map again, chests under loot (2026-11-24)
 
 - A chest with a weapon or part lying on it can be opened: E picked up what lay there instead,
