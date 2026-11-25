@@ -506,14 +506,36 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 /* results */
+/* (A little wider than the other cards: the stats' row and who got you fit on one line.) */
+.end .card {
+  width: min(27rem, 100%);
+}
+
+/* Room to breathe: more under the title (before the numbers, see .end h1) and before the buttons. */
+.end .card > .row {
+  margin-top: 0.6rem;
+}
+
+/* Your place: a pill on the middle of the card's top edge (like the gallery's Buttons). The title
+   starts one row gap under the pill (it reaches 1.92rem + its padding and border, less the 1.3rem
+   it sits above the edge, into the card). */
+.end .card {
+  padding-top: calc(0.92rem + 6px + var(--gap-rows));
+}
+
 .end .place {
-  justify-self: center;
-  padding: 0.2rem 1rem;
+  position: absolute;
+  top: -1.3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  padding: 0.15rem 1rem;
   border-radius: 999px;
   background: var(--pink);
   border: 3px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
   color: #fff;
-  font: 900 1.8rem/1.2 var(--font);
+  font: 900 1.6rem/1.2 var(--font);
   font-variant-numeric: tabular-nums;
 }
 
@@ -523,8 +545,19 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 .end h1 {
-  margin: 0;
+  margin: 0 0 0.6rem;
   font: 900 2.2rem/1 var(--font);
+}
+
+.end .sub:empty {
+  display: none;
+}
+
+/* Who knocked you out (a robot or a person, and the name), or who won: the last chip of the stats. */
+.end .stats .sub {
+  margin: 0;
+  min-height: 0;
+  color: var(--ink);
 }
 
 .end .sub {
@@ -538,25 +571,52 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   color: #5a4c60;
 }
 
-.stats {
+/* The match in numbers, and what it brought: chips in a row, each its picture and its number, all
+   one height (--chip), the kept parts round at the same size. */
+.end {
+  --chip: 2.7rem;
+}
+
+.stats,
+.rewards {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.4rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.stat {
-  display: grid;
-  justify-items: center;
-  gap: 0.2rem;
+.rewards:not(:has(> :not([hidden]))) {
+  display: none;
 }
 
-.stat .icon {
-  width: 2rem;
-  height: 2rem;
+.stat,
+.earned-total,
+.end .stats .sub {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--chip);
+  padding: 0 0.9rem 0 0.55rem;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 900 1.25rem/1 var(--font);
 }
+
+.stat .icon,
+.earned-total .icon,
+.end .stats .sub .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+
 
 .stat b {
-  font: 900 1.5rem/1 var(--font);
+  font: inherit;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1168,24 +1228,25 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 .kept-part {
-  /* Always round: a full row never squeezes them into ovals (it wraps instead). */
+  /* Always round: a full row never squeezes them into ovals (it wraps instead). As tall as the
+     chips beside it, with their shadow. */
   flex: none;
   box-sizing: border-box;
   display: grid;
   place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: var(--chip, 2.4rem);
+  height: var(--chip, 2.4rem);
   aspect-ratio: 1;
   border-radius: 50%;
   border: 3px solid var(--ink);
   background: #fff;
-  box-shadow: inset 0 0 0 3px var(--rarity, transparent);
+  box-shadow: inset 0 0 0 3px var(--rarity, transparent), 0 3px 0 var(--ink);
   animation: pop 300ms ease-out backwards;
 }
 
 .kept-part .icon {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: calc(var(--chip, 2.4rem) * 0.75);
+  height: calc(var(--chip, 2.4rem) * 0.75);
 }
 
 .help-grid {
@@ -2949,8 +3010,8 @@ body.touch-mode .fs-button {
 /* The knocker's weapon on the result card, underlined in its rarity color. */
 /* The weapon that got you: just its picture. */
 .end .sub .killer-weapon {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 1.9rem;
+  height: 1.9rem;
 }
 
 /* Team mode: off-screen teammates, a badge at the screen edge pointing toward them. */
@@ -3379,22 +3440,12 @@ body.touch-mode .fs-button {
   display: none;
 }
 
+/* The Buttons earned: a gold chip (tap it for what they were for). */
 .earned-total {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0;
-  border: 0;
-  background: none;
+  background: #ffe7a8;
   cursor: pointer;
-  font: 900 1.6rem/1 var(--font);
   color: var(--ink);
   animation: pop 300ms ease-out backwards;
-}
-
-.earned-total .icon {
-  width: 2rem;
-  height: 2rem;
 }
 
 /* The Buttons breakdown: a small card over the results. */

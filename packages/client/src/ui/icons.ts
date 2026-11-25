@@ -52,6 +52,8 @@ const paths: Record<string, string> = {
   share: `<path d="M12 15V4M8 7.5l4-4 4 4"/><path d="M6 11v8h12v-8"/>`,
   copy: `<rect x="8" y="8" width="11" height="12" rx="2" fill="#fff"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/>`,
   bot: `<rect x="5" y="8" width="14" height="11" rx="3" fill="#fff"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2" fill="${INK}" stroke="none"/><circle cx="9.5" cy="13" r="1.3" fill="${INK}" stroke="none"/><circle cx="14.5" cy="13" r="1.3" fill="${INK}" stroke="none"/>`,
+  /** Who knocked you out (the results card): a little skull, round and friendly. */
+  skull: `<path d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5c0 2.6 1.3 4.4 3 5.4V19a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5v-2.6c1.7-1 3-2.8 3-5.4A7.5 7.5 0 0 0 12 3.5Z" fill="#fff"/><circle cx="9" cy="11.8" r="1.8" fill="${INK}" stroke="none"/><circle cx="15" cy="11.8" r="1.8" fill="${INK}" stroke="none"/><path d="M10.5 20.5v-2.2M13.5 20.5v-2.2" stroke-width="1.5"/>`,
   crown: `<path d="M4 18l1-10 4.5 4L12 6l2.5 6L19 8l1 10Z" fill="#f7c331"/>`,
   person: `<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z" fill="#fff"/>`,
   // re-stitch a teammate: the same heart as your own stuffing

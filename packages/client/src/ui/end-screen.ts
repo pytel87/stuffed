@@ -68,8 +68,10 @@ export class EndScreen {
            <h1 id="end-title"></h1>
            <p class="sub"></p>
            <div class="stats"></div>
-           <div class="kept" hidden></div>
-           <div class="earned" hidden></div>
+           <div class="rewards">
+             <div class="earned" hidden></div>
+             <div class="kept" hidden></div>
+           </div>
            <p class="practice-note" hidden>${tr('Offline practice: this match doesn\'t count toward your collection')}</p>
            <div class="row">
              <button type="button" class="big primary end-again"></button>
@@ -141,6 +143,9 @@ export class EndScreen {
     // Kept parts arrive separately (after the server rolls them); keep showing them for this match.
     if (!this.keptShown) this.kept.hidden = true;
     this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
+    // Who knocked you out (or who won): one more chip at the end of the row.
+    this.subtitle.hidden = !view.subtitleHtml;
+    if (view.subtitleHtml) this.stats.append(this.subtitle);
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
     this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>${tr('Host…')}</span>` : `<span>${tr('Again')}</span><kbd>Enter</kbd>`;

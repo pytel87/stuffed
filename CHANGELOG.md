@@ -2,6 +2,17 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A tidier results card (2026-11-25)
+
+- Your place sits as a pill on the card's top edge (as the Buttons do on the gallery card).
+- Who knocked you out is the last chip in the stats' row: a little skull and their name. Anything else (the zone, the mower…) leaves it out; a lone broken
+  heart showed there. A win still names the winner.
+- The numbers (knockouts, damage, time) are chips in a row, each its picture and number, all one
+  height (a little bigger), the kept parts round at the same size; more room under the title
+  and above the buttons; under
+  them, what you take home: the Buttons as a gold chip (tap it for what they were for) and the
+  parts kept, side by side.
+
 ## A new top row on phones (2026-11-25)
 
 - On touch screens the top row is, from the left: the health pill, then the Buttons found this

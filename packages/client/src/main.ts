@@ -851,6 +851,7 @@ function updatePhase(state: GameState): void {
     // Watch a teammate still in it; otherwise whoever got you.
     const mate = nextAlive(state, me.pos, me.team);
     followId = me.team !== 0 && state.players.find((p) => p.id === mate)?.team === me.team ? mate : me.eliminatedBy !== null && isAlive(state, me.eliminatedBy) ? me.eliminatedBy : nextAlive(state, me.pos);
+    // (Who got you, if a plush did, as a pill: their weapon and name, a robot for a bot.)
     endScreen.show(resultView(state, me, 'lose', tr('Unstitched!'), knockedOutBy, state.status === 'playing'));
     updates.setPlaying(false);
     void updates.check();
@@ -861,7 +862,7 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     spectateEl.hidden = true;
     // (Out, but your team won: the win sound played when it was decided.)
-    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), winnerLine(state), false), waitingForHost: !!room && !room.isPublic && !room.isHost });
+    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), teamWon ? winnerLine(state) : '', false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
     return;
@@ -907,11 +908,10 @@ function resultView(state: GameState, me: Player, tone: 'win' | 'lose', title: s
  * Online, a hidden attacker (in a bush, say) isn't in your state: their name still shows.
  */
 function describeKiller(s: GameSession, state: GameState, byId: EntityId | null, cause?: KnockoutCause): string {
-  if (cause || byId === null) return icon('broken');
-  const killer = state.players.find((p) => p.id === byId);
-  const weapon = killer?.weapons[killer.activeSlot];
-  const art = weapon ? icon(weapon.kind, 'icon killer-weapon') : '';
-  return `${art}<span>${escapeHtml(s.playerName(byId))}</span>`;
+  // (Not a plush: nothing on the card.)
+  if (cause || byId === null) return '';
+  // A skull and their name.
+  return `${icon('skull')}<b>${escapeHtml(s.playerName(byId))}</b>`;
 }
 
 function spectateBar(s: GameSession, watched: Player | undefined): string {
@@ -1010,7 +1010,7 @@ function winnerLine(state: GameState): string {
     return `${icon('crown')}<span>${names.join(', ')}</span>`;
   }
   const winner = state.players.find((p) => p.id === state.winnerId);
-  return winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : icon('broken');
+  return winner ? `${icon('crown')}<span>${escapeHtml(winner.name)}</span>` : '';
 }
 
 function clock(seconds: number): string {
