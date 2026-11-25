@@ -10,6 +10,7 @@
 import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 import { galleryWalls } from '../systems/minigames.ts';
 import { catapult } from '../systems/rides.ts';
+import { chimney } from './chimney.ts';
 
 const SIZE = 128;
 const C = SIZE / 2;
@@ -53,6 +54,7 @@ const houseProps: Wall[] = [
   w('barrel', 1.3)(49.4, 57, 2.2, 2.2),
   book(55, 57, 4, 1.4), // a shelf of books inside the west room
   book(70, 69.5, 3.5, 1.4),
+  chimney({ ...HOUSE, height: 2.6 }, 1.2),
 ];
 
 // ---------- Treehouse (NW) ----------

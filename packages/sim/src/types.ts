@@ -594,6 +594,8 @@ export type WallKind =
   | 'rim'
   /** The steps under a slide or a sled run, so it's solid (drawn as the ramp itself). */
   | 'ramp'
+  /** A chimney up through a roof (see maps/chimney.ts): plaster on a house, stones on a cabin. */
+  | 'chimney' | 'stone-chimney'
   /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
   | 'duck'
   // The Snowy Park.

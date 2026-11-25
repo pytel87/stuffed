@@ -184,14 +184,43 @@ chestSpawns.push(chest(N.x - 3, N.y + 5, 'medium'), chest(N.x + 2, N.y + 7.5, 'l
 
 // ---------- Skull Rock (E): a skull-shaped rock with a cave inside, its open jaw the way in (south) ----------
 const E = ISLES.e.center;
-const SKULL: Building = { x: E.x - 4.5, y: E.y - 2.5, w: 9, h: 7.5, height: 4.2, kind: 'skull' };
-const skull = w('skull', 4.2);
-// Its sides and back, and its front either side of the jaw (3.6 wide).
-walls.push(
-  skull(SKULL.x, SKULL.y, 9, 0.6), skull(SKULL.x, SKULL.y, 0.6, 7.5), skull(SKULL.x + 8.4, SKULL.y, 0.6, 7.5),
-  skull(SKULL.x, SKULL.y + 6.9, 2.7, 0.6), skull(SKULL.x + 6.3, SKULL.y + 6.9, 2.7, 0.6),
-  cask(E.x + 5.6, E.y + 6.4), palm(E.x + 5.5, E.y - 6.5), palm(E.x - 6.5, E.y + 6.5),
-);
+/** The middle of its dome, and the dome's half-width and half-depth where it meets the sand. */
+const SKULL_MID = { x: E.x, y: E.y + 1.25 };
+const SKULL_A = 4.85;
+const SKULL_C = 4.1;
+// The cave (where you're hidden): a box inside the dome, its corners in reach of nobody outside.
+const SKULL: Building = { x: SKULL_MID.x - 3.8, y: SKULL_MID.y - 3.2, w: 7.6, h: 6.4, height: 4.2, kind: 'skull' };
+walls.push(...skullShell(), cask(E.x + 5.6, E.y + 6.4), palm(E.x + 5.5, E.y - 6.5), palm(E.x - 6.5, E.y + 6.5));
+
+/**
+ * The dome's shell as strips side by side, stepping round its oval (a box with corners stood out
+ * past the dome, an invisible wall), and open on the south for the jaw (3.6 wide).
+ */
+function skullShell(): Wall[] {
+  const outer = (x: number) => SKULL_C * Math.sqrt(Math.max(0, 1 - (x / SKULL_A) ** 2));
+  // (The inside of the shell: an oval in from the dome's by 1.2.)
+  const inner = (x: number) => (SKULL_C - 1.2) * Math.sqrt(Math.max(0, 1 - (x / (SKULL_A - 1.2)) ** 2));
+  const edges = [0, 0.9, 1.8, 2.4, 3, 3.5, 4, 4.4, 4.75];
+  const strips: Wall[] = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const near = edges[i]!;
+    const far = edges[i + 1]!;
+    // Each strip only as tall as the dome at its outer edge (never past it), and thick enough on
+    // the inside to overlap the next strip's (no gaps between them).
+    const top = outer(far);
+    const bottom = inner(far);
+    for (const side of [-1, 1]) {
+      const x = side < 0 ? SKULL_MID.x - far : SKULL_MID.x + near;
+      const piece = (y0: number, y1: number): Wall => ({ x, y: SKULL_MID.y + y0, w: far - near, h: y1 - y0, height: 4.2, kind: 'skull' });
+      if (bottom <= 0) strips.push(piece(-top, top));
+      else {
+        strips.push(piece(-top, -bottom));
+        if (far > 1.8) strips.push(piece(bottom, top));
+      }
+    }
+  }
+  return strips;
+}
 bushes.push(bush(E.x - 7.2, E.y - 4.5, 1.6));
 chestSpawns.push(chest(E.x, E.y + 0.5, 'high'), chest(E.x - 7, E.y + 1.5, 'low'));
 

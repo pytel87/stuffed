@@ -293,7 +293,7 @@ function roof(b: Building): RoofView {
       const hullMesh = new THREE.Mesh(geo, planks);
       hullMesh.castShadow = hullMesh.receiveShadow = true;
       sides.add(hullMesh);
-      // Its outline: the hull as a closed solid (sides, deck and bottom, no doorway), pushed out a
+      // Its outline: the hull as a solid (sides, deck and bottom, no doorway; open at the bow), pushed out a
       // little and drawn from behind; the open shell's own showed only along its far edges, none
       // round its foot or the broken bow. Through the doorway its far side shows, dark inside.
       const shell: number[] = [];
@@ -315,6 +315,8 @@ function roof(b: Building): RoofView {
         }),
       ];
       loop.forEach((p, k) => {
+        // (Not across the broken bow: it's open, and its outline there showed as a dark wall.)
+        if (k >= ring.length - 1) return;
         const q = loop[(k + 1) % loop.length]!;
         tri(p.bottom, q.bottom, p.top);
         tri(p.top, q.bottom, q.top);
@@ -323,20 +325,8 @@ function roof(b: Building): RoofView {
         tri(loop[a!]!.top, loop[b!]!.top, loop[c!]!.top, true);
         tri(loop[a!]!.bottom, loop[b!]!.bottom, loop[c!]!.bottom, false);
       }
-      // The broken bow closed with planks along its jagged edge (it showed the dark inside).
-      const bowPos: number[] = [];
-      const bow = [loop[ring.length - 1]!, ...loop.slice(ring.length), loop[0]!];
-      bow.forEach((p, k) => {
-        if (k === 0) return;
-        const q = bow[k - 1]!;
-        bowPos.push(q.bottom.x, q.bottom.y, q.bottom.z, p.bottom.x, p.bottom.y, p.bottom.z, q.top.x, q.top.y, q.top.z);
-        bowPos.push(q.top.x, q.top.y, q.top.z, p.bottom.x, p.bottom.y, p.bottom.z, p.top.x, p.top.y, p.top.z);
-      });
-      const bowGeo = new THREE.BufferGeometry();
-      bowGeo.setAttribute('position', new THREE.Float32BufferAttribute(bowPos, 3));
-      bowGeo.computeVertexNormals();
-      const bowWall = new THREE.Mesh(bowGeo, toonMaterial('#7a5a3e', { map: null, side: THREE.DoubleSide }));
-      sides.add(bowWall);
+      // (The broken bow is left open, dark inside: there's no wall there, it's a way in. Closed with
+      // planks, it looked solid and plushies walked through it.)
       const solid = new THREE.BufferGeometry();
       solid.setAttribute('position', new THREE.Float32BufferAttribute(shell, 3));
       solid.computeVertexNormals();
@@ -474,8 +464,9 @@ function roof(b: Building): RoofView {
       // them, a nose cavity, and the open jaw (the way in), framed by a ridge of bone with teeth
       // hanging from it and a fang either side.
       const base = -(b.height - ROOF_THICKNESS / 2 + 0.01);
-      const a = b.w / 2 + 0.35;
-      const c = b.h / 2 + 0.35;
+      // (A little past the cave's box: that's kept inside the dome, see cove.ts.)
+      const a = b.w / 2 + 1.05;
+      const c = b.h / 2 + 0.9;
       const tall = b.height + 0.2;
       // Old bone (bone_skull), projected from every side so it doesn't stretch over the dome.
       const bone = makeTriplanar(toonMaterial('#ffffff', { map: boneTexture() }), 0.3);
@@ -615,11 +606,9 @@ function roof(b: Building): RoofView {
       break;
     }
     case 'cabin': {
-      // A log cabin's roof under a thick layer of snow, with icicles along the front and a chimney.
+      // A log cabin's roof under a thick layer of snow, with icicles along the front (its chimney
+      // is a wall of the map's, drawn with the walls).
       lid(toonMaterial('#ffffff', { map: tiled(snowTexture(), w / 4, d / 4) }));
-      const chimney = on(outlinedBox(1.4, 1.4, 1.4, toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, 1) })), w / 2 - 2.2, top + 0.7, -d / 2 + 2);
-      chimney.castShadow = true;
-      on(outlinedBox(1.6, 0.25, 1.6, toonMaterial('#ffffff', { map: snowTexture() })), w / 2 - 2.2, top + 1.53, -d / 2 + 2);
       const icicle = toonMaterial('#d8f1ff', { map: null });
       for (let i = 0; i < Math.floor(w / 0.8); i++) {
         const len = 0.25 + ((i * 7) % 4) * 0.08;
@@ -629,10 +618,8 @@ function roof(b: Building): RoofView {
       break;
     }
     case 'house': {
+      // (Its chimney is a wall of the map's, drawn with the walls.)
       lid(toonMaterial('#ffffff', { map: tiled(tileTexture(), w / 3, d / 3) }));
-      // a little chimney in one corner (just for looks)
-      const chimney = on(outlinedBox(1.4, 1.2, 1.4, toonMaterial('#e9c9a8')), w / 2 - 2.2, top + 0.6, -d / 2 + 2);
-      chimney.castShadow = true;
       break;
     }
     case 'shed':
@@ -759,8 +746,8 @@ function touchingGroups(walls: readonly Wall[]): number[] {
 }
 
 function underRoof(wall: Wall, map: MapData): Wall {
-  // (A volcano's summit is walked on, not roofed over.)
-  if (wall.kind === 'volcano') return wall;
+  // (A volcano's summit is walked on, not roofed over; a chimney goes up through the roof.)
+  if (wall.kind === 'volcano' || wall.kind === 'chimney' || wall.kind === 'stone-chimney') return wall;
   for (const b of map.buildings) {
     const inside = wall.x >= b.x - 0.01 && wall.y >= b.y - 0.01 && wall.x + wall.w <= b.x + b.w + 0.01 && wall.y + wall.h <= b.y + b.h + 0.01;
     if (inside && wall.height >= b.height - 0.05) return { ...wall, height: b.height - 0.08 };

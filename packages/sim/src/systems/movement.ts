@@ -163,6 +163,14 @@ function underRoof(world: World, pos: Vec2, z: number): boolean {
   return buildingAt(world, pos, z) !== -1;
 }
 
+/** Where the map's big buttons stand: its strike button and the switches of its mower or plow. */
+function buttonsOf(world: World, state: GameState): { x: number; y: number; z: number }[] {
+  const buttons: { x: number; y: number; z: number }[] = [];
+  if (state.strikeButton) buttons.push({ x: state.strikeButton.pos.x, y: state.strikeButton.pos.y, z: state.strikeButton.z });
+  for (const w of world.map.wanderers ?? []) if (w.switch) buttons.push({ x: w.switch.x, y: w.switch.y, z: 0 });
+  return buttons;
+}
+
 /**
  * Pushes the player out of any wall or chest it overlaps and is not above, and removes
  * velocity into them, so the plush slides along instead of sticking.
@@ -196,6 +204,19 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
         const d = Math.sqrt(d2);
         moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
       }
+    }
+    // The big buttons (the strike button, the mower's or plow's switch): no standing on one (on
+    // top, the plush stood in its collar), so each is in the way as high as a plush can jump (not
+    // from below the roof one's on, though).
+    for (const button of buttonsOf(world, state)) {
+      if (player.z >= button.z + config.strike.buttonClear || button.z > feet) continue;
+      const dx = player.pos.x - button.x;
+      const dy = player.pos.y - button.y;
+      const min = r + config.strike.buttonRadius;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2);
+      moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
     }
     for (const ball of state.balls) {
       if (player.z < ball.radius * 2) moved = kickBall(state, player, ball) || moved;

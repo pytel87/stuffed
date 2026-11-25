@@ -4040,6 +4040,7 @@ body.touch-mode .fs-button {
    rest of the screen takes clicks and touches: aim, shoot, walk). */
 .overlay.lobby.compact {
   place-items: center start;
+  padding-left: calc(var(--safe-l) + var(--edge));
   background: none;
   pointer-events: none;
   animation: none;
@@ -4047,9 +4048,9 @@ body.touch-mode .fs-button {
 
 .overlay.lobby.compact .card {
   pointer-events: auto;
-  /* (In from the screen's edge by as much as its corner buttons stick out past it, and the usual
-     edge beside them.) */
-  margin-left: calc(1rem + var(--edge));
+  /* (In by as much as its corner buttons stick out past it, from inside its 4px border: they sit
+     the usual edge from the screen, like the HUD's slots.) */
+  margin-left: calc(1rem - 4px);
   width: 19rem;
   grid-template-columns: 1fr;
   zoom: 0.85;

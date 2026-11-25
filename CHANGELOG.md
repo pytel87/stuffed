@@ -4,6 +4,16 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 
 ## Online room card (2026-11-25)
 
+- The shipwreck's broken bow is open (dark inside), not closed with planks: it looked solid, but
+  it's a way in, and plushies walked right through it.
+- Skull Rock's invisible corners are gone: it was a box in the game, sticking out past its round
+  dome at the corners, so you couldn't walk between it and the barrel beside it. Now it's as round
+  as it's drawn, and only inside it are you hidden.
+- The chimneys on the Backyard house's roof and the Snowy Park cabin's are solid (they were
+  only drawn, so plushies up there walked right through them): bump into one, or hop onto it.
+  They stand over the roof's north-east corner now, coming up from where its walls meet.
+- The air strike button and the lawnmower's and snowplow's switches are solid: plushies bump into
+  them and slide round them (they walked right into them), and no one stands on top of one.
 - The gallery no longer slides sideways when dragged (the part pictures ran a little past their
   cards, so it could), and it's wider, its cards roomier: their five parts and buy button fit, on
   every screen. Less room above and below it (the corner buttons stay on top of the cards
@@ -11,8 +21,8 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - A room's card has no field for your name: it's the one from the menu. The Wardrobe is a round
   button in the card's top left corner, leaving in the top right (in an Online room the name row
   had the Wardrobe under the leave button). The card's first line, between them, is centred, and it has as much
-  room over it as under its last row. The card stands further in from the screen's edge, so its
-  corner button isn't pressed against it.
+  room over it as under its last row. Its corner button stands as far from the screen's edge as the
+  HUD's slots do (it was pressed against it).
 
 ## Health and patches in one pill on desktop (2026-11-25)
 

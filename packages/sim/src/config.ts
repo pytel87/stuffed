@@ -558,6 +558,10 @@ export const config = {
     /** Seconds before it works again after a press. */
     cooldown: 60,
     interactRange: 1.6,
+    /** The button (and the mower's or plow's switch, which looks the same) is solid: plushies bump into it, and up to this far over it (as high as they jump)
+     *  they're pushed off, so nobody stands on it. */
+    buttonRadius: 0.62,
+    buttonClear: 2,
     /** Seconds from the press until the first drop lands (the circles show meanwhile). */
     warning: 2,
     /** Drops per strike, landing this many seconds apart, within `spread` of the target. */
