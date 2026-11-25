@@ -8,6 +8,11 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
   glowed in: green, light blue, purple, yellow (grey for the starting weapons). A gun picked up
   shows in your slot, and on its stripe, in the colour it glowed in on the ground (the slots were
   a darker blue and an orange-gold). The ground's purple is the animals' purple too.
+- On touch screens the item slots (and the weapon cards, sized from them) and the bag's slots are a
+  little bigger, as big as the ⚙ beside them: easier to hit mid-fight, and close to the health
+  pill's height. It still fits a small phone held sideways.
+- The thumb's buttons (jump, grab, bag, dance) sit as far from the screen's right and bottom edges
+  as the top row does from its edges (they were a little further in, unevenly).
 
 ## New clothes in the warm-up (2026-11-25)
 

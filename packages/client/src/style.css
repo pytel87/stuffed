@@ -2459,14 +2459,16 @@ body.touch-mode #game {
   box-shadow: 0 1px 0 var(--ink);
 }
 
+/* The thumb's buttons in an arc from the bottom right corner, as far from the screen's edges as the
+   top row is (its shadow, 4px, counted in at the bottom). */
 .touch-jump {
-  right: calc(var(--safe-r) + var(--edge) + 0.4rem);
-  bottom: calc(var(--safe-b) + var(--edge) + 6.2rem);
+  right: calc(var(--safe-r) + var(--edge));
+  bottom: calc(var(--safe-b) + var(--edge) + 4px + 5.4rem);
 }
 
 .touch-grab {
-  right: calc(var(--safe-r) + var(--edge) + 5.8rem);
-  bottom: calc(var(--safe-b) + var(--edge) + 0.8rem);
+  right: calc(var(--safe-r) + var(--edge) + 5.4rem);
+  bottom: calc(var(--safe-b) + var(--edge) + 4px);
   opacity: 0.55;
 }
 
@@ -2478,8 +2480,8 @@ body.touch-mode #game {
 
 /* Put the part in reach into the bag: left of Grab, only while a part is in reach. */
 .touch-stash {
-  right: calc(var(--safe-r) + var(--edge) + 11.2rem);
-  bottom: calc(var(--safe-b) + var(--edge) + 0.8rem);
+  right: calc(var(--safe-r) + var(--edge) + 10.8rem);
+  bottom: calc(var(--safe-b) + var(--edge) + 4px);
   background: #ffe2b8;
 }
 
@@ -2637,6 +2639,18 @@ body.touch-mode .loadout {
   height: var(--row);
   grid-auto-flow: column;
   align-items: center;
+}
+
+/* Touch screens: the item slots (and so the weapon cards beside them) a little bigger, easier to
+   hit mid-fight, as big as the ⚙ and close to the health pill and weapons; the bag's slots under
+   the pill the same. */
+body.touch-mode .loadout {
+  --slot: 3.2rem;
+}
+
+body.touch-mode .bag .stash-slot {
+  width: 3.2rem;
+  height: 3.2rem;
 }
 
 body.touch-mode .gear {
@@ -3870,8 +3884,8 @@ body.warmup .zone {
 /* Dance (a lobby's warm-up only): above Jump, on the right edge. */
 .touch-dance {
   display: none;
-  right: calc(var(--safe-r) + var(--edge) + 0.4rem);
-  bottom: calc(var(--safe-b) + var(--edge) + 11.6rem);
+  right: calc(var(--safe-r) + var(--edge));
+  bottom: calc(var(--safe-b) + var(--edge) + 4px + 10.8rem);
   background: #ffd1e6;
 }
 
