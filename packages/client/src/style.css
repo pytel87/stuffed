@@ -337,6 +337,22 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   z-index: 1;
 }
 
+/* The Wardrobe in the card's other top corner (your name is the menu's: no row for it here). */
+.lobby .lobby-wardrobe {
+  position: absolute;
+  top: -1rem;
+  left: -1rem;
+  z-index: 1;
+}
+
+/* The first line (the invite's, or who's in, in a public room) between the two corner buttons,
+   centred; as much room over it as under the card's last row. */
+.lobby .lobby-invite,
+.lobby.public .lobby-players {
+  margin-left: 0;
+  text-align: center;
+}
+
 .lobby .code-row {
   width: 100%;
 }
@@ -642,24 +658,41 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 /* The gallery: every animal's full set; owned parts lit, missing ones faded. */
+/* The corner buttons over the gallery scrolling under them (they stand in its top corners). */
+.wardrobe .card.showing-gallery > .close,
+.wardrobe .card.showing-gallery > .gallery-toggle {
+  z-index: 3;
+}
+
+.wardrobe .card.showing-gallery > .gallery {
+  position: relative;
+  z-index: 0;
+}
+
 .wardrobe .card.showing-gallery {
   /* Its padding counted in (it came out wider than a phone's screen), and room left either side
-     for the corner buttons that stick out past it. */
+     for the corner buttons that stick out past it. Wide: four cards a row with room for their
+     parts and buy button. */
   box-sizing: border-box;
-  width: min(46rem, 100% - 1.8rem);
-  /* (The cards scroll from below the corner buttons, not under them; as much room at the bottom.) */
-  padding-top: calc(var(--card-pad) + 0.9rem);
-  padding-bottom: calc(var(--card-pad) + 0.9rem);
+  width: min(52rem, 100% - 1.8rem);
+  /* (As much room over the cards and under them as at their sides; the corner buttons may reach
+     over the top row, drawn on top of it.) */
+  padding-top: var(--card-pad);
+  padding-bottom: var(--card-pad);
 }
 
 /* Cards scrolling past its top and bottom fade out instead of being cut off flat (the padding keeps
    them clear of the fades at either end of the list). */
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9.6rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(10.6rem, 1fr));
   gap: var(--gap-buttons);
   max-height: min(70vh, 34rem);
   overflow-y: auto;
+  /* Up and down only: nothing in it is wider than it, and a sideways drag mustn't slide it. */
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   /* Within the card's padding like everything else (nothing scrolls up under the corner buttons);
      a fade only at an edge there's more beyond (data-more, set while scrolling). */
   --fade-top: #000;
@@ -773,14 +806,18 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 
 .gallery-parts {
   display: flex;
+  justify-content: center;
   gap: 0.15rem;
+  /* (Five of them always fit their card: each shares the row, never wider than 1.55rem.) */
+  width: 100%;
 }
 
 .gallery-part {
   display: grid;
   place-items: center;
-  width: 1.55rem;
-  height: 1.55rem;
+  width: min(1.55rem, calc((100% - 4 * 0.15rem) / 5));
+  height: auto;
+  aspect-ratio: 1;
   flex: none;
   border-radius: 50%;
   background: rgba(255, 250, 243, 0.55);
@@ -788,8 +825,8 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 .gallery-part .icon {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 77%;
+  height: 77%;
   opacity: 0.3;
   filter: grayscale(1);
 }
@@ -3461,25 +3498,13 @@ body.touch-mode .fs-button {
     grid-column: 1;
     grid-row: 2;
   }
-  /* Your name level with the code (under the invite's label). */
-  .lobby .lobby-name {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-  }
-  /* (At the bottom: Start level with the maps' row.) */
+  /* Who's in and Start on the right, across both rows (Start at the bottom, level with the maps). */
   .lobby .lobby-go {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 1 / span 2;
     align-self: end;
   }
-  /* A guest (no bots or map to set): the code on the left and your name on the right, side by
-     side; who's in below, across both, and the wait for the host under it, centered. */
-  .lobby .card:has(> .lobby-match[hidden]) .lobby-name {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-  }
+  /* A guest (no bots or map to set): the code, then who's in and the wait for the host under it. */
   .lobby .card:has(> .lobby-match[hidden]) .lobby-go {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -4022,6 +4047,9 @@ body.touch-mode .fs-button {
 
 .overlay.lobby.compact .card {
   pointer-events: auto;
+  /* (In from the screen's edge by as much as its corner buttons stick out past it, and the usual
+     edge beside them.) */
+  margin-left: calc(1rem + var(--edge));
   width: 19rem;
   grid-template-columns: 1fr;
   zoom: 0.85;

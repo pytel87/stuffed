@@ -2,6 +2,18 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Online room card (2026-11-25)
+
+- The gallery no longer slides sideways when dragged (the part pictures ran a little past their
+  cards, so it could), and it's wider, its cards roomier: their five parts and buy button fit, on
+  every screen. Less room above and below it (the corner buttons stay on top of the cards
+  scrolling under them).
+- A room's card has no field for your name: it's the one from the menu. The Wardrobe is a round
+  button in the card's top left corner, leaving in the top right (in an Online room the name row
+  had the Wardrobe under the leave button). The card's first line, between them, is centred, and it has as much
+  room over it as under its last row. The card stands further in from the screen's edge, so its
+  corner button isn't pressed against it.
+
 ## Health and patches in one pill on desktop (2026-11-25)
 
 - On desktop health and patches are one pill split across: its top half the patches (they soak hits

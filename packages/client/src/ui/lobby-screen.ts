@@ -25,7 +25,6 @@ export class LobbyScreen {
   private readonly botPicks: HTMLButtonElement[];
   private readonly start: HTMLButtonElement;
   private readonly status: HTMLElement;
-  private readonly nameInput: HTMLInputElement;
   private wantedBots = 15;
   /** "Max" picked: the room filled with bots, fewer as friends join. */
   private maxBots = true;
@@ -41,7 +40,6 @@ export class LobbyScreen {
     root: HTMLElement,
     private readonly client: RoomClient,
     onLeave: () => void,
-    onRename: (name: string) => void,
     onWardrobe: (() => void) | null = null,
   ) {
     root.insertAdjacentHTML(
@@ -51,17 +49,13 @@ export class LobbyScreen {
       `<div class="overlay lobby compact" hidden>
          <div class="card">
            <button type="button" class="round lobby-leave" aria-label="${tr('Leave')}">${icon('door')}</button>
+           <!-- (Your name is the one from the menu: no field for it here.) -->
+           <button type="button" class="round lobby-wardrobe" aria-label="${tr('Wardrobe')}">${icon('hanger')}</button>
            <div class="lobby-side lobby-you">
            <p class="code-hint lobby-invite">${tr('Invite friends: send them this code')}</p>
            <div class="row code-row">
              <button type="button" class="code-box lobby-code" aria-label="${tr('Copy code')}"><span class="code"></span></button>
              <button type="button" class="round lobby-share" aria-label="${tr('Share invite')}">${icon('share')}</button>
-           </div>
-           </div>
-           <div class="lobby-side lobby-name">
-           <div class="row">
-             <label class="field">${icon('person')}<input id="lobby-name-input" maxlength="16" spellcheck="false" aria-label="${tr('Your name')}"></label>
-             <button type="button" class="round lobby-wardrobe" aria-label="${tr('Wardrobe')}">${icon('hanger')}</button>
            </div>
            </div>
            <div class="lobby-side lobby-match">
@@ -99,7 +93,6 @@ export class LobbyScreen {
     this.botPicks = [...this.el.querySelectorAll<HTMLButtonElement>('.bot-pick')];
     this.start = q('.lobby-start');
     this.status = q('.status');
-    this.nameInput = q('#lobby-name-input');
 
     this.teamToggle = q('.lobby-team');
     try {
@@ -146,14 +139,6 @@ export class LobbyScreen {
         invite.textContent = tr('Code copied!');
         setTimeout(() => (invite.textContent = tr('Invite friends: send them this code')), 1500);
       });
-    });
-    const commitName = () => {
-      const name = this.nameInput.value.trim().slice(0, 16);
-      if (name) onRename(name);
-    };
-    this.nameInput.addEventListener('change', commitName);
-    this.nameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.nameInput.blur();
     });
   }
 
@@ -220,8 +205,6 @@ export class LobbyScreen {
     this.code.textContent = c.code;
     const humans = lobby?.seats.filter((s) => s.connected).length ?? 0;
     this.setBots(this.wantedBots, humans);
-    const mine = lobby?.seats.find((s) => s.seat === c.seat);
-    if (mine && document.activeElement !== this.nameInput) this.nameInput.value = mine.name;
     const seats = lobby?.seats ?? [];
     this.players.textContent = `${tr('Players')} ${seats.filter((s) => s.connected).length}/${MAX_PLAYERS}`;
     this.list.innerHTML = seats

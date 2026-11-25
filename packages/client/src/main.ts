@@ -542,10 +542,6 @@ function joinRoom(code: string, kind: 'friends' | 'public' | 'solo' = 'friends')
     document.body,
     room,
     () => options.askToLeave(),
-    (name) => {
-      saveName(name);
-      room?.rename(name);
-    },
     // (Always wired: the profile may only arrive after the lobby opens; shown once it has.)
     () => {
       if (!profiles.profile) return;
