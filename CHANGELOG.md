@@ -7,6 +7,10 @@ Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box")
 - On desktop health and patches are one pill split across: its top half the patches (they soak hits
   first), its bottom half health, an ink line between; the patch and the heart over each other on
   its left, their numbers on its right (they were two separate bars).
+- On desktop the item, weapon and bag slots stand further apart, so each one's number (3, 4, 5; 1, 2) on
+  its corner stands clear of the slot before it (they overlapped).
+- The gallery has as much room under its last cards as over its first (it ended close to the card's
+  bottom stitching).
 
 ## Buttons from 0 (2026-11-25)
 

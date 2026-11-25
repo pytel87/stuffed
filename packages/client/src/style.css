@@ -647,8 +647,9 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
      for the corner buttons that stick out past it. */
   box-sizing: border-box;
   width: min(46rem, 100% - 1.8rem);
-  /* (The cards scroll from below the corner buttons, not under them.) */
+  /* (The cards scroll from below the corner buttons, not under them; as much room at the bottom.) */
   padding-top: calc(var(--card-pad) + 0.9rem);
+  padding-bottom: calc(var(--card-pad) + 0.9rem);
 }
 
 /* Cards scrolling past its top and bottom fade out instead of being cut off flat (the padding keeps
@@ -1778,15 +1779,17 @@ body:not(.touch-mode) .vitals .coat.none > * {
 }
 
 .loadout {
-  /* Three item slots and two weapon cards span the same width, with the same gaps. */
+  /* Three item slots and two weapon cards span the same width, with the same gaps (wide enough for
+     each slot's number on its corner to stand clear of the slot before it; touch screens have none). */
   --slot: 3rem;
-  --slot-gap: 0.5rem;
+  --slot-gap: 1rem;
   position: absolute;
   right: calc(var(--safe-r) + var(--edge));
   bottom: calc(var(--safe-b) + var(--edge));
   display: grid;
   justify-items: end;
-  gap: 0.5rem;
+  /* (The weapons' numbers above them too.) */
+  gap: 0.9rem;
 }
 
 .items,
@@ -2713,6 +2716,8 @@ body.touch-mode {
 
 body.touch-mode .loadout {
   --slot: 3.2rem;
+  /* (No numbers on the slots here: the usual close gap.) */
+  --slot-gap: 0.5rem;
   order: 3;
   flex: none;
   display: flex;
@@ -3282,7 +3287,8 @@ body.touch-mode .fs-button {
   left: calc(var(--safe-l) + var(--edge));
   bottom: calc(var(--safe-b) + var(--edge));
   display: flex;
-  gap: 0.5rem;
+  /* (As far apart as the items: Q on the first slot's corner stands clear.) */
+  gap: 1rem;
 }
 
 .bag .stash-slot {
