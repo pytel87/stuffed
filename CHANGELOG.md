@@ -2,6 +2,22 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A new top row on phones (2026-11-25)
+
+- On touch screens the top row is, from the left: the health pill, then the Buttons found this
+  match and the players left (on a narrow phone, like an iPhone SE, a full bag reaches over them,
+  on top); and from the right corner in: the ⚙, the two
+  weapons (the second under the first), the items, the bag's parts (they were under the pill).
+  Groups stand one gap apart (the same everywhere), slots in a group one smaller gap; the top row
+  is on one centre line.
+- Opening the ⚙ there puts its options in the top row, in place of the bag, items and weapons
+  (they step aside till it closes), so they cover nothing.
+- The place's name shows under the top row, clear of the bag and the second weapon.
+- On desktop the Buttons found this match and the players left are in the top left corner, side by
+  side, level with the ⚙ in the other corner (they were at the top middle).
+- Out in the Rinse, the badge pointing back to safety floats over your plush and follows it
+  (desktop and touch), where you're looking, not up in a corner.
+
 ## One rarity palette (2026-11-25)
 
 - Weapons, items and animals share one set of rarity colours, the bright ones the loot already

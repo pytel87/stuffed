@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import './style.css';
 import { ANIMAL_RARITY, ANIMALS, BACKYARD, Btn, BUTTONS, PART_SLOTS, canSee, completeSets, config, missingPieces, createWorld, getMap, muzzlePosition, layoutOf, trainCars, trainCircles, zoneSecondsLeft } from '@stuffed/sim';
 import { parseRoomCode } from '@stuffed/sim/net';
@@ -184,6 +185,8 @@ const numbers = new FloatingNumbers(document.querySelector<HTMLElement>('#floate
 const hitDirection = new HitDirection(document.querySelector<HTMLElement>('#floaters')!);
 const mateArrows = new TeammateArrows(document.querySelector<HTMLElement>('#floaters')!);
 const zoneHud = new ZoneHud(hudEl);
+/** (Scratch: where the out-in-the-Rinse badge goes on the screen.) */
+const soggyAt = new THREE.Vector3();
 const zoneNames = new ZoneNames(hudEl);
 const toast = new Toast(hudEl);
 const endScreen = new EndScreen(
@@ -729,6 +732,14 @@ function frame(now: number): void {
   touch.setStashReady(hud.stashReady);
   hud.place(renderer.camera, canvas.clientWidth, canvas.clientHeight, renderer.localPlayerPos);
   zoneHud.update(state, me, renderer.localPlayerPos, session.playersLeft());
+  // (The badge out in the Rinse, over your plush: above its head, where you're looking.)
+  {
+    const at = me ? renderer.plushAt(me.id) : null;
+    if (at) {
+      soggyAt.set(at.x, at.y + 2.25, at.z).project(renderer.camera);
+      zoneHud.placeSoggy((soggyAt.x * 0.5 + 0.5) * canvas.clientWidth, (-soggyAt.y * 0.5 + 0.5) * canvas.clientHeight);
+    }
+  }
   zoneNames.update(session.map, me, renderer.localPlayerPos, dt);
   toast.update(dt);
   if (!isBackdrop(session)) tips.update(dt, state, me, world, events, document.body.classList.contains('touch-mode'));

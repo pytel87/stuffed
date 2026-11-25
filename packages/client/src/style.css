@@ -2078,6 +2078,23 @@ body.touch-mode .prompt .icon.tap {
   min-height: 3.2rem;
 }
 
+/* Desktop: the counts in the top left corner, in a row (the Buttons found this match, then the
+   players left), on the ⚙'s centre line in the other corner (both 3.2rem rows from the top). */
+.zone-row {
+  flex-direction: row-reverse;
+  gap: 0.8rem;
+}
+
+.zone-row .pocket-count {
+  margin-left: 0;
+}
+
+body:not(.touch-mode) .zone {
+  left: calc(var(--safe-l) + var(--edge));
+  transform: none;
+  justify-items: start;
+}
+
 .alive-count {
   display: flex;
   align-items: center;
@@ -2109,10 +2126,14 @@ body.touch-mode .prompt .icon.tap {
   filter: drop-shadow(0 0 1px var(--ink)) drop-shadow(0 0 1px var(--ink));
 }
 
+/* Out in the Rinse: over your plush, following it (placed by ZoneHud.placeSoggy). */
 .soggy {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
   gap: 0.4rem;
   padding: 0.3rem 0.8rem 0.3rem 0.55rem;
   border-radius: 999px;
@@ -2612,40 +2633,44 @@ body.touch-mode .vitals .coat {
   color: #fff;
 }
 
-/* Under the pill, as far below it as the item slots are apart. */
-body.touch-mode .bag {
-  bottom: auto;
-  top: calc(var(--safe-t) + var(--edge) + var(--row) + 0.5rem);
+/* Touch screens, the top row, every piece on one centre line (half --row down): the health pill
+   on the left, the players left and the Buttons under it; on the right, from the corner in: the ⚙,
+   the weapons (the second under the first), the items, the bag. Its groups apart by --group. The
+   slots a little bigger than on desktop, easier to hit mid-fight. */
+/* (On the page, not only the HUD: the ⚙ and its options, outside it, line up by them too.) */
+body.touch-mode {
+  --row: 3.4rem;
+  --group: 1.1rem;
 }
 
-/* Players left: right after the health pill. */
-body.touch-mode .zone {
-  position: static;
-  transform: none;
-  order: 2;
-  flex: none;
-  margin-left: 0.2rem;
-}
-
-body.touch-mode .zone-row {
-  min-height: var(--row);
-}
-
-body.touch-mode .loadout {
-  order: 3;
-  flex: none;
-  margin-left: auto;
-  margin-right: 3.8rem;
-  height: var(--row);
-  grid-auto-flow: column;
-  align-items: center;
-}
-
-/* Touch screens: the item slots (and so the weapon cards beside them) a little bigger, easier to
-   hit mid-fight, as big as the ⚙ and close to the health pill and weapons; the bag's slots under
-   the pill the same. */
 body.touch-mode .loadout {
   --slot: 3.2rem;
+  order: 3;
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--group);
+  margin-left: auto;
+  margin-right: calc(3.2rem + var(--group));
+  height: auto;
+}
+
+body.touch-mode .loadout .items {
+  order: 1;
+  margin-top: calc((var(--row) - var(--slot)) / 2);
+}
+
+body.touch-mode .loadout .weapons {
+  order: 2;
+  flex-direction: column;
+}
+
+/* The bag left of the items: its right edge past the ⚙, the weapons and the items, and their gaps. */
+body.touch-mode .bag {
+  bottom: auto;
+  left: auto;
+  top: calc(var(--safe-t) + var(--edge) + (var(--row) - 3.2rem) / 2);
+  right: calc(var(--safe-r) + var(--edge) + 3.2rem + 3 * var(--group) + (3 * 3.2rem + 0.5rem) / 2 + 3 * 3.2rem + 2 * 0.5rem);
 }
 
 body.touch-mode .bag .stash-slot {
@@ -2653,8 +2678,44 @@ body.touch-mode .bag .stash-slot {
   height: 3.2rem;
 }
 
+/* (On a narrow phone a full bag reaches over the counts beside the pill: the bag on top.) */
+body.touch-mode .bag {
+  z-index: 2;
+}
+
+/* The Buttons found this match and the players left: in the top row, a group gap after the pill,
+   on its centre line. */
+body.touch-mode .zone {
+  position: absolute;
+  transform: none;
+  left: calc(var(--safe-l) + var(--edge) + 11.5rem + var(--group));
+  top: calc(var(--safe-t) + var(--edge));
+  margin: 0;
+}
+
+body.touch-mode .zone-row {
+  min-height: var(--row);
+}
+
 body.touch-mode .gear {
-  top: calc(var(--safe-t) + var(--edge) + (var(--row, 3.4rem) - 3.2rem) / 2);
+  top: calc(var(--safe-t) + var(--edge) + (var(--row) - 3.2rem) / 2);
+}
+
+/* The ⚙'s options open in the top row, in place of the bag, items and weapons (they step aside). */
+body.touch-mode .sheet {
+  top: calc(var(--safe-t) + var(--edge) + (var(--row) - 3.2rem) / 2);
+  right: calc(var(--safe-r) + var(--edge) + 3.2rem + var(--group));
+  grid-auto-flow: column;
+}
+
+body.touch-mode:has(.sheet:not([hidden])) .loadout,
+body.touch-mode:has(.sheet:not([hidden])) .bag {
+  visibility: hidden;
+}
+
+/* The place's name, under the top row (and clear of the second weapon). */
+body.touch-mode .zone-name {
+  top: calc(var(--safe-t) + var(--edge) + var(--row) + 0.7rem);
 }
 
 /* Phones held upright: ask for landscape. */

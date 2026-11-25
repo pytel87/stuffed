@@ -4,7 +4,8 @@ import { icon } from './icons.ts';
 import { tr } from '../i18n.ts';
 
 /** How many plushies are left, and a badge pointing back to safety while you're out in the Rinse
- *  (it pulses faster the more it hurts). No countdown or call-outs: the grey edge shows it coming. */
+ *  (it pulses faster the more it hurts), over your plush (see placeSoggy). No countdown or
+ *  call-outs: the grey edge shows it coming. */
 export class ZoneHud {
   /** How many plushies are still in the match. */
   private readonly left: HTMLElement;
@@ -20,8 +21,8 @@ export class ZoneHud {
       'beforeend',
       `<div class="zone">
          <div class="zone-row"><span class="alive-count">${icon('person')}<b class="left"></b></span><span class="alive-count pocket-count" hidden title="${tr('Buttons')}">${icon('button')}<b></b></span></div>
-         <div class="soggy" hidden>${icon('drained')}<span class="arrow">${icon('arrow')}</span></div>
-       </div>`,
+       </div>
+       <div class="soggy" hidden>${icon('drained')}<span class="arrow">${icon('arrow')}</span></div>`,
     );
     const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
     this.left = q('.alive-count .left');
@@ -59,5 +60,11 @@ export class ZoneHud {
       const angle = Math.atan2(z.current.center.y - mePos.y, z.current.center.x - mePos.x);
       this.arrow.style.transform = `rotate(${angle}rad)`;
     }
+  }
+
+  /** While it shows: over your plush, at (x, y) on the screen (its bottom middle there). */
+  placeSoggy(x: number, y: number): void {
+    if (this.soggy.hidden) return;
+    this.soggy.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
   }
 }
