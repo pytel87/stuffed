@@ -143,9 +143,11 @@ export class EndScreen {
     // Kept parts arrive separately (after the server rolls them); keep showing them for this match.
     if (!this.keptShown) this.kept.hidden = true;
     this.stats.innerHTML = view.stats.map(([name, value]) => `<div class="stat">${icon(name)}<b>${value}</b></div>`).join('');
-    // Who knocked you out (or who won): one more chip at the end of the row.
+    // Who knocked you out: one more chip at the end of the row; then the Buttons earned (they may
+    // come after, see setButtons: kept in this row either way).
     this.subtitle.hidden = !view.subtitleHtml;
     if (view.subtitleHtml) this.stats.append(this.subtitle);
+    this.stats.append(this.earned);
     this.spectate.hidden = !view.canSpectate;
     this.again.disabled = !!view.waitingForHost;
     this.again.innerHTML = view.waitingForHost ? `${icon('timer')}<span>${tr('Host…')}</span>` : `<span>${tr('Again')}</span><kbd>Enter</kbd>`;
@@ -210,7 +212,7 @@ export class EndScreen {
     this.keptShown = !!parts && parts.length > 0;
     this.kept.hidden = !this.keptShown;
     this.kept.innerHTML = this.keptShown
-      ? `${icon('hanger')}${parts!.map((p) => `<span class="kept-part${p.holo ? ' holo' : ''}">${partIcon(p.slot, p.animal, 'icon', !!p.holo)}</span>`).join('')}`
+      ? parts!.map((p) => `<span class="kept-part${p.holo ? ' holo' : ''}">${partIcon(p.slot, p.animal, 'icon', !!p.holo)}</span>`).join('')
       : '';
   }
 }

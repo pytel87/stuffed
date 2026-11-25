@@ -20,7 +20,7 @@ export class ZoneHud {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="zone">
-         <div class="zone-row"><span class="alive-count">${icon('person')}<b class="left"></b></span><span class="alive-count pocket-count" hidden title="${tr('Buttons')}">${icon('button')}<b></b></span></div>
+         <div class="zone-row"><span class="alive-count">${icon('person')}<b class="left"></b></span><span class="alive-count pocket-count" title="${tr('Buttons')}">${icon('button')}<b></b></span></div>
        </div>
        <div class="soggy" hidden>${icon('drained')}<span class="arrow">${icon('arrow')}</span></div>`,
     );
@@ -44,7 +44,8 @@ export class ZoneHud {
     if (pocket !== this.lastPocket) {
       const more = pocket > this.lastPocket && this.lastPocket >= 0;
       this.lastPocket = pocket;
-      this.pocket.hidden = pocket <= 0;
+      // (Always there, from 0: you see where they'll count.)
+      this.pocket.hidden = false;
       this.pocket.querySelector('b')!.textContent = String(pocket);
       // Restart the pop.
       this.pocket.classList.remove('more');

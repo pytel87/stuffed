@@ -2,6 +2,30 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Health and patches in one pill on desktop (2026-11-25)
+
+- On desktop health and patches are one pill split across: its top half the patches (they soak hits
+  first), its bottom half health, an ink line between; the patch and the heart over each other on
+  its left, their numbers on its right (they were two separate bars).
+
+## Buttons from 0 (2026-11-25)
+
+- The Buttons found this match show from the start of a match, at 0 (they appeared with the first).
+
+## The bag folded on phones (2026-11-25)
+
+- On touch screens the bag is one button beside the items (one slot gap from them, like one more of
+  theirs), its count of parts on a badge like the items' (it pops when one goes in); tapping it opens its slots in a second row (the first under the button,
+  the rest under the items, in their columns), tapping again or wearing a part closes them. Empty, it isn't there. (Three slots always in the top row took room for something
+  not touched much.) Desktop keeps the three slots.
+
+## The results card, a step further (2026-11-25)
+
+- Winning (or your team winning), the card doesn't name you: it showed "👑" and your own name.
+- The Buttons earned are a gold chip among the numbers' chips (on two rows if they don't fit on
+  one); the parts kept under them, without the hanger before them. The card is as wide as eight
+  parts in a row.
+
 ## A tidier results card (2026-11-25)
 
 - Your place sits as a pill on the card's top edge (as the Buttons do on the gallery card).

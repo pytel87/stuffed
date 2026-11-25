@@ -506,9 +506,10 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
 }
 
 /* results */
-/* (A little wider than the other cards: the stats' row and who got you fit on one line.) */
+/* As wide as eight kept parts in a row (a whole animal and three more); the numbers' chips wrap
+   onto a second row if they don't fit. */
 .end .card {
-  width: min(27rem, 100%);
+  width: min(calc(8 * var(--chip) + 7 * 0.5rem), 100%);
 }
 
 /* Room to breathe: more under the title (before the numbers, see .end h1) and before the buttons. */
@@ -598,7 +599,7 @@ body:has(.overlay:not([hidden]):not(.compact))::before {
   align-items: center;
   gap: 0.4rem;
   height: var(--chip);
-  padding: 0 0.9rem 0 0.55rem;
+  padding: 0 0.8rem 0 0.5rem;
   border-radius: 999px;
   border: 3px solid var(--ink);
   background: #fff;
@@ -1640,8 +1641,8 @@ body.wardrobe-open .sheet {
   flex: none;
 }
 
-/* Health: a long bar, white (red from 30). Patches (they soak hits first): a bar of their own in
-   their blue, over it. (One bar in two halves read as half health with no patches.) */
+/* Health: a long bar, white (red from 30). Patches: one of their own in their blue (on desktop the
+   two make one pill, see below; on phones, the halves of the pill). */
 .vitals .track {
   position: relative;
   /* A fixed length (the bag slots sit after it and no longer squeeze it). */
@@ -1654,17 +1655,16 @@ body.wardrobe-open .sheet {
   overflow: hidden;
 }
 
-/* On desktop the two bars stand one over the other, every row alike: its icon on the left, the bar,
-   its number on the right; patches on top (a thinner bar), health below. (Phones: the pill, see
-   body.touch-mode .vitals.) */
+/* On desktop one pill split across: its top half patches (they soak hits first), its bottom half
+   health, an ink line between; the patch and the heart one over the other on its left, their numbers
+   on its right. (Phones: the pill split down the middle, see body.touch-mode .vitals.) */
 body:not(.touch-mode) .vitals {
-  /* (Icons and numbers in columns of their own width: the bars stay put as "100" turns to "60";
-     the two icons one over the other, on one centre line.) */
+  /* (Icons and numbers in columns of their own width: the pill stays put as "100" turns to "60".) */
   grid-template-columns: 1fr 1.8rem auto 2.8rem 1fr;
-  grid-template-rows: auto auto;
+  grid-template-rows: 1fr 1fr;
   align-items: center;
   column-gap: 0.55rem;
-  row-gap: 0.3rem;
+  row-gap: 0;
   height: auto;
 }
 
@@ -1677,42 +1677,49 @@ body:not(.touch-mode) .vitals .coat {
 body:not(.touch-mode) .vitals .coat > .icon {
   grid-area: 1 / 2;
   justify-self: center;
-}
-
-body:not(.touch-mode) .vitals .coat-track {
-  grid-area: 1 / 3;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 body:not(.touch-mode) .vitals .coat > span {
   grid-area: 1 / 4;
+  font-size: 1.05rem;
 }
 
 body:not(.touch-mode) .vitals .health > .icon {
   grid-area: 2 / 2;
   justify-self: center;
-  /* (The heart sits low in its picture: up by as much, level with its bar.) */
-  translate: 0 -0.1rem;
-}
-
-body:not(.touch-mode) .vitals .health-track {
-  grid-area: 2 / 3;
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
 body:not(.touch-mode) .vitals .health > .num {
   grid-area: 2 / 4;
 }
 
-.vitals .track.coat-track {
-  height: 0.9rem;
-  border-width: 2.5px;
+/* The pill's halves: each a track of its own, rounded only on its outer side, sharing one line. */
+body:not(.touch-mode) .vitals .coat-track,
+body:not(.touch-mode) .vitals .health-track {
+  grid-column: 3;
+  height: 1.25rem;
+  border-width: 3px;
 }
 
-body:not(.touch-mode) .vitals .coat > .icon {
-  width: 1.5rem;
-  height: 1.5rem;
+body:not(.touch-mode) .vitals .coat-track {
+  grid-row: 1;
+  align-self: end;
+  border-bottom-width: 1.5px;
+  border-radius: 999px 999px 0 0;
 }
 
-/* No patches: their row faded (the box itself is gone from the layout, so each piece). */
+body:not(.touch-mode) .vitals .health-track {
+  grid-row: 2;
+  align-self: start;
+  border-top-width: 1.5px;
+  border-radius: 0 0 999px 999px;
+}
+
+/* No patches: their icon and number faded (the half stays, empty). */
 body:not(.touch-mode) .vitals .coat.none > * {
   opacity: 0.55;
 }
@@ -2726,17 +2733,102 @@ body.touch-mode .loadout .weapons {
   flex-direction: column;
 }
 
-/* The bag left of the items: its right edge past the ⚙, the weapons and the items, and their gaps. */
+/* The bag left of the items, one slot gap from them (one more slot of theirs): its right edge past
+   the ⚙, the weapons and the items, and their gaps. Open, its slots fall into the same columns. */
 body.touch-mode .bag {
   bottom: auto;
   left: auto;
   top: calc(var(--safe-t) + var(--edge) + (var(--row) - 3.2rem) / 2);
-  right: calc(var(--safe-r) + var(--edge) + 3.2rem + 3 * var(--group) + (3 * 3.2rem + 0.5rem) / 2 + 3 * 3.2rem + 2 * 0.5rem);
+  right: calc(var(--safe-r) + var(--edge) + 3.2rem + 2 * var(--group) + (3 * 3.2rem + 0.5rem) / 2 + 3 * 3.2rem + 3 * 0.5rem);
 }
 
 body.touch-mode .bag .stash-slot {
   width: 3.2rem;
   height: 3.2rem;
+}
+
+/* Touch: the bag folded into one button (its count on it) beside the items; open, its slots drop
+   into a second row, the first under the button and the rest to its right. (Not touched much: no
+   need for three slots always in the row.) */
+body.touch-mode .bag {
+  display: flex;
+}
+
+body.touch-mode .bag.open .stash-slot {
+  position: absolute;
+  /* (On the second weapon's centre line: the weapons are 0.2rem taller than the slots.) */
+  top: calc(100% + 0.7rem);
+}
+
+body.touch-mode .bag.open .stash-slot[data-bag='0'] {
+  left: 0;
+}
+
+body.touch-mode .bag.open .stash-slot[data-bag='1'] {
+  left: calc(3.2rem + 0.5rem);
+}
+
+body.touch-mode .bag.open .stash-slot[data-bag='2'] {
+  left: calc(2 * (3.2rem + 0.5rem));
+}
+
+body.touch-mode .bag-toggle {
+  order: 2;
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #ffe2b8;
+  box-shadow: 0 3px 0 var(--ink);
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+body.touch-mode .bag-toggle .icon {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+/* How many parts are in it: the items' quantity badge (see .item .count). */
+body.touch-mode .bag-toggle b {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.3rem;
+  min-width: 1.15rem;
+  padding: 0.12rem 0.25rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: 900 0.75rem/1 var(--font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+body.touch-mode .bag-toggle.more {
+  animation: pop 300ms ease-out;
+}
+
+body.touch-mode .bag.open .bag-toggle {
+  background: var(--picked-bg);
+  border-color: var(--picked-border);
+}
+
+body.touch-mode .bag:not(.open) .stash-slot {
+  display: none;
+}
+
+/* (Desktop: the three slots as ever, no button.) */
+.bag-toggle {
+  display: none;
+}
+
+body.touch-mode .bag-toggle:not([hidden]) {
+  display: grid;
 }
 
 /* (On a narrow phone a full bag reaches over the counts beside the pill: the bag on top.) */

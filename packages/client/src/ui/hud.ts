@@ -27,6 +27,9 @@ export class Hud {
   private readonly promptStash: HTMLElement;
   /** The bag's three slots. */
   private readonly bag: { root: HTMLElement; art: HTMLElement }[];
+  /** The bag itself, and (on touch) the button it's folded into. */
+  private readonly bagRoot: HTMLElement;
+  private readonly bagToggle: HTMLElement;
   private readonly progress: HTMLElement;
   private readonly progressArt: HTMLElement;
   private readonly progressFill: HTMLElement;
@@ -51,7 +54,7 @@ export class Hud {
          <div class="track coat-track"><div class="fill patches"></div></div>
          <div class="track health-track"><div class="fill stuffing"></div></div>
        </div>
-       <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}</div>
+       <div class="bag">${[0, 1, 2].map((i) => `<button type="button" class="stash-slot" data-bag="${i}" hidden aria-label="${tr('Bag')} ${i + 1}"><span class="art"></span>${i === 0 ? '<kbd>Q</kbd>' : ''}</button>`).join('')}<button type="button" class="bag-toggle" hidden aria-label="${tr('Bag')}">${icon('stash')}<b></b></button></div>
        <div class="loadout">
          <div class="items">
            ${[0, 1, 2].map((i) => `<button type="button" class="item" data-item="${i}"><span class="art"></span><b class="count"></b><kbd>${i + 3}</kbd></button>`).join('')}
@@ -76,10 +79,21 @@ export class Hud {
     this.promptStash = q('.prompt .stash-opt');
     this.bag = [0, 1, 2].map((i) => {
       const root = q(`.stash-slot[data-bag="${i}"]`);
-      // Tap to wear that part; long press (or right-click) drops it.
-      pressable(root, () => input.wearBag(i), () => input.drop(5 + i));
+      // Tap to wear that part (and the bag closes, on touch); long press (or right-click) drops it.
+      pressable(
+        root,
+        () => {
+          input.wearBag(i);
+          this.bagRoot.classList.remove('open');
+        },
+        () => input.drop(5 + i),
+      );
       return { root, art: q('.art', root) };
     });
+    // On touch the bag is one button (its count): tapping it opens its slots, again closes them.
+    this.bagRoot = q('.bag');
+    this.bagToggle = q('.bag-toggle');
+    this.bagToggle.addEventListener('click', () => this.bagRoot.classList.toggle('open'));
     // Tapping the bag option on the prompt is the same as pressing Q.
     this.promptStash.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -162,6 +176,17 @@ export class Hud {
       this.set(`ic${i}`, stack ? config.rarity[config.items[stack.kind].rarity].color : 'transparent', (v) => s.root.style.setProperty('--rarity', v));
     });
 
+    // The bag's button (touch): how many parts are in it, gone with none (and the bag closed).
+    this.set('bagN', String(me.stash.length), (v) => {
+      const n = Number(v);
+      const more = n > Number(this.bagToggle.querySelector('b')!.textContent || 0);
+      this.bagToggle.hidden = n === 0;
+      this.bagToggle.querySelector('b')!.textContent = v;
+      if (n === 0) this.bagRoot.classList.remove('open');
+      // A part just went in: a little pop.
+      this.bagToggle.classList.remove('more');
+      if (more) void this.bagToggle.offsetWidth, this.bagToggle.classList.add('more');
+    });
     // The bag: each slot shows its part, ringed in the animal's rarity color.
     this.bag.forEach((b, i) => {
       const part = me.stash[i];

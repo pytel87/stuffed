@@ -838,7 +838,8 @@ function updatePhase(state: GameState): void {
   }
   if (phase === 'playing' && state.status === 'ended' && (state.winnerId === me.id || teamWon)) {
     phase = 'over';
-    endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), winnerLine(state), false), waitingForHost: !!room && !room.isPublic && !room.isHost });
+    // (You won, or your team did: no need to name you.)
+    endScreen.show({ ...resultView(state, me, 'win', tr(teamWon ? 'Team wins!' : 'Winner!'), '', false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
     return;
@@ -862,7 +863,7 @@ function updatePhase(state: GameState): void {
     phase = 'over';
     spectateEl.hidden = true;
     // (Out, but your team won: the win sound played when it was decided.)
-    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), teamWon ? winnerLine(state) : '', false), waitingForHost: !!room && !room.isPublic && !room.isHost });
+    endScreen.show({ ...resultView(state, me, teamWon ? 'win' : 'lose', tr(teamWon ? 'Team wins!' : 'Over'), '', false), waitingForHost: !!room && !room.isPublic && !room.isHost });
     updates.setPlaying(false);
     void updates.check();
     return;
