@@ -227,10 +227,11 @@ export interface RarityStats {
 /** Indexed by Rarity (0..4). */
 const rarity = [
   { name: 'Hand-me-down', color: '#9aa0a6', damageBonus: 0, reloadReduction: 0 },
-  { name: 'Store-bought', color: '#4caf50', damageBonus: 0.08, reloadReduction: 0.05 },
-  { name: 'Collector', color: '#3d8bfd', damageBonus: 0.16, reloadReduction: 0.1 },
-  { name: 'Limited Edition', color: '#a259e6', damageBonus: 0.24, reloadReduction: 0.15 },
-  { name: 'One-of-a-Kind', color: '#f5b82e', damageBonus: 0.32, reloadReduction: 0.2 },
+  // (The same colours as the animals' rarities, ground glows and stars: one palette for all.)
+  { name: 'Store-bought', color: '#39ff7a', damageBonus: 0.08, reloadReduction: 0.05 },
+  { name: 'Collector', color: '#29c8ff', damageBonus: 0.16, reloadReduction: 0.1 },
+  { name: 'Limited Edition', color: '#d070ff', damageBonus: 0.24, reloadReduction: 0.15 },
+  { name: 'One-of-a-Kind', color: '#ffd23a', damageBonus: 0.32, reloadReduction: 0.2 },
 ] as const satisfies readonly RarityStats[];
 
 export const config = {

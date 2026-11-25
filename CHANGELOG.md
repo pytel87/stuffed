@@ -2,6 +2,13 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## One rarity palette (2026-11-25)
+
+- Weapons, items and animals share one set of rarity colours, the bright ones the loot already
+  glowed in: green, light blue, purple, yellow (grey for the starting weapons). A gun picked up
+  shows in your slot, and on its stripe, in the colour it glowed in on the ground (the slots were
+  a darker blue and an orange-gold). The ground's purple is the animals' purple too.
+
 ## New clothes in the warm-up (2026-11-25)
 
 - Changing clothes in the Wardrobe while waiting in a room shows at once: your plush in the warm-up

@@ -14,7 +14,7 @@ const POP_SECONDS = 0.25;
 const LID_OPEN_ANGLE = -1.9;
 
 /** Brighter takes on the rarity colors for the rings on the ground, so they pop on the lawn. */
-const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#a45cff', '#ffd23a'] as const;
+const NEON = ['#e8f0ff', '#39ff7a', '#29c8ff', '#d070ff', '#ffd23a'] as const;
 
 let glowTexture: THREE.CanvasTexture | null = null;
 export function glowMap(): THREE.CanvasTexture {
