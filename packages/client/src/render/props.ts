@@ -1348,13 +1348,6 @@ export function buildWall(b: Wall, index: number, underRoof = false, mark = 32 +
       add(outlinedBox(b.w, H, b.h, ice), H / 2);
       break;
     }
-    case 'chimney':
-      add(outlinedBox(b.w, H, b.h, toonMaterial('#e9c9a8')), H / 2);
-      break;
-    case 'stone-chimney':
-      add(outlinedBox(b.w, H, b.h, toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, H / b.w) })), H / 2);
-      add(outlinedBox(b.w + 0.2, 0.25, b.h + 0.2, toonMaterial('#ffffff', { map: snowTexture() })), H + 0.13);
-      break;
     case 'log': {
       if (H > 1.5) {
         // A log wall: stacked logs, snow along the top (not under a roof: none falls there, and its

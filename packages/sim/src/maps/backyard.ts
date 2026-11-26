@@ -10,7 +10,6 @@
 import type { Building, ChestSpawn, Circle, Goal, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 import { galleryWalls } from '../systems/minigames.ts';
 import { catapult } from '../systems/rides.ts';
-import { chimney } from './chimney.ts';
 
 const SIZE = 128;
 const C = SIZE / 2;
@@ -54,7 +53,6 @@ const houseProps: Wall[] = [
   w('barrel', 1.3)(49.4, 57, 2.2, 2.2),
   book(55, 57, 4, 1.4), // a shelf of books inside the west room
   book(70, 69.5, 3.5, 1.4),
-  chimney({ ...HOUSE, height: 2.6 }, 1.2),
 ];
 
 // ---------- Treehouse (NW) ----------
@@ -325,6 +323,9 @@ export const BACKYARD: MapData = {
   // A trampoline by the house's north wall (bounce up onto the roof), and a seesaw on the lawn.
   trampolines: [{ center: { x: 60, y: 50.5 }, radius: 1.4 }],
   seesaws: SEESAWS,
+  // The cake on the picnic table (drawn with the table top, where obstacles.ts puts it: a quarter
+  // of the way along from its middle, a sixth of the way in from it).
+  roundProps: [{ x: TABLE.x + TABLE.w / 2 + (TABLE.w + 0.4) / 4, y: TABLE.y + TABLE.h / 2 - (TABLE.h + 0.4) / 6, z: 2, radius: 0.72 }],
   // A garden tap on the house's east wall; its hose runs to a sprinkler out on the lawn.
   toy: { kind: 'sprinkler', x: 76.6, y: 58, z: 0, at: { x: 86, y: 60 } },
   // A paper donkey piñata hanging from the branch of its own little tree.

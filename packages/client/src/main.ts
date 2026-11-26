@@ -628,13 +628,15 @@ function frame(now: number): void {
     const cursor = renderer.screenToWorld(input.pointer.x, input.pointer.y);
     if (cursor) {
       const center = renderer.localPlayerPos;
-      aimOffset.x = cursor.x - center.x;
-      aimOffset.y = cursor.y - center.y;
-      input.setAim(aimOffset.x, aimOffset.y);
+      input.setAim(cursor.x - center.x, cursor.y - center.y);
+      // The camera leans toward the cursor too, as it sees it from its own height (see screenToLean).
+      const lean = renderer.screenToLean(input.pointer.x, input.pointer.y) ?? cursor;
+      aimOffset.x = lean.x - center.x;
+      aimOffset.y = lean.y - center.y;
       // The gun is held off-center, so aim from its barrel tip: shots then cross the cursor.
       // Very close to the plush that would swing the aim wildly, so keep the center aim there.
       const weapon = me.weapons[me.activeSlot];
-      if (weapon && Math.hypot(aimOffset.x, aimOffset.y) > config.weapons[weapon.kind].barrelLength + 0.5) {
+      if (weapon && Math.hypot(cursor.x - center.x, cursor.y - center.y) > config.weapons[weapon.kind].barrelLength + 0.5) {
         const tip = muzzlePosition(center, input.currentAim, weapon.kind);
         input.setAim(cursor.x - tip.x, cursor.y - tip.y);
       }

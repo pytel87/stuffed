@@ -3,6 +3,7 @@
 import { segmentBoxT } from './collision/geometry.ts';
 import { StaticBoxHash } from './collision/spatial-hash.ts';
 import type { EntityId, MapData, PlacedWall, Vec2, Wall } from './types.ts';
+import { chimneyOf, type RoofBlock } from './maps/chimney.ts';
 
 export interface World {
   map: MapData;
@@ -16,6 +17,8 @@ export interface World {
   placed: readonly PlacedWall[];
   /** Where each plush was over the last few ticks (newest last), for lag-compensated hits. */
   history: Map<EntityId, Pose[]>;
+  /** What stands on the roofs (their chimneys). */
+  roofBlocks: RoofBlock[];
 }
 
 export interface Pose {
@@ -30,7 +33,8 @@ const HISTORY = 16;
 
 export function createWorld(map: MapData): World {
   const solid = map.walls.filter((w) => w.kind !== 'ball' && w.kind !== 'duck');
-  return { map, solid, walls: new StaticBoxHash(solid), placed: [], history: new Map() };
+  const roofBlocks = map.buildings.map(chimneyOf).filter((b): b is RoofBlock => b !== null);
+  return { map, solid, walls: new StaticBoxHash(solid), placed: [], history: new Map(), roofBlocks };
 }
 
 /** Remembers where every living plush is this tick. */

@@ -594,8 +594,6 @@ export type WallKind =
   | 'rim'
   /** The steps under a slide or a sled run, so it's solid (drawn as the ramp itself). */
   | 'ramp'
-  /** A chimney up through a roof (see maps/chimney.ts): plaster on a house, stones on a cabin. */
-  | 'chimney' | 'stone-chimney'
   /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
   | 'duck'
   // The Snowy Park.
@@ -706,6 +704,11 @@ export interface MapData {
   currents?: Current[];
   /** Ice: plushies on it slide (they speed up and slow down only gradually). */
   ice?: Circle[];
+  /**
+   * Round things standing on a floor or a roof at `z` (drawn with what they're on, like the cake on
+   * the picnic table): plushies bump into them, and can't stand on them.
+   */
+  roundProps?: { x: number; y: number; z: number; radius: number }[];
   /** A big toy button that calls an air strike; `z` is what it stands on (0: the ground). */
   strikeButton?: { x: number; y: number; z: number; kind: StrikeKind };
   /**

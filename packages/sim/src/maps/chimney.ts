@@ -1,14 +1,33 @@
-import type { Building, Wall } from '../types.ts';
+import type { Building } from '../types.ts';
+
+/** Something standing on a roof (only there: nothing of it inside the building under it). */
+export interface RoofBlock {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** The roof it stands on. */
+  z: number;
+  /** How far it sticks up out of the roof. */
+  height: number;
+  look: 'plaster' | 'stones';
+}
 
 const SIZE = 1.4;
-/** In from the house's outer walls a little, so their faces don't fight below the roof. */
-const INSET = 0.1;
 
 /**
- * A chimney sticking `above` out of a roof over the building's north-east corner: a wall from the
- * floor up through the roof, so plushies up there bump into it (or hop onto it). Below the roof
- * it's in the corner where the two outer walls meet, taking hardly any room from inside.
+ * A house's or a log cabin's chimney, up on its roof a quarter of the way in from its east side
+ * (out of the corner, on the roof). Plushies up there bump into it, and nobody stands on it.
  */
-export function chimney(b: Building, above: number, kind: 'chimney' | 'stone-chimney' = 'chimney'): Wall {
-  return { x: b.x + b.w - SIZE - INSET, y: b.y + INSET, w: SIZE, h: SIZE, height: b.height + above, kind };
+export function chimneyOf(b: Building): RoofBlock | null {
+  if (b.kind !== 'house' && b.kind !== 'cabin') return null;
+  return {
+    x: b.x + b.w * 0.75 - SIZE / 2,
+    y: b.y + b.h * 0.3 - SIZE / 2,
+    w: SIZE,
+    h: SIZE,
+    z: b.height,
+    height: b.kind === 'cabin' ? 1.4 : 1.2,
+    look: b.kind === 'cabin' ? 'stones' : 'plaster',
+  };
 }

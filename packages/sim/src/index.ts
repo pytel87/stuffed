@@ -4,7 +4,7 @@ export { addPlayer, createGame, redress, removePlayer, type CreateGameOptions } 
 export { predictPlayer, step } from './step.ts';
 export { createWorld, raycastWalls, type World } from './world.ts';
 export { canSee, coveredBy } from './systems/visibility.ts';
-export { groundHeight } from './systems/movement.ts';
+export { footingOf, groundHeight } from './systems/movement.ts';
 export { findInteraction, addToSlots, revivable, spawnLoot, type Interaction } from './systems/loot.ts';
 export { canUseItem } from './systems/items.ts';
 export { circleAt, isOutside, zoneDamagePerSecond, zoneProgress, zoneSecondsLeft } from './systems/zone.ts';
@@ -20,6 +20,7 @@ export { SHIP, TRAIN, carTop, carriedBy, distanceToTrack, halfWidthAt, layoutOf,
 export type { WeaponStats, RarityStats, ItemStats } from './config.ts';
 export { TEST_MAP } from './maps/test-map.ts';
 export { BACKYARD } from './maps/backyard.ts';
+export { chimneyOf, type RoofBlock } from './maps/chimney.ts';
 export { MAPS, PLAYABLE_MAPS, getMap } from './maps/index.ts';
 export { BEDROOM } from './maps/bedroom.ts';
 export { PARK } from './maps/park.ts';

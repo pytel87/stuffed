@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMALS, canSee, carriedBy, coveredBy, rampSurface, chargeAmount, config, createWorld, fullSet, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
+import { ANIMALS, canSee, carriedBy, coveredBy, rampSurface, chargeAmount, config, createWorld, fullSet, footingOf, groundHeight, muzzlePosition, PART_SLOTS, wading, wornSet } from '@stuffed/sim';
 import type { Animal, EntityId, GameEvent, GameState, MapData, PartLoadout, PartSlot, Player, Vec2, WeaponKind, World } from '@stuffed/sim';
 import type { RenderFrame } from '../session/session.ts';
 import { CAMERA, CameraRig } from './camera-rig.ts';
@@ -208,6 +208,7 @@ export class GameRenderer {
   private readonly loot = new LootViews(this.scene);
   private readonly raycaster = new THREE.Raycaster();
   private readonly aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
+  private readonly leanPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -AIM_PLANE_HEIGHT);
   private readonly hit = new THREE.Vector3();
   private world!: World;
   private bushes: BushView[] = [];
@@ -386,10 +387,24 @@ export class GameRenderer {
 
   /** World (sim) point under the cursor at aim height, or null if the ray misses. */
   screenToWorld(clientX: number, clientY: number): Vec2 | null {
+    return this.underCursor(clientX, clientY, this.aimPlane);
+  }
+
+  /**
+   * The point under the cursor for the camera to lean toward: at the height the camera has risen
+   * to. (The aim's height jumps as the plush lands up on a roof, and leaning toward that point,
+   * the camera lurched.)
+   */
+  screenToLean(clientX: number, clientY: number): Vec2 | null {
+    this.leanPlane.constant = -(this.rig.risen + config.combat.shotHeight);
+    return this.underCursor(clientX, clientY, this.leanPlane);
+  }
+
+  private underCursor(clientX: number, clientY: number, plane: THREE.Plane): Vec2 | null {
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
-    return this.raycaster.ray.intersectPlane(this.aimPlane, this.hit) ? { x: this.hit.x, y: this.hit.z } : null;
+    return this.raycaster.ray.intersectPlane(plane, this.hit) ? { x: this.hit.x, y: this.hit.z } : null;
   }
 
   /** Turns sim events into effects: muzzle pops, recoil, hit flashes, stuffing and knockouts. */
@@ -749,7 +764,7 @@ export class GameRenderer {
       if (this.world.map.track && p.id !== opts.localPlayerId && trainTick !== drawnTick) {
         pos = carriedBy(this.world.map.track, drawnTick, trainTick, pos, z) ?? pos;
       }
-      let groundY = groundHeight(this.world, trainState, pos, z);
+      let groundY = groundHeight(this.world, trainState, pos, z, footingOf(p));
       // On a slide or a sled run: its smooth slope, not the hidden steps under it (so the soft
       // shadow glides down it instead of hopping from step to step inside it).
       const ramp = rampSurface(this.world, pos);
@@ -848,7 +863,9 @@ export class GameRenderer {
       if (p.id === opts.followId) {
         this.followPos.x = pos.x;
         this.followPos.y = pos.y;
-        this.followGround = groundY;
+        // Only what it stands on: in the air (jumping off a barrel onto a roof, over the lawn
+        // between), the camera sank toward the lawn and rose again, a zoom out and in on landing.
+        if (z - groundY < 0.05) this.followGround = groundY;
       }
     }
 

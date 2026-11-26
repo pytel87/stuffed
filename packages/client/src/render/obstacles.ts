@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { Building, Circle, MapData, Wall } from '@stuffed/sim';
+import { chimneyOf } from '@stuffed/sim';
 import { boneTexture, buildWall, FOOT_LIFT, lavaTexture, nextMark, outlineProp, palmTree, rockMass, rockTexture, smoke, thatchTexture, cardboardTexture, outlinedBox, softBox, corrugatedTexture, foliage, snowTexture, stoneTexture, plankTexture, quiltTexture, tableclothTexture, tiled, tileTexture } from './props.ts';
 import { detailMaps, repeated } from './image-textures.ts';
 import { mergeStatic } from './merge-static.ts';
@@ -237,7 +238,8 @@ function roof(b: Building): RoofView {
       // A shipwreck: the whole broken hull is drawn here (its walls are only for the sim). Plank
       // sides sloping out from the sand up to the deck, narrowing to a rounded stern (-x); the bow
       // (+x) snapped off, its deck ragged; a hole in the south side to get in. On deck: a hole stove in, the
-      // mast snapped off and leaning with a torn sail, a rail along the stern. Listing a little.
+      // mast snapped off and leaning with a torn sail, a rail along the stern. (Level: listing, half
+      // its deck stood above where the sim has it, over the glow of loot lying there and plushies' feet.)
       const base = -(b.height - ROOF_THICKNESS / 2 + 0.01);
       const L = b.w + 0.4;
       const D = b.h + 0.3;
@@ -262,7 +264,6 @@ function roof(b: Building): RoofView {
       const doorTo = -b.w / 2 + 8 + 0.1;
       const inDoor = (p: { x: number; side: string }) => p.side === 's' && p.x > doorFrom && p.x < doorTo;
       const sides = new THREE.Group();
-      sides.rotation.x = 0.05;
       g.add(sides);
       const pos: number[] = [];
       const uv: number[] = [];
@@ -321,10 +322,10 @@ function roof(b: Building): RoofView {
         tri(p.bottom, q.bottom, p.top);
         tri(p.top, q.bottom, q.top);
       });
-      for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(loop.map((p) => new THREE.Vector2(p.top.x, p.top.z)), [])) {
-        tri(loop[a!]!.top, loop[b!]!.top, loop[c!]!.top, true);
-        tri(loop[a!]!.bottom, loop[b!]!.bottom, loop[c!]!.bottom, false);
-      }
+      // (No bottom: seen through the doorway and the broken bow, from behind, it was a flat black
+      // floor. The beach's sand shows in there, in the deck's shadow.)
+      const caps = THREE.ShapeUtils.triangulateShape(loop.map((p) => new THREE.Vector2(p.top.x, p.top.z)), []);
+      for (const [a, b, c] of caps) tri(loop[a!]!.top, loop[b!]!.top, loop[c!]!.top, true);
       // (The broken bow is left open, dark inside: there's no wall there, it's a way in. Closed with
       // planks, it looked solid and plushies walked through it.)
       const solid = new THREE.BufferGeometry();
@@ -352,7 +353,8 @@ function roof(b: Building): RoofView {
         }
       });
       // The deck, in the hull's shape, its planks broken off ragged at the bow end.
-      const deckPts = ring.map((p) => new THREE.Vector2(p.x * 0.985, -p.z * 0.97));
+      // Right out to the hull's top edge, under the rail (set in, the outline showed between them).
+      const deckPts = ring.map((p) => new THREE.Vector2(p.x, -p.z));
       for (const [x, z] of BOW_BREAK) deckPts.push(new THREE.Vector2((L / 2) * 0.985 - x, -(D / 2 - D * z) * 0.97));
       const deckShape = new THREE.Shape(deckPts);
       const deckGeo = new THREE.ShapeGeometry(deckShape).rotateX(-Math.PI / 2);
@@ -362,6 +364,13 @@ function roof(b: Building): RoofView {
       deckMesh.position.y = top - 0.02;
       deckMesh.receiveShadow = true;
       sides.add(deckMesh);
+      // Its shadow on the sand inside (seen through the doorway, like under a hut's roof), cast by
+      // an unseen copy a little below it: the deck casting its own caught itself, a dark line along
+      // its rim. (Both sides: a flat sheet casts from its underside only, which the sun never sees.)
+      const shadowCaster = new THREE.Mesh(deckGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, shadowSide: THREE.DoubleSide }));
+      shadowCaster.position.y = top - 0.3;
+      shadowCaster.castShadow = true;
+      sides.add(shadowCaster);
       const hole = new THREE.Mesh(new THREE.CircleGeometry(0.75, 7).rotateX(-Math.PI / 2), flat('#3b2a22'));
       hole.position.set(L / 6, top + 0.002, D / 6);
       hole.scale.set(1.3, 1, 0.9);
@@ -411,6 +420,19 @@ function roof(b: Building): RoofView {
       sides.add(stump);
       // One outline weight on the hull, mast and spar (pulled toward the camera: round the hull's foot too).
       evenOutlines(sides, 0.035, 0.15);
+      // The hull's outline only off the wreck, never over it: pulled toward the camera, it drew a
+      // dark band over the deck along the far rail. Its pieces mark where they're drawn.
+      const wreckMark = nextMark();
+      for (const piece of sides.children) {
+        if (piece === hullLine || piece === shadowCaster || piece === stump || !(piece instanceof THREE.Mesh)) continue;
+        for (const m of Array.isArray(piece.material) ? piece.material : [piece.material]) {
+          m.stencilWrite = true;
+          m.stencilRef = wreckMark;
+          m.stencilZPass = THREE.ReplaceStencilOp;
+        }
+      }
+      hullLine.material = thickOutlineMaterial(OUTLINE_COLOR, 0.035, wreckMark, 0.15);
+      hullLine.renderOrder = 3;
       // The mast, its spar and sail: one outline round them together (each piece's own crossed the
       // others in broken slivers).
       sides.updateMatrixWorld(true);
@@ -606,8 +628,8 @@ function roof(b: Building): RoofView {
       break;
     }
     case 'cabin': {
-      // A log cabin's roof under a thick layer of snow, with icicles along the front (its chimney
-      // is a wall of the map's, drawn with the walls).
+      // A log cabin's roof under a thick layer of snow, with icicles along the front and a chimney
+      // (drawn below, where the sim has it).
       lid(toonMaterial('#ffffff', { map: tiled(snowTexture(), w / 4, d / 4) }));
       const icicle = toonMaterial('#d8f1ff', { map: null });
       for (let i = 0; i < Math.floor(w / 0.8); i++) {
@@ -618,7 +640,7 @@ function roof(b: Building): RoofView {
       break;
     }
     case 'house': {
-      // (Its chimney is a wall of the map's, drawn with the walls.)
+      // (And a chimney, drawn below where the sim has it.)
       lid(toonMaterial('#ffffff', { map: tiled(tileTexture(), w / 3, d / 3) }));
       break;
     }
@@ -691,12 +713,24 @@ function roof(b: Building): RoofView {
       // (Resting on their outlines, so the cloth doesn't cut them off along the bottom.)
       const lift = OUTLINE + 0.015;
       for (const [x, z] of [[-w / 3, -d / 4], [w / 3, d / 4], [0, -d / 4]] as const) on(round(0.55, 0.5, 0.06, '#ffffff'), x, top + 0.03 + lift, z);
+      // (Where the Backyard's roundProps has it, so plushies bump into it.)
       on(round(0.7, 0.7, 0.5, '#f6a5c0'), w / 4, top + 0.25 + lift, -d / 6).castShadow = true;
       on(round(0.72, 0.72, 0.1, '#fff7ef'), w / 4, top + 0.55 + lift, -d / 6);
       // A strawberry on top.
       on(toonMesh(new THREE.SphereGeometry(0.14, 14, 10), '#e2433f', { outline: 0.12 }), w / 4, top + 0.7 + lift, -d / 6);
       break;
     }
+  }
+
+  // Its chimney, where the sim has it (see chimneyOf), fading with the roof.
+  const chimney = chimneyOf(b);
+  if (chimney) {
+    const cx = chimney.x + chimney.w / 2 - (b.x + b.w / 2);
+    const cz = chimney.y + chimney.h / 2 - (b.y + b.h / 2);
+    const material =
+      chimney.look === 'stones' ? toonMaterial('#9aa0a6', { map: tiled(stoneTexture(), 1, 1) }) : toonMaterial('#e9c9a8');
+    on(outlinedBox(chimney.w, chimney.height, chimney.h, material), cx, top + chimney.height / 2, cz).castShadow = true;
+    if (chimney.look === 'stones') on(outlinedBox(chimney.w + 0.2, 0.25, chimney.h + 0.2, toonMaterial('#ffffff', { map: snowTexture() })), cx, top + chimney.height + 0.13, cz);
   }
 
   // Every roof material fades with it: its own copy of each (outline materials are shared, and
@@ -746,8 +780,8 @@ function touchingGroups(walls: readonly Wall[]): number[] {
 }
 
 function underRoof(wall: Wall, map: MapData): Wall {
-  // (A volcano's summit is walked on, not roofed over; a chimney goes up through the roof.)
-  if (wall.kind === 'volcano' || wall.kind === 'chimney' || wall.kind === 'stone-chimney') return wall;
+  // (A volcano's summit is walked on, not roofed over.)
+  if (wall.kind === 'volcano') return wall;
   for (const b of map.buildings) {
     const inside = wall.x >= b.x - 0.01 && wall.y >= b.y - 0.01 && wall.x + wall.w <= b.x + b.w + 0.01 && wall.y + wall.h <= b.y + b.h + 0.01;
     if (inside && wall.height >= b.height - 0.05) return { ...wall, height: b.height - 0.08 };

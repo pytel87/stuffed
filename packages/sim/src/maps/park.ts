@@ -9,7 +9,6 @@
 //   Frozen Pond (C)       slippery ice (you slide) with ice blocks for cover; high loot in the middle
 // Coordinates: x to the right, y down the screen.
 import { catapult } from '../systems/rides.ts';
-import { chimney } from './chimney.ts';
 import type { Building, ChestSpawn, Circle, Decor, Ground, MapData, MapZone, RideDef, Vec2, Wall, WallKind } from '../types.ts';
 
 const SIZE = 120;
@@ -66,7 +65,6 @@ const cabin: Wall[] = [
   LOG_WALL(88, 86, 0.7, 3.5), LOG_WALL(88, 93.5, 0.7, 3.5),
   crate(103, 90, 2, 3, 1.4), // the woodpile: up onto the roof
   log(84, 100, 5, 1.2), log(104, 100, 1.2, 4),
-  chimney(CABIN, 1.4, 'stone-chimney'),
 ];
 
 // ---------- Gift Market (S) ----------

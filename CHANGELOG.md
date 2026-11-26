@@ -2,6 +2,30 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Gentler onto roofs (2026-11-26)
+
+- The chimneys on the Backyard house and the Snowy Park cabin stand further in on their roofs (they
+  were in a corner, and since the last update came up through the house from the floor). Only on
+  the roof: plushies up there bump into them, and nothing of them is inside.
+- Getting onto a roof (or a crate, a table), the camera rises with you gently, the view widening
+  over a second or so (it rose at once on landing, so everything around shrank away with a jolt,
+  and grew back as quickly when you came down). It doesn't lurch as you land either (it leaned
+  toward your cursor as seen at your new height, all at once).
+- Jumping onto a roof (or anything), the plush doesn't stall against its edge for a moment on the
+  way up: rising and about to clear it, it carries straight on over. It slipped back on screen, a
+  little jolt just before landing.
+- Jumping on a roof (or anything high), the plush doesn't dip and pop back up as it lands: coming
+  down a hair low, its own copy in your browser fell through the roof, and the server's pulled it
+  back. Now whatever the feet pass on the way down catches them.
+- Coming down with its body over an edge (its middle just short of it), a plush lands on it
+  instead of being shoved off sideways.
+- The shipwreck stands level: listing, half its deck was a little higher than where plushies and
+  loot are on it, so it cut through the glow under loot lying there (and hid plushies' feet).
+- Through the shipwreck's doorway and its broken bow you see into it (the sand in the deck's
+  shadow, like under a hut's roof) instead of a flat black wall.
+- The cake on the picnic table is solid: plushies up there bump into it (they walked right through
+  it), and no one stands on it.
+
 ## Online room card (2026-11-25)
 
 - The shipwreck's broken bow is open (dark inside), not closed with planks: it looked solid, but

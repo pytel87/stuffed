@@ -21,6 +21,8 @@ const KNOCKBACK_KEEP = Math.exp(-config.player.knockbackDecay * DT);
 const MAX_SUBSTEP = 0.35;
 const OBSTACLE_PASSES = 3;
 const STEP = config.player.stepHeight;
+/** How far above the feet a wall's top can be for a rising plush to go on over it (see resolveObstacles). */
+const LEDGE = 0.75;
 const EPS = 1e-6;
 
 export function applyAim(player: Player, input: Input): void {
@@ -90,18 +92,22 @@ export function movePlayer(world: World, state: GameState, player: Player, input
   clampToMap(world, player);
 
   // Jump on a fresh press while standing on something, unless a roof is overhead.
-  const ground = groundHeight(world, state, player.pos, player.z);
+  const ground = groundHeight(world, state, player.pos, player.z, footingOf(player));
   const grounded = player.z <= ground + EPS && player.vz <= 0;
   const pressed = !trapped && (input.buttons & Btn.Jump) !== 0 && (player.heldButtons & Btn.Jump) === 0;
   if (grounded && pressed && !underRoof(world, player.pos, player.z)) player.vz = config.player.jumpSpeed;
 
+  const zBefore = player.z;
   if (!grounded || player.vz > 0) {
     // Exact for constant gravity, so the apex matches jumpSpeed² / (2 gravity).
     const g = config.player.gravity;
     player.z += player.vz * DT - 0.5 * g * DT * DT;
     player.vz -= g * DT;
   }
-  let floor = groundHeight(world, state, player.pos, player.z);
+  // Coming down, whatever the feet passed this tick catches them, not just what's a step under where
+  // they ended up: falling faster than a step a tick, a plush landing a hair low (a client's replay
+  // of its jump, from the server's rounded numbers) fell through the roof, and was yanked back up.
+  let floor = groundHeight(world, state, player.pos, Math.max(zBefore, player.z), footingOf(player));
   // Walking down a slope: stay on it rather than falling off each bit of it.
   if (grounded && player.vz <= 0) {
     const ramp = Math.max(rampSurface(world, player.pos) ?? -1, seesawSurface(world, state, player.pos) ?? -1);
@@ -125,17 +131,18 @@ export function movePlayer(world: World, state: GameState, player: Player, input
 
 /**
  * Height of the highest surface under `pos` that a plush with its feet at `z` can stand on:
- * the lawn (0), or a wall, chest or roof whose top is at most a step above the feet.
+ * the lawn (0), or a wall, chest or roof whose top is at most a step above the feet. `footing`:
+ * how far past a wall's or chest's edge `pos` may be and still stand on it (a plush's body over it).
  */
-export function groundHeight(world: World, state: GameState, pos: Vec2, z: number): number {
+export function groundHeight(world: World, state: GameState, pos: Vec2, z: number, footing = 0): number {
   let best = 0;
   const reach = z + STEP;
-  for (const w of wallsNear(world, pos.x, pos.y, pos.x, pos.y)) {
-    if (!w.noTop && w.height <= reach && w.height > best && inBox(pos, w)) best = w.height;
+  for (const w of wallsNear(world, pos.x - footing, pos.y - footing, pos.x + footing, pos.y + footing)) {
+    if (!w.noTop && w.height <= reach && w.height > best && boxDistance(pos, w) <= footing) best = w.height;
   }
   for (const c of state.chests) {
     const top = c.z + config.chest.height;
-    if (top <= reach && top > best && Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= config.chest.radius) best = top;
+    if (top <= reach && top > best && Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= config.chest.radius + footing) best = top;
   }
   for (const b of world.map.buildings) {
     if (b.height <= reach && b.height > best && inBox(pos, b)) best = b.height;
@@ -163,12 +170,14 @@ function underRoof(world: World, pos: Vec2, z: number): boolean {
   return buildingAt(world, pos, z) !== -1;
 }
 
-/** Where the map's big buttons stand: its strike button and the switches of its mower or plow. */
-function buttonsOf(world: World, state: GameState): { x: number; y: number; z: number }[] {
-  const buttons: { x: number; y: number; z: number }[] = [];
-  if (state.strikeButton) buttons.push({ x: state.strikeButton.pos.x, y: state.strikeButton.pos.y, z: state.strikeButton.z });
-  for (const w of world.map.wanderers ?? []) if (w.switch) buttons.push({ x: w.switch.x, y: w.switch.y, z: 0 });
-  return buttons;
+/** The round things in the way that nobody stands on: the map's round props, its strike button and
+ *  the switches of its mower or plow. */
+function roundsOf(world: World, state: GameState): { x: number; y: number; z: number; radius: number }[] {
+  const radius = config.strike.buttonRadius;
+  const rounds = [...(world.map.roundProps ?? [])];
+  if (state.strikeButton) rounds.push({ x: state.strikeButton.pos.x, y: state.strikeButton.pos.y, z: state.strikeButton.z, radius });
+  for (const w of world.map.wanderers ?? []) if (w.switch) rounds.push({ x: w.switch.x, y: w.switch.y, z: 0, radius });
+  return rounds;
 }
 
 /**
@@ -178,12 +187,26 @@ function buttonsOf(world: World, state: GameState): { x: number; y: number; z: n
 export function resolveObstacles(world: World, state: GameState, player: Player): void {
   const r = player.radius;
   const feet = player.z + STEP;
+  // Rising, the height the feet will get to: a wall whose top they'll clear, just above them, isn't
+  // in the way on the way up (jumping onto a roof, the plush stalled against its edge for a moment,
+  // then went on). Not one further up: the plush would sink into its side.
+  const clears = player.vz > 0 ? feet + (player.vz * player.vz) / (2 * config.player.gravity) : feet;
+  const ledge = feet + LEDGE;
   for (let pass = 0; pass < OBSTACLE_PASSES; pass++) {
     const { x, y } = player.pos;
     let moved = false;
     for (const wall of wallsNear(world, x - r, y - r, x + r, y + r)) {
-      if (wall.height <= feet) continue;
+      const over = !wall.noTop && wall.height <= clears;
+      if (wall.height <= feet || (over && wall.height <= ledge)) continue;
       const push = circleBoxPush(player.pos.x, player.pos.y, r, wall);
+      // (One it'll be over in a moment: held back, but still going, so it carries on at once.)
+      if (push) moved = pushOut(player, push.nx, push.ny, push.depth, over) || moved;
+    }
+    // A chimney on a roof, for those up there: in the way as high as a plush can jump (nobody
+    // stands on it), nothing of it below the roof.
+    for (const block of world.roofBlocks) {
+      if (block.z > feet || player.z >= block.z + Math.max(block.height, config.strike.buttonClear)) continue;
+      const push = circleBoxPush(player.pos.x, player.pos.y, r, block);
       if (push) moved = pushOut(player, push.nx, push.ny, push.depth) || moved;
     }
     // A slide or sled run walked into from the side (or from below its high end).
@@ -205,14 +228,14 @@ export function resolveObstacles(world: World, state: GameState, player: Player)
         moved = (d < 1e-9 ? pushOut(player, 0, 1, min) : pushOut(player, dx / d, dy / d, min - d)) || moved;
       }
     }
-    // The big buttons (the strike button, the mower's or plow's switch): no standing on one (on
-    // top, the plush stood in its collar), so each is in the way as high as a plush can jump (not
-    // from below the roof one's on, though).
-    for (const button of buttonsOf(world, state)) {
-      if (player.z >= button.z + config.strike.buttonClear || button.z > feet) continue;
-      const dx = player.pos.x - button.x;
-      const dy = player.pos.y - button.y;
-      const min = r + config.strike.buttonRadius;
+    // The big buttons (the strike button, the mower's or plow's switch) and round props (a cake):
+    // no standing on one (on a button, the plush stood in its collar), so each is in the way as
+    // high as a plush can jump (not from below the roof it's on, though).
+    for (const round of roundsOf(world, state)) {
+      if (player.z >= round.z + config.strike.buttonClear || round.z > feet) continue;
+      const dx = player.pos.x - round.x;
+      const dy = player.pos.y - round.y;
+      const min = r + round.radius;
       const d2 = dx * dx + dy * dy;
       if (d2 >= min * min) continue;
       const d = Math.sqrt(d2);
@@ -329,10 +352,10 @@ function trainBump(state: GameState, player: Player, c: { x: number; y: number; 
   return true;
 }
 
-function pushOut(player: Player, nx: number, ny: number, depth: number): boolean {
+function pushOut(player: Player, nx: number, ny: number, depth: number, keepGoing = false): boolean {
   player.pos.x += nx * depth;
   player.pos.y += ny * depth;
-  removeInto(player.vel, nx, ny);
+  if (!keepGoing) removeInto(player.vel, nx, ny);
   removeInto(player.knockback, nx, ny);
   return true;
 }
@@ -385,6 +408,20 @@ export function insideBush(world: World, pos: Vec2, z: number): boolean {
     if (dx * dx + dy * dy <= b.radius * b.radius) return true;
   }
   return false;
+}
+
+/** How far `p` is outside the box (0 inside it). */
+function boxDistance(p: Vec2, b: { x: number; y: number; w: number; h: number }): number {
+  return Math.hypot(Math.max(b.x - p.x, 0, p.x - (b.x + b.w)), Math.max(b.y - p.y, 0, p.y - (b.y + b.h)));
+}
+
+/**
+ * How far past an edge a plush still stands on what's under it: its body over it, all but the
+ * last of its rim. (Judged by its middle alone, one coming down with its body over the edge
+ * missed it and was shoved off sideways, a jolt on landing.)
+ */
+export function footingOf(player: Player): number {
+  return player.radius - 0.1;
 }
 
 function inBox(p: Vec2, b: { x: number; y: number; w: number; h: number }): boolean {
@@ -479,7 +516,7 @@ function glide(world: World, state: GameState, player: Player, input: Input): bo
   player.z -= t.fallSpeed * DT;
   resolveObstacles(world, state, player);
   clampToMap(world, player);
-  const floor = groundHeight(world, state, player.pos, player.z);
+  const floor = groundHeight(world, state, player.pos, player.z, footingOf(player));
   if (player.z > floor + EPS) return false;
   player.z = floor;
   player.vz = 0;
