@@ -19,7 +19,7 @@ export const BUTTONS = {
   /** The first win of each day (UTC), on top. */
   dailyWin: 50,
   /** What one missing part of a set costs, by the animal's rarity (1 common … 4 legendary). */
-  partPrice: [0, 40, 80, 160, 400] as const,
+  partPrice: [0, 100, 200, 400, 1000] as const,
   /** A holo part costs this many times its plain one. */
   holoFactor: 3,
 } as const;

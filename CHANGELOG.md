@@ -2,6 +2,11 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Dearer sets (2026-11-26)
+
+- The shop's sets cost more: each missing part 100 Buttons for a 1★ animal, 200 for 2★, 400 for 3★,
+  1000 for 4★ (it was 40, 80, 160, 400: a common set took a match or two). Holo still three times.
+
 ## Gentler onto roofs (2026-11-26)
 
 - The chimneys on the Backyard house and the Snowy Park cabin stand further in on their roofs (they
