@@ -170,13 +170,17 @@ function underRoof(world: World, pos: Vec2, z: number): boolean {
   return buildingAt(world, pos, z) !== -1;
 }
 
-/** The round things in the way that nobody stands on: the map's round props, its strike button and
- *  the switches of its mower or plow. */
+/** The round things in the way that nobody stands on: the map's round props, its strike button,
+ *  the switches of its mower or plow, and its zip lines' poles. */
 function roundsOf(world: World, state: GameState): { x: number; y: number; z: number; radius: number }[] {
   const radius = config.strike.buttonRadius;
   const rounds = [...(world.map.roundProps ?? [])];
   if (state.strikeButton) rounds.push({ x: state.strikeButton.pos.x, y: state.strikeButton.pos.y, z: state.strikeButton.z, radius });
   for (const w of world.map.wanderers ?? []) if (w.switch) rounds.push({ x: w.switch.x, y: w.switch.y, z: 0, radius });
+  for (const r of world.map.rides ?? []) {
+    if (r.kind !== 'zip') continue;
+    for (const end of [r.from, r.to]) rounds.push({ x: end.x, y: end.y, z: end.z, radius: config.rides.zipPole });
+  }
   return rounds;
 }
 

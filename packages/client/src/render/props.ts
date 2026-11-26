@@ -37,7 +37,7 @@ function silhouetteOutline(g: THREE.Object3D, mark: number, width = 0.03, pull =
       o.geometry = geo;
       o.scale.set(1, 1, 1);
       // (Round things keep their whole outline: their bottom edge is their own curve, not the floor's.)
-      o.material = thickOutlineMaterial('#' + m.color.getHexString(), width, mark, pull);
+      o.material = thickOutlineMaterial('#' + m.color.getHexString(), width, mark, pull, false, 0);
       o.renderOrder = 3;
       return;
     }
@@ -69,7 +69,7 @@ const claimed = new WeakMap<THREE.Material, number>();
  * near edges, a gap at the foot). So every prop is outlined all round, its foot included. Pieces an
  * earlier silhouetteOutline already did are left as they are.
  */
-export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull = PROP_PULL, closedFoot = false): void {
+export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull = PROP_PULL, closedFoot = false, floor = 0): void {
   const solid: THREE.Mesh[] = [];
   const hullColor = new Map<THREE.Object3D, THREE.Color>();
   const old: THREE.Mesh[] = [];
@@ -113,7 +113,7 @@ export function outlineProp(g: THREE.Object3D, mark: number, width = 0.03, pull 
     let geo = smooth.get(o.geometry);
     if (!geo) smooth.set(o.geometry, (geo = smoothNormals(o.geometry)));
     const color = '#' + (hullColor.get(o)?.getHexString() ?? new THREE.Color(OUTLINE_COLOR).getHexString());
-    const hull = new THREE.Mesh(geo, thickOutlineMaterial(color, width, mark, pull, openFoot));
+    const hull = new THREE.Mesh(geo, thickOutlineMaterial(color, width, mark, pull, openFoot, floor));
     hull.name = 'outline';
     hull.renderOrder = 3;
     hull.castShadow = false;

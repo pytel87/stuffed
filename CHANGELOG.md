@@ -2,6 +2,15 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Clean feet on props (2026-11-26)
+
+- Zip line poles are solid on every map: plushies bump into them (they walked right through
+  them), and a rider lands just past the far one. The Bedroom's bookcase is wider, for room
+  beside its pole.
+- A plush standing on something (a gift, a book, a bucket) no longer has that thing's outlines
+  (ribbons, edges, a handle) drawn across its feet or over it. (Props' outlines are drawn a little
+  in front to show round their foot on the floor; now only there, not higher up.)
+
 ## A bunk bed, a snow hill (2026-11-26)
 
 - The Bedroom's bookshelf has a tall bookcase to walk along the top of, up two stacks of books,

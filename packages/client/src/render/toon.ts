@@ -161,14 +161,23 @@ const thickOutlines = new Map<string, THREE.MeshBasicMaterial>();
  * smoothed ones, see smoothNormals), on top of however much bigger it already is: a plush's tiny
  * parts (feet, ears, spikes) got hairline outlines from a hull only a share of their size bigger.
  */
+/**
+ * A prop's outline is pulled toward the camera to show round its foot, against the floor it stands
+ * on (`pullFloor`): fully at the floor, fading out between these heights above it. Higher up it
+ * isn't, so it can't cross a plush standing on the prop (a gift's ribbons, a bucket's handle ran
+ * across its feet).
+ */
+const PULL_FADE = [0.15, 0.5] as const;
+
 export function thickOutlineMaterial(
   color: string,
   extra = 0.016,
   stencilMark = 0,
   pull = 0,
   openFoot = false,
+  pullFloor: number | null = null,
 ): THREE.MeshBasicMaterial {
-  const key = `${color}|${extra}|${stencilMark}|${pull}|${openFoot}`;
+  const key = `${color}|${extra}|${stencilMark}|${pull}|${openFoot}|${pullFloor}`;
   let mat = thickOutlines.get(key);
   if (!mat) {
     mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
@@ -186,7 +195,9 @@ export function thickOutlineMaterial(
         mvPosition.xyz += normalize( normalMatrix * normal ) * length( normal ) * ${extra.toFixed(4)};
         gl_Position = projectionMatrix * mvPosition;
         ${pull ? `{
-          vec4 pulled = projectionMatrix * vec4( mvPosition.xy, mvPosition.z + ${pull.toFixed(3)}, 1.0 );
+          float pull = ${pull.toFixed(3)};
+          ${pullFloor !== null ? `pull *= 1.0 - smoothstep( ${(pullFloor + PULL_FADE[0]).toFixed(3)}, ${(pullFloor + PULL_FADE[1]).toFixed(3)}, ( modelMatrix * vec4( transformed, 1.0 ) ).y );` : ''}
+          vec4 pulled = projectionMatrix * vec4( mvPosition.xy, mvPosition.z + pull, 1.0 );
           gl_Position.z = pulled.z / pulled.w * gl_Position.w;
         }` : ''}`,
       );
@@ -196,7 +207,7 @@ export function thickOutlineMaterial(
     if (openFoot) cutBelowFloor(mat, 0);
     // (Not the stencil mark: that's render state, not shader code, so every mark shares one
     // program. Merging keys on the stencil settings itself, see merge-static.ts.)
-    mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}`;
+    mat.customProgramCacheKey = () => `thickOutline${extra}|${pull}|${openFoot}|${pullFloor}`;
     thickOutlines.set(key, mat);
   }
   return mat;

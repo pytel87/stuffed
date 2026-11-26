@@ -152,6 +152,11 @@ export function updateRide(world: World, state: GameState, player: Player): bool
     state.events.push({ type: 'rideEnded', playerId: player.id, kind: r.kind, pos: { ...pos } });
     return true;
   }
+  // Off a zip line just past its far pole (solid: landing on it, the plush was shoved off sideways).
+  if (r.kind === 'zip') {
+    const past = R.zipPole + player.radius + 0.01;
+    player.pos = { x: r.to.x + (dx / len) * past, y: r.to.y + (dy / len) * past };
+  }
   player.knockback.x += (dx / len) * r.boost;
   player.knockback.y += (dy / len) * r.boost;
   player.vz = r.hop ?? 0;

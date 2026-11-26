@@ -476,12 +476,12 @@ function roof(b: Building): RoofView {
           m.stencilZPass = THREE.ReplaceStencilOp;
         }
       }
-      hullLine.material = thickOutlineMaterial(OUTLINE_COLOR, 0.035, wreckMark, 0.15);
+      hullLine.material = thickOutlineMaterial(OUTLINE_COLOR, 0.035, wreckMark, 0.15, false, 0);
       hullLine.renderOrder = 3;
       // The mast, its spar and sail: one outline round them together (each piece's own crossed the
       // others in broken slivers).
       sides.updateMatrixWorld(true);
-      outlineProp(stump, nextMark(), 0.03);
+      outlineProp(stump, nextMark(), 0.03, undefined, false, b.height);
       break;
     }
     case 'hut': {

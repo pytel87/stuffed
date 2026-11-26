@@ -12,7 +12,7 @@ import { evenOutlines, fadeObject, makePlastic, outlineMaterial, OUTLINE_COLOR, 
 
 const plastic = (c: string) => makePlastic(toonMaterial(c, { map: null }));
 
-function trampoline(radius: number): THREE.Group {
+function trampoline(radius: number, floor = 0): THREE.Group {
   const g = new THREE.Group();
   const frame = toonMesh(new THREE.TorusGeometry(radius, 0.12, 10, 40), '#3d7ff2', { outline: 0.06, material: plastic('#3d7ff2') });
   frame.rotation.x = Math.PI / 2;
@@ -30,8 +30,8 @@ function trampoline(radius: number): THREE.Group {
     leg.position.set(Math.cos(a) * radius, 0.22, Math.sin(a) * radius);
     g.add(leg);
   }
-  // One even outline round the whole thing (see outlineProp).
-  outlineProp(g, nextMark(), 0.025);
+  // One even outline round the whole thing (see outlineProp), pulled round its foot on what it stands on.
+  outlineProp(g, nextMark(), 0.025, undefined, false, floor);
   return g;
 }
 
@@ -375,7 +375,7 @@ export class RideViews {
     this.mapId = map.id;
     const root = new THREE.Group();
     for (const t of map.trampolines ?? []) {
-      const v = trampoline(t.radius);
+      const v = trampoline(t.radius, t.z ?? 0);
       v.position.set(t.center.x, t.z ?? 0, t.center.y);
       root.add(v);
     }

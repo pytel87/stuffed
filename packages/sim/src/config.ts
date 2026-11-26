@@ -500,6 +500,8 @@ export const config = {
   rides: {
     /** How close to a zip line's or tube's start E works, and to a slide's top to set off. */
     pressRange: 1.4,
+    /** A zip line's pole at each end (solid; see ride-views.ts), and a rider arriving lands just past it. */
+    zipPole: 0.12,
     stepRange: 0.8,
     /** Seconds after a ride before another can start. */
     again: 1,

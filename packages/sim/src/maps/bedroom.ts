@@ -79,11 +79,12 @@ const toys: Wall[] = [
 // ---------- Bookshelf (SW) ----------
 // Its middle shelf a tall bookcase to walk along the top of (3.6), up two stacks of books at its
 // north end; a zip line from there to the castle keep's roof, and back.
-const BOOKCASE_TOP = { x: 18.5, y: 80.8, z: 3.6 };
+// (2 wide: room beside the zip line's pole.)
+const BOOKCASE_TOP = { x: 19, y: 80.8, z: 3.6 };
 const KEEP_EDGE = { x: 54.3, y: 56, z: 2.4 };
 const shelf: Wall[] = [
-  plank(8, 76, 1, 24), w('plank', 3.6)(18, 80, 1, 18), plank(28, 92, 10, 1),
-  book(21, 80, 2, 2, 1.2), book(19, 80, 2, 2, 2.4), // the steps up
+  plank(8, 76, 1, 24), w('plank', 3.6)(18, 80, 2, 18), plank(28, 92, 10, 1),
+  book(22, 80, 2, 2, 1.2), book(20, 80, 2, 2, 2.4), // the steps up
   book(11, 82, 2, 1.6), book(12, 94, 1.6, 2, 1.6), book(21.5, 86, 2, 1.6), book(22, 100, 3, 1.6, 0.8), book(32, 84, 1.6, 3),
 ];
 
