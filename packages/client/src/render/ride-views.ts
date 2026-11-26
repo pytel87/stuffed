@@ -117,7 +117,8 @@ const GLOW = new THREE.Color('#ffd23a');
  */
 function lookoutDoor(r: RideDef): { root: THREE.Group; door: THREE.MeshToonMaterial; light: THREE.MeshBasicMaterial; track: THREE.Mesh; fill: THREE.Mesh; radius: number; step: number } {
   const root = new THREE.Group();
-  root.position.set(r.to.x, 0, r.to.y);
+  // (On what its foot stands on: the lighthouse's on the sand, a crow's nest's on the deck.)
+  root.position.set(r.to.x, r.from.z, r.to.y);
   root.rotation.y = Math.atan2(r.from.x - r.to.x, r.from.y - r.to.y);
   // The door: 0.66 wide, 1.18 tall, its foot 0.6 up (on the stone foot), on the tower's face.
   const w = 0.66;
@@ -132,10 +133,11 @@ function lookoutDoor(r: RideDef): { root: THREE.Group; door: THREE.MeshToonMater
   const panel = new THREE.Mesh(new THREE.ShapeGeometry(arch, 12), door);
   // Just over the painted door (the tower's face is ~1.39 out there).
   panel.position.set(0, 0.6, 1.425);
-  root.add(panel);
+  // (A crow's nest has no door: you climb its mast's ladder.)
+  if (!r.nest) root.add(panel);
   const light = new THREE.MeshBasicMaterial({ color: GLOW, map: glowMap(), transparent: true, depthWrite: false, toneMapped: false });
   const spot = new THREE.Mesh(new THREE.CircleGeometry(1.4, 32).rotateX(-Math.PI / 2), light);
-  spot.position.set(0, 0.03, 1.9);
+  spot.position.set(0, 0.03, Math.hypot(r.from.x - r.to.x, r.from.y - r.to.y) - 0.1);
   root.add(spot);
   // The ring round its foot while you have to wait (as round a recharging toy): a dark track, a gold
   // arc filling it from the top round clockwise (as seen from the camera).
@@ -374,7 +376,7 @@ export class RideViews {
     const root = new THREE.Group();
     for (const t of map.trampolines ?? []) {
       const v = trampoline(t.radius);
-      v.position.set(t.center.x, 0, t.center.y);
+      v.position.set(t.center.x, t.z ?? 0, t.center.y);
       root.add(v);
     }
     for (const s of map.seesaws ?? []) {

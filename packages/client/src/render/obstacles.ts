@@ -238,7 +238,7 @@ function roof(b: Building): RoofView {
       // A shipwreck: the whole broken hull is drawn here (its walls are only for the sim). Plank
       // sides sloping out from the sand up to the deck, narrowing to a rounded stern (-x); the bow
       // (+x) snapped off, its deck ragged; a hole in the south side to get in. On deck: a hole stove in, the
-      // mast snapped off and leaning with a torn sail, a rail along the stern. (Level: listing, half
+      // mast standing with a crow's nest up top and a torn sail, a rail along the stern. (Level: listing, half
       // its deck stood above where the sim has it, over the glow of loot lying there and plushies' feet.)
       const base = -(b.height - ROOF_THICKNESS / 2 + 0.01);
       const L = b.w + 0.4;
@@ -326,6 +326,27 @@ function roof(b: Building): RoofView {
       // floor. The beach's sand shows in there, in the deck's shadow.)
       const caps = THREE.ShapeUtils.triangulateShape(loop.map((p) => new THREE.Vector2(p.top.x, p.top.z)), []);
       for (const [a, b, c] of caps) tri(loop[a!]!.top, loop[b!]!.top, loop[c!]!.top, true);
+      // Its outline round its foot instead: a thin dark band on the sand along the hull's sides and
+      // stern (not across the doorway or the broken bow, the ways in).
+      const footPos: number[] = [];
+      const FOOT_BAND = 0.07;
+      const footAt = (p: (typeof ring)[number], out: number) => {
+        const b = bottomAt(p);
+        const len = Math.hypot(b.x, b.z) || 1;
+        return [b.x + (b.x / len) * out, base + 0.035, b.z + (b.z / len) * out] as const;
+      };
+      ring.forEach((p, i) => {
+        if (i === 0) return;
+        const q = ring[i - 1]!;
+        if (inDoor(p) && inDoor(q)) return;
+        const [a, b, c, d] = [footAt(q, 0), footAt(p, 0), footAt(p, FOOT_BAND), footAt(q, FOOT_BAND)];
+        footPos.push(...a, ...b, ...c, ...a, ...c, ...d);
+      });
+      const footGeo = new THREE.BufferGeometry();
+      footGeo.setAttribute('position', new THREE.Float32BufferAttribute(footPos, 3));
+      const foot = new THREE.Mesh(footGeo, new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.DoubleSide }));
+      foot.name = 'outline';
+      sides.add(foot);
       // (The broken bow is left open, dark inside: there's no wall there, it's a way in. Closed with
       // planks, it looked solid and plushies walked through it.)
       const solid = new THREE.BufferGeometry();
@@ -376,26 +397,50 @@ function roof(b: Building): RoofView {
       hole.scale.set(1.3, 1, 0.9);
       sides.add(hole);
       const wood = '#8a5a32';
+      // The mast (where the map has it: see MAST_AT in cove.ts), standing, a crow's nest on top
+      // (the lookout up it), a rope ladder up its south side and a flag over the nest.
       const stump = new THREE.Group();
       stump.position.set(-L / 10, top, 0);
-      stump.rotation.z = -0.32;
-      // The mast, snapped off: its top broken off at a slant, a little ragged (a deep notch in it
-      // read as a V, and broke its outline).
-      const poleGeo = new THREE.CylinderGeometry(0.24, 0.3, 3.4, 12, 3);
-      const pp = poleGeo.attributes.position!;
-      for (let i = 0; i < pp.count; i++) {
-        if (pp.getY(i) < 1.69) continue;
-        const a = Math.atan2(pp.getZ(i), pp.getX(i));
-        const r = Math.hypot(pp.getX(i), pp.getZ(i)) / 0.24;
-        pp.setY(i, 1.7 - 0.22 - 0.22 * r * Math.cos(a) - 0.04 * r * Math.sin(a * 5));
-      }
-      poleGeo.computeVertexNormals();
-      const pole = toonMesh(poleGeo, wood, { outline: 0.08 });
-      pole.position.y = 1.7;
+      const NEST = 5.2;
+      const pole = toonMesh(new THREE.CylinderGeometry(0.2, 0.28, NEST + 1.2, 12), wood, { outline: 0.08 });
+      pole.position.y = (NEST + 1.2) / 2;
       stump.add(pole);
+      // The nest: an open barrel of boards round the mast, with a rim.
+      const nestGeo = new THREE.CylinderGeometry(0.85, 0.7, 0.9, 18, 1, true);
+      const nestMat = toonMaterial('#ffffff', { map: tiled(plankTexture(), 2, 0.5) });
+      nestMat.color.set('#9a6a3e');
+      nestMat.side = THREE.DoubleSide;
+      const nest = new THREE.Mesh(nestGeo, nestMat);
+      nest.position.y = NEST + 0.15;
+      nest.castShadow = true;
+      stump.add(nest);
+      const floor = toonMesh(new THREE.CylinderGeometry(0.7, 0.7, 0.08, 18), '#6b4128', { outline: false });
+      floor.position.y = NEST - 0.28;
+      stump.add(floor);
+      const rim = toonMesh(new THREE.TorusGeometry(0.85, 0.07, 6, 24).rotateX(Math.PI / 2), '#6b4128', { outline: 0.1 });
+      rim.position.y = NEST + 0.6;
+      stump.add(rim);
+      // The flag: a little dark pennant with a white skull-ish dot, on top of the mast.
+      const flag = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(1.1, -0.28), new THREE.Vector2(0, -0.56)])), toonMaterial('#2b2730', { map: null, side: THREE.DoubleSide }));
+      flag.position.set(0.2, NEST + 1.15, 0);
+      stump.add(flag);
+      const dot = new THREE.Mesh(new THREE.CircleGeometry(0.1, 12), flat('#f4ead2'));
+      dot.position.set(0.48, NEST + 0.87, 0.01);
+      stump.add(dot);
+      // The rope ladder: rungs up the mast's south side, from the deck to the nest.
+      for (let y = 0.45; y < NEST - 0.4; y += 0.5) {
+        const rung = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.05, 0.05), flat('#d8c39a'));
+        rung.position.set(0, y, 0.32);
+        stump.add(rung);
+      }
+      for (const sx of [-1, 1]) {
+        const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, NEST - 0.4, 5), flat('#b89a6a'));
+        rope.position.set(sx * 0.27, (NEST - 0.4) / 2, 0.32);
+        stump.add(rope);
+      }
       // A spar still across it, hanging askew, and a torn sail down from that.
       const rig = new THREE.Group();
-      rig.position.y = 2.5;
+      rig.position.y = 3.6;
       rig.rotation.set(0, 0.35, 0.12);
       const spar = toonMesh(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 8), wood, { outline: 0.12 });
       spar.rotation.z = Math.PI / 2;
@@ -667,6 +712,15 @@ function roof(b: Building): RoofView {
       on(softBox(w + 0.04, 0.06, d * 0.25, 0.02, flat('#fffaf3')), 0, top + 0.03, -d / 2 + d * 0.33);
       break;
     }
+    case 'bunk': {
+      // The top bunk: its own quilt (tinted, so it reads as a second bed) and a pillow at the
+      // headboard end. (Its posts are the map's walls.)
+      const quilt = toonMaterial('#ffffff', { map: tiled(quiltTexture(), w / 6, d / 6) });
+      quilt.color.set('#cfe3ff');
+      lid(quilt);
+      on(softBox(w * 0.6, 0.45, 2.4, 0.2, flat('#fffaf3')), 0, top + 0.2, -d / 2 + 1.6).castShadow = true;
+      break;
+    }
     case 'desk': {
       // A wooden desktop with a sheet of paper, crayons and a little lamp.
       lid(toonMaterial('#ffffff', { map: tiled(plankTexture(), w / 2, d / 4) }));
@@ -782,11 +836,13 @@ function touchingGroups(walls: readonly Wall[]): number[] {
 function underRoof(wall: Wall, map: MapData): Wall {
   // (A volcano's summit is walked on, not roofed over.)
   if (wall.kind === 'volcano') return wall;
+  // Up to the highest roof it reaches (a bunk bed's posts: up through the bottom bunk to the top one).
+  let roof = -1;
   for (const b of map.buildings) {
     const inside = wall.x >= b.x - 0.01 && wall.y >= b.y - 0.01 && wall.x + wall.w <= b.x + b.w + 0.01 && wall.y + wall.h <= b.y + b.h + 0.01;
-    if (inside && wall.height >= b.height - 0.05) return { ...wall, height: b.height - 0.08 };
+    if (inside && wall.height >= b.height - 0.05) roof = Math.max(roof, b.height);
   }
-  return wall;
+  return roof < 0 ? wall : { ...wall, height: roof - 0.08 };
 }
 
 /**
@@ -883,7 +939,7 @@ const VOLCANO_ISLAND = 1.35;
  * walked on); its summit a pool of lava round a little rock island (the chest's), smoking; rivers
  * of lava run from it down every face and across every ledge to the sand, on the rock's surface.
  */
-function volcanoModel(pieces: readonly Wall[]): THREE.Group {
+function volcanoModel(pieces: readonly Wall[], snow = false): THREE.Group {
   const g = new THREE.Group();
   const cx = pieces.reduce((s, w) => s + w.x + w.w / 2, 0) / pieces.length;
   const cz = pieces.reduce((s, w) => s + w.y + w.h / 2, 0) / pieces.length;
@@ -934,7 +990,8 @@ function volcanoModel(pieces: readonly Wall[]): THREE.Group {
     const k = y >= t.h - 0.001 ? 1 : lumpy(x, y, z);
     return new THREE.Vector3(x * k + Math.sin(a) * out, y, z * k + Math.cos(a) * out);
   };
-  const rock = makeTriplanar(toonMaterial('#8a7d76', { map: rockTexture() }), 0.45);
+  // (A snow hill: the same mound in snow, without the lava.)
+  const rock = snow ? makeTriplanar(toonMaterial('#ffffff', { map: snowTexture() }), 0.45) : makeTriplanar(toonMaterial('#8a7d76', { map: rockTexture() }), 0.45);
   const N = 160;
   const ROWS = 4;
   const drums = new THREE.Group();
@@ -975,6 +1032,7 @@ function volcanoModel(pieces: readonly Wall[]): THREE.Group {
   // One even outline weight on every tier, pulled toward the camera so it shows round their feet.
   evenOutlines(drums, 0.03, 0.15);
   g.add(drums);
+  if (snow) return g;
   // Lava: molten, its crust drifting (down the rivers, slowly round the pool).
   const lavaMaterial = (tex: THREE.Texture) => {
     const m = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
@@ -1132,7 +1190,7 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
   const group = touchingGroups(map.walls);
   map.walls.forEach((b, i) => {
     // (A shipwreck's sides are drawn with its deck, like an igloo's blocks with its dome.)
-    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo' && b.kind !== 'ramp' && b.kind !== 'hull' && b.kind !== 'skull' && b.kind !== 'volcano' && b.kind !== 'cave') {
+    if (b.kind !== 'ball' && b.kind !== 'rim' && b.kind !== 'duck' && b.kind !== 'igloo' && b.kind !== 'ramp' && b.kind !== 'hull' && b.kind !== 'skull' && b.kind !== 'volcano' && b.kind !== 'snowhill' && b.kind !== 'cave') {
       const fitted = underRoof(b, map);
       root.add(buildWall(fitted, i, fitted !== b, 32 + (group[i]! % 220)));
     }
@@ -1174,6 +1232,14 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
   // A volcano: drawn whole from its tiers' pieces (see volcanoModel).
   const volcanoPieces = map.walls.filter((w) => w.kind === 'volcano');
   if (volcanoPieces.length > 0) root.add(volcanoModel(volcanoPieces));
+  // Snow hills: the same, in snow, one mound per hill (its tiers all round one middle).
+  const hills = new Map<string, Wall[]>();
+  for (const w of map.walls) {
+    if (w.kind !== 'snowhill') continue;
+    const key = `${Math.round(w.x + w.w / 2)},${Math.round(w.y + w.h / 2)}`;
+    hills.set(key, [...(hills.get(key) ?? []), w]);
+  }
+  for (const pieces of hills.values()) root.add(volcanoModel(pieces, true));
   for (const b of map.buildings) {
     if (b.kind !== 'cave' && b.kind !== 'skull') continue;
     const front = map.walls

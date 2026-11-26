@@ -445,6 +445,8 @@ export interface RideDef {
   seconds: number;
   boost: number;
   hop?: number;
+  /** A lookout up a ship's mast, into its crow's nest (the lighthouse's has a door on its tower). */
+  nest?: boolean;
 }
 
 /** The map's big toy: a jack-in-the-box, a garden sprinkler, or an ice drill on the pond. */
@@ -594,6 +596,8 @@ export type WallKind =
   | 'rim'
   /** The steps under a slide or a sled run, so it's solid (drawn as the ramp itself). */
   | 'ramp'
+  /** A big snow hill's tiers (drawn as one smooth mound, like the volcano: see volcanoModel). */
+  | 'snowhill'
   /** A rubber duck floating in a pool: it becomes a pushable ball (see Ball). */
   | 'duck'
   // The Snowy Park.
@@ -649,7 +653,7 @@ export interface Wall extends Box {
 export interface Building extends Box {
   height: number;
   /** Roof look only. */
-  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'desk' | 'cabin' | 'igloo' | 'wreck' | 'hut' | 'skull' | 'volcano' | 'cave';
+  kind?: 'cardboard' | 'house' | 'shed' | 'treehouse' | 'table' | 'bed' | 'bunk' | 'desk' | 'cabin' | 'igloo' | 'wreck' | 'hut' | 'skull' | 'volcano' | 'cave';
 }
 
 /** A patch of ground drawn differently (no effect on play). */
@@ -728,8 +732,8 @@ export interface MapData {
   pins?: Vec2[];
   /** Hills to hold alone: a circle on top of something at height `z`. */
   hills?: { x: number; y: number; z: number; radius: number }[];
-  /** Trampolines: whoever stands on one is bounced high. */
-  trampolines?: Circle[];
+  /** Trampolines: whoever stands on one is bounced high. `z`: what it stands on (0: the floor). */
+  trampolines?: (Circle & { z?: number })[];
   /** Seesaws: landing on end `a` launches whoever stands on `b`, and the other way round. */
   seesaws?: { a: Vec2; b: Vec2 }[];
   /** The map's big toy: pressed at (x, y, z), acting at `at` (the same spot when omitted). */

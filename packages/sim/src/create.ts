@@ -213,9 +213,9 @@ function planToss(map: MapData, rng: RngState): Toss {
   };
 }
 
-/** The roof height of the building over `pos` (where a roof chest stands). */
+/** The roof height of the building over `pos` (where a roof chest stands: the top one, on a bunk bed). */
 function roofUnder(map: MapData, pos: Vec2): number {
-  const b = map.buildings.find((b) => pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h);
-  if (!b) throw new Error(`roof chest at ${pos.x}, ${pos.y} is not on a building`);
-  return b.height;
+  const over = map.buildings.filter((b) => pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h);
+  if (over.length === 0) throw new Error(`roof chest at ${pos.x}, ${pos.y} is not on a building`);
+  return Math.max(...over.map((b) => b.height));
 }

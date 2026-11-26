@@ -77,6 +77,9 @@ const chestSpawns: ChestSpawn[] = [
 // A rowboat pulled up on its east beach.
 const rowboat = w('rowboat', 0.8);
 walls.push(rowboat(C + 15.5, C - 5, 1.4, 3.2));
+// A crate tower on its east side (up from the crate beside it): a zip line to Skull Rock's isle.
+walls.push(crate(C + 6.5, C - 6.5, 2, 2, 2.4));
+const TREASURE_TOWER = { x: C + 7.5, y: C - 5.5, z: 2.4 };
 // The parrot piñata hangs off the spar of a broken mast stuck in the sand.
 const MAST = { x: C + 6.4, y: C + 11.9, w: 1.2, h: 1.2 };
 walls.push(w('mast', 4.4)(MAST.x, MAST.y, MAST.w, MAST.h));
@@ -158,6 +161,10 @@ digs.push({ x: SE.x + 6.5, y: SE.y + 9 });
 // its deck, where the cannon's button is (it calls the cannonballs).
 const SW = ISLES.sw.center;
 const WRECK: Building = { x: SW.x - 6.5, y: SW.y - 3.4, w: 13, h: 6.5, height: 2.4, kind: 'wreck' };
+/** Its mast, standing on the deck (where obstacles.ts draws it: a tenth of its drawn length aft of
+ *  its middle), a crow's nest up top. */
+const MAST_AT = { x: WRECK.x + WRECK.w / 2 - (WRECK.w + 0.4) / 10, y: WRECK.y + WRECK.h / 2 };
+const CROWS_NEST = 5.2;
 const hull = w('hull', 2.4);
 walls.push(
   hull(WRECK.x, WRECK.y, WRECK.w, 0.5),
@@ -191,6 +198,10 @@ const SKULL_C = 4.1;
 // The cave (where you're hidden): a box inside the dome, its corners in reach of nobody outside.
 const SKULL: Building = { x: SKULL_MID.x - 3.8, y: SKULL_MID.y - 3.2, w: 7.6, h: 6.4, height: 4.2, kind: 'skull' };
 walls.push(...skullShell(), cask(E.x + 5.6, E.y + 6.4), palm(E.x + 5.5, E.y - 6.5), palm(E.x - 6.5, E.y + 6.5));
+// A lookout rock on its west side, facing Treasure Island (a smaller one to climb it from): a zip
+// line from there to a crate tower on Treasure Island's east side, and back.
+walls.push(rock(E.x - 8.2, E.y - 2.4, 2, 2, 2.4), rock(E.x - 9.8, E.y - 2.2, 1.6, 1.6, 1.2));
+const SKULL_ROCK = { x: E.x - 7.2, y: E.y - 1.4, z: 2.4 };
 
 /**
  * The dome's shell as strips side by side, stepping round its oval (a box with corners stood out
@@ -256,9 +267,14 @@ const WRECK_DECK = { x: WRECK.x + 6, y: WRECK.y + 1.1, z: WRECK.height };
 const rides: RideDef[] = [
   { kind: 'zip', from: LOOKOUT, to: WRECK_DECK, seconds: 3.5, boost: 3 },
   { kind: 'zip', from: WRECK_DECK, to: LOOKOUT, seconds: 3.5, boost: 3 },
+  { kind: 'zip', from: TREASURE_TOWER, to: SKULL_ROCK, seconds: 3.2, boost: 3 },
+  { kind: 'zip', from: SKULL_ROCK, to: TREASURE_TOWER, seconds: 3.2, boost: 3 },
   // Up the lighthouse from its door (south): a while in the lamp room, unseen, seeing far.
   { kind: 'lookout', from: { x: N.x, y: N.y + 2, z: 0 }, to: { x: N.x, y: N.y, z: 7.4 }, seconds: 10, boost: 0 },
   ...CATAPULTS.map((c) => c.ride),
+  // (After the lighthouse's.) Up the wreck's mast from its foot (south, on deck): a while in its crow's nest, unseen, seeing far.
+  // (Standing in the nest beside the mast, on its floor: drawn there, the head over its rim.)
+  { kind: 'lookout', nest: true, from: { x: MAST_AT.x, y: MAST_AT.y + 1.3, z: WRECK.height }, to: { x: MAST_AT.x, y: MAST_AT.y + 0.42, z: WRECK.height + CROWS_NEST - 0.24 }, seconds: 10, boost: 0 },
 ];
 
 // ---------- sunken treasure: out in the lagoon between the isles (dig it up wading, slow and in
@@ -334,6 +350,8 @@ export const COVE: MapData = {
     { kind: 'shark', x: SIZE - 6, y: 6 },
     { kind: 'shark', x: 6, y: SIZE - 6 },
   ],
+  // The wreck's mast: in the way on its deck.
+  roundProps: [{ x: MAST_AT.x, y: MAST_AT.y, z: WRECK.height, radius: 0.3 }],
   strikeButton: { x: WRECK.x + 2, y: WRECK.y + WRECK.h / 2, z: WRECK.height, kind: 'cannonballs' },
   pinata: { x: C + 4.6, y: MAST.y + MAST.h / 2, z: 0, kind: 'parrot', branch: { x: MAST.x + MAST.w / 2, y: MAST.y + MAST.h / 2, z: 3.9 } },
 };

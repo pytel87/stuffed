@@ -31,10 +31,18 @@ const pile = (x: number, y: number, radius = 2.2): Circle => ({ center: { x, y }
 const chest = (x: number, y: number, loot: ChestSpawn['loot'] = 'medium'): ChestSpawn => ({ x, y, loot });
 
 // ---------- The Bed (NW) ----------
+// A bunk bed: the bottom bunk the whole bed, the top bunk over its west half. Hide under it, on
+// the bottom bunk under the top one, or up top; a trampoline on the bottom bunk bounces you up,
+// and a slide takes you down off the top bunk's south end.
 const BED: Building = { x: 10, y: 10, w: 22, h: 14, height: 2.2, kind: 'bed' };
+const BUNK: Building = { x: 10, y: 10, w: 10, h: 14, height: 4.8, kind: 'bunk' };
+const BUNK_TRAMPOLINE = { center: { x: 22.6, y: 18.5 }, radius: 1.4, z: BED.height };
+const bunkPost = w('table-leg', BUNK.height);
 const bed: Wall[] = [
   w('plank', 3.4)(10, 8.6, 22, 1.4), // headboard
-  leg(10.3, 10.3, 0.9, 0.9), leg(30.8, 10.3, 0.9, 0.9), leg(10.3, 22.8, 0.9, 0.9), leg(30.8, 22.8, 0.9, 0.9),
+  // The top bunk's posts (its west ones the bed's legs too), and the bed's east legs.
+  bunkPost(10.3, 10.3, 0.9, 0.9), bunkPost(18.8, 10.3, 0.9, 0.9), bunkPost(10.3, 22.8, 0.9, 0.9), bunkPost(18.8, 22.8, 0.9, 0.9),
+  leg(30.8, 10.3, 0.9, 0.9), leg(30.8, 22.8, 0.9, 0.9),
   crate(33, 17, 2.2, 2.2), // a toy box to climb onto the bed
 ];
 
@@ -69,8 +77,13 @@ const toys: Wall[] = [
 ];
 
 // ---------- Bookshelf (SW) ----------
+// Its middle shelf a tall bookcase to walk along the top of (3.6), up two stacks of books at its
+// north end; a zip line from there to the castle keep's roof, and back.
+const BOOKCASE_TOP = { x: 18.5, y: 80.8, z: 3.6 };
+const KEEP_EDGE = { x: 54.3, y: 56, z: 2.4 };
 const shelf: Wall[] = [
-  plank(8, 76, 1, 24), plank(18, 80, 1, 18), plank(28, 92, 10, 1),
+  plank(8, 76, 1, 24), w('plank', 3.6)(18, 80, 1, 18), plank(28, 92, 10, 1),
+  book(21, 80, 2, 2, 1.2), book(19, 80, 2, 2, 2.4), // the steps up
   book(11, 82, 2, 1.6), book(12, 94, 1.6, 2, 1.6), book(21.5, 86, 2, 1.6), book(22, 100, 3, 1.6, 0.8), book(32, 84, 1.6, 3),
 ];
 
@@ -151,10 +164,16 @@ const rides: RideDef[] = [
     { kind: 'tube', from: { x: 40, y: 75, z: 0 }, to: { x: 72, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
     { kind: 'tube', from: { x: 72, y: 75, z: 0 }, to: { x: 40, y: 75, z: 0 }, seconds: 1.3, boost: 4 },
     ...CATAPULTS.map((c) => c.ride),
+    // The bookcase and the castle keep, both ways.
+    { kind: 'zip', from: BOOKCASE_TOP, to: KEEP_EDGE, seconds: 3.4, boost: 3 },
+    { kind: 'zip', from: KEEP_EDGE, to: BOOKCASE_TOP, seconds: 3.4, boost: 3 },
+    // (After the tubes: the walls below take the tube by its place.) Off the top bunk's south end, down to the floor.
+    { kind: 'slide', from: { x: 15, y: 24.1, z: BUNK.height }, to: { x: 15, y: 33, z: 0 }, seconds: 1.1, boost: 10 },
   ];
 
 const walls: Wall[] = [...CATAPULTS.map((c) => c.wall), ...bed, ...desk, ...castle, ...toys, ...shelf, ...dollhouse, ...tubeWalls(rides[1]!), ...bowling, ...[...rugToys, ...scattered].filter(clearOfTrack)];
-const buildings: Building[] = [BED, DESK, KEEP, TOYBOX, DOLLHOUSE];
+// (The bed before its top bunk: under the bed you're under the bed, not the bunk.)
+const buildings: Building[] = [BED, BUNK, DESK, KEEP, TOYBOX, DOLLHOUSE];
 
 const bushes: Circle[] = ([
   // laundry piles: hide in them
@@ -166,7 +185,7 @@ const chestSpawns: ChestSpawn[] = ([
   // under the bed and the desk, in the castle keep and the toy box
   chest(16, 17, 'high'), chest(26, 17, 'high'), chest(84, 14.5, 'high'), chest(93, 14.5, 'high'), chest(56, 56, 'high'), chest(94, 93, 'high'), chest(99, 54.5, 'high'),
   // on top of the bed, the desk and the dollhouse
-  { ...chest(21, 19, 'high'), roof: true }, { ...chest(91, 16.5, 'high'), roof: true }, { ...chest(97, 52.5, 'high'), roof: true },
+  { ...chest(14.5, 17, 'high'), roof: true }, // up on the top bunk { ...chest(91, 16.5, 'high'), roof: true }, { ...chest(97, 52.5, 'high'), roof: true },
   // castle yard
   chest(49.5, 60.5), chest(61.5, 49.5),
   // bookshelf
@@ -260,6 +279,7 @@ export const BEDROOM: MapData = {
     { kind: 'vacuum', x: 56, y: 35, area: { x: 38, y: 27, w: 34, h: 16 } },
   ],
   hills: [{ x: 56, y: 56, z: 2.4, radius: 2.2 }],
+  trampolines: [BUNK_TRAMPOLINE],
   // A jack-in-the-box by the rug.
   toy: { kind: 'jack', x: 66, y: 82, z: 0 },
   // A big wrapped present on the rug.

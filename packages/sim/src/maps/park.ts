@@ -108,8 +108,33 @@ function igloo(cx: number, cy: number, door: number): { walls: Wall[]; building:
 }
 const IGLOOS = [igloo(106, 38, Math.PI), igloo(10, 50, 0), igloo(100, 72, Math.PI)];
 
-// A sled hill: a snow mound (a step up onto it) with a run down to the east and a little jump.
-const sledHill: Wall[] = [w('snowwall', 2)(34.5, 70.5, 3, 3), w('snowwall', 0.9)(32.4, 71.3, 1.6, 1.4)];
+// The sled hill: a big snow hill in three tiers (1, 2 and 3 high: jump up a ledge at a time), a
+// high chest on its summit, and a long run from its top down to the east with a little jump at its
+// foot.
+const HILL = { x: 30, y: 72 };
+const sledHill: Wall[] = [];
+for (const [r, h] of [[5.2, 1], [3.5, 2], [1.9, 3]] as const) {
+  const s = r * 0.71;
+  const arm = r * 0.42;
+  const tier = w('snowhill', h);
+  sledHill.push(tier(HILL.x - s, HILL.y - s, s * 2, s * 2), tier(HILL.x - r, HILL.y - arm, r * 2, arm * 2), tier(HILL.x - arm, HILL.y - r, arm * 2, r * 2));
+}
+// A smaller snowdrift north of it (two tiers), in the open field below the west igloo.
+const DRIFT = { x: 31, y: 54 };
+for (const [r, h] of [[3.8, 1], [2, 2]] as const) {
+  const s = r * 0.71;
+  const arm = r * 0.42;
+  const tier = w('snowhill', h);
+  sledHill.push(tier(DRIFT.x - s, DRIFT.y - s, s * 2, s * 2), tier(DRIFT.x - r, DRIFT.y - arm, r * 2, arm * 2), tier(DRIFT.x - arm, DRIFT.y - r, arm * 2, r * 2));
+}
+// (The summit is a building only so its chest stands up there, like the volcano's: nothing drawn.)
+const HILL_TOP: Building = { x: HILL.x - 1.34, y: HILL.y - 1.34, w: 2.68, h: 2.68, height: 3, kind: 'volcano' };
+
+// A zip line between the top of the gift tower and the cabin roof, both ways. On the roof it starts
+// at the corner facing the tower (from further in, the line sagged under the roof's edge, into the
+// cabin's wall). The trampoline at the tower's foot bounces you up its steps.
+const GIFT_TOP = { x: 64.9, y: 109.5, z: 3 };
+const CABIN_ROOF = { x: 88.7, y: 96.3, z: 2.8 };
 
 // A catapult on each side of the park, throwing you up toward the frozen pond: south of Snowball
 // Alley, east of the pond, between the pond and the Gift Market, and by the west igloo.
@@ -119,10 +144,15 @@ const CATAPULTS = [
   catapult({ x: 64, y: 88 }, { x: C, y: C }),
   catapult({ x: 19, y: 59 }, { x: C, y: 59 }),
 ];
-const rides: RideDef[] = [{ kind: 'sled', from: { x: 37.6, y: 72, z: 2 }, to: { x: 46.2, y: 72, z: 0 }, seconds: 1.1, boost: 12, hop: 8 }, ...CATAPULTS.map((c) => c.ride)];
+const rides: RideDef[] = [
+  { kind: 'sled', from: { x: HILL.x + 1.85, y: HILL.y, z: 3 }, to: { x: HILL.x + 15, y: HILL.y, z: 0 }, seconds: 1.4, boost: 12, hop: 8 },
+  ...CATAPULTS.map((c) => c.ride),
+  { kind: 'zip', from: GIFT_TOP, to: CABIN_ROOF, seconds: 3, boost: 3 },
+  { kind: 'zip', from: CABIN_ROOF, to: GIFT_TOP, seconds: 3, boost: 3 },
+];
 
 const walls: Wall[] = [...CATAPULTS.map((c) => c.wall), ...IGLOOS.flatMap((i) => i.walls), ...pond, ...forest, ...alley, ...fort, ...cabin, ...market, ...garden, ...scattered, ...sledHill];
-const buildings: Building[] = [CABIN, ...IGLOOS.map((i) => i.building)];
+const buildings: Building[] = [CABIN, HILL_TOP, ...IGLOOS.map((i) => i.building)];
 
 const bushes: Circle[] = [
   // Pine Forest: dense
@@ -154,7 +184,7 @@ const chestSpawns: ChestSpawn[] = [
   chest(50, 96), chest(70, 96, 'low'),
   // around the pond and the fields
   chest(C, 40), chest(40, C, 'low'), chest(82, 55), chest(C, 80, 'low'), chest(100, 40, 'low'), chest(106, 104, 'low'),
-  chest(8, 64, 'low'), chest(112, 66, 'low'), chest(30, 70), chest(90, 50),
+  chest(8, 64, 'low'), chest(112, 66, 'low'), chest(23.5, 79), { ...chest(HILL.x, HILL.y, 'high'), roof: true }, chest(90, 50),
 ];
 
 // Snow clutter, just for looks: sleds, snowball piles and lost mittens.
@@ -246,6 +276,8 @@ export const PARK: MapData = {
   // A big pink present (gold ribbon, unlike the stacks around it) in the middle of the Gift Market.
   pinata: { x: 60, y: 100, z: 0, kind: 'present' },
   ice: [POND],
+  // A trampoline at the foot of the gift tower (bounce up its steps).
+  trampolines: [{ center: { x: 60.8, y: 105 }, radius: 1.4 }],
   grounds,
   zones,
   decor,

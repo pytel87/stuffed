@@ -2,6 +2,26 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## A bunk bed, a snow hill (2026-11-26)
+
+- The Bedroom's bookshelf has a tall bookcase to walk along the top of, up two stacks of books,
+  and a zip line from it to the castle keep's roof (and back).
+- A smaller snowdrift (two tiers) in the Snowy Park's open field below the west igloo.
+- The shipwreck's mast stands again, with a crow's nest on top: press E at its foot on deck to go
+  up for a while (unseen and out of reach, seeing far, like the lighthouse), your plush standing
+  in the nest. The mast is solid on the deck.
+- A zip line between a crate tower on Treasure Island's east side and a lookout rock on Skull
+  Rock's isle, both ways.
+- The shipwreck has its outline round its foot again (a thin dark line on the sand), open at its
+  doorway and broken bow.
+- The Snowy Park's sled hill is a big snow hill in three tiers (jump up a ledge at a time), a high
+  chest on its summit and a long run from its top.
+- A zip line between the top of the Snowy Park's gift tower and the log cabin's roof (both ways),
+  and a trampoline at the tower's foot to bounce up its steps.
+- The Bedroom's bed is a bunk bed: a top bunk over its west half (a high chest up there), a
+  trampoline on the bottom bunk to bounce up to it, and a slide down off its south end. Hide under
+  the bed, on the bottom bunk under the top one, or up top.
+
 ## Dearer sets (2026-11-26)
 
 - The shop's sets cost more: each missing part 100 Buttons for a 1★ animal, 200 for 2★, 400 for 3★,

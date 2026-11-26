@@ -161,8 +161,9 @@ export function updateRide(world: World, state: GameState, player: Player): bool
 
 /** Feet on a trampoline: bounced high. */
 export function onTrampoline(world: World, player: Pick<Player, 'pos' | 'z'>): boolean {
-  if (player.z > 0.05) return false;
-  return (world.map.trampolines ?? []).some((c) => Math.hypot(player.pos.x - c.center.x, player.pos.y - c.center.y) < c.radius);
+  return (world.map.trampolines ?? []).some(
+    (c) => Math.abs(player.z - (c.z ?? 0)) <= 0.05 && Math.hypot(player.pos.x - c.center.x, player.pos.y - c.center.y) < c.radius,
+  );
 }
 
 /** A plush just landed: on a trampoline it bounces; on a seesaw's end it launches the other end. */

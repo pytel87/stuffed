@@ -828,9 +828,11 @@ export class GameRenderer {
       // Plushies hidden in bushes, under a roof you're not under, or out of range are not drawn.
       // Riders are on board the blimp, out of sight (your own plush too).
       // Crawling through a hamster tube: out of sight (you too; the tube's too low for a plush).
-      // Up in the lighthouse's lookout: inside it, out of sight (you too).
-      const rideKind = p.ride ? this.world.map.rides?.[p.ride.index]?.kind : undefined;
-      const inTube = rideKind === 'tube' || rideKind === 'lookout';
+      // Up in the lighthouse's lookout: inside it, out of sight (you too). Up in a crow's nest you
+      // stand in it, your head over its rim (only you: nobody else sees you up there).
+      const ridden = p.ride ? this.world.map.rides?.[p.ride.index] : undefined;
+      const rideKind = ridden?.kind;
+      const inTube = rideKind === 'tube' || (rideKind === 'lookout' && !ridden?.nest);
       view.root.visible = p.drop !== 'riding' && !inTube && (this.debug || !viewer || canSee(this.world, curr, viewer, p));
       view.setGliding(p.drop === 'gliding' || p.umbrella);
       // The victory lap: the winner (or winning team) dances while standing still. In a warm-up,
