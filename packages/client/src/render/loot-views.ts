@@ -660,11 +660,11 @@ export function groundRing(color: THREE.ColorRepresentation, radius = 0.72): { g
   return { glow, halo };
 }
 
-const HOOP_TUBE = 0.055;
-const HOOP_OUTLINE = 0.022;
+export const HOOP_TUBE = 0.055;
+export const HOOP_OUTLINE = 0.022;
 
 /** Glossy toy plastic a little self-lit, so it stays bright in shade. */
-function neonPlastic(color: THREE.ColorRepresentation): THREE.MeshToonMaterial {
+export function neonPlastic(color: THREE.ColorRepresentation): THREE.MeshToonMaterial {
   const material = makePlastic(toonMaterial(color, { map: null }));
   material.emissive.set(color).multiplyScalar(0.45);
   material.toneMapped = false;
@@ -672,7 +672,7 @@ function neonPlastic(color: THREE.ColorRepresentation): THREE.MeshToonMaterial {
 }
 
 /** A plastic tube lying on the floor round a circle `radius` across (or `arc` of it), raised to sit on it. */
-function hoopGeometry(radius: number, tube: number, arc = Math.PI * 2): THREE.BufferGeometry {
+export function hoopGeometry(radius: number, tube: number, arc = Math.PI * 2): THREE.BufferGeometry {
   // Starting at the top of the screen (north) and going clockwise, like a clock's hand.
   return new THREE.TorusGeometry(radius, tube, 10, Math.max(8, Math.round((48 * arc) / (Math.PI * 2) * Math.max(1, radius))), arc)
     .rotateX(Math.PI / 2)

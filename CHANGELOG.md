@@ -2,6 +2,26 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## Calmer sharks and bots (2026-11-27)
+
+- Animal parts lying on the ground (mostly bodies) were drawn solid black: they show in their
+  colours again.
+- Under the bunk bed, both bunks fade (the top one hid you), and so does the trampoline on it.
+- Team mode: a knocked-out teammate's heart is a little bigger and plush (the plushies' minky
+  fabric). The ring under them is like the ones under loot (a glowing pink plastic hoop), and it
+  runs down round the circle as the 30 seconds to re-stitch them run out, a faint track where it's
+  gone (when it's gone, so is the heart: they can't be). While someone's re-stitching them, the
+  clock stands still: started in time, it finishes (it ran out under them halfway through).
+- Sharks no longer spin on the spot by the pirate ship or a rock: caught against one, they swim
+  out of it (before, every way looked blocked and they turned round every tick).
+- Bots go back and forth much less (about 40% less overall, a quarter as much on Pirate Cove):
+  - they find their way into and out of the huts on Pirate Cove (their pathfinding saw the 2-wide
+    doorways as closed);
+  - jumping on the way round something, they keep to their way round (they went straight at their
+    goal mid-jump, into the wall, and back);
+  - up on a wall, they still go for a chest below it (they forgot it up there, walked off, wanted
+    it again, jumped back up).
+
 ## Clean feet on props (2026-11-26)
 
 - Zip line poles are solid on every map: plushies bump into them (they walked right through

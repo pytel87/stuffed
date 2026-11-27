@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, BotController, Btn, canSee, config, createGame, createWorld, step } from '../src/index.ts';
+import { BACKYARD, BotController, Btn, canSee, config, createGame, createWorld, groundHeight, step } from '../src/index.ts';
 import type { EntityId, Input, Player } from '../src/index.ts';
 import { input, OPEN_MAP, roster } from './helpers.ts';
 
@@ -69,7 +69,8 @@ describe('the Toss', () => {
     for (const p of state.players) expect(p.drop).toBeNull();
     // Nobody is left standing on a roof after a little while (they'd be stuck and hard to hit).
     for (let t = 0; t < 30 * 20; t++) step(world, state, bots.inputs(world, state));
-    const onRoofs = state.players.filter((p) => p.alive && p.z > 1.5);
+    // (Standing up there: not just in the air, mid-jump, at this moment.)
+    const onRoofs = state.players.filter((p) => p.alive && p.z > 1.5 && groundHeight(world, state, p.pos, p.z) > 1.5);
     expect(onRoofs.length).toBeLessThanOrEqual(1);
     // They spread out rather than all landing in one spot.
     const xs = state.players.map((p) => Math.round(p.pos.x / 10));

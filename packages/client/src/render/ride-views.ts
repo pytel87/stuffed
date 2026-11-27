@@ -307,6 +307,8 @@ export class RideViews {
   private planks: THREE.Group[] = [];
   /** Each slide or sled run, and how faded it is (a plush under it shows through). */
   private ramps: { ride: RideDef; group: THREE.Group; fade: number }[] = [];
+  /** Trampolines standing up on something (a bed), to fade with its roof (see fadeOnRoofs). */
+  private raised: { obj: THREE.Object3D; x: number; y: number; z: number }[] = [];
   private tilts: number[] = [];
   /** Each catapult's spring and platform, by its ride's index. */
   private launchers: { ride: number; rings: THREE.Mesh[]; top: THREE.Group }[] = [];
@@ -321,6 +323,7 @@ export class RideViews {
     this.planks = [];
     this.tilts = [];
     this.ramps = [];
+    this.raised = [];
     this.launchers = [];
     this.doors = [];
     this.mapId = '';
@@ -328,6 +331,11 @@ export class RideViews {
 
   /** `viewer`: the plush we follow; a slide it stands under fades so it can be seen. */
   /** `you`: the plush we follow (a lookout shows how long until it may go up). */
+  /** Fades each raised trampoline by `fade` at its spot (0: gone, under the roof it's on). */
+  fadeOnRoofs(fade: (x: number, y: number, z: number) => number): void {
+    for (const t of this.raised) fadeObject(t.obj, fade(t.x, t.y, t.z));
+  }
+
   update(map: MapData, state: GameState, viewer?: { pos: { x: number; y: number }; z: number }, you?: Player): void {
     if (this.mapId !== map.id) this.build(map);
     for (const r of this.ramps) {
@@ -378,6 +386,7 @@ export class RideViews {
       const v = trampoline(t.radius, t.z ?? 0);
       v.position.set(t.center.x, t.z ?? 0, t.center.y);
       root.add(v);
+      if (t.z) this.raised.push({ obj: v, x: t.center.x, y: t.center.y, z: t.z });
     }
     for (const s of map.seesaws ?? []) {
       const v = seesaw(new THREE.Vector3(s.a.x, 0, s.a.y), new THREE.Vector3(s.b.x, 0, s.b.y));

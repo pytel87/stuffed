@@ -26,6 +26,8 @@ function lookKey(mesh: THREE.Mesh, m: THREE.Material): string | null {
   return [
     m.type,
     anyColour(m) ? 'any' : m.color.getHexString(),
+    // (Pieces with their corners' colours and pieces without can't share a mesh.)
+    m.vertexColors,
     m instanceof THREE.MeshToonMaterial ? m.emissive.getHexString() : '-',
     m.map?.uuid ?? '-',
     m.side,
@@ -57,7 +59,9 @@ function piecesOf(mesh: THREE.Mesh): { material: Mat; geometry: THREE.BufferGeom
   });
 }
 
-/** A copy with only position, normal and uv, unindexed, in `matrix` space (winding kept). */
+/** A copy with only position, normal, uv (and its corners' colours, if it has them: merged once
+ *  already), unindexed, in `matrix` space (winding kept). (Without them, a part merged again, lying
+ *  on the ground as loot, came out black.) */
 function baked(geometry: THREE.BufferGeometry, matrix: THREE.Matrix4): THREE.BufferGeometry {
   const src = geometry.index ? geometry.toNonIndexed() : geometry;
   const out = new THREE.BufferGeometry();
@@ -66,10 +70,12 @@ function baked(geometry: THREE.BufferGeometry, matrix: THREE.Matrix4): THREE.Buf
   out.setAttribute('normal', normal ? normal.clone() : new THREE.Float32BufferAttribute(src.getAttribute('position').count * 3, 3));
   const uv = src.getAttribute('uv');
   out.setAttribute('uv', uv ? uv.clone() : new THREE.Float32BufferAttribute(src.getAttribute('position').count * 2, 2));
+  const colour = src.getAttribute('color');
+  if (colour) out.setAttribute('color', colour.clone());
   out.applyMatrix4(matrix);
   // A mirrored transform turns triangles inside out; swap two corners back.
   if (matrix.determinant() < 0) {
-    for (const name of ['position', 'normal', 'uv']) {
+    for (const name of colour ? ['position', 'normal', 'uv', 'color'] : ['position', 'normal', 'uv']) {
       const a = out.getAttribute(name) as THREE.BufferAttribute;
       const n = a.itemSize;
       for (let t = 0; t < a.count; t += 3) {

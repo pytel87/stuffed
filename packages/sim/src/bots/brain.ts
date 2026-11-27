@@ -7,7 +7,7 @@ import { nextFloat, nextRange, seedRng } from '../rng.ts';
 import { chestInReach, findInteraction } from '../systems/loot.ts';
 import { chargeAmount } from '../systems/weapons.ts';
 import { canUseItem } from '../systems/items.ts';
-import { wading } from '../systems/movement.ts';
+import { groundHeight, wading } from '../systems/movement.ts';
 import { layoutOf, trainCars } from '../systems/train.ts';
 import { canSee } from '../systems/visibility.ts';
 import { Btn } from '../types.ts';
@@ -323,7 +323,7 @@ export class BotController {
       } else if (calm && this.tryHeal(bot, input)) {
         goal = null; // stand still while healing
       } else {
-        const loot = calm ? this.lootGoal(state, bot, m, input) : null;
+        const loot = calm ? this.lootGoal(world, state, bot, m, input) : null;
         goal = loot === 'stay' ? null : (loot ?? this.wanderGoal(state, bot, m));
       }
     }
@@ -535,7 +535,7 @@ export class BotController {
    * Where to go for the most useful nearby loot or chest; 'stay' while pressing E on it;
    * null when there's nothing worth getting.
    */
-  private lootGoal(state: GameState, bot: Player, m: Memory, input: Input): Vec2 | 'stay' | null {
+  private lootGoal(world: World, state: GameState, bot: Player, m: Memory, input: Input): Vec2 | 'stay' | null {
     // Already opening a chest: keep holding E and stay put.
     if (bot.action?.kind === 'openChest') {
       input.buttons |= Btn.Interact;
@@ -594,10 +594,14 @@ export class BotController {
       goal = loot.pos;
       bestD = d;
     }
+    // (Up on a roof, one below is inside, under it: it walks off first, the wander goal taking it
+    // down. Up on anything else, heading for it takes it down: on a wall it dropped the chest,
+    // wandered off the wall, wanted the chest again, jumped back up, round and round.)
+    const onRoof = bot.z > 0.5 && roofUnder(world, bot.pos, bot.z) !== null;
     for (const chest of state.chests) {
-      // Only one it can open from its level: up on a roof, it walks off first (the wander goal
-      // takes it down); one up on a roof is for climbers.
-      if (chest.opened || !chestInReach(bot, chest)) continue;
+      // One up on a roof is for climbers.
+      const below = chest.z + config.chest.height < bot.z && !onRoof;
+      if (chest.opened || (!chestInReach(bot, chest) && !below)) continue;
       const d = dist(bot.pos, chest.pos) + 4; // loot on the ground first
       if (d < bestD) {
         goal = chest.pos;
@@ -749,7 +753,10 @@ export class BotController {
    * then, or when stuck).
    */
   private waypoint(world: World, state: GameState, bot: Player, goal: Vec2, m: Memory): Vec2 {
-    if (bot.z > 0.5 || clearWalk(world, bot.pos, goal)) {
+    // (Up on something high, the ground's paths don't apply: straight there. Not just in the air: a
+    // jump on the way round something sent it straight at the goal, into the wall, and back to
+    // its path when it landed, back and forth.)
+    if (groundHeight(world, state, bot.pos, bot.z) > 0.5 || clearWalk(world, bot.pos, goal)) {
       m.path = null;
       return goal;
     }

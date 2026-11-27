@@ -906,7 +906,18 @@ export class GameRenderer {
     if (this.snowfall) fallSnow(this.snowfall, this.rig.target, opts.dt);
     updateBushes(this.bushes, this.followPos.x, this.followPos.y);
     // (Not while jumping up onto a roof: only under it, feet well below it.)
-    updateRoofs(this.roofs, viewer?.alive ? coveredBy(this.world, viewer) : -1, this.debug, opts.dt);
+    // Every roof over you, not just the one you're in: under a bunk bed, its top bunk too.
+    const inside = viewer?.alive ? coveredBy(this.world, viewer) : -1;
+    const over = new Set<number>();
+    if (inside !== -1 && viewer) {
+      this.world.map.buildings.forEach((b, i) => {
+        const p = viewer.pos;
+        if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h && viewer.z < b.height - 0.5) over.add(i);
+      });
+    }
+    updateRoofs(this.roofs, over, this.debug, opts.dt);
+    // A trampoline up on a roof you're under fades with it, like loot lying up there.
+    this.rides.fadeOnRoofs(this.roofFade);
 
     const following = opts.followId === opts.localPlayerId;
     // During the Toss (and from a catapult's throw until you land) the camera pulls back so you can

@@ -77,6 +77,13 @@ export function step(world: World, state: GameState, inputs: ReadonlyMap<EntityI
     player.heldButtons = input.buttons;
   }
 
+  // Being re-stitched: their clock stands still (started in time, it finishes, however long is
+  // left; the timer ran out under a teammate halfway through before). Let go, it runs on.
+  for (const p of state.players) {
+    if (p.alive || p.eliminatedTick === null) continue;
+    if (state.players.some((q) => q.alive && q.action?.kind === 'revive' && q.action.targetId === p.id)) p.eliminatedTick++;
+  }
+
   updateBalls(world, state);
   if (world.map.track) plowLoot(world.map.track, state);
   updateProjectiles(world, state);

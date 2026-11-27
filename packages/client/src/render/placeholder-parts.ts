@@ -151,7 +151,7 @@ export function buildPart(slot: PartSlot, animal: Animal): PartObject {
   return part;
 }
 
-type Fabric = 'minky' | 'knit' | 'corduroy';
+export type Fabric = 'minky' | 'knit' | 'corduroy';
 /** Each animal's fabric (the rest are minky dot plush). */
 const FABRICS: Partial<Record<Animal, Fabric>> = {
   bear: 'knit', cat: 'knit', fox: 'knit', lion: 'knit', koala: 'knit', penguin: 'knit',
@@ -161,7 +161,7 @@ const FABRICS: Partial<Record<Animal, Fabric>> = {
 const fabricMaps = new Map<Fabric, { map: THREE.Texture; normal: THREE.Texture }>();
 
 /** A fabric's tintable detail and its weave as a normal map, repeated a few times round a part. */
-function fabricDetail(kind: Fabric): { map: THREE.Texture; normal: THREE.Texture } {
+export function fabricDetail(kind: Fabric): { map: THREE.Texture; normal: THREE.Texture } {
   let maps = fabricMaps.get(kind);
   if (!maps) {
     const base = detailMaps(`fabric_${kind}`, feltTexture().image as HTMLCanvasElement);

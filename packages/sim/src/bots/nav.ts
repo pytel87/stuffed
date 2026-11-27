@@ -8,8 +8,9 @@ import type { World } from '../world.ts';
 const CELL = 1;
 /** A wall at least this tall can't be hopped (a jump clears about 1.5). */
 const TALL = 1.4;
-/** Walls are widened by this much: a plush's radius plus a little room. */
-const CLEARANCE = config.player.radius + 0.15;
+/** Walls are widened by this much: a plush's radius. (With room to spare on top, a 2-wide doorway, a
+ *  hut's, closed up on the grid: bots inside saw no way out and pushed at the wall, back and forth.) */
+const CLEARANCE = config.player.radius;
 /** Give up searching after this many cells (an unreachable goal shouldn't cost much). */
 const MAX_EXPANDED = 9000;
 

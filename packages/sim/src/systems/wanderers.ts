@@ -168,9 +168,26 @@ function updateShark(world: World, state: GameState, index: number, s: WandererS
   const defs = world.map.wanderers ?? [];
   const step = (dir: number) => ({ x: s.pos.x + Math.cos(dir) * speed * DT, y: s.pos.y + Math.sin(dir) * speed * DT });
   const stuck = !openSea(world, s.pos, S.radius + S.shore);
+  const ship = world.map.track ? trainCircles(world.map.track, state.tick) : [];
+  // How far into a wall, a rock or the ship it would be at `p` (0: clear of them all).
+  const into = (p: Vec2) => {
+    let most = 0;
+    for (const c of ship) most = Math.max(most, c.r + S.radius - Math.hypot(c.x - p.x, c.y - p.y));
+    for (const w of wallsNear(world, p.x - S.radius, p.y - S.radius, p.x + S.radius, p.y + S.radius)) {
+      if (w.height < 0.3) continue;
+      const cx = Math.max(w.x, Math.min(p.x, w.x + w.w));
+      const cy = Math.max(w.y, Math.min(p.y, w.y + w.h));
+      most = Math.max(most, S.radius - Math.hypot(p.x - cx, p.y - cy));
+    }
+    return most;
+  };
+  // Already in one (the ship sailed into it, or it was knocked there): any way that gets it out
+  // further is free. (Every step blocked, it turned round every tick: it spun on the spot.)
+  const inNow = into(s.pos);
   const free = (next: Vec2) => {
-    if ((!stuck && !openSea(world, next, S.radius + S.shore)) || blocked(world, next, S.radius)) return false;
-    if (world.map.track && trainCircles(world.map.track, state.tick).some((c) => Math.hypot(c.x - next.x, c.y - next.y) < c.r + S.radius)) return false;
+    if (!stuck && !openSea(world, next, S.radius + S.shore)) return false;
+    const inNext = into(next);
+    if (inNext > 0 && inNext >= inNow) return false;
     // Another shark there (they'd swim through each other), unless we're already heading apart.
     return !state.wanderers.some((o, j) => {
       if (j === index || defs[j]?.kind !== 'shark') return false;
@@ -194,7 +211,8 @@ function updateShark(world: World, state: GameState, index: number, s: WandererS
     moved = true;
     break;
   }
-  if (!moved) {
+  // Nowhere to go: turn round (once a second at most: every tick, it spun on the spot).
+  if (!moved && state.tick >= s.until) {
     s.dir += Math.PI * (0.5 + nextFloat(state.rng) * 0.5);
     s.until = state.tick + secondsToTicks(1);
   }

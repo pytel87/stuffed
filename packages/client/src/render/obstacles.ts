@@ -1263,9 +1263,9 @@ export function buildObstacles(map: MapData): { root: THREE.Group; bushes: BushV
  * The roof over the building you are in fades to a ghost so you can see inside; the others stay.
  * In the debug view every roof is see-through.
  */
-export function updateRoofs(roofs: RoofView[], localBuilding: number, debug: boolean, dt: number): void {
+export function updateRoofs(roofs: RoofView[], over: ReadonlySet<number>, debug: boolean, dt: number): void {
   roofs.forEach((r, i) => {
-    const target = i === localBuilding ? r.insideOpacity : debug ? 0.3 : 1;
+    const target = over.has(i) ? r.insideOpacity : debug ? 0.3 : 1;
     r.opacity += (target - r.opacity) * (1 - Math.exp(-ROOF_FADE_RATE * dt));
     if (Math.abs(r.opacity - target) < 0.01) r.opacity = target;
     r.object.visible = r.opacity > 0.01;
