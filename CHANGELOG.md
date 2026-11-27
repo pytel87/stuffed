@@ -2,6 +2,12 @@
 
 Newest first. Each entry is one runnable step of roadmap step 1 ("Toy in a box").
 
+## No runaway plush (2026-11-27)
+
+- A move key no longer sticks when its key-up goes missing (let go while Cmd, Ctrl, Option or the
+  Globe key was down, switching the keyboard's language, or in another tab): the plush walked on by
+  itself one way, and W only stopped it.
+
 ## Calmer sharks and bots (2026-11-27)
 
 - Animal parts lying on the ground (mostly bodies) were drawn solid black: they show in their

@@ -8,6 +8,9 @@ import type { InputSource } from '../session/session.ts';
  * (weapon slot, item use, wheel, reload tap) are latched until the next sample() so a short
  * tap is never lost.
  */
+/** Keys that can swallow other keys' key-ups (see the keydown handler). */
+const MODIFIERS = new Set(['Meta', 'Control', 'Alt', 'Fn', 'FnLock']);
+
 export class KeyboardMouseInput implements InputSource {
   /** Cursor position in client pixels, or null before the mouse has moved over the canvas. */
   pointer: Vec2 | null = null;
@@ -35,7 +38,19 @@ export class KeyboardMouseInput implements InputSource {
       // Typing in a field (your name in the lobby, a code) doesn't walk your plush.
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === 'Space') e.preventDefault(); // no page scroll
-      if (e.repeat) return;
+      // A modifier (Cmd, Ctrl, Option, the Globe key: shortcuts, switching the keyboard's language)
+      // can keep a key-up from coming: on a Mac, none for keys let go while Cmd is down. The plush
+      // walked on by itself, one way (W only stopped it). Let go of everything; a shortcut isn't a
+      // move.
+      if (MODIFIERS.has(e.key) || e.metaKey || e.ctrlKey || e.altKey) {
+        this.releaseAll();
+        return;
+      }
+      // Still held after that: the key's own repeats bring it back.
+      if (e.repeat) {
+        this.keys.add(e.code);
+        return;
+      }
       this.keys.add(e.code);
       if (e.code === 'Digit1') this.weaponSlot = 0;
       if (e.code === 'Digit2') this.weaponSlot = 1;
@@ -45,10 +60,14 @@ export class KeyboardMouseInput implements InputSource {
       // G drops the weapon in your hand.
       if (e.code === 'KeyG' && !e.repeat) this.dropSlot = this.heldSlot;
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => {
-      this.keys.clear();
-      this.fireHeld = false;
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if (MODIFIERS.has(e.key)) this.releaseAll();
+    });
+    // Away from the game (another window, another tab): its key-ups go elsewhere.
+    window.addEventListener('blur', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.releaseAll();
     });
     target.addEventListener('pointermove', (e) => {
       this.pointer = { x: e.clientX, y: e.clientY };
@@ -65,6 +84,12 @@ export class KeyboardMouseInput implements InputSource {
       if (e.deltaY !== 0) this.cycleWeapon = true;
     }, { passive: false });
     target.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  /** Nothing held any more (keys whose key-ups may never come). */
+  private releaseAll(): void {
+    this.keys.clear();
+    this.fireHeld = false;
   }
 
   /** Vector from the plush (or its barrel tip) to the cursor's point in the world. */
